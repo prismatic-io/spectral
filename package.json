@@ -17,10 +17,11 @@
   },
   "license": "MIT",
   "scripts": {
+    "clean": "rm -rf dist",
     "lint": "eslint --quiet --ext .ts,.js src/",
-    "format": "prettier --loglevel error --write '!./dist/**' '**'",
-    "check": "prettier --check '!./dist/**' '**'",
-    "build": "yarn run lint && tsc",
+    "format": "prettier --loglevel error --write '!./dist/**' '!LICENSE' '**'",
+    "check": "prettier --check '!./dist/**' '!LICENSE' '**'",
+    "build": "yarn run lint && yarn run clean && tsc",
     "prepack": "yarn run build",
     "test": "echo \"Warning: no test specified\""
   },
