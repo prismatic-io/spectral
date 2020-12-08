@@ -27,8 +27,6 @@ With Prismatic, you can:
 - Embed a white-labeled customer integration portal
 - Mold the platform to your product, industry, and the way you build software
 
-![Screenshot of an integration](https://www.prismatic.io/docs/img/why-prismatic/acmeerp-integration.png)
-
 ## Who uses Prismatic?
 
 Prismatic is for B2B (business-to-business) software companies, meaning software companies that provide applications used by businesses. It's a good fit for products/teams at any stage, including early stage SaaS, established SaaS, and legacy or on-prem systems.
