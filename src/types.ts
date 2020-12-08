@@ -1,5 +1,3 @@
-import pino from "pino";
-
 /** Defines attributes of a Component. */
 export interface ComponentDefinition {
   /** Specifies unique key for this Component. */
@@ -62,7 +60,7 @@ export interface HttpRequestConfiguration {
   /** URL to send the HTTP request to. */
   url: string;
   /** Body of the request. */
-  body: any;
+  body: unknown;
   /** Parameters to send with the request. */
   params: Record<string, string>;
   /** Headers to send with the request. */
@@ -79,6 +77,14 @@ export interface ActionDefinition {
   perform: ActionPerformFunction;
   /** InputFields to present in the Prismatic interface for configuration of this Action. */
   inputs: InputFieldDefinition[];
+  /** Optional attribute that specifies whether an Action will terminate execution.*/
+  terminateExecution?: boolean;
+  /** Determines whether an Action will allow Conditional Branching.*/
+  allowsBranching?: boolean;
+  /**Static Branch names associated with an Action. */
+  staticBranchNames?: string[];
+  /**The Input associated with Dynamic Branching.*/
+  dynamicBranchInput?: string;
 }
 
 /** Action-specific Display attributes. */
@@ -89,14 +95,23 @@ export interface ActionDisplayDefinition extends DisplayDefinition {
   important?: boolean;
 }
 
+type ActionLoggerFunction = (...args: unknown[]) => void;
+
+export interface ActionLogger {
+  debug: ActionLoggerFunction;
+  info: ActionLoggerFunction;
+  warn: ActionLoggerFunction;
+  error: ActionLoggerFunction;
+}
+
 /** Context provided to perform method containing helpers and contextual data */
 export interface ActionContext {
   /** Configuration variables that have been provided to the instance  */
   configVars: ConfigurationVariablesCollection;
   /** Credential for the action, optional since not all actions will require a credential */
   credential?: Credential;
-  /** Pino logger if desired; console calls are also captured */
-  logger: pino.Logger;
+  /** Logger for permanent logging; console calls are also captured */
+  logger: ActionLogger;
 }
 
 /** Collection of input parameters provided by the user or previous steps' outputs */
@@ -107,7 +122,13 @@ export interface ActionInputParameters {
 /** Used to represent returning conventional data and does not require content type to be specified */
 export interface PerformDataStructureReturn {
   /** Data structure to return from the action */
-  data: number | string | object | any[];
+  data:
+    | boolean
+    | number
+    | string
+    | Record<string, unknown>
+    | unknown[]
+    | unknown;
   /** The Content Type of the payload data that can be optionally specified */
   contentType?: string;
 }
@@ -115,15 +136,30 @@ export interface PerformDataStructureReturn {
 /** Used to represent a binary or serialized data return as content type must be specified */
 export interface PerformDataReturn {
   /** Data payload containing data of the specified contentType */
-  data: Buffer | string;
+  data: Buffer | string | unknown;
   /** The Content Type of the payload data */
   contentType: string;
+}
+
+/** Used to represent a branching return of conventional data and does not require content type to be specified */
+export interface PerformBranchingDataStructureReturn
+  extends PerformDataStructureReturn {
+  /** Name of the Branch to take. */
+  branch: string;
+}
+
+/** Used to represent a binary or serialized data branching return as content type must be specified */
+export interface PerformBranchingDataReturn extends PerformDataReturn {
+  /** Name of the Branch to take. */
+  branch: string;
 }
 
 /** Required return type of all action perform functions */
 export type PerformReturn =
   | PerformDataStructureReturn
+  | PerformBranchingDataStructureReturn
   | PerformDataReturn
+  | PerformBranchingDataReturn
   | void; // Allow an action to return nothing to reduce component implementation boilerplate
 
 /** Definition of the function to perform when an Action is invoked. */
@@ -132,24 +168,37 @@ export type ActionPerformFunction = (
   params: ActionInputParameters
 ) => Promise<PerformReturn>;
 
+export type InputFieldDefinition =
+  | DefaultInputFieldDefinition
+  | CodeInputFieldDefinition;
+
 /** Defines attributes of a InputField. */
-export interface InputFieldDefinition {
+export interface DefaultInputFieldDefinition {
   /** Unique identifier of the InputField. Must be unique within an Action. */
   key: string;
   /** Interface label of the InputField. */
   label: string;
   /** Data type the InputField will collect. */
   type: InputFieldType;
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
   /** Text to show as the InputField placeholder. */
   placeholder?: string;
   /** Default value for this field. */
   default?: string;
   /** Additional text to give guidance to the user configuring the InputField. */
   comments?: string;
+  /** Example valid input for this InputField. */
+  example?: string;
   /** Indicate if this InputField is required. */
   required?: boolean;
-  /** Dictates how possible choices are provided for this InputField. */
+  /** Dictates possible choices or a function to generate choices for the InputField. */
   model?: InputFieldChoice[] | InputFieldModelFunction;
+}
+
+export interface CodeInputFieldDefinition extends DefaultInputFieldDefinition {
+  type: "code";
+  language?: string;
 }
 
 /** InputField type enumeration. */
@@ -159,7 +208,19 @@ export type InputFieldType =
   | "password"
   | "boolean"
   | "code"
-  | "data";
+  | "data"
+  | "conditional";
+
+/** InputField collection enumeration */
+export type InputFieldCollection = "valuelist" | "keyvaluelist";
+
+/** KeyValuePair input parameter type */
+export interface KeyValuePair<V = unknown> {
+  /** Key of the KeyValuePair */
+  key: string;
+  /** Value of the KeyValuePair */
+  value: V;
+}
 
 /** Binary data payload */
 export interface DataPayload {

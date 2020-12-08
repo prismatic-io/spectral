@@ -12,5 +12,5 @@ export const action = (
 });
 export const input = (definition: InputFieldDefinition) => definition;
 
-// Make types defined in types.ts importable from @prismatic-io/spectral
+export { default as util } from "./util";
 export * from "./types";
