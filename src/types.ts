@@ -131,6 +131,8 @@ export interface PerformDataStructureReturn {
     | unknown;
   /** The Content Type of the payload data that can be optionally specified */
   contentType?: string;
+  /** The HTTP Status code that will be used if this terminates a synchronous invocation  */
+  statusCode?: number;
 }
 
 /** Used to represent a binary or serialized data return as content type must be specified */
@@ -139,6 +141,8 @@ export interface PerformDataReturn {
   data: Buffer | string | unknown;
   /** The Content Type of the payload data */
   contentType: string;
+  /** The HTTP Status code that will be used if this terminates a synchronous invocation  */
+  statusCode?: number;
 }
 
 /** Used to represent a branching return of conventional data and does not require content type to be specified */
