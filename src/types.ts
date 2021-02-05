@@ -12,6 +12,8 @@ export interface ComponentDefinition {
   authorization?: AuthorizationDefinition;
   /** Specifies the supported Actions of this Component. */
   actions: Record<string, ActionDefinition>;
+  /** Specified the URL for the Component Documentation. */
+  documentationUrl?: string;
 }
 
 export type ConfigurationVariablesCollection = Record<string, string>;
@@ -106,8 +108,6 @@ export interface ActionLogger {
 
 /** Context provided to perform method containing helpers and contextual data */
 export interface ActionContext {
-  /** Configuration variables that have been provided to the instance  */
-  configVars: ConfigurationVariablesCollection;
   /** Credential for the action, optional since not all actions will require a credential */
   credential?: Credential;
   /** Logger for permanent logging; console calls are also captured */
