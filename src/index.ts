@@ -14,3 +14,4 @@ export const input = (definition: InputFieldDefinition) => definition;
 
 export { default as util } from "./util";
 export * from "./types";
+export { default as testing } from "./testing";

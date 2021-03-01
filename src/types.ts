@@ -26,20 +26,78 @@ interface AuthorizationDefinition {
   methods: AuthorizationMethod[];
 }
 
-export type AuthorizationMethod =
-  | "api_key_secret"
-  | "basic"
-  | "private_key"
-  | "api_key"
-  | "oauth2";
+const authorizationMethods = [
+  "basic",
+  "api_key",
+  "api_key_secret",
+  "private_key",
+  "oauth2",
+] as const;
 
-export interface Credential {
-  authorizationMethod: AuthorizationMethod;
-  redirectUri?: string;
-  fields: { [key: string]: string };
-  token?: object;
-  context?: object;
+export type AuthorizationMethod = typeof authorizationMethods[number];
+
+export const AvailableAuthorizationMethods: AuthorizationMethod[] = [
+  ...authorizationMethods,
+];
+
+export interface BasicCredential {
+  authorizationMethod: "basic";
+  fields: {
+    username: string;
+    password: string;
+  };
 }
+
+export interface ApiKeyCredential {
+  authorizationMethod: "api_key";
+  fields: {
+    api_key: string;
+  };
+}
+
+export interface ApiKeySecretCredential {
+  authorizationMethod: "api_key_secret";
+  fields: {
+    api_key: string;
+    api_secret: string;
+  };
+}
+
+export interface PrivateKeyCredential {
+  authorizationMethod: "private_key";
+  fields: {
+    username: string;
+    private_key: string;
+  };
+}
+
+export interface OAuth2Credential {
+  authorizationMethod: "oauth2";
+  redirectUri: string;
+  fields: {
+    client_id: string;
+    client_secret: string;
+    auth_uri: string;
+    token_uri: string;
+    scopes: string;
+  };
+  token: {
+    [key: string]: string | undefined;
+    access_token?: string;
+    refresh_token?: string;
+    token_type?: string;
+    expires_at?: string;
+    expires_in?: string;
+  };
+  context: { [key: string]: string };
+}
+
+export type Credential =
+  | BasicCredential
+  | ApiKeyCredential
+  | ApiKeySecretCredential
+  | PrivateKeyCredential
+  | OAuth2Credential;
 
 /** Base definition of Display properties. */
 interface DisplayDefinition {
@@ -87,6 +145,10 @@ export interface ActionDefinition {
   staticBranchNames?: string[];
   /**The Input associated with Dynamic Branching.*/
   dynamicBranchInput?: string;
+  /**An example of the payload outputted by an Action*/
+  examplePayload?:
+    | PerformDataStructureReturn
+    | PerformBranchingDataStructureReturn;
 }
 
 /** Action-specific Display attributes. */
@@ -97,7 +159,7 @@ export interface ActionDisplayDefinition extends DisplayDefinition {
   important?: boolean;
 }
 
-type ActionLoggerFunction = (...args: unknown[]) => void;
+export type ActionLoggerFunction = (...args: unknown[]) => void;
 
 export interface ActionLogger {
   debug: ActionLoggerFunction;
