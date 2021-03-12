@@ -102,6 +102,9 @@ const toData = (value: unknown): DataPayload => {
   throw new Error(`Value '${value}' cannot be converted to a Buffer.`);
 };
 
+const formatJsonExample = (input: unknown) =>
+  ["```json", JSON.stringify(input, undefined, 2), "```"].join("\n");
+
 export default {
   types: {
     isBool,
@@ -114,5 +117,8 @@ export default {
     toDate,
     isUrl,
     toData,
+  },
+  docs: {
+    formatJsonExample,
   },
 };

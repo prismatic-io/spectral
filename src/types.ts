@@ -32,12 +32,24 @@ const authorizationMethods = [
   "api_key_secret",
   "private_key",
   "oauth2",
+  "oauth2_client_credentials",
 ] as const;
 
 export type AuthorizationMethod = typeof authorizationMethods[number];
 
 export const AvailableAuthorizationMethods: AuthorizationMethod[] = [
   ...authorizationMethods,
+];
+
+const oauth2AuthorizationMethods = [
+  "oauth2",
+  "oauth2_client_credentials",
+] as const;
+
+export type OAuth2AuthorizationMethod = typeof oauth2AuthorizationMethods[number];
+
+export const AvailableOAuth2AuthorizationMethods: OAuth2AuthorizationMethod[] = [
+  ...oauth2AuthorizationMethods,
 ];
 
 export interface BasicCredential {
@@ -70,9 +82,8 @@ export interface PrivateKeyCredential {
     private_key: string;
   };
 }
-
 export interface OAuth2Credential {
-  authorizationMethod: "oauth2";
+  authorizationMethod: OAuth2AuthorizationMethod;
   redirectUri: string;
   fields: {
     client_id: string;
@@ -174,6 +185,10 @@ export interface ActionContext {
   credential?: Credential;
   /** Logger for permanent logging; console calls are also captured */
   logger: ActionLogger;
+  /** A key/value store that may be used to store small amounts of data that is persisted between Instance executions */
+  instanceState: Record<string, unknown>;
+  /** A unique id that corresponds to the step on the Integration */
+  stepId: string;
 }
 
 /** Collection of input parameters provided by the user or previous steps' outputs */
@@ -195,6 +210,8 @@ export interface PerformDataStructureReturn {
   contentType?: string;
   /** The HTTP Status code that will be used if this terminates a synchronous invocation  */
   statusCode?: number;
+  /** An optional object, the keys and values of which will be persisted in the instanceState and available for subsequent actions and executions */
+  state?: Record<string, unknown>;
 }
 
 /** Used to represent a binary or serialized data return as content type must be specified */
@@ -205,6 +222,8 @@ export interface PerformDataReturn {
   contentType: string;
   /** The HTTP Status code that will be used if this terminates a synchronous invocation  */
   statusCode?: number;
+  /** An optional object, the keys and values of which will be persisted in the instanceState and available for subsequent actions and executions */
+  state?: Record<string, unknown>;
 }
 
 /** Used to represent a branching return of conventional data and does not require content type to be specified */
