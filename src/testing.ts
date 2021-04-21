@@ -90,6 +90,7 @@ export const credentials = {
 export const loggerMock = (): ActionLogger => ({
   debug: (spyOn(console, "debug") as unknown) as ActionLoggerFunction,
   info: (spyOn(console, "info") as unknown) as ActionLoggerFunction,
+  log: (spyOn(console, "log") as unknown) as ActionLoggerFunction,
   warn: (spyOn(console, "warn") as unknown) as ActionLoggerFunction,
   error: (spyOn(console, "error") as unknown) as ActionLoggerFunction,
 });
