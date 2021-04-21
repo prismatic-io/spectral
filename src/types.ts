@@ -88,17 +88,16 @@ export interface OAuth2Credential {
   fields: {
     client_id: string;
     client_secret: string;
-    auth_uri: string;
     token_uri: string;
-    scopes: string;
+    auth_uri?: string;
+    scopes?: string;
   };
   token: {
-    [key: string]: string | undefined;
-    access_token?: string;
+    access_token: string;
+    token_type: string;
     refresh_token?: string;
-    token_type?: string;
-    expires_at?: string;
     expires_in?: string;
+    [key: string]: string | undefined;
   };
   context: { [key: string]: string };
 }

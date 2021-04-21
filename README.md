@@ -21,7 +21,7 @@ Prismatic reduces integration effort and empowers every role with exactly what t
 With Prismatic, you can:
 
 - Build reusable [integrations](https://prismatic.io/docs/integrations) in an intuitive low-code integration designer
-- Easily deploy customer-specific integration [instances](https://prismatic.io/docs/instances) with unique [configurations](https://prismatic.io/docs/configuration-variables) and [credentials](https://prismatic.io/docs/credentials)
+- Easily deploy customer-specific integration [instances](https://prismatic.io/docs/instances) with unique configurations and credentials
 - Run your integrations in a purpose-built environment
 - Provide better support with built-in [logging](https://prismatic.io/docs/logging) and [alerting](https://prismatic.io/docs/monitoring-and-alerting)
 - Embed a white-labeled customer integration portal with an integration app store and customer self-service tools
