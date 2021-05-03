@@ -1,3 +1,7 @@
+/**
+ * This is the shape that is actually sent on publish
+ */
+
 /** Defines attributes of a Component. */
 export interface ComponentDefinition {
   /** Specifies unique key for this Component. */
@@ -16,10 +20,8 @@ export interface ComponentDefinition {
   documentationUrl?: string;
 }
 
-export type ConfigurationVariablesCollection = Record<string, string>;
-
 /** Authorization settings for a component */
-interface AuthorizationDefinition {
+export interface AuthorizationDefinition {
   /** Whether authorization is required */
   required: boolean;
   /** Supported authorization methods */
@@ -35,24 +37,16 @@ const authorizationMethods = [
   "oauth2_client_credentials",
 ] as const;
 
-export type AuthorizationMethod = typeof authorizationMethods[number];
-
-export const AvailableAuthorizationMethods: AuthorizationMethod[] = [
-  ...authorizationMethods,
-];
+type AuthorizationMethod = typeof authorizationMethods[number];
 
 const oauth2AuthorizationMethods = [
   "oauth2",
   "oauth2_client_credentials",
 ] as const;
 
-export type OAuth2AuthorizationMethod = typeof oauth2AuthorizationMethods[number];
+type OAuth2AuthorizationMethod = typeof oauth2AuthorizationMethods[number];
 
-export const AvailableOAuth2AuthorizationMethods: OAuth2AuthorizationMethod[] = [
-  ...oauth2AuthorizationMethods,
-];
-
-export interface BasicCredential {
+interface BasicCredential {
   authorizationMethod: "basic";
   fields: {
     username: string;
@@ -60,14 +54,14 @@ export interface BasicCredential {
   };
 }
 
-export interface ApiKeyCredential {
+interface ApiKeyCredential {
   authorizationMethod: "api_key";
   fields: {
     api_key: string;
   };
 }
 
-export interface ApiKeySecretCredential {
+interface ApiKeySecretCredential {
   authorizationMethod: "api_key_secret";
   fields: {
     api_key: string;
@@ -75,14 +69,14 @@ export interface ApiKeySecretCredential {
   };
 }
 
-export interface PrivateKeyCredential {
+interface PrivateKeyCredential {
   authorizationMethod: "private_key";
   fields: {
     username: string;
     private_key: string;
   };
 }
-export interface OAuth2Credential {
+interface OAuth2Credential {
   authorizationMethod: OAuth2AuthorizationMethod;
   redirectUri: string;
   fields: {
@@ -102,7 +96,7 @@ export interface OAuth2Credential {
   context: { [key: string]: string };
 }
 
-export type Credential =
+type Credential =
   | BasicCredential
   | ApiKeyCredential
   | ApiKeySecretCredential
@@ -118,23 +112,9 @@ interface DisplayDefinition {
 }
 
 /** Component extensions for display properties. */
-interface ComponentDisplayDefinition extends DisplayDefinition {
+export interface ComponentDisplayDefinition extends DisplayDefinition {
   /** Path to icon to use for this Component. Path should be relative to component roto index. */
   iconPath?: string;
-}
-
-/** Request specification. */
-export interface HttpRequestConfiguration {
-  /** Method of the HTTP request. */
-  method: "GET" | "PUT" | "POST" | "PATCH" | "DELETE" | "HEAD";
-  /** URL to send the HTTP request to. */
-  url: string;
-  /** Body of the request. */
-  body: unknown;
-  /** Parameters to send with the request. */
-  params: Record<string, string>;
-  /** Headers to send with the request. */
-  headers: Record<string, string>;
 }
 
 /** Configuration of an Action. */
@@ -162,16 +142,16 @@ export interface ActionDefinition {
 }
 
 /** Action-specific Display attributes. */
-export interface ActionDisplayDefinition extends DisplayDefinition {
+interface ActionDisplayDefinition extends DisplayDefinition {
   /** Directions to help guide the user if additional configuration is required for this Action. */
   directions?: string;
   /** Indicate that this Action is important and/or commonly used from the parent Component. Should be enabled sparingly. */
   important?: boolean;
 }
 
-export type ActionLoggerFunction = (...args: unknown[]) => void;
+type ActionLoggerFunction = (...args: unknown[]) => void;
 
-export interface ActionLogger {
+interface ActionLogger {
   debug: ActionLoggerFunction;
   info: ActionLoggerFunction;
   log: ActionLoggerFunction;
@@ -180,7 +160,7 @@ export interface ActionLogger {
 }
 
 /** Context provided to perform method containing helpers and contextual data */
-export interface ActionContext {
+interface ActionContext {
   /** Credential for the action, optional since not all actions will require a credential */
   credential?: Credential;
   /** Logger for permanent logging; console calls are also captured */
@@ -192,7 +172,7 @@ export interface ActionContext {
 }
 
 /** Collection of input parameters provided by the user or previous steps' outputs */
-export interface ActionInputParameters {
+interface ActionInputParameters {
   [key: string]: any;
 }
 
@@ -215,7 +195,7 @@ export interface PerformDataStructureReturn {
 }
 
 /** Used to represent a binary or serialized data return as content type must be specified */
-export interface PerformDataReturn {
+interface PerformDataReturn {
   /** Data payload containing data of the specified contentType */
   data: Buffer | string | unknown;
   /** The Content Type of the payload data */
@@ -234,13 +214,13 @@ export interface PerformBranchingDataStructureReturn
 }
 
 /** Used to represent a binary or serialized data branching return as content type must be specified */
-export interface PerformBranchingDataReturn extends PerformDataReturn {
+interface PerformBranchingDataReturn extends PerformDataReturn {
   /** Name of the Branch to take. */
   branch: string;
 }
 
 /** Required return type of all action perform functions */
-export type PerformReturn =
+type PerformReturn =
   | PerformDataStructureReturn
   | PerformBranchingDataStructureReturn
   | PerformDataReturn
@@ -248,17 +228,17 @@ export type PerformReturn =
   | void; // Allow an action to return nothing to reduce component implementation boilerplate
 
 /** Definition of the function to perform when an Action is invoked. */
-export type ActionPerformFunction = (
+type ActionPerformFunction = (
   context: ActionContext,
   params: ActionInputParameters
 ) => Promise<PerformReturn>;
 
-export type InputFieldDefinition =
+type InputFieldDefinition =
   | DefaultInputFieldDefinition
   | CodeInputFieldDefinition;
 
 /** Defines attributes of a InputField. */
-export interface DefaultInputFieldDefinition {
+interface DefaultInputFieldDefinition {
   /** Unique identifier of the InputField. Must be unique within an Action. */
   key: string;
   /** Interface label of the InputField. */
@@ -281,13 +261,13 @@ export interface DefaultInputFieldDefinition {
   model?: InputFieldChoice[] | InputFieldModelFunction;
 }
 
-export interface CodeInputFieldDefinition extends DefaultInputFieldDefinition {
+interface CodeInputFieldDefinition extends DefaultInputFieldDefinition {
   type: "code";
   language?: string;
 }
 
 /** InputField type enumeration. */
-export type InputFieldType =
+type InputFieldType =
   | "string"
   | "text"
   | "password"
@@ -297,15 +277,7 @@ export type InputFieldType =
   | "conditional";
 
 /** InputField collection enumeration */
-export type InputFieldCollection = "valuelist" | "keyvaluelist";
-
-/** KeyValuePair input parameter type */
-export interface KeyValuePair<V = unknown> {
-  /** Key of the KeyValuePair */
-  key: string;
-  /** Value of the KeyValuePair */
-  value: V;
-}
+type InputFieldCollection = "valuelist" | "keyvaluelist";
 
 /** Binary data payload */
 export interface DataPayload {
@@ -318,7 +290,7 @@ export interface DataPayload {
 }
 
 /** Defines a single Choice option for a InputField. */
-export interface InputFieldChoice {
+interface InputFieldChoice {
   /** Label to display for this Choice. */
   label: string;
   /** Value to use if this Choice is chosen. */
@@ -327,4 +299,4 @@ export interface InputFieldChoice {
 
 // TODO: Does this need to take in arguments? What would they be?
 /** Definition of the function that returns an array of choices. */
-export type InputFieldModelFunction = () => Promise<InputFieldChoice[]>;
+type InputFieldModelFunction = () => Promise<InputFieldChoice[]>;

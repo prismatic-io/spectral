@@ -13,7 +13,7 @@ import {
   PerformReturn,
   AuthorizationMethod,
   AvailableAuthorizationMethods,
-  ActionPerformFunction,
+  Inputs,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -95,23 +95,30 @@ export const loggerMock = (): ActionLogger => ({
   error: (spyOn(console, "error") as unknown) as ActionLoggerFunction,
 });
 
-export interface InvokeResult<TReturn extends PerformReturn> {
-  result: TReturn;
-  loggerMock: ActionLogger;
-}
-
 /** Invokes specified ActionDefinition perform function using supplied params
  * and optional context. Accepts a generic type matching PerformReturn as a convenience
  * to avoid extra casting within test methods. Returns an InvokeResult containing both the
  * action result and a mock logger for asserting logging.
  */
-export const invoke = async <TReturn extends PerformReturn>(
-  action: ActionDefinition | Record<string, ActionDefinition>,
-  params: ActionInputParameters,
+export const invoke = async <
+  T extends Inputs,
+  AllowsBranching extends boolean,
+  ReturnData extends PerformReturn<AllowsBranching, unknown>
+>(
+  actionBase:
+    | ActionDefinition<T, AllowsBranching, ReturnData>
+    | Record<string, ActionDefinition<T, AllowsBranching, ReturnData>>,
+  params: ActionInputParameters<T>,
   context?: Partial<ActionContext>
-): Promise<InvokeResult<TReturn>> => {
-  const perform = (action.perform ||
-    Object.values(action)[0].perform) as ActionPerformFunction;
+) => {
+  const action = (actionBase.perform
+    ? actionBase
+    : Object.values(actionBase)[0]) as ActionDefinition<
+    T,
+    AllowsBranching,
+    ReturnData
+  >;
+
   const realizedContext = {
     credential: undefined,
     logger: loggerMock(),
@@ -119,7 +126,9 @@ export const invoke = async <TReturn extends PerformReturn>(
     stepId: "mockStepId",
     ...context,
   };
-  const result = (await perform(realizedContext, params)) as TReturn;
+
+  const result = await action.perform(realizedContext, params);
+
   return {
     result,
     loggerMock: realizedContext.logger,
