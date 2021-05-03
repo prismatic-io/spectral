@@ -2,12 +2,16 @@ import parseISODate from "date-fns/parseISO";
 import dateIsValid from "date-fns/isValid";
 import dateIsDate from "date-fns/isDate";
 import { isWebUri } from "valid-url";
-import { DataPayload } from "./types";
+import { DataPayload } from "./server-types";
+import { ConditionalExpression, TermOperatorPhrase } from "./types";
 
-const isBool = (value: unknown): boolean => value === true || value === false;
+const isBool = (value: unknown): value is boolean =>
+  value === true || value === false;
 
-const toBool = (value: unknown): boolean => {
-  if (isBool(value)) return value as boolean;
+const toBool = (value: unknown) => {
+  if (isBool(value)) {
+    return value;
+  }
 
   if (typeof value === "string") {
     const lowerValue = value.toLowerCase();
@@ -21,10 +25,10 @@ const toBool = (value: unknown): boolean => {
   throw new Error(`Value '${value}' cannot be coerced to bool.`);
 };
 
-const isInt = (value: unknown): boolean => Number.isInteger(value);
+const isInt = (value: unknown): value is number => Number.isInteger(value);
 
-const toInt = (value: unknown): number => {
-  if (isInt(value)) return value as number;
+const toInt = (value: unknown) => {
+  if (isInt(value)) return value;
 
   if (typeof value === "string") {
     const intValue = Number.parseInt(value);
@@ -36,10 +40,12 @@ const toInt = (value: unknown): number => {
   throw new Error(`Value '${value}' cannot be coerced to int.`);
 };
 
-const isBigInt = (value: unknown): boolean => typeof value === "bigint";
+const isBigInt = (value: unknown): value is bigint => typeof value === "bigint";
 
-const toBigInt = (value: unknown): bigint => {
-  if (isBigInt(value)) return value as bigint;
+const toBigInt = (value: unknown) => {
+  if (isBigInt(value)) {
+    return value;
+  }
 
   try {
     return BigInt(value);
@@ -48,10 +54,12 @@ const toBigInt = (value: unknown): bigint => {
   }
 };
 
-const isDate = (value: unknown): boolean => dateIsDate(value);
+const isDate = (value: unknown): value is Date => dateIsDate(value);
 
-const toDate = (value: unknown): Date => {
-  if (isDate(value)) return value as Date;
+const toDate = (value: unknown) => {
+  if (isDate(value)) {
+    return value;
+  }
 
   if (typeof value === "string") {
     const dt = parseISODate(value);
@@ -63,7 +71,37 @@ const toDate = (value: unknown): Date => {
   throw new Error(`Value '${value}' cannot be coerced to date.`);
 };
 
-const isUrl = (value: string): boolean => isWebUri(value) !== undefined;
+const isUrl = (value: string) => isWebUri(value) !== undefined;
+
+const isConditionalExpression = (
+  value: unknown
+): value is ConditionalExpression<string> => {
+  if (!Array.isArray(value)) {
+    return false;
+  }
+
+  /**
+   * BooleanExpression
+   */
+  if (value[0] === "and" || value[0] === "or") {
+    const [, ...expressions] = value;
+
+    return expressions.length === 0
+      ? false
+      : expressions.every(isConditionalExpression);
+  }
+
+  /**
+   * TermExpression
+   */
+  const [predicate, term1, term2] = value;
+
+  return (
+    predicate in TermOperatorPhrase &&
+    typeof term1 === "string" &&
+    typeof term2 === "string"
+  );
+};
 
 const toData = (value: unknown): DataPayload => {
   if (value instanceof Object && "data" in value) {
@@ -115,6 +153,7 @@ export default {
     toBigInt,
     isDate,
     toDate,
+    isConditionalExpression,
     isUrl,
     toData,
   },
