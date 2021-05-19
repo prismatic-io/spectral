@@ -8,7 +8,7 @@ import { ConditionalExpression, TermOperatorPhrase } from "./types";
 const isBool = (value: unknown): value is boolean =>
   value === true || value === false;
 
-const toBool = (value: unknown) => {
+const toBool = (value: unknown, defaultValue?: boolean) => {
   if (isBool(value)) {
     return value;
   }
@@ -22,12 +22,16 @@ const toBool = (value: unknown) => {
     }
   }
 
+  if (typeof value === "undefined") {
+    return Boolean(defaultValue);
+  }
+
   throw new Error(`Value '${value}' cannot be coerced to bool.`);
 };
 
 const isInt = (value: unknown): value is number => Number.isInteger(value);
 
-const toInt = (value: unknown) => {
+const toInt = (value: unknown, defaultValue?: number) => {
   if (isInt(value)) return value;
 
   if (typeof value === "string") {
@@ -35,6 +39,10 @@ const toInt = (value: unknown) => {
     if (!Number.isNaN(intValue)) {
       return intValue;
     }
+  }
+
+  if (typeof value === "undefined") {
+    return defaultValue || 0;
   }
 
   throw new Error(`Value '${value}' cannot be coerced to int.`);
@@ -143,6 +151,22 @@ const toData = (value: unknown): DataPayload => {
 const formatJsonExample = (input: unknown) =>
   ["```json", JSON.stringify(input, undefined, 2), "```"].join("\n");
 
+const toString = (value: unknown, defaultValue?: string): string => {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "undefined" || value === null) {
+    return defaultValue || "";
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return value.toString();
+  }
+
+  throw new Error(`Value '${value}' cannot be converted to a String.`);
+};
+
 export default {
   types: {
     isBool,
@@ -156,6 +180,7 @@ export default {
     isConditionalExpression,
     isUrl,
     toData,
+    toString,
   },
   docs: {
     formatJsonExample,

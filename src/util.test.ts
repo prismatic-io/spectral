@@ -6,6 +6,7 @@ describe("util", () => {
     .base64String()
     .map((v) => Buffer.from(v, "base64"));
   const uint8ArrayArbitrary = bufferArbitrary.map((b) => new Uint8Array(b));
+  const unknowns = (): fc.Arbitrary<unknown> => fc.constantFrom(undefined);
 
   describe("boolean", () => {
     type TruthyValue = true | "true" | "t" | "T" | "yes" | "y" | "Y";
@@ -81,6 +82,30 @@ describe("util", () => {
         )
       );
     });
+
+    it("allows for boolean default to false for undefined inputs and undefined default", () => {
+      fc.assert(
+        fc.property(unknowns(), (v) =>
+          expect(util.types.toBool(v)).toStrictEqual(false)
+        )
+      );
+    });
+
+    it("allows for boolean default of false for undefined inputs", () => {
+      fc.assert(
+        fc.property(unknowns(), (v) =>
+          expect(util.types.toBool(v, false)).toStrictEqual(false)
+        )
+      );
+    });
+
+    it("allows for boolean default of true for undefined inputs", () => {
+      fc.assert(
+        fc.property(unknowns(), (v) =>
+          expect(util.types.toBool(v, true)).toStrictEqual(true)
+        )
+      );
+    });
   });
 
   describe("integer", () => {
@@ -116,6 +141,22 @@ describe("util", () => {
       fc.assert(
         fc.property(invalidValues, (v) =>
           expect(() => util.types.toInt(v)).toThrow("cannot be coerced to int")
+        )
+      );
+    });
+
+    it("Allows for default value of 0 when value is undefined", () => {
+      fc.assert(
+        fc.property(unknowns(), (v) =>
+          expect(util.types.toInt(v)).toStrictEqual(0)
+        )
+      );
+    });
+
+    it("Allows for default values when value is undefined", () => {
+      fc.assert(
+        fc.property(unknowns(), (v) =>
+          expect(util.types.toInt(v, 20)).toStrictEqual(20)
         )
       );
     });
@@ -288,6 +329,34 @@ describe("util", () => {
             contentType: "application/octet-stream",
           })
         )
+      );
+    });
+  });
+
+  describe("string", () => {
+    it("coerces plain text buffer to string", () => {
+      fc.assert(
+        fc.property(bufferArbitrary, (v) => {
+          expect(util.types.toString(v)).toStrictEqual(v.toString());
+        })
+      );
+    });
+
+    it("coerces unknown value to empty string", () => {
+      fc.assert(
+        fc.property(unknowns(), (v) => {
+          expect(util.types.toString(v)).toStrictEqual("");
+        })
+      );
+    });
+
+    it("coerces unknown value to given default string", () => {
+      fc.assert(
+        fc.property(unknowns(), (v) => {
+          expect(util.types.toString(v, "hello, world")).toStrictEqual(
+            "hello, world"
+          );
+        })
       );
     });
   });
