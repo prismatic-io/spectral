@@ -83,10 +83,10 @@ describe("util", () => {
       );
     });
 
-    it("allows for boolean default to true for undefined inputs and undefined default", () => {
+    it("allows for boolean default to false for undefined inputs and undefined default", () => {
       fc.assert(
         fc.property(unknowns(), (v) =>
-          expect(util.types.toBool(v)).toStrictEqual(true)
+          expect(util.types.toBool(v)).toStrictEqual(false)
         )
       );
     });

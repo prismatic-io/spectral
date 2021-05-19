@@ -23,10 +23,7 @@ const toBool = (value: unknown, defaultValue?: boolean) => {
   }
 
   if (typeof value === "undefined") {
-    if (typeof defaultValue === "undefined") {
-      return true;
-    }
-    return defaultValue;
+    return Boolean(defaultValue);
   }
 
   throw new Error(`Value '${value}' cannot be coerced to bool.`);
