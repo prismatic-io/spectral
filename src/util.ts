@@ -4,7 +4,6 @@ import dateIsDate from "date-fns/isDate";
 import { isWebUri } from "valid-url";
 import { DataPayload } from "./server-types";
 import { ConditionalExpression, TermOperatorPhrase } from "./types";
-import { type } from "node:os";
 
 const isBool = (value: unknown): value is boolean =>
   value === true || value === false;
