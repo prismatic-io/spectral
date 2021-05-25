@@ -4,6 +4,7 @@ import dateIsDate from "date-fns/isDate";
 import { isWebUri } from "valid-url";
 import { DataPayload } from "./server-types";
 import { ConditionalExpression, TermOperatorPhrase } from "./types";
+import { type } from "node:os";
 
 const isBool = (value: unknown): value is boolean =>
   value === true || value === false;
@@ -151,21 +152,8 @@ const toData = (value: unknown): DataPayload => {
 const formatJsonExample = (input: unknown) =>
   ["```json", JSON.stringify(input, undefined, 2), "```"].join("\n");
 
-const toString = (value: unknown, defaultValue?: string): string => {
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (typeof value === "undefined" || value === null) {
-    return defaultValue || "";
-  }
-
-  if (typeof value === "object" && value !== null) {
-    return value.toString();
-  }
-
-  throw new Error(`Value '${value}' cannot be converted to a String.`);
-};
+const toString = (value: unknown, defaultValue = "") =>
+  `${value ?? defaultValue}`;
 
 export default {
   types: {
