@@ -152,7 +152,7 @@ const toData = (value: unknown): DataPayload => {
 const formatJsonExample = (input: unknown) =>
   ["```json", JSON.stringify(input, undefined, 2), "```"].join("\n");
 
-const toString = (value: unknown, defaultValue = ""): string =>
+const toString = (value: unknown, defaultValue = "") =>
   `${value ?? defaultValue}`;
 
 export default {
