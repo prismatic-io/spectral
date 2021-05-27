@@ -94,36 +94,6 @@ const keyValPairListToObject = (
   );
 };
 
-const isConditionalExpression = (
-  value: unknown
-): value is ConditionalExpression<string> => {
-  if (!Array.isArray(value)) {
-    return false;
-  }
-
-  /**
-   * BooleanExpression
-   */
-  if (value[0] === "and" || value[0] === "or") {
-    const [, ...expressions] = value;
-
-    return expressions.length === 0
-      ? false
-      : expressions.every(isConditionalExpression);
-  }
-
-  /**
-   * TermExpression
-   */
-  const [predicate, term1, term2] = value;
-
-  return (
-    predicate in TermOperatorPhrase &&
-    typeof term1 === "string" &&
-    typeof term2 === "string"
-  );
-};
-
 const toData = (value: unknown): DataPayload => {
   if (value instanceof Object && "data" in value) {
     return value as DataPayload;
@@ -177,7 +147,6 @@ export default {
     toBigInt,
     isDate,
     toDate,
-    isConditionalExpression,
     isUrl,
     toData,
     toString,
