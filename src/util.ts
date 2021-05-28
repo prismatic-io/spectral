@@ -3,7 +3,11 @@ import dateIsValid from "date-fns/isValid";
 import dateIsDate from "date-fns/isDate";
 import { isWebUri } from "valid-url";
 import { DataPayload } from "./server-types";
-import { ConditionalExpression, TermOperatorPhrase } from "./types";
+import {
+  ConditionalExpression,
+  TermOperatorPhrase,
+  KeyValuePair,
+} from "./types";
 
 const isBool = (value: unknown): value is boolean =>
   value === true || value === false;
@@ -80,6 +84,15 @@ const toDate = (value: unknown) => {
 };
 
 const isUrl = (value: string) => isWebUri(value) !== undefined;
+
+const keyValPairListToObject = (
+  kvpList: KeyValuePair<unknown>[]
+): Record<string, unknown> => {
+  return kvpList.reduce(
+    (result, { key, value }) => ({ ...result, [key]: value }),
+    {}
+  );
+};
 
 const isConditionalExpression = (
   value: unknown
@@ -168,6 +181,7 @@ export default {
     isUrl,
     toData,
     toString,
+    keyValPairListToObject,
   },
   docs: {
     formatJsonExample,
