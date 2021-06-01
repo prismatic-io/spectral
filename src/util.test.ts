@@ -1,6 +1,5 @@
-import fc, { Arbitrary } from "fast-check";
+import fc from "fast-check";
 import util from "./util";
-import { KeyValuePair } from "./types";
 
 describe("util", () => {
   const bufferArbitrary = fc
