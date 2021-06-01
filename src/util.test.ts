@@ -1,5 +1,6 @@
-import fc from "fast-check";
+import fc, { Arbitrary } from "fast-check";
 import util from "./util";
+import { KeyValuePair } from "./types";
 
 describe("util", () => {
   const bufferArbitrary = fc
@@ -332,7 +333,6 @@ describe("util", () => {
       );
     });
   });
-
   describe("string", () => {
     it("coerces plain text buffer to string", () => {
       fc.assert(
@@ -355,6 +355,32 @@ describe("util", () => {
         fc.property(unknowns(), (v) => {
           expect(util.types.toString(v, "hello, world")).toStrictEqual(
             "hello, world"
+          );
+        })
+      );
+    });
+  });
+  //TODO add an arbitrary for KeyValueList to test unique values
+  describe("KeyValueList", () => {
+    it("coerces KeyValueList to object", () => {
+      fc.assert(
+        fc.property(bufferArbitrary, () => {
+          const fakeData = [
+            { key: "foo", value: "bar" },
+            { key: "myKey", value: "myValue" },
+          ];
+          const expectedData = { foo: "bar", myKey: "myValue" };
+          expect(util.types.keyValPairListToObject(fakeData)).toStrictEqual(
+            expectedData
+          );
+        })
+      );
+    });
+    it("handles KeyValueList as undefined", () => {
+      fc.assert(
+        fc.property(bufferArbitrary, () => {
+          expect(util.types.keyValPairListToObject(undefined)).toStrictEqual(
+            {}
           );
         })
       );

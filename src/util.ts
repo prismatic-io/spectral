@@ -86,7 +86,7 @@ const toDate = (value: unknown) => {
 const isUrl = (value: string) => isWebUri(value) !== undefined;
 
 const keyValPairListToObject = (
-  kvpList: KeyValuePair<unknown>[]
+  kvpList: KeyValuePair<unknown>[] = []
 ): Record<string, unknown> => {
   return kvpList.reduce(
     (result, { key, value }) => ({ ...result, [key]: value }),
