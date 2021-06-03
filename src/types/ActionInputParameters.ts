@@ -8,20 +8,16 @@ export type ActionInputParameters<T extends Inputs> = T extends Record<
   ? { [K in keyof T]: ExtractValue<T[K]> }
   : never;
 
-export type ExtractValue<
-  TValue extends InputFieldDefinition
-> = MapCollectionValues<
-  InputFieldTypeMap[TValue["type"]],
-  TValue["collection"]
->;
+export type ExtractValue<TValue extends InputFieldDefinition> =
+  MapCollectionValues<InputFieldTypeMap[TValue["type"]], TValue["collection"]>;
 
 export type MapCollectionValues<
   TValue,
   TCollection extends InputFieldDefinition["collection"] | undefined
 > = TCollection extends "keyvaluelist"
-  ? KeyValuePair<TValue>[]
+  ? KeyValuePair<TValue>[] | undefined
   : TCollection extends "valuelist"
-  ? TValue[]
+  ? TValue[] | undefined
   : TValue;
 
 /** KeyValuePair input parameter type */
