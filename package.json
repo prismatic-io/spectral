@@ -19,16 +19,12 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "yarn run format && yarn run lint && yarn run clean && tsc",
-    "build-production": "yarn run build --sourceMap false",
     "prepack": "yarn run build",
     "format": "yarn run lint-fix && prettier --loglevel error --write src/",
     "check": "prettier --check src/",
     "lint": "eslint --quiet --ext .ts,.js src/",
     "lint-fix": "eslint --fix --quiet --ext .ts,.js src/",
-    "test": "jest --maxWorkers=4",
-    "login": "npm whoami || npm login",
-    "logout": "npm logout",
-    "release": "yarn run login && yarn release-it"
+    "test": "jest --maxWorkers=4"
   },
   "files": [
     "dist/"
@@ -51,7 +47,6 @@
     "fast-check": "2.4.0",
     "jest": "27.0.4",
     "prettier": "2.0.5",
-    "release-it": "^14.7.0",
     "ts-jest": "27.0.2",
     "typedoc": "0.20.36",
     "typedoc-plugin-markdown": "2.3.1",
