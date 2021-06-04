@@ -45,6 +45,11 @@ Here are some example use cases:
 
 For information on the Prismatic platform, check out our [website](https://prismatic.io) and [docs](https://prismatic.io/docs).
 
+## Building Spectral Locally
+
+To build spectral locally, you'll need `yarn` and `node` installed.
+Run `yarn build` to build the package, or `yarn pack` to build a tarball that can be used in custom components for testing changes to spectral.
+
 ## License
 
 This repository is [MIT licensed](./LICENSE).
