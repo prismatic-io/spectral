@@ -8,18 +8,18 @@ jobs:
       - name: Check out Spectral
         uses: actions/checkout@v2
       - name: Install Dependencies
-        uses: borales/actions-yarn@v2.0.0
+        uses: borales/actions-yarn@v2.3.0
         with:
           cmd: install
       - name: Check Formatting
-        uses: borales/actions-yarn@v2.0.0
+        uses: borales/actions-yarn@v2.3.0
         with:
           cmd: run check
       - name: Build Spectral
-        uses: borales/actions-yarn@v2.0.0
+        uses: borales/actions-yarn@v2.3.0
         with:
           cmd: build
       - name: Run Tests
-        uses: borales/actions-yarn@v2.0.0
+        uses: borales/actions-yarn@v2.3.0
         with:
           cmd: test
