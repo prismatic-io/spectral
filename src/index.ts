@@ -14,6 +14,7 @@ import {
 } from "./server-types";
 
 const convertAction = (
+  actionKey: string,
   action: ActionDefinition<
     Inputs,
     boolean,
@@ -29,6 +30,7 @@ const convertAction = (
 
   return {
     ...action,
+    key: actionKey,
     inputs: inputDefinitions,
     perform: action.perform as ActionDefinitionV1["perform"],
     examplePayload: action.examplePayload as
@@ -49,7 +51,7 @@ export const component = (
   actions: Object.fromEntries(
     Object.entries(definition.actions).map(([actionKey, action]) => [
       actionKey,
-      convertAction(action),
+      convertAction(actionKey, action),
     ])
   ),
 });
