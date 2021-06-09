@@ -3,11 +3,7 @@ import dateIsValid from "date-fns/isValid";
 import dateIsDate from "date-fns/isDate";
 import { isWebUri } from "valid-url";
 import { DataPayload } from "./server-types";
-import {
-  ConditionalExpression,
-  TermOperatorPhrase,
-  KeyValuePair,
-} from "./types";
+import { KeyValuePair } from "./types";
 
 const isBool = (value: unknown): value is boolean =>
   value === true || value === false;

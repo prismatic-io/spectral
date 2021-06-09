@@ -11,8 +11,6 @@ export interface ActionDefinition<
   AllowsBranching extends boolean,
   ReturnData extends PerformReturn<AllowsBranching, unknown>
 > {
-  /** Key used for the Actions map and to uniquely identify this Component in your tenant. */
-  key: string;
   /** Defines how the Action is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
   /** Function to perform when this Action is used and invoked. */
