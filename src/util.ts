@@ -22,17 +22,18 @@ const toBool = (value: unknown, defaultValue?: boolean) => {
     }
   }
 
-  if (typeof value === "undefined") {
-    return Boolean(defaultValue);
-  }
-
-  throw new Error(`Value '${value}' cannot be coerced to bool.`);
+  return Boolean(value || defaultValue);
 };
 
 const isInt = (value: unknown): value is number => Number.isInteger(value);
 
 const toInt = (value: unknown, defaultValue?: number) => {
   if (isInt(value)) return value;
+
+  // Turn a float into an int
+  if (typeof value === "number") {
+    return ~~value;
+  }
 
   if (typeof value === "string") {
     const intValue = Number.parseInt(value);
@@ -41,11 +42,25 @@ const toInt = (value: unknown, defaultValue?: number) => {
     }
   }
 
-  if (typeof value === "undefined") {
+  if (typeof value === "undefined" || value === "") {
     return defaultValue || 0;
   }
 
   throw new Error(`Value '${value}' cannot be coerced to int.`);
+};
+
+const isNumber = (value: unknown) => !Number.isNaN(Number(value));
+
+const toNumber = (value: unknown, defaultValue?: number) => {
+  if (isNumber(value)) {
+    return Number(value);
+  }
+
+  if (typeof value === "undefined" || value === "") {
+    return defaultValue || 0;
+  }
+
+  throw new Error(`Value '${value}' cannot be coerced to a number.`);
 };
 
 const isBigInt = (value: unknown): value is bigint => typeof value === "bigint";
@@ -139,6 +154,8 @@ export default {
     toBool,
     isInt,
     toInt,
+    isNumber,
+    toNumber,
     isBigInt,
     toBigInt,
     isDate,

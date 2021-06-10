@@ -7,14 +7,15 @@ describe("util", () => {
     .map((v) => Buffer.from(v, "base64"));
   const uint8ArrayArbitrary = bufferArbitrary.map((b) => new Uint8Array(b));
   const unknowns = (): fc.Arbitrary<unknown> => fc.constantFrom(undefined);
+  const emptyStrings = (): fc.Arbitrary<string> => fc.constantFrom("");
 
   describe("boolean", () => {
     type TruthyValue = true | "true" | "t" | "T" | "yes" | "y" | "Y";
-    type FalsyValue = false | "false" | "f" | "F" | "no" | "n" | "N";
+    type FalsyValue = false | "false" | "f" | "F" | "no" | "n" | "N" | "";
 
     const booleanStringValues = {
       truthy: ["true", "t", "T", "yes", "y", "Y"],
-      falsy: ["false", "f", "F", "no", "n", "N"],
+      falsy: ["false", "f", "F", "no", "n", "N", ""],
     };
 
     const truthy = (): fc.Arbitrary<TruthyValue> =>
@@ -73,16 +74,6 @@ describe("util", () => {
       );
     });
 
-    it("throws when coercing non-boolean values", () => {
-      fc.assert(
-        fc.property(invalidValues, (v) =>
-          expect(() => util.types.toBool(v)).toThrow(
-            "cannot be coerced to bool"
-          )
-        )
-      );
-    });
-
     it("allows for boolean default to false for undefined inputs and undefined default", () => {
       fc.assert(
         fc.property(unknowns(), (v) =>
@@ -106,11 +97,35 @@ describe("util", () => {
         )
       );
     });
+
+    it("allows for boolean default to false for empty string inputs and undefined default", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
+          expect(util.types.toBool(v)).toStrictEqual(false)
+        )
+      );
+    });
+
+    it("allows for boolean default of false for empty string inputs", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
+          expect(util.types.toBool(v, false)).toStrictEqual(false)
+        )
+      );
+    });
+
+    it("allows for boolean default of true for empty string inputs", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
+          expect(util.types.toBool(v, true)).toStrictEqual(true)
+        )
+      );
+    });
   });
 
   describe("integer", () => {
     const invalidValues = fc.oneof(
-      fc.string().filter((v) => Number.isNaN(Number.parseInt(v)))
+      fc.string().filter((v) => Number.isNaN(Number.parseInt(v)) && v !== "")
     );
 
     it("detects integer value", () => {
@@ -137,6 +152,14 @@ describe("util", () => {
       );
     });
 
+    it("coerces a float to an int", () => {
+      fc.assert(
+        fc.property(fc.float(), (v) =>
+          expect(util.types.toInt(v)).toStrictEqual(~~v)
+        )
+      );
+    });
+
     it("throws when coercing non-integer values", () => {
       fc.assert(
         fc.property(invalidValues, (v) =>
@@ -157,6 +180,77 @@ describe("util", () => {
       fc.assert(
         fc.property(unknowns(), (v) =>
           expect(util.types.toInt(v, 20)).toStrictEqual(20)
+        )
+      );
+    });
+
+    it("Allows for default value of 0 when value is empty string", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
+          expect(util.types.toInt(v)).toStrictEqual(0)
+        )
+      );
+    });
+
+    it("Allows for default values when value is empty string", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
+          expect(util.types.toInt(v, 20)).toStrictEqual(20)
+        )
+      );
+    });
+  });
+
+  describe("number", () => {
+    const validValues = fc.string().filter((v) => !Number.isNaN(Number(v)));
+    const invalidValues = fc.string().filter((v) => Number.isNaN(Number(v)));
+
+    it("detects things that can be cast to a number", () => {
+      fc.assert(
+        fc.property(validValues, (v) =>
+          expect(util.types.isNumber(v)).toStrictEqual(true)
+        )
+      );
+    });
+
+    it("detects things that cannot be cast to a number", () => {
+      fc.assert(
+        fc.property(invalidValues, (v) =>
+          expect(util.types.isNumber(v)).toStrictEqual(false)
+        )
+      );
+    });
+
+    it("returns a number when given a number", () => {
+      fc.assert(
+        fc.property(fc.float(), (v) =>
+          expect(util.types.toNumber(v)).toStrictEqual(v)
+        )
+      );
+    });
+
+    it("returns a number when given something that can be cast to number", () => {
+      fc.assert(
+        fc.property(validValues, (v) =>
+          expect(util.types.toNumber(v)).toStrictEqual(Number(v))
+        )
+      );
+    });
+
+    it("throws when coercing non-number values", () => {
+      fc.assert(
+        fc.property(invalidValues, (v) =>
+          expect(() => util.types.toNumber(v)).toThrow(
+            "cannot be coerced to a number"
+          )
+        )
+      );
+    });
+
+    it("returns the default value when a value is missing", () => {
+      fc.assert(
+        fc.property(unknowns(), (v) =>
+          expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)
         )
       );
     });
