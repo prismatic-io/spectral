@@ -74,16 +74,6 @@ describe("util", () => {
       );
     });
 
-    it("throws when coercing non-boolean values", () => {
-      fc.assert(
-        fc.property(invalidValues, (v) =>
-          expect(() => util.types.toBool(v)).toThrow(
-            "cannot be coerced to bool"
-          )
-        )
-      );
-    });
-
     it("allows for boolean default to false for undefined inputs and undefined default", () => {
       fc.assert(
         fc.property(unknowns(), (v) =>

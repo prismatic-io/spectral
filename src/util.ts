@@ -22,11 +22,7 @@ const toBool = (value: unknown, defaultValue?: boolean) => {
     }
   }
 
-  if (typeof value === "undefined" || value === "") {
-    return Boolean(defaultValue);
-  }
-
-  throw new Error(`Value '${value}' cannot be coerced to bool.`);
+  return Boolean(value || defaultValue);
 };
 
 const isInt = (value: unknown): value is number => Number.isInteger(value);
