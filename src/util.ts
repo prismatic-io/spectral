@@ -22,7 +22,7 @@ const toBool = (value: unknown, defaultValue?: boolean) => {
     }
   }
 
-  if (typeof value === "undefined") {
+  if (typeof value === "undefined" || value === "") {
     return Boolean(defaultValue);
   }
 
@@ -41,7 +41,7 @@ const toInt = (value: unknown, defaultValue?: number) => {
     }
   }
 
-  if (typeof value === "undefined") {
+  if (typeof value === "undefined" || value === "") {
     return defaultValue || 0;
   }
 

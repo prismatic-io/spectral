@@ -7,14 +7,15 @@ describe("util", () => {
     .map((v) => Buffer.from(v, "base64"));
   const uint8ArrayArbitrary = bufferArbitrary.map((b) => new Uint8Array(b));
   const unknowns = (): fc.Arbitrary<unknown> => fc.constantFrom(undefined);
+  const emptyStrings = (): fc.Arbitrary<string> => fc.constantFrom("");
 
   describe("boolean", () => {
     type TruthyValue = true | "true" | "t" | "T" | "yes" | "y" | "Y";
-    type FalsyValue = false | "false" | "f" | "F" | "no" | "n" | "N";
+    type FalsyValue = false | "false" | "f" | "F" | "no" | "n" | "N" | "";
 
     const booleanStringValues = {
       truthy: ["true", "t", "T", "yes", "y", "Y"],
-      falsy: ["false", "f", "F", "no", "n", "N"],
+      falsy: ["false", "f", "F", "no", "n", "N", ""],
     };
 
     const truthy = (): fc.Arbitrary<TruthyValue> =>
@@ -106,11 +107,35 @@ describe("util", () => {
         )
       );
     });
+
+    it("allows for boolean default to false for empty string inputs and undefined default", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
+          expect(util.types.toBool(v)).toStrictEqual(false)
+        )
+      );
+    });
+
+    it("allows for boolean default of false for empty string inputs", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
+          expect(util.types.toBool(v, false)).toStrictEqual(false)
+        )
+      );
+    });
+
+    it("allows for boolean default of true for empty string inputs", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
+          expect(util.types.toBool(v, true)).toStrictEqual(true)
+        )
+      );
+    });
   });
 
   describe("integer", () => {
     const invalidValues = fc.oneof(
-      fc.string().filter((v) => Number.isNaN(Number.parseInt(v)))
+      fc.string().filter((v) => Number.isNaN(Number.parseInt(v)) && v !== "")
     );
 
     it("detects integer value", () => {
@@ -156,6 +181,22 @@ describe("util", () => {
     it("Allows for default values when value is undefined", () => {
       fc.assert(
         fc.property(unknowns(), (v) =>
+          expect(util.types.toInt(v, 20)).toStrictEqual(20)
+        )
+      );
+    });
+
+    it("Allows for default value of 0 when value is empty string", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
+          expect(util.types.toInt(v)).toStrictEqual(0)
+        )
+      );
+    });
+
+    it("Allows for default values when value is empty string", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
           expect(util.types.toInt(v, 20)).toStrictEqual(20)
         )
       );
