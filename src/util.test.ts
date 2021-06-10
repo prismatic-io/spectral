@@ -152,6 +152,14 @@ describe("util", () => {
       );
     });
 
+    it("coerces a float to an int", () => {
+      fc.assert(
+        fc.property(fc.float(), (v) =>
+          expect(util.types.toInt(v)).toStrictEqual(~~v)
+        )
+      );
+    });
+
     it("throws when coercing non-integer values", () => {
       fc.assert(
         fc.property(invalidValues, (v) =>
@@ -188,6 +196,61 @@ describe("util", () => {
       fc.assert(
         fc.property(emptyStrings(), (v) =>
           expect(util.types.toInt(v, 20)).toStrictEqual(20)
+        )
+      );
+    });
+  });
+
+  describe("number", () => {
+    const validValues = fc.string().filter((v) => !Number.isNaN(Number(v)));
+    const invalidValues = fc.string().filter((v) => Number.isNaN(Number(v)));
+
+    it("detects things that can be cast to a number", () => {
+      fc.assert(
+        fc.property(validValues, (v) =>
+          expect(util.types.isNumber(v)).toStrictEqual(true)
+        )
+      );
+    });
+
+    it("detects things that cannot be cast to a number", () => {
+      fc.assert(
+        fc.property(invalidValues, (v) =>
+          expect(util.types.isNumber(v)).toStrictEqual(false)
+        )
+      );
+    });
+
+    it("returns a number when given a number", () => {
+      fc.assert(
+        fc.property(fc.float(), (v) =>
+          expect(util.types.toNumber(v)).toStrictEqual(v)
+        )
+      );
+    });
+
+    it("returns a number when given something that can be cast to number", () => {
+      fc.assert(
+        fc.property(validValues, (v) =>
+          expect(util.types.toNumber(v)).toStrictEqual(Number(v))
+        )
+      );
+    });
+
+    it("throws when coercing non-number values", () => {
+      fc.assert(
+        fc.property(invalidValues, (v) =>
+          expect(() => util.types.toNumber(v)).toThrow(
+            "cannot be coerced to a number"
+          )
+        )
+      );
+    });
+
+    it("returns the default value when a value is missing", () => {
+      fc.assert(
+        fc.property(unknowns(), (v) =>
+          expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)
         )
       );
     });
