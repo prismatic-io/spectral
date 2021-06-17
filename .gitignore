@@ -105,3 +105,8 @@ dist
 
 # Node packages
 lib/
+
+# Docs
+docs/
+sidebars.js
+sidebars.jse

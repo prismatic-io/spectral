@@ -1,3 +1,7 @@
+/**
+ * Types in this file describe how an action or component should appear in the Prismatic web app.
+ */
+
 /** Base definition of Display properties. */
 interface DisplayDefinition {
   /** Label/name to display. */

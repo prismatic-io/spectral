@@ -1,3 +1,8 @@
+/**
+ * This file exports types from all other files in types/, so users can simply
+ * `import { DesiredType } from "@prismatic-io/spectral"`
+ */
+
 export * from "./Credential";
 export * from "./AuthorizationDefinition";
 export * from "./ActionDefinition";

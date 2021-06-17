@@ -1,3 +1,11 @@
+/**
+ * This module provides functions to help developers unit
+ * test custom components prior to publishing them. For
+ * information on unit testing, check out our docs:
+ * https://prismatic.io/docs/custom-components/writing-custom-components/#testing-a-component
+ */
+
+/** */
 import {
   ActionContext,
   ActionLogger,
@@ -17,8 +25,10 @@ import {
 } from "./types";
 import { spyOn } from "jest-mock";
 
-/** Return listing of available authorization methods. If except is provided
- * the returned list will be any authorization methods not in that list.
+/**
+ * Get an array of available authorization methods that a custom component can use.
+ * @param except Return authorization methods _except for_ those in this array.
+ * @returns This function returns an array of available authorization methods.
  */
 export const getAuthorizationMethods = (
   except?: AuthorizationMethod[]
@@ -29,8 +39,7 @@ export const getAuthorizationMethods = (
   return AvailableAuthorizationMethods.filter((m) => !except.includes(m));
 };
 
-/* eslint-disable @typescript-eslint/camelcase */
-/** Utility functions to generate the different types of Credentials. */
+/** Utility functions to generate the different types of Credentials for testing. */
 export const credentials = {
   /** Return a BasicCredential assembled from provided username and password. */
   basic: (username: string, password: string): BasicCredential => ({
@@ -65,37 +74,56 @@ export const credentials = {
   oauth2: (token: string, redirectUri = ""): OAuth2Credential => ({
     authorizationMethod: "oauth2",
     redirectUri,
-    fields: {} as any,
+    fields: {
+      client_id: "",
+      client_secret: "",
+      token_uri: "",
+    },
     token: { access_token: token, token_type: "bearer" },
-    context: {} as any,
+    context: {},
   }),
   /** Return a OAuth2Credential assembled from provided token. */
   oauth2ClientCredentials: (token: string): OAuth2Credential => ({
     authorizationMethod: "oauth2_client_credentials",
     redirectUri: "",
-    fields: {} as any,
+    fields: {
+      client_id: "",
+      client_secret: "",
+      token_uri: "",
+    },
     token: { access_token: token, token_type: "bearer" },
-    context: {} as any,
+    context: {},
   }),
   /** Returns an arbitrary Credential using method. Generally used for testing negative support cases. */
   generate: (method: AuthorizationMethod): Credential =>
-    (({
+    ({
       authorizationMethod: method,
       fields: {},
-    } as unknown) as Credential),
+    } as Credential),
 };
-/* eslint-enable @typescript-eslint/camelcase */
 
-/** Pre-built mock of ActionLogger. Suitable for asserting logs are created as expected. */
+/**
+ * Pre-built mock of ActionLogger. Suitable for asserting logs are created as expected.
+ * See https://prismatic.io/docs/custom-components/writing-custom-components/#verifying-correct-logging-in-action-tests for information on testing correct logging behavior in your custom component.
+ */
 export const loggerMock = (): ActionLogger => ({
-  debug: (spyOn(console, "debug") as unknown) as ActionLoggerFunction,
-  info: (spyOn(console, "info") as unknown) as ActionLoggerFunction,
-  log: (spyOn(console, "log") as unknown) as ActionLoggerFunction,
-  warn: (spyOn(console, "warn") as unknown) as ActionLoggerFunction,
-  error: (spyOn(console, "error") as unknown) as ActionLoggerFunction,
+  debug: spyOn(console, "debug") as unknown as ActionLoggerFunction,
+  info: spyOn(console, "info") as unknown as ActionLoggerFunction,
+  log: spyOn(console, "log") as unknown as ActionLoggerFunction,
+  warn: spyOn(console, "warn") as unknown as ActionLoggerFunction,
+  error: spyOn(console, "error") as unknown as ActionLoggerFunction,
 });
 
-/** Invokes specified ActionDefinition perform function using supplied params
+/**
+ * The type of data returned by an `invoke()` function used for unit testing component actions.
+ */
+interface InvokeReturn<ReturnData> {
+  result: ReturnData;
+  loggerMock: ActionLogger;
+}
+
+/**
+ * Invokes specified ActionDefinition perform function using supplied params
  * and optional context. Accepts a generic type matching PerformReturn as a convenience
  * to avoid extra casting within test methods. Returns an InvokeResult containing both the
  * action result and a mock logger for asserting logging.
@@ -110,14 +138,10 @@ export const invoke = async <
     | Record<string, ActionDefinition<T, AllowsBranching, ReturnData>>,
   params: ActionInputParameters<T>,
   context?: Partial<ActionContext>
-) => {
-  const action = (actionBase.perform
-    ? actionBase
-    : Object.values(actionBase)[0]) as ActionDefinition<
-    T,
-    AllowsBranching,
-    ReturnData
-  >;
+): Promise<InvokeReturn<ReturnData>> => {
+  const action = (
+    actionBase.perform ? actionBase : Object.values(actionBase)[0]
+  ) as ActionDefinition<T, AllowsBranching, ReturnData>;
 
   const realizedContext = {
     credential: undefined,

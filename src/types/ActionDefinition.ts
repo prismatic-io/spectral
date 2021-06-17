@@ -5,7 +5,10 @@ import {
   Inputs,
 } from ".";
 
-/** Configuration of an Action. */
+/**
+ * ActionDefinition is the type of the object that is passed in to `action` function to
+ * define a component action.
+ */
 export interface ActionDefinition<
   T extends Inputs,
   AllowsBranching extends boolean,
@@ -13,7 +16,7 @@ export interface ActionDefinition<
 > {
   /** Defines how the Action is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
-  /** Function to perform when this Action is used and invoked. */
+  /** Function to perform when this Action is invoked. */
   perform: ActionPerformFunction<T, AllowsBranching, ReturnData>;
   /** InputFields to present in the Prismatic interface for configuration of this Action. */
   inputs: T;
