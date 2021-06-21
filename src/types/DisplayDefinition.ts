@@ -8,14 +8,14 @@ interface DisplayDefinition {
   label: string;
   /** Description to display to the user. */
   description: string;
-  /** Category of the Component. */
-  category?: string;
 }
 
 /** Component extensions for display properties. */
 export interface ComponentDisplayDefinition extends DisplayDefinition {
   /** Path to icon to use for this Component. Path should be relative to component roto index. */
   iconPath?: string;
+  /** Category of the Component. */
+  category?: string;
 }
 
 /** Action-specific Display attributes. */
