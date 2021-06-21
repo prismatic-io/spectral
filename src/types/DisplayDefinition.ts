@@ -4,6 +4,8 @@ interface DisplayDefinition {
   label: string;
   /** Description to display to the user. */
   description: string;
+  /** Category of the Component. */
+  category?: string;
 }
 
 /** Component extensions for display properties. */
