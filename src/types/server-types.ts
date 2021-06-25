@@ -62,13 +62,7 @@ export interface Action {
 
 /** Collection of input parameters provided by the user or previous steps' outputs */
 interface ActionInputParameters {
-  [key: string]:
-    | boolean
-    | number
-    | string
-    | Record<string, unknown>
-    | unknown[]
-    | unknown;
+  [key: string]: unknown;
 }
 
 /** Used to represent returning conventional data and does not require content type to be specified */

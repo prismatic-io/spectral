@@ -158,11 +158,19 @@ const toBigInt = (value: unknown): BigInt => {
     return value;
   }
 
-  try {
-    return BigInt(value as string);
-  } catch (error) {
-    throw new Error(`Value '${value}' cannot be coerced to bigint.`);
+  if (
+    typeof value === "string" ||
+    typeof value === "bigint" ||
+    typeof value === "boolean" ||
+    typeof value === "number"
+  ) {
+    try {
+      return BigInt(value);
+    } catch (error) {
+      throw new Error(`Value '${value}' cannot be coerced to bigint.`);
+    }
   }
+  throw new Error(`Value '${value}' cannot be coerced to bigint.`);
 };
 
 /** This function returns true if `value` is a variable of type `Date`, and false otherwise. */
