@@ -158,19 +158,11 @@ const toBigInt = (value: unknown): BigInt => {
     return value;
   }
 
-  if (
-    typeof value === "string" ||
-    typeof value === "bigint" ||
-    typeof value === "boolean" ||
-    typeof value === "number"
-  ) {
-    try {
-      return BigInt(value);
-    } catch (error) {
-      throw new Error(`Value '${value}' cannot be coerced to bigint.`);
-    }
+  try {
+    return BigInt(toString(value));
+  } catch (error) {
+    throw new Error(`Value '${value}' cannot be coerced to bigint.`);
   }
-  throw new Error(`Value '${value}' cannot be coerced to bigint.`);
 };
 
 /** This function returns true if `value` is a variable of type `Date`, and false otherwise. */
@@ -232,6 +224,17 @@ const keyValPairListToObject = (
 };
 
 /**
+ * This function tests if the object provided is a Prismatic `DataPayload` object.
+ * A `DataPayload` object is an object with a `data` attribute, and optional `contentType` attribute.
+ *
+ * @param value The value to test
+ * @returns This function returns true if `value` is a DataPayload object, and false otherwise.
+ */
+const isData = (value: unknown): boolean => {
+  return value instanceof Object && "data" in value;
+};
+
+/**
  * Many libraries for third-party API that handle binary files expect `Buffer` objects.
  * This function helps to convert strings, Uint8Arrays, and Arrays to a data structure
  * that has a Buffer and a string representing `contentType`.
@@ -244,7 +247,7 @@ const keyValPairListToObject = (
  * @returns This function returns an object with two keys: `data`, which is a `Buffer`, and `contentType`, which is a string.
  */
 const toData = (value: unknown): DataPayload => {
-  if (value instanceof Object && "data" in value) {
+  if (isData(value)) {
     return value as DataPayload;
   }
 
