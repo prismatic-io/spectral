@@ -1,6 +1,10 @@
 import { InputFieldDefinition, Inputs, InputFieldTypeMap } from ".";
 
-/** Collection of input parameters provided by the user or previous steps' outputs */
+/**
+ * Collection of input parameters.
+ * Inputs can be static values, references to config variables, or
+ * references to previou steps' outputs.
+ */
 export type ActionInputParameters<T extends Inputs> = T extends Record<
   string,
   InputFieldDefinition
@@ -8,12 +12,8 @@ export type ActionInputParameters<T extends Inputs> = T extends Record<
   ? { [K in keyof T]: ExtractValue<T[K]> }
   : never;
 
-export type ExtractValue<
-  TValue extends InputFieldDefinition
-> = MapCollectionValues<
-  InputFieldTypeMap[TValue["type"]],
-  TValue["collection"]
->;
+export type ExtractValue<TValue extends InputFieldDefinition> =
+  MapCollectionValues<InputFieldTypeMap[TValue["type"]], TValue["collection"]>;
 
 export type MapCollectionValues<
   TValue,
@@ -24,7 +24,13 @@ export type MapCollectionValues<
   ? TValue[] | undefined
   : TValue;
 
-/** KeyValuePair input parameter type */
+/**
+ * KeyValuePair input parameter type.
+ * This allows users to input multiple keys / values as an input.
+ * To see an example of how this can be used, see the `tagging` input
+ * of the `putObject` action of the AWS S3 component:
+ * https://github.com/prismatic-io/examples/blob/main/components/aws-s3/src/actions.ts
+ */
 export interface KeyValuePair<V = unknown> {
   /** Key of the KeyValuePair */
   key: string;

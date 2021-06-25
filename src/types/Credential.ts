@@ -1,3 +1,11 @@
+/**
+ * Types defined in this file describe the shape of credentials
+ * that can be passed to actions' perform functions.
+ * Read about the credential object at:
+ * https://prismatic.io/docs/custom-components/writing-custom-components#contextcredential
+ */
+
+/** */
 import { OAuth2AuthorizationMethod } from ".";
 
 export type Credential =

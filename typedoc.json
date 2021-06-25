@@ -1,0 +1,10 @@
+{
+  "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-remove-references"],
+  "theme": "docusaurus2",
+  "gitRevision": "main",
+  "mode": "modules",
+  "out": "docs",
+  "logger": "console",
+  "readme": "none",
+  "exclude": ["**/*.test.ts"]
+}

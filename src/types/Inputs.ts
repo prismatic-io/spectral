@@ -33,7 +33,6 @@ export interface CodeInputFieldDefinition extends DefaultInputFieldDefinition {
   language?: string;
 }
 
-// TODO: Does this need to take in arguments? What would they be?
 /** Definition of the function that returns an array of choices. */
 export type InputFieldModelFunction = () => Promise<InputFieldChoice[]>;
 

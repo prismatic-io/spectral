@@ -26,8 +26,8 @@ const oauth2AuthorizationMethods = [
   "oauth2_client_credentials",
 ] as const;
 
-export type OAuth2AuthorizationMethod = typeof oauth2AuthorizationMethods[number];
+export type OAuth2AuthorizationMethod =
+  typeof oauth2AuthorizationMethods[number];
 
-export const AvailableOAuth2AuthorizationMethods: OAuth2AuthorizationMethod[] = [
-  ...oauth2AuthorizationMethods,
-];
+export const AvailableOAuth2AuthorizationMethods: OAuth2AuthorizationMethod[] =
+  [...oauth2AuthorizationMethods];

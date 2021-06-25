@@ -1,5 +1,9 @@
-// GraphQL-derived enums use the same name as the constant for the value,
-// but depending on how things shake out, we may be able to combine with the phrases below.
+/**
+ * This file contains types to help define conditional logic for the Prismatic
+ * branch component, https://prismatic.io/docs/components/branch
+ */
+
+/** @ignore */
 enum BooleanOperator {
   and = "and",
   or = "or",

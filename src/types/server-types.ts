@@ -1,9 +1,25 @@
 /**
- * This is the shape that is actually sent on publish
+ * Types defined in this module describe the shape of objects that are
+ * sent to Prismatic's API when a component is published. Types defined
+ * should not generally be imported directly, but they're the types of
+ * objects that are created by `component()` and `action()` helper functions.
  */
 
+/** Import shared types from types/ */
+import { ActionContext } from "./ActionPerformFunction";
+import { AuthorizationDefinition } from "./AuthorizationDefinition";
+import {
+  ActionDisplayDefinition,
+  ComponentDisplayDefinition,
+} from "./DisplayDefinition";
+import {
+  InputFieldChoice,
+  InputFieldCollection,
+  InputFieldModelFunction,
+} from "./Inputs";
+
 /** Defines attributes of a Component. */
-export interface ComponentDefinition {
+export interface Component {
   /** Specifies unique key for this Component. */
   key: string;
   /** Specifies if this Component is available for all Organizations or only your own @default false */
@@ -15,112 +31,13 @@ export interface ComponentDefinition {
   /** Specifies Authorization settings, if applicable */
   authorization?: AuthorizationDefinition;
   /** Specifies the supported Actions of this Component. */
-  actions: Record<string, ActionDefinition>;
+  actions: Record<string, Action>;
   /** Specified the URL for the Component Documentation. */
   documentationUrl?: string;
 }
 
-/** Authorization settings for a component */
-export interface AuthorizationDefinition {
-  /** Whether authorization is required */
-  required: boolean;
-  /** Supported authorization methods */
-  methods: AuthorizationMethod[];
-}
-
-const authorizationMethods = [
-  "basic",
-  "api_key",
-  "api_key_secret",
-  "private_key",
-  "oauth2",
-  "oauth2_client_credentials",
-] as const;
-
-type AuthorizationMethod = typeof authorizationMethods[number];
-
-const oauth2AuthorizationMethods = [
-  "oauth2",
-  "oauth2_client_credentials",
-] as const;
-
-type OAuth2AuthorizationMethod = typeof oauth2AuthorizationMethods[number];
-
-interface BasicCredential {
-  authorizationMethod: "basic";
-  fields: {
-    username: string;
-    password: string;
-  };
-}
-
-interface ApiKeyCredential {
-  authorizationMethod: "api_key";
-  fields: {
-    api_key: string;
-  };
-}
-
-interface ApiKeySecretCredential {
-  authorizationMethod: "api_key_secret";
-  fields: {
-    api_key: string;
-    api_secret: string;
-  };
-}
-
-interface PrivateKeyCredential {
-  authorizationMethod: "private_key";
-  fields: {
-    username: string;
-    private_key: string;
-  };
-}
-interface OAuth2Credential {
-  authorizationMethod: OAuth2AuthorizationMethod;
-  redirectUri: string;
-  fields: {
-    client_id: string;
-    client_secret: string;
-    token_uri: string;
-    auth_uri?: string;
-    scopes?: string;
-  };
-  token: {
-    access_token: string;
-    token_type: string;
-    refresh_token?: string;
-    expires_in?: string;
-    [key: string]: string | undefined;
-  };
-  context: { [key: string]: string };
-}
-
-type Credential =
-  | BasicCredential
-  | ApiKeyCredential
-  | ApiKeySecretCredential
-  | PrivateKeyCredential
-  | OAuth2Credential;
-
-/** Base definition of Display properties. */
-interface DisplayDefinition {
-  /** Label/name to display. */
-  label: string;
-  /** Description to display to the user. */
-  description: string;
-  /** Category of the Component. */
-  category?: string;
-}
-
-/** Component extensions for display properties. */
-export interface ComponentDisplayDefinition extends DisplayDefinition {
-  /** Path to icon to use for this Component. Path should be relative to component roto index. */
-  iconPath?: string;
-}
-
 /** Configuration of an Action. */
-export interface ActionDefinition {
+export interface Action {
   /** Key used for the Actions map and to uniquely identify this Component in your tenant. */
   key: string;
   /** Defines how the Action is displayed in the Prismatic interface. */
@@ -128,7 +45,7 @@ export interface ActionDefinition {
   /** Function to perform when this Action is used and invoked. */
   perform: ActionPerformFunction;
   /** InputFields to present in the Prismatic interface for configuration of this Action. */
-  inputs: InputFieldDefinition[];
+  inputs: InputField[];
   /** Optional attribute that specifies whether an Action will terminate execution.*/
   terminateExecution?: boolean;
   /** Determines whether an Action will allow Conditional Branching.*/
@@ -139,47 +56,17 @@ export interface ActionDefinition {
   dynamicBranchInput?: string;
   /**An example of the payload outputted by an Action*/
   examplePayload?:
-    | PerformDataStructureReturn
-    | PerformBranchingDataStructureReturn;
-}
-
-/** Action-specific Display attributes. */
-interface ActionDisplayDefinition extends DisplayDefinition {
-  /** Directions to help guide the user if additional configuration is required for this Action. */
-  directions?: string;
-  /** Indicate that this Action is important and/or commonly used from the parent Component. Should be enabled sparingly. */
-  important?: boolean;
-}
-
-type ActionLoggerFunction = (...args: unknown[]) => void;
-
-interface ActionLogger {
-  debug: ActionLoggerFunction;
-  info: ActionLoggerFunction;
-  log: ActionLoggerFunction;
-  warn: ActionLoggerFunction;
-  error: ActionLoggerFunction;
-}
-
-/** Context provided to perform method containing helpers and contextual data */
-interface ActionContext {
-  /** Credential for the action, optional since not all actions will require a credential */
-  credential?: Credential;
-  /** Logger for permanent logging; console calls are also captured */
-  logger: ActionLogger;
-  /** A key/value store that may be used to store small amounts of data that is persisted between Instance executions */
-  instanceState: Record<string, unknown>;
-  /** A unique id that corresponds to the step on the Integration */
-  stepId: string;
+    | ServerPerformDataStructureReturn
+    | ServerPerformBranchingDataStructureReturn;
 }
 
 /** Collection of input parameters provided by the user or previous steps' outputs */
 interface ActionInputParameters {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /** Used to represent returning conventional data and does not require content type to be specified */
-export interface PerformDataStructureReturn {
+export interface ServerPerformDataStructureReturn {
   /** Data structure to return from the action */
   data:
     | boolean
@@ -197,7 +84,7 @@ export interface PerformDataStructureReturn {
 }
 
 /** Used to represent a binary or serialized data return as content type must be specified */
-interface PerformDataReturn {
+interface ServerPerformDataReturn {
   /** Data payload containing data of the specified contentType */
   data: Buffer | string | unknown;
   /** The Content Type of the payload data */
@@ -209,24 +96,24 @@ interface PerformDataReturn {
 }
 
 /** Used to represent a branching return of conventional data and does not require content type to be specified */
-export interface PerformBranchingDataStructureReturn
-  extends PerformDataStructureReturn {
+export interface ServerPerformBranchingDataStructureReturn
+  extends ServerPerformDataStructureReturn {
   /** Name of the Branch to take. */
   branch: string;
 }
 
 /** Used to represent a binary or serialized data branching return as content type must be specified */
-interface PerformBranchingDataReturn extends PerformDataReturn {
+interface ServerPerformBranchingDataReturn extends ServerPerformDataReturn {
   /** Name of the Branch to take. */
   branch: string;
 }
 
 /** Required return type of all action perform functions */
 type PerformReturn =
-  | PerformDataStructureReturn
-  | PerformBranchingDataStructureReturn
-  | PerformDataReturn
-  | PerformBranchingDataReturn
+  | ServerPerformDataStructureReturn
+  | ServerPerformBranchingDataStructureReturn
+  | ServerPerformDataReturn
+  | ServerPerformBranchingDataReturn
   | void; // Allow an action to return nothing to reduce component implementation boilerplate
 
 /** Definition of the function to perform when an Action is invoked. */
@@ -235,12 +122,10 @@ type ActionPerformFunction = (
   params: ActionInputParameters
 ) => Promise<PerformReturn>;
 
-type InputFieldDefinition =
-  | DefaultInputFieldDefinition
-  | CodeInputFieldDefinition;
+type InputField = DefaultInputField | CodeInputField;
 
 /** Defines attributes of a InputField. */
-interface DefaultInputFieldDefinition {
+interface DefaultInputField {
   /** Unique identifier of the InputField. Must be unique within an Action. */
   key: string;
   /** Interface label of the InputField. */
@@ -263,7 +148,7 @@ interface DefaultInputFieldDefinition {
   model?: InputFieldChoice[] | InputFieldModelFunction;
 }
 
-interface CodeInputFieldDefinition extends DefaultInputFieldDefinition {
+interface CodeInputField extends DefaultInputField {
   type: "code";
   language?: string;
 }
@@ -278,9 +163,6 @@ type InputFieldType =
   | "data"
   | "conditional";
 
-/** InputField collection enumeration */
-type InputFieldCollection = "valuelist" | "keyvaluelist";
-
 /** Binary data payload */
 export interface DataPayload {
   /** Raw binary data as a Buffer */
@@ -290,15 +172,3 @@ export interface DataPayload {
   /** Suggested extension to use when writing the data */
   suggestedExtension?: string;
 }
-
-/** Defines a single Choice option for a InputField. */
-interface InputFieldChoice {
-  /** Label to display for this Choice. */
-  label: string;
-  /** Value to use if this Choice is chosen. */
-  value: string;
-}
-
-// TODO: Does this need to take in arguments? What would they be?
-/** Definition of the function that returns an array of choices. */
-type InputFieldModelFunction = () => Promise<InputFieldChoice[]>;
