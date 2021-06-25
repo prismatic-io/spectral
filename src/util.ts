@@ -319,6 +319,7 @@ export default {
     isDate,
     toDate,
     isUrl,
+    isData,
     toData,
     toString,
     keyValPairListToObject,
