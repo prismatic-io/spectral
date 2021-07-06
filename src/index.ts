@@ -74,6 +74,7 @@ export const component = (
     >;
   }
 ): Component => ({
+  version: "placeholder", // Placeholder until we deprecate version in component definitions
   ...definition,
   actions: Object.fromEntries(
     Object.entries(definition.actions).map(([actionKey, action]) => [
