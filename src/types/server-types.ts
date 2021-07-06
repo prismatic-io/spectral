@@ -26,8 +26,8 @@ export interface Component {
   public?: boolean;
   /** Defines how the Component is displayed in the Prismatic interface. */
   display: ComponentDisplayDefinition;
-  /** Version of the Component. */
-  version: string;
+  /** @deprecated Version of the Component. */
+  version?: string;
   /** Specifies Authorization settings, if applicable */
   authorization?: AuthorizationDefinition;
   /** Specifies the supported Actions of this Component. */

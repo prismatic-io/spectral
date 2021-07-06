@@ -110,3 +110,9 @@ lib/
 docs/
 sidebars.js
 sidebars.jse
+
+# Build artifacts
+package/
+
+# Cache files
+.DS_Store
