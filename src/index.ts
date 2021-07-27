@@ -65,15 +65,15 @@ const convertAction = (
  * @param definition A ComponentDefinition type object, including display infromation, unique key, authorization information, and a set of actions the component implements.
  * @returns This function returns a component object that has the shape the Prismatic API expects.
  */
-export const component = (
-  definition: Omit<Component, "actions"> & {
+export const component = <T extends boolean>(
+  definition: Omit<Component<T>, "actions"> & {
     actions: Record<
       string,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ActionDefinition<any, boolean, PerformReturn<boolean, any>>
     >;
   }
-): Component => ({
+): Component<T> => ({
   version: "placeholder", // Placeholder until we deprecate version in component definitions
   ...definition,
   actions: Object.fromEntries(

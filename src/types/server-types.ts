@@ -19,13 +19,14 @@ import {
 } from "./Inputs";
 
 /** Defines attributes of a Component. */
-export interface Component {
+export interface Component<T extends boolean> {
   /** Specifies unique key for this Component. */
   key: string;
+  //
   /** Specifies if this Component is available for all Organizations or only your own @default false */
-  public?: boolean;
+  public?: T;
   /** Defines how the Component is displayed in the Prismatic interface. */
-  display: ComponentDisplayDefinition;
+  display: ComponentDisplayDefinition<T>;
   /** @deprecated Version of the Component. */
   version?: string;
   /** Specifies Authorization settings, if applicable */

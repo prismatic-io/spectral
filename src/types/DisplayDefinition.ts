@@ -10,13 +10,17 @@ interface DisplayDefinition {
   description: string;
 }
 
-/** Component extensions for display properties. */
-export interface ComponentDisplayDefinition extends DisplayDefinition {
+interface ExtraDisplayDefinitionFields {
   /** Path to icon to use for this Component. Path should be relative to component roto index. */
   iconPath?: string;
   /** Category of the Component. */
   category?: string;
 }
+
+/** Component extensions for display properties. */
+export type ComponentDisplayDefinition<T extends boolean> = T extends true
+  ? DisplayDefinition & Required<ExtraDisplayDefinitionFields>
+  : DisplayDefinition & ExtraDisplayDefinitionFields;
 
 /** Action-specific Display attributes. */
 export interface ActionDisplayDefinition extends DisplayDefinition {
