@@ -76,6 +76,7 @@ export const component = <T extends boolean>(
 ): Component<T> => ({
   version: "placeholder", // Placeholder until we deprecate version in component definitions
   ...definition,
+  documentationUrl: definition.documentationUrl || null,
   actions: Object.fromEntries(
     Object.entries(definition.actions).map(([actionKey, action]) => [
       actionKey,

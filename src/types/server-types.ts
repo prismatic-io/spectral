@@ -19,7 +19,7 @@ import {
 } from "./Inputs";
 
 /** Defines attributes of a Component. */
-export interface Component<T extends boolean> {
+interface ComponentBase<T extends boolean> {
   /** Specifies unique key for this Component. */
   key: string;
   //
@@ -33,9 +33,18 @@ export interface Component<T extends boolean> {
   authorization?: AuthorizationDefinition;
   /** Specifies the supported Actions of this Component. */
   actions: Record<string, Action>;
-  /** Specified the URL for the Component Documentation. */
-  documentationUrl?: string;
 }
+
+export type Component<T extends boolean> = ComponentBase<T> &
+  (T extends true
+    ? {
+        /** Specified the URL for the Component Documentation. */
+        documentationUrl: string;
+      }
+    : {
+        /** Specified the URL for the Component Documentation. */
+        documentationUrl?: string;
+      });
 
 /** Configuration of an Action. */
 export interface Action {
