@@ -2,6 +2,7 @@ import {
   PerformReturn,
   ActionDisplayDefinition,
   ActionPerformFunction,
+  AuthorizationDefinition,
   Inputs,
 } from ".";
 
@@ -20,6 +21,8 @@ export interface ActionDefinition<
   perform: ActionPerformFunction<T, AllowsBranching, ReturnData>;
   /** InputFields to present in the Prismatic interface for configuration of this Action. */
   inputs: T;
+  /** Specifies Authorization settings, if applicable */
+  authorization?: AuthorizationDefinition;
   /** Optional attribute that specifies whether an Action will terminate execution.*/
   terminateExecution?: boolean;
   /** Determines whether an Action will allow Conditional Branching.*/
