@@ -29,8 +29,6 @@ interface ComponentBase<T extends boolean> {
   display: ComponentDisplayDefinition<T>;
   /** @deprecated Version of the Component. */
   version?: string;
-  /** Specifies Authorization settings, if applicable */
-  authorization?: AuthorizationDefinition;
   /** Specifies the supported Actions of this Component. */
   actions: Record<string, Action>;
 }
@@ -56,6 +54,8 @@ export interface Action {
   perform: ActionPerformFunction;
   /** InputFields to present in the Prismatic interface for configuration of this Action. */
   inputs: InputField[];
+  /** Specifies Authorization settings, if applicable */
+  authorization?: AuthorizationDefinition;
   /** Optional attribute that specifies whether an Action will terminate execution.*/
   terminateExecution?: boolean;
   /** Determines whether an Action will allow Conditional Branching.*/
