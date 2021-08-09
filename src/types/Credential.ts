@@ -54,6 +54,7 @@ export interface OAuth2Credential {
     token_uri: string;
     auth_uri?: string;
     scopes?: string;
+    headers?: Record<string, string>;
   };
   token: {
     access_token: string;
