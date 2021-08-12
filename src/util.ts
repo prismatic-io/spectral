@@ -230,7 +230,7 @@ const keyValPairListToObject = (
  * @param value The value to test
  * @returns This function returns true if `value` is a DataPayload object, and false otherwise.
  */
-const isData = (value: unknown): boolean => {
+const isBufferDataPayload = (value: unknown): boolean => {
   return value instanceof Object && "data" in value;
 };
 
@@ -240,14 +240,14 @@ const isData = (value: unknown): boolean => {
  * that has a Buffer and a string representing `contentType`.
  *
  * You can access the buffer like this:
- *  `const { data, contentType } = util.types.toData(someData);`
+ *  `const { data, contentType } = util.types.toBufferDataPayload(someData);`
  *
  * If `value` cannot be converted to a Buffer, an error will be thrown.
  * @param value The string, Buffer, Uint8Array, or Array to convert to a Buffer.
  * @returns This function returns an object with two keys: `data`, which is a `Buffer`, and `contentType`, which is a string.
  */
-const toData = (value: unknown): DataPayload => {
-  if (isData(value)) {
+const toBufferDataPayload = (value: unknown): DataPayload => {
+  if (isBufferDataPayload(value)) {
     return value as DataPayload;
   }
 
@@ -282,6 +282,29 @@ const toData = (value: unknown): DataPayload => {
 
   throw new Error(`Value '${value}' cannot be converted to a Buffer.`);
 };
+
+/**
+ * @deprecated This function tests if the object provided is a Prismatic `DataPayload` object.
+ * A `DataPayload` object is an object with a `data` attribute, and optional `contentType` attribute.
+ *
+ * @param value The value to test
+ * @returns This function returns true if `value` is a DataPayload object, and false otherwise.
+ */
+const isData = (value: unknown): boolean => isBufferDataPayload(value);
+
+/**
+ * @deprecated Many libraries for third-party API that handle binary files expect `Buffer` objects.
+ * This function helps to convert strings, Uint8Arrays, and Arrays to a data structure
+ * that has a Buffer and a string representing `contentType`.
+ *
+ * You can access the buffer like this:
+ *  `const { data, contentType } = util.types.toData(someData);`
+ *
+ * If `value` cannot be converted to a Buffer, an error will be thrown.
+ * @param value The string, Buffer, Uint8Array, or Array to convert to a Buffer.
+ * @returns This function returns an object with two keys: `data`, which is a `Buffer`, and `contentType`, which is a string.
+ */
+const toData = (value: unknown): DataPayload => toBufferDataPayload(value);
 
 /**
  * This function helps to format JSON examples for documentation.
@@ -319,6 +342,8 @@ export default {
     isDate,
     toDate,
     isUrl,
+    isBufferDataPayload,
+    toBufferDataPayload,
     isData,
     toData,
     toString,
