@@ -367,7 +367,91 @@ describe("util", () => {
     });
   });
 
+  describe("buffer data payload", () => {
+    it("detects buffer data payload", () => {
+      const payloadTypes = fc.record({
+        data: bufferArbitrary,
+        contentType: fc.string(),
+      });
+      fc.assert(
+        fc.property(payloadTypes, (v) => {
+          expect(util.types.isBufferDataPayload(v)).toStrictEqual(true);
+        })
+      );
+    });
+
+    it("coerces string to plain text buffer", () => {
+      fc.assert(
+        fc.property(fc.string(), (v) => {
+          expect(util.types.toBufferDataPayload(v)).toMatchObject({
+            data: Buffer.from(v, "utf-8"),
+            contentType: "text/plain",
+          });
+        })
+      );
+    });
+
+    it("serializes data to JSON and coerces to json text buffer", () => {
+      const jsonTypes = fc.oneof(fc.array(fc.anything()), fc.object());
+      fc.assert(
+        fc.property(jsonTypes, (v) =>
+          expect(util.types.toBufferDataPayload(v)).toMatchObject({
+            data: Buffer.from(JSON.stringify(v), "utf-8"),
+            contentType: "application/json",
+          })
+        )
+      );
+    });
+
+    it("directly returns DataPayload", () => {
+      const payloadTypes = fc.record({
+        data: bufferArbitrary,
+        contentType: fc.string(),
+        suggestedExtension: fc.oneof(fc.constant(undefined), fc.string()),
+      });
+      fc.assert(
+        fc.property(payloadTypes, (v) =>
+          expect(util.types.toBufferDataPayload(v)).toStrictEqual(v)
+        )
+      );
+    });
+
+    it("returns buffer with unknown content type", () => {
+      fc.assert(
+        fc.property(bufferArbitrary, (v) =>
+          expect(util.types.toBufferDataPayload(v)).toMatchObject({
+            data: v,
+            contentType: "application/octet-stream",
+          })
+        )
+      );
+    });
+
+    it("handles Uint8Array as a Buffer", () => {
+      fc.assert(
+        fc.property(uint8ArrayArbitrary, (v) =>
+          expect(util.types.toBufferDataPayload(v)).toMatchObject({
+            data: Buffer.from(v),
+            contentType: "application/octet-stream",
+          })
+        )
+      );
+    });
+  });
+
   describe("data", () => {
+    it("detects data payload", () => {
+      const payloadTypes = fc.record({
+        data: bufferArbitrary,
+        contentType: fc.string(),
+      });
+      fc.assert(
+        fc.property(payloadTypes, (v) => {
+          expect(util.types.isData(v)).toStrictEqual(true);
+        })
+      );
+    });
+
     it("coerces string to plain text buffer", () => {
       fc.assert(
         fc.property(fc.string(), (v) => {
@@ -426,6 +510,7 @@ describe("util", () => {
       );
     });
   });
+
   describe("string", () => {
     it("coerces plain text buffer to string", () => {
       fc.assert(
@@ -453,6 +538,7 @@ describe("util", () => {
       );
     });
   });
+
   //TODO add an arbitrary for KeyValueList to test unique values
   describe("KeyValueList", () => {
     it("coerces KeyValueList to object", () => {
@@ -469,6 +555,7 @@ describe("util", () => {
         })
       );
     });
+
     it("handles KeyValueList as undefined", () => {
       fc.assert(
         fc.property(bufferArbitrary, () => {
