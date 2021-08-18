@@ -39,7 +39,7 @@ const convertAction = (
     void | PerformBranchingDataReturn<unknown> | PerformDataReturn<unknown>
   >
 ): Action => {
-  const items = Object.entries(action.inputs);
+  const items = Object.entries(action.inputs ?? {});
 
   const inputDefinitions = items.map(([key, value]) => ({
     key,
