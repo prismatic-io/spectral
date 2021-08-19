@@ -329,6 +329,26 @@ const formatJsonExample = (input: unknown): string =>
 const toString = (value: unknown, defaultValue = ""): string =>
   `${value ?? defaultValue}`;
 
+/**
+ * This function returns true if `value` resembles the shape of JSON, and false otherwise.
+ *
+ * - `isJSON(undefined) will return `false`
+ * - `isJSON(null) will return `true`
+ * - `isJSON("") will return `false`
+ * - `isJSON(5) will return `true`
+ * - `isJSON('{"name":"John", "age":30, "car":null}') will return `true`
+ * @param value The value to test against
+ * @returns This function returns a boolean, dependant on whether `value` can be parsed to JSON.
+ * */
+const isJSON = (value: string) => {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export default {
   types: {
     isBool,
@@ -348,6 +368,7 @@ export default {
     toData,
     toString,
     keyValPairListToObject,
+    isJSON,
   },
   docs: {
     formatJsonExample,
