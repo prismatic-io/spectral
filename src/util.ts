@@ -340,7 +340,7 @@ const toString = (value: unknown, defaultValue = ""): string =>
  * @param value The value to test against
  * @returns This function returns a boolean, dependant on whether `value` can be parsed to JSON.
  * */
-const isJSON = (value: string) => {
+const isJSON = (value: string): boolean => {
   try {
     JSON.parse(value);
     return true;
