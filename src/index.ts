@@ -11,13 +11,18 @@
 import {
   ActionDefinition,
   InputFieldDefinition,
-  PerformReturn,
+  ActionPerformReturn,
   Inputs,
-  PerformBranchingDataReturn,
-  PerformDataReturn,
+  ActionPerformBranchingDataReturn,
+  ActionPerformDataReturn,
+  TriggerDefinition,
+  TriggerBaseResult,
+  TriggerBranchingResult,
+  TriggerResult,
 } from "./types";
 import {
   Action,
+  Trigger,
   Component,
   ServerPerformDataStructureReturn,
   ServerPerformBranchingDataStructureReturn,
@@ -36,7 +41,9 @@ const convertAction = (
   action: ActionDefinition<
     Inputs,
     boolean,
-    void | PerformBranchingDataReturn<unknown> | PerformDataReturn<unknown>
+    | void
+    | ActionPerformBranchingDataReturn<unknown>
+    | ActionPerformDataReturn<unknown>
   >
 ): Action => {
   const items = Object.entries(action.inputs ?? {});
@@ -58,6 +65,38 @@ const convertAction = (
 };
 
 /**
+ * This is a helper function for component() to convert a
+ * trigger defined in TypeScript into an trigger object that
+ * Prismatic's API can process.
+ * @param triggerKey The unique identifier of a trigger.
+ * @param trigger The trigger definition, including its inputs, perform function, and app display information.
+ * @returns This function returns a trigger object that has the shape the Prismatic API expects.
+ */
+const convertTrigger = (
+  triggerKey: string,
+  trigger: TriggerDefinition<
+    Inputs,
+    boolean,
+    void | TriggerBaseResult | TriggerBranchingResult
+  >
+): Trigger => {
+  const items = Object.entries(trigger.inputs ?? {});
+
+  const inputDefinitions = items.map(([key, value]) => ({
+    key,
+    ...(typeof value === "object" ? value : {}),
+  })) as Trigger["inputs"];
+
+  return {
+    ...trigger,
+    key: triggerKey,
+    inputs: inputDefinitions,
+    perform: trigger.perform as Trigger["perform"],
+    examplePayload: trigger.examplePayload || undefined,
+  };
+};
+
+/**
  * This function creates a component object that can be
  * imported into the Prismatic API. For information on using
  * this function to write custom components, see
@@ -66,11 +105,16 @@ const convertAction = (
  * @returns This function returns a component object that has the shape the Prismatic API expects.
  */
 export const component = <T extends boolean>(
-  definition: Omit<Component<T>, "actions"> & {
-    actions: Record<
+  definition: Omit<Component<T>, "actions" | "triggers"> & {
+    actions?: Record<
       string,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ActionDefinition<any, boolean, PerformReturn<boolean, any>>
+      ActionDefinition<any, boolean, ActionPerformReturn<boolean, any>>
+    >;
+    triggers?: Record<
+      string,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      TriggerDefinition<any, boolean, TriggerResult<boolean>>
     >;
   }
 ): Component<T> => ({
@@ -78,9 +122,15 @@ export const component = <T extends boolean>(
   ...definition,
   documentationUrl: definition.documentationUrl || null,
   actions: Object.fromEntries(
-    Object.entries(definition.actions).map(([actionKey, action]) => [
+    Object.entries(definition.actions || {}).map(([actionKey, action]) => [
       actionKey,
       convertAction(actionKey, action),
+    ])
+  ),
+  triggers: Object.fromEntries(
+    Object.entries(definition.triggers || {}).map(([triggerKey, trigger]) => [
+      triggerKey,
+      convertTrigger(triggerKey, trigger),
     ])
   ),
 });
@@ -97,16 +147,33 @@ export const component = <T extends boolean>(
 export const action = <
   T extends Inputs,
   AllowsBranching extends boolean,
-  ReturnData extends PerformReturn<AllowsBranching, unknown>
+  ReturnData extends ActionPerformReturn<AllowsBranching, unknown>
 >(
   definition: ActionDefinition<T, AllowsBranching, ReturnData>
 ): ActionDefinition<T, AllowsBranching, ReturnData> => definition;
 
 /**
+ * This function creates a trigger object that can be referenced
+ * by a custom component. It helps ensure that the shape of the
+ * trigger object conforms to what the Prismatic API expects.
+ * For information on writing custom component triggers, see
+ * https://prismatic.io/docs/custom-components/writing-custom-components/#writing-triggers.
+ * @param definition A TriggerDefinition type object that includes UI display information, a function to perform when the trigger is invoked, and a an object containing inputs for the perform function.
+ * @returns This function validates the shape of the `definition` object provided, and returns the same trigger object.
+ */
+export const trigger = <
+  T extends Inputs,
+  AllowsBranching extends boolean,
+  Result extends TriggerResult<AllowsBranching>
+>(
+  definition: TriggerDefinition<T, AllowsBranching, Result>
+): TriggerDefinition<T, AllowsBranching, Result> => definition;
+
+/**
  * For information and examples on how to write inputs
- * for custom component actions, see
+ * for custom component actions and triggers, see
  * https://prismatic.io/docs/custom-components/writing-custom-components/#adding-inputs.
- * @param definition An InputFieldDefinition object that describes the type of an input for a custom component action, and information on how it should be displayed in the Prismatic WebApp.
+ * @param definition An InputFieldDefinition object that describes the type of an input for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This function validates the shape of the `definition` object provided, and returns the same input object.
  */
 export const input = <T extends InputFieldDefinition>(definition: T): T =>

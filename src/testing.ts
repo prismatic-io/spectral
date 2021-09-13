@@ -18,10 +18,13 @@ import {
   ApiKeySecretCredential,
   PrivateKeyCredential,
   OAuth2Credential,
-  PerformReturn,
+  ActionPerformReturn,
   AuthorizationMethod,
   AvailableAuthorizationMethods,
   Inputs,
+  TriggerDefinition,
+  TriggerResult,
+  TriggerPayload,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -124,14 +127,14 @@ interface InvokeReturn<ReturnData> {
 
 /**
  * Invokes specified ActionDefinition perform function using supplied params
- * and optional context. Accepts a generic type matching PerformReturn as a convenience
+ * and optional context. Accepts a generic type matching ActionPerformReturn as a convenience
  * to avoid extra casting within test methods. Returns an InvokeResult containing both the
  * action result and a mock logger for asserting logging.
  */
 export const invoke = async <
   T extends Inputs,
   AllowsBranching extends boolean,
-  ReturnData extends PerformReturn<AllowsBranching, unknown>
+  ReturnData extends ActionPerformReturn<AllowsBranching, unknown>
 >(
   actionBase:
     | ActionDefinition<T, AllowsBranching, ReturnData>
@@ -148,6 +151,7 @@ export const invoke = async <
     logger: loggerMock(),
     instanceState: {},
     stepId: "mockStepId",
+    executionId: "mockExecutionId",
     ...context,
   };
 
@@ -159,8 +163,82 @@ export const invoke = async <
   };
 };
 
+export const defaultTriggerPayload = (): TriggerPayload => {
+  const payloadData = { foo: "bar" };
+  const contentType = "application/json";
+
+  return {
+    headers: {
+      "content-type": contentType,
+    },
+    queryParameters: {},
+    rawBody: {
+      data: payloadData,
+      contentType,
+    },
+    body: {
+      data: JSON.stringify(payloadData),
+      contentType,
+    },
+    webhookUrls: {
+      "Flow 1": "https://example.com",
+    },
+  };
+};
+
+/**
+ * Invokes specified TriggerDefinition perform function using supplied params
+ * and optional context. Accepts a generic type matching TriggerResult as a convenience
+ * to avoid extra casting within test methods. Returns an InvokeResult containing both the
+ * trigger result and a mock logger for asserting logging.
+ */
+export const invokeTrigger = async <
+  T extends Inputs,
+  AllowsBranching extends boolean,
+  Result extends TriggerResult<AllowsBranching>
+>(
+  triggerBase:
+    | TriggerDefinition<T, AllowsBranching, Result>
+    | Record<string, TriggerDefinition<T, AllowsBranching, Result>>,
+  context?: Partial<ActionContext>,
+  payload?: TriggerPayload,
+  params?: ActionInputParameters<T>
+): Promise<InvokeReturn<Result>> => {
+  const trigger = (
+    triggerBase.perform ? triggerBase : Object.values(triggerBase)[0]
+  ) as TriggerDefinition<T, AllowsBranching, Result>;
+
+  const realizedContext = {
+    credential: undefined,
+    logger: loggerMock(),
+    instanceState: {},
+    stepId: "mockStepId",
+    executionId: "mockExecutionId",
+    ...context,
+  };
+
+  const realizedPayload = {
+    ...defaultTriggerPayload(),
+    ...payload,
+  };
+
+  const realizedParams = params || ({} as ActionInputParameters<T>);
+
+  const result = await trigger.perform(
+    realizedContext,
+    realizedPayload,
+    realizedParams
+  );
+
+  return {
+    result,
+    loggerMock: realizedContext.logger,
+  };
+};
+
 export default {
   invoke,
+  invokeTrigger,
   loggerMock,
   getAuthorizationMethods,
   credentials,

@@ -1,5 +1,5 @@
 import {
-  PerformReturn,
+  ActionPerformReturn,
   ActionDisplayDefinition,
   ActionPerformFunction,
   AuthorizationDefinition,
@@ -13,7 +13,7 @@ import {
 export interface ActionDefinition<
   T extends Inputs,
   AllowsBranching extends boolean,
-  ReturnData extends PerformReturn<AllowsBranching, unknown>
+  ReturnData extends ActionPerformReturn<AllowsBranching, unknown>
 > {
   /** Defines how the Action is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
