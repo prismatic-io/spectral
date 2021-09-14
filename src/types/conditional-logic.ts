@@ -66,10 +66,10 @@ export const BinaryOperatorPhrase = {
 };
 
 export type TermOperator = UnaryOperator | BinaryOperator;
-export const TermOperatorPhrase = [
-  ...Object.keys(UnaryOperatorPhrase),
-  ...Object.keys(BinaryOperatorPhrase),
-];
+export const TermOperatorPhrase = {
+  ...UnaryOperatorPhrase,
+  ...BinaryOperatorPhrase,
+};
 export type Term = unknown;
 export type TermExpression = [TermOperator, Term, Term?];
 
