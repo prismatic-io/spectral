@@ -4,31 +4,78 @@
  */
 
 /** @ignore */
-enum BooleanOperator {
+export enum BooleanOperator {
   and = "and",
   or = "or",
 }
 
-export const TermOperatorPhrase = {
-  equal: "equals",
-  notEqual: "does not equal",
-  greaterThan: "is greater than",
-  greaterThanOrEqual: "is greater than or equal to",
-  lessThan: "is less than",
-  lessThanOrEqual: "is less than or equal to",
-  in: "contained in",
-  notIn: "not contained in",
+export const BooleanOperatorPhrase = Object.keys(BooleanOperator);
+
+export enum UnaryOperator {
+  isTrue = "isTrue",
+  isFalse = "isFalse",
+  doesNotExist = "doesNotExist",
+  exists = "exists",
+}
+
+export const UnaryOperatorPhrase = {
+  [UnaryOperator.isTrue]: "is true",
+  [UnaryOperator.isFalse]: "is false",
+  [UnaryOperator.doesNotExist]: "does not exist",
+  [UnaryOperator.exists]: "exists",
 };
 
-type TermOperator = keyof typeof TermOperatorPhrase;
+export enum BinaryOperator {
+  equal = "equal",
+  notEqual = "notEqual",
+  greaterThan = "greaterThan",
+  greaterThanOrEqual = "greaterThanOrEqual",
+  lessThan = "lessThan",
+  lessThanOrEqual = "lessThanOrEqual",
+  in = "in",
+  notIn = "notIn",
+  exactlyMatches = "exactlyMatches",
+  doesNotExactlyMatch = "doesNotExactlyMatch",
+  startsWith = "startsWith",
+  doesNotStartWith = "doesNotStartWith",
+  endsWith = "endsWith",
+  doesNotEndWith = "doesNotEndWith",
+  dateTimeAfter = "dateTimeAfter",
+  dateTimeBefore = "dateTimeBefore",
+  dateTimeSame = "dateTimeSame",
+}
 
-type Term<T> = T;
-type TermExpression<T> = [TermOperator, Term<T>, Term<T>];
-type BooleanExpression<T> = [
+export const BinaryOperatorPhrase = {
+  [BinaryOperator.equal]: "equal",
+  [BinaryOperator.notEqual]: "does not equal",
+  [BinaryOperator.greaterThan]: "is greater than",
+  [BinaryOperator.greaterThanOrEqual]: "is greater than or equal to",
+  [BinaryOperator.lessThan]: "is less than",
+  [BinaryOperator.lessThanOrEqual]: "is less than or equal to",
+  [BinaryOperator.in]: "contained in",
+  [BinaryOperator.notIn]: "not contained in",
+  [BinaryOperator.exactlyMatches]: "exactly matches",
+  [BinaryOperator.doesNotExactlyMatch]: "does not exactly match",
+  [BinaryOperator.startsWith]: "starts with",
+  [BinaryOperator.doesNotStartWith]: "does not start with",
+  [BinaryOperator.endsWith]: "ends with",
+  [BinaryOperator.doesNotEndWith]: "does not end with",
+  [BinaryOperator.dateTimeAfter]: "is after (date/time)",
+  [BinaryOperator.dateTimeBefore]: "is before (date/time)",
+  [BinaryOperator.dateTimeSame]: "is the same (date/time)",
+};
+
+export type TermOperator = UnaryOperator | BinaryOperator;
+export const TermOperatorPhrase = {
+  ...UnaryOperatorPhrase,
+  ...BinaryOperatorPhrase,
+};
+export type Term = unknown;
+export type TermExpression = [TermOperator, Term, Term?];
+
+export type BooleanExpression = [
   BooleanOperator.and | BooleanOperator.or,
-  ...ConditionalExpression<T>[]
+  ...ConditionalExpression[]
 ];
 
-export type ConditionalExpression<T = unknown> =
-  | TermExpression<T>
-  | BooleanExpression<T>;
+export type ConditionalExpression = TermExpression | BooleanExpression;
