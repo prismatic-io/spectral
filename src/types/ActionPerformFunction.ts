@@ -1,7 +1,7 @@
 import {
   Credential,
   Inputs,
-  PerformReturn,
+  ActionPerformReturn,
   ActionInputParameters,
   ActionLogger,
 } from ".";
@@ -10,7 +10,7 @@ import {
 export type ActionPerformFunction<
   T extends Inputs,
   AllowsBranching extends boolean,
-  ReturnData extends PerformReturn<AllowsBranching, unknown>
+  ReturnData extends ActionPerformReturn<AllowsBranching, unknown>
 > = (
   context: ActionContext,
   params: ActionInputParameters<T>
@@ -26,4 +26,6 @@ export interface ActionContext {
   instanceState: Record<string, unknown>;
   /** A unique id that corresponds to the step on the Integration */
   stepId: string;
+  /** A unique id that corresponds to the specific execution of the Integration */
+  executionId: string;
 }

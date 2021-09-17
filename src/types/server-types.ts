@@ -13,6 +13,9 @@ import {
   ComponentDisplayDefinition,
 } from "./DisplayDefinition";
 import { InputFieldChoice, InputFieldCollection } from "./Inputs";
+import { TriggerOptionChoice } from "./TriggerDefinition";
+import { TriggerPayload } from "./TriggerPayload";
+import { TriggerBaseResult, TriggerBranchingResult } from "./TriggerResult";
 
 /** Defines attributes of a Component. */
 interface ComponentBase<T extends boolean> {
@@ -26,7 +29,9 @@ interface ComponentBase<T extends boolean> {
   /** @deprecated Version of the Component. */
   version?: string;
   /** Specifies the supported Actions of this Component. */
-  actions: Record<string, Action>;
+  actions?: Record<string, Action>;
+  /** Specifies the supported Triggers of this Component. */
+  triggers?: Record<string, Trigger>;
 }
 
 export type Component<T extends boolean> = ComponentBase<T> &
@@ -40,30 +45,48 @@ export type Component<T extends boolean> = ComponentBase<T> &
         documentationUrl?: string;
       });
 
-/** Configuration of an Action. */
-export interface Action {
+/** Base properties of Actions and Triggers. */
+interface BaseAction {
   /** Key used for the Actions map and to uniquely identify this Component in your tenant. */
   key: string;
   /** Defines how the Action is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
-  /** Function to perform when this Action is used and invoked. */
-  perform: ActionPerformFunction;
   /** InputFields to present in the Prismatic interface for configuration of this Action. */
   inputs: InputField[];
   /** Specifies Authorization settings, if applicable */
   authorization?: AuthorizationDefinition;
-  /** Optional attribute that specifies whether an Action will terminate execution.*/
+  /** Optional attribute that specifies whether an Action will terminate execution. */
   terminateExecution?: boolean;
-  /** Determines whether an Action will allow Conditional Branching.*/
+  /** Determines whether an Action will allow Conditional Branching. */
   allowsBranching?: boolean;
-  /**Static Branch names associated with an Action. */
+  /** Static Branch names associated with an Action. */
   staticBranchNames?: string[];
-  /**The Input associated with Dynamic Branching.*/
+  /** The Input associated with Dynamic Branching. */
   dynamicBranchInput?: string;
-  /**An example of the payload outputted by an Action*/
+}
+
+/** Configuration of an Action. */
+export interface Action extends BaseAction {
+  /** Function to perform when this Action is used and invoked. */
+  perform: ActionPerformFunction;
+  /** An example of the payload outputted by an Action. */
   examplePayload?:
     | ServerPerformDataStructureReturn
     | ServerPerformBranchingDataStructureReturn;
+}
+
+/** Configuration of a Trigger. */
+export interface Trigger extends BaseAction {
+  /** Function to perform when this Trigger is used and invoked. */
+  perform: TriggerPerformFunction;
+  /** Specifies whether this Trigger supports executing the Integration on a recurring schedule. */
+  scheduleSupport: TriggerOptionChoice;
+  /** Specifies whether this Trigger supports synchronous responses to an Integration webhook request. */
+  synchronousResponseSupport: TriggerOptionChoice;
+  /** An example of the payload outputted by this Trigger. */
+  examplePayload?: TriggerBaseResult | TriggerBranchingResult;
+  /** Specifies if this Trigger appears in the list of 'common' Triggers. Only configurable by Prismatic. @default false */
+  isCommonTrigger?: boolean;
 }
 
 /** Collection of input parameters provided by the user or previous steps' outputs */
@@ -115,7 +138,7 @@ interface ServerPerformBranchingDataReturn extends ServerPerformDataReturn {
 }
 
 /** Required return type of all action perform functions */
-type PerformReturn =
+type ActionPerformReturn =
   | ServerPerformDataStructureReturn
   | ServerPerformBranchingDataStructureReturn
   | ServerPerformDataReturn
@@ -126,7 +149,16 @@ type PerformReturn =
 type ActionPerformFunction = (
   context: ActionContext,
   params: ActionInputParameters
-) => Promise<PerformReturn>;
+) => Promise<ActionPerformReturn>;
+
+type TriggerResult = TriggerBranchingResult | TriggerBaseResult | void; // Allow a trigger to return nothing to reduce component implementation boilerplate
+
+/** Definition of the function to perform when a Trigger is invoked. */
+type TriggerPerformFunction = (
+  context: ActionContext,
+  payload: TriggerPayload,
+  params: ActionInputParameters
+) => Promise<TriggerResult>;
 
 type InputField = DefaultInputField | CodeInputField;
 

@@ -1,5 +1,5 @@
 /** Used to represent a binary or serialized data return as content type must be specified */
-export interface PerformDataReturn<ReturnData> {
+export interface ActionPerformDataReturn<ReturnData> {
   /** Data payload containing data of the specified contentType */
   data: ReturnData;
   /** The Content Type of the payload data */
@@ -13,18 +13,18 @@ export interface PerformDataReturn<ReturnData> {
 /** Used to represent a branching return of conventional data and does not require content type to be specified */
 
 /** Used to represent a binary or serialized data branching return as content type must be specified */
-export interface PerformBranchingDataReturn<ReturnData>
-  extends PerformDataReturn<ReturnData> {
+export interface ActionPerformBranchingDataReturn<ReturnData>
+  extends ActionPerformDataReturn<ReturnData> {
   /** Name of the Branch to take. */
   branch: string;
 }
 
 /** Required return type of all action perform functions */
-export type PerformReturn<
+export type ActionPerformReturn<
   AllowsBranching extends boolean,
   ReturnData extends unknown
 > =
   | (AllowsBranching extends true
-      ? PerformBranchingDataReturn<ReturnData>
-      : PerformDataReturn<ReturnData>)
+      ? ActionPerformBranchingDataReturn<ReturnData>
+      : ActionPerformDataReturn<ReturnData>)
   | void;
