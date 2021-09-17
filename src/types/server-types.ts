@@ -12,11 +12,7 @@ import {
   ActionDisplayDefinition,
   ComponentDisplayDefinition,
 } from "./DisplayDefinition";
-import {
-  InputFieldChoice,
-  InputFieldCollection,
-  InputFieldModelFunction,
-} from "./Inputs";
+import { InputFieldChoice, InputFieldCollection } from "./Inputs";
 
 /** Defines attributes of a Component. */
 interface ComponentBase<T extends boolean> {
@@ -154,8 +150,8 @@ interface DefaultInputField {
   example?: string;
   /** Indicate if this InputField is required. */
   required?: boolean;
-  /** Dictates possible choices or a function to generate choices for the InputField. */
-  model?: InputFieldChoice[] | InputFieldModelFunction;
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
 }
 
 interface CodeInputField extends DefaultInputField {

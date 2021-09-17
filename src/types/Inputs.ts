@@ -24,17 +24,14 @@ export interface DefaultInputFieldDefinition {
   example?: string;
   /** Indicate if this InputField is required. */
   required?: boolean;
-  /** Dictates possible choices or a function to generate choices for the InputField. */
-  model?: InputFieldChoice[] | InputFieldModelFunction;
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
 }
 
 export interface CodeInputFieldDefinition extends DefaultInputFieldDefinition {
   type: "code";
   language?: string;
 }
-
-/** Definition of the function that returns an array of choices. */
-export type InputFieldModelFunction = () => Promise<InputFieldChoice[]>;
 
 /** Defines a single Choice option for a InputField. */
 export interface InputFieldChoice {
