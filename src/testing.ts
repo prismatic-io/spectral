@@ -71,25 +71,41 @@ export const credentials = {
     },
   }),
   /** Return a OAuth2Credential assembled from provided token and optional redirectUri. */
-  oauth2: (token: string, redirectUri = ""): OAuth2Credential => ({
+  oauth2: (
+    token: string,
+    redirectUri = "",
+    tokenUri = "",
+    clientId = "",
+    clientSecret = "",
+    headers = {}
+  ): OAuth2Credential => ({
     authorizationMethod: "oauth2",
     redirectUri,
     fields: {
-      client_id: "",
-      client_secret: "",
-      token_uri: "",
+      client_id: clientId,
+      client_secret: clientSecret,
+      token_uri: tokenUri,
+      headers,
     },
     token: { access_token: token, token_type: "bearer" },
     context: {},
   }),
   /** Return a OAuth2Credential assembled from provided token. */
-  oauth2ClientCredentials: (token: string): OAuth2Credential => ({
+  oauth2ClientCredentials: (
+    token: string,
+    redirectUri = "",
+    tokenUri = "",
+    clientId = "",
+    clientSecret = "",
+    headers = {}
+  ): OAuth2Credential => ({
     authorizationMethod: "oauth2_client_credentials",
-    redirectUri: "",
+    redirectUri: redirectUri,
     fields: {
-      client_id: "",
-      client_secret: "",
-      token_uri: "",
+      client_id: clientId,
+      client_secret: clientSecret,
+      token_uri: tokenUri,
+      headers,
     },
     token: { access_token: token, token_type: "bearer" },
     context: {},
