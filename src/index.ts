@@ -41,7 +41,7 @@ const convertAction = (
   action: ActionDefinition<
     Inputs,
     boolean,
-    | void
+    | undefined
     | ActionPerformBranchingDataReturn<unknown>
     | ActionPerformDataReturn<unknown>
   >
@@ -77,7 +77,7 @@ const convertTrigger = (
   trigger: TriggerDefinition<
     Inputs,
     boolean,
-    void | TriggerBaseResult | TriggerBranchingResult
+    undefined | TriggerBaseResult | TriggerBranchingResult
   >
 ): Trigger => {
   const items = Object.entries(trigger.inputs ?? {});
