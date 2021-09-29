@@ -19,3 +19,4 @@ export * from "./TriggerPerformFunction";
 export * from "./TriggerDefinition";
 export * from "./HttpResponse";
 export * from "./TriggerPayload";
+export * as serverTypes from "./server-types";
