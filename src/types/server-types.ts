@@ -138,7 +138,7 @@ interface ServerPerformBranchingDataReturn extends ServerPerformDataReturn {
 }
 
 /** Required return type of all action perform functions */
-type ActionPerformReturn =
+export type ActionPerformReturn =
   | ServerPerformDataStructureReturn
   | ServerPerformBranchingDataStructureReturn
   | ServerPerformDataReturn
@@ -146,21 +146,21 @@ type ActionPerformReturn =
   | void; // Allow an action to return nothing to reduce component implementation boilerplate
 
 /** Definition of the function to perform when an Action is invoked. */
-type ActionPerformFunction = (
+export type ActionPerformFunction = (
   context: ActionContext,
   params: ActionInputParameters
 ) => Promise<ActionPerformReturn>;
 
-type TriggerResult = TriggerBranchingResult | TriggerBaseResult | void; // Allow a trigger to return nothing to reduce component implementation boilerplate
+export type TriggerResult = TriggerBranchingResult | TriggerBaseResult | void; // Allow a trigger to return nothing to reduce component implementation boilerplate
 
 /** Definition of the function to perform when a Trigger is invoked. */
-type TriggerPerformFunction = (
+export type TriggerPerformFunction = (
   context: ActionContext,
   payload: TriggerPayload,
   params: ActionInputParameters
 ) => Promise<TriggerResult>;
 
-type InputField = DefaultInputField | CodeInputField;
+export type InputField = DefaultInputField | CodeInputField;
 
 /** Defines attributes of a InputField. */
 interface DefaultInputField {
@@ -192,7 +192,7 @@ interface CodeInputField extends DefaultInputField {
 }
 
 /** InputField type enumeration. */
-type InputFieldType =
+export type InputFieldType =
   | "string"
   | "text"
   | "password"
