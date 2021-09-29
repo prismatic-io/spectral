@@ -27,4 +27,4 @@ export type ActionPerformReturn<
   | (AllowsBranching extends true
       ? ActionPerformBranchingDataReturn<ReturnData>
       : ActionPerformDataReturn<ReturnData>)
-  | void;
+  | undefined;

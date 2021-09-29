@@ -143,7 +143,7 @@ export type ActionPerformReturn =
   | ServerPerformBranchingDataStructureReturn
   | ServerPerformDataReturn
   | ServerPerformBranchingDataReturn
-  | void; // Allow an action to return nothing to reduce component implementation boilerplate
+  | undefined; // Allow an action to return nothing to reduce component implementation boilerplate
 
 /** Definition of the function to perform when an Action is invoked. */
 export type ActionPerformFunction = (
@@ -151,7 +151,10 @@ export type ActionPerformFunction = (
   params: ActionInputParameters
 ) => Promise<ActionPerformReturn>;
 
-export type TriggerResult = TriggerBranchingResult | TriggerBaseResult | void; // Allow a trigger to return nothing to reduce component implementation boilerplate
+export type TriggerResult =
+  | TriggerBranchingResult
+  | TriggerBaseResult
+  | undefined; // Allow a trigger to return nothing to reduce component implementation boilerplate
 
 /** Definition of the function to perform when a Trigger is invoked. */
 export type TriggerPerformFunction = (

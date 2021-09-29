@@ -20,4 +20,4 @@ export interface TriggerBranchingResult extends TriggerBaseResult {
 /** Required return type of all trigger perform functions */
 export type TriggerResult<AllowsBranching extends boolean> =
   | (AllowsBranching extends true ? TriggerBranchingResult : TriggerBaseResult)
-  | void;
+  | undefined;
