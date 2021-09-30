@@ -14,7 +14,7 @@ import {
 } from "./DisplayDefinition";
 import { InputFieldChoice, InputFieldCollection } from "./Inputs";
 import { TriggerOptionChoice } from "./TriggerDefinition";
-import { TriggerPayload } from "./TriggerPayload";
+import { TriggerPayload as _TriggerPayload } from "./TriggerPayload";
 import { TriggerBaseResult, TriggerBranchingResult } from "./TriggerResult";
 
 /** Defines attributes of a Component. */
@@ -162,6 +162,8 @@ export type TriggerPerformFunction = (
   payload: TriggerPayload,
   params: ActionInputParameters
 ) => Promise<TriggerResult>;
+
+export type TriggerPayload = _TriggerPayload;
 
 export type InputField = DefaultInputField | CodeInputField;
 
