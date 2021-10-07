@@ -199,6 +199,10 @@ export const defaultTriggerPayload = (): TriggerPayload => {
     webhookUrls: {
       "Flow 1": "https://example.com",
     },
+    customer: {
+      name: "Customer 1",
+      externalId: "1234",
+    },
   };
 };
 
