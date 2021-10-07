@@ -18,7 +18,7 @@ export interface TriggerPayload {
     [key: string]: string;
   };
   customer: {
-    externalId: string;
-    name: string;
+    externalId: string | null;
+    name: string | null;
   };
 }
