@@ -17,4 +17,8 @@ export interface TriggerPayload {
   webhookUrls: {
     [key: string]: string;
   };
+  customer: {
+    externalId: string;
+    name: string;
+  };
 }
