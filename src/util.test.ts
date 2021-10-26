@@ -593,5 +593,13 @@ describe("util", () => {
         })
       );
     });
+
+    describe("JSON", () => {
+      it("returns true in the case of actual JSON", () => {
+        expect(
+          util.types.lowerCaseHeaders({ "Content-Type": "Application/Json" })
+        ).toStrictEqual({ "content-type": "Application/Json" });
+      });
+    });
   });
 });
