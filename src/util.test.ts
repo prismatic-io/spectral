@@ -566,4 +566,32 @@ describe("util", () => {
       );
     });
   });
+
+  const validJSON = fc.jsonObject().map((x) => JSON.stringify(x));
+  const invalidJSON = fc.constantFrom(
+    "",
+    "['']",
+    "someString",
+    null,
+    undefined
+  );
+  describe("JSON", () => {
+    it("returns true in the case of actual JSON", () => {
+      fc.assert(
+        fc.property(validJSON, (v) => {
+          expect(util.types.isJSON(v)).toStrictEqual(true);
+        })
+      );
+    });
+
+    it("returns false in the case of invalid JSON", () => {
+      fc.assert(
+        fc.property(invalidJSON, (v) => {
+          expect(util.types.isJSON(util.types.toString(v))).toStrictEqual(
+            false
+          );
+        })
+      );
+    });
+  });
 });
