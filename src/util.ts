@@ -106,7 +106,7 @@ const toInt = (value: unknown, defaultValue?: number): number => {
  * - `util.types.isBool("5.5")` will return `true`, since the string `"5.5"` can easily be coerced into a number.
  * - `util.types.isBool("Hello")` will return `false`, since `"Hello"` is not a number.
  *
- * @param value The varible to test.
+ * @param value The variable to test.
  * @returns This function returns true if `value` can easily be coerced into a number, and false otherwise.
  */
 const isNumber = (value: unknown): boolean => !Number.isNaN(Number(value));
