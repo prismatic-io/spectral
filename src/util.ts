@@ -349,6 +349,22 @@ const isJSON = (value: string): boolean => {
   }
 };
 
+/**
+ * This function returns a lower cased version of the headers passed to it.
+ *
+ * - `lowerCaseHeaders({"Content-Type": "Application/JSON"}) will return {"content-type": "Application/JSON"}`
+ * - `lowerCaseHeaders({"Cache-Control": "max-age=604800"}) will return {"cache-control": "max-age=604800"}`
+ * - `lowerCaseHeaders({"Accept-Language": "en-us"}) will return {"accept-language": "en-us"}`
+ * @param headers The headers to convert to lower case
+ * @returns This function returns a header object
+ * */
+export const lowerCaseHeaders = (
+  headers: Record<string, string>
+): Record<string, string> =>
+  Object.entries(headers).reduce((result, [key, val]) => {
+    return { ...result, [key.toLowerCase()]: val };
+  }, {});
+
 export default {
   types: {
     isBool,
@@ -369,6 +385,7 @@ export default {
     toString,
     keyValPairListToObject,
     isJSON,
+    lowerCaseHeaders,
   },
   docs: {
     formatJsonExample,
