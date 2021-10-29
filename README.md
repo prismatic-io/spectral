@@ -23,7 +23,7 @@ With Prismatic, you can:
 - Build reusable [integrations](https://prismatic.io/docs/integrations) in a low-code integration designer that's tailored for your product
 - Use [pre-built components](https://prismatic.io/docs/components/component-catalog) to handle most of your integrations' functionality, and write [custom components](https://prismatic.io/docs/custom-components/writing-custom-components) when needed
 - Quickly add an [integration marketplace](https://prismatic.io/docs/integration-marketplace) to your product so customers can explore, activate, and monitor integrations
-- Easily deploy customer-specific integration [instances](https://prismatic.io/docs/instances) with unique configurations and credentials
+- Easily deploy customer-specific integration [instances](https://prismatic.io/docs/instances) with unique configurations and connections
 - Provide better support with tools like [logging](https://prismatic.io/docs/logging) and [alerting](https://prismatic.io/docs/monitoring-and-alerting)
 - Run your integrations in a purpose-built environment designed for security and scalability
 - Use powerful dev tools to mold the platform to your product, industry, and the way you build software

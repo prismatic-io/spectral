@@ -1,17 +1,19 @@
 import { InputFieldType } from ".";
 
 export type Inputs = Record<string, InputFieldDefinition>;
+export type ConnectionInputs = Record<
+  string,
+  DefaultInputFieldDefinition & { shown?: boolean }
+>;
 
 export type InputFieldDefinition =
   | DefaultInputFieldDefinition
-  | CodeInputFieldDefinition;
+  | CodeInputFieldDefinition
+  | ConnectionFieldDefinition;
 
-/** Defines attributes of a InputField. */
-export interface DefaultInputFieldDefinition {
+interface BaseInputFieldDefinition {
   /** Interface label of the InputField. */
   label: string;
-  /** Data type the InputField will collect. */
-  type: InputFieldType;
   /** Collection type of the InputField */
   collection?: InputFieldCollection;
   /** Text to show as the InputField placeholder. */
@@ -28,9 +30,43 @@ export interface DefaultInputFieldDefinition {
   model?: InputFieldChoice[];
 }
 
-export interface CodeInputFieldDefinition extends DefaultInputFieldDefinition {
-  type: "code";
+/** Defines attributes of a InputField. */
+export interface DefaultInputFieldDefinition extends BaseInputFieldDefinition {
+  type: Exclude<InputFieldType, "code" | "connection">;
+}
+
+/** Defines attributes of a CodeInputField. */
+export interface CodeInputFieldDefinition extends BaseInputFieldDefinition {
+  type: Extract<InputFieldType, "code">;
   language?: string;
+}
+
+export enum OAuth2Type {
+  ClientCredentials = "client_credentials",
+  AuthorizationCode = "authorization_code",
+}
+
+/** Defines attributes of a ConnectionField. */
+export interface ConnectionFieldDefinition extends BaseInputFieldDefinition {
+  type: Extract<InputFieldType, "connection">;
+  connectionKey: string;
+  oauth2Type?: OAuth2Type;
+  iconPath?: string;
+  inputs: ConnectionInputs;
+}
+
+export interface Connection<
+  TField extends ConnectionFieldDefinition = ConnectionFieldDefinition
+> {
+  /** Key of the Connection type. */
+  key: TField["connectionKey"];
+  /** Identifier for the Config Variable hosting this Connection. */
+  instanceConfigVarId: string;
+  /** Field values supplied to this Connection. */
+  fields: { [Property in keyof TField["inputs"]]: unknown };
+
+  token?: Record<string, unknown>;
+  context?: Record<string, unknown>;
 }
 
 /** Defines a single Choice option for a InputField. */

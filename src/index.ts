@@ -12,6 +12,8 @@ import {
   ActionDefinition,
   InputFieldDefinition,
   ActionPerformReturn,
+  ComponentDefinition,
+  ConnectionFieldDefinition,
   Inputs,
   ActionPerformBranchingDataReturn,
   ActionPerformDataReturn,
@@ -23,10 +25,28 @@ import {
 import {
   Action,
   Trigger,
+  ConnectionField,
   Component,
+  InputField,
   ServerPerformDataStructureReturn,
   ServerPerformBranchingDataStructureReturn,
 } from "./types/server-types";
+
+const convertInput = (key: string, input: InputFieldDefinition): InputField => {
+  if ("inputs" in input) {
+    return {
+      ...input,
+      key,
+      inputs: Object.entries(input.inputs ?? {}).map(([key, value]) =>
+        convertInput(key, value)
+      ),
+    };
+  }
+  return {
+    ...input,
+    key,
+  };
+};
 
 /**
  * This is a helper function for component() to convert an
@@ -45,24 +65,17 @@ const convertAction = (
     | ActionPerformBranchingDataReturn<unknown>
     | ActionPerformDataReturn<unknown>
   >
-): Action => {
-  const items = Object.entries(action.inputs ?? {});
-
-  const inputDefinitions = items.map(([key, value]) => ({
-    key,
-    ...(typeof value === "object" ? value : {}),
-  })) as Action["inputs"];
-
-  return {
-    ...action,
-    key: actionKey,
-    inputs: inputDefinitions,
-    perform: action.perform as Action["perform"],
-    examplePayload: action.examplePayload as
-      | ServerPerformDataStructureReturn
-      | ServerPerformBranchingDataStructureReturn,
-  };
-};
+): Action => ({
+  ...action,
+  key: actionKey,
+  inputs: Object.entries(action.inputs ?? {}).map(([key, value]) =>
+    convertInput(key, value)
+  ),
+  perform: action.perform as Action["perform"],
+  examplePayload: action.examplePayload as
+    | ServerPerformDataStructureReturn
+    | ServerPerformBranchingDataStructureReturn,
+});
 
 /**
  * This is a helper function for component() to convert a
@@ -79,46 +92,38 @@ const convertTrigger = (
     boolean,
     undefined | TriggerBaseResult | TriggerBranchingResult
   >
-): Trigger => {
-  const items = Object.entries(trigger.inputs ?? {});
+): Trigger => ({
+  ...trigger,
+  key: triggerKey,
+  inputs: Object.entries(trigger.inputs ?? {}).map(([key, value]) =>
+    convertInput(key, value)
+  ),
+  perform: trigger.perform as Trigger["perform"],
+  examplePayload: trigger.examplePayload || undefined,
+});
 
-  const inputDefinitions = items.map(([key, value]) => ({
-    key,
-    ...(typeof value === "object" ? value : {}),
-  })) as Trigger["inputs"];
-
-  return {
-    ...trigger,
-    key: triggerKey,
-    inputs: inputDefinitions,
-    perform: trigger.perform as Trigger["perform"],
-    examplePayload: trigger.examplePayload || undefined,
-  };
-};
+const convertConnection = (
+  connectionKey: string,
+  connection: ConnectionFieldDefinition
+): ConnectionField => ({
+  ...connection,
+  key: connectionKey,
+  inputs: Object.entries(connection.inputs ?? {}).map(([key, value]) =>
+    convertInput(key, value)
+  ),
+});
 
 /**
  * This function creates a component object that can be
  * imported into the Prismatic API. For information on using
  * this function to write custom components, see
  * https://prismatic.io/docs/custom-components/writing-custom-components/#exporting-a-component.
- * @param definition A ComponentDefinition type object, including display infromation, unique key, authorization information, and a set of actions the component implements.
+ * @param definition A ComponentDefinition type object, including display infromation, unique key, and a set of actions the component implements.
  * @returns This function returns a component object that has the shape the Prismatic API expects.
  */
 export const component = <T extends boolean>(
-  definition: Omit<Component<T>, "actions" | "triggers"> & {
-    actions?: Record<
-      string,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ActionDefinition<any, boolean, ActionPerformReturn<boolean, any>>
-    >;
-    triggers?: Record<
-      string,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      TriggerDefinition<any, boolean, TriggerResult<boolean>>
-    >;
-  }
+  definition: ComponentDefinition<T>
 ): Component<T> => ({
-  version: "placeholder", // Placeholder until we deprecate version in component definitions
   ...definition,
   documentationUrl: definition.documentationUrl || null,
   actions: Object.fromEntries(
@@ -132,6 +137,14 @@ export const component = <T extends boolean>(
       triggerKey,
       convertTrigger(triggerKey, trigger),
     ])
+  ),
+  connections: Object.fromEntries(
+    Object.entries(definition.connections || {}).map(
+      ([connectionKey, connection]) => [
+        connectionKey,
+        convertConnection(connectionKey, connection),
+      ]
+    )
   ),
 });
 
@@ -179,6 +192,17 @@ export const trigger = <
 export const input = <T extends InputFieldDefinition>(definition: T): T =>
   definition;
 
+/**
+ * For information on writing custom component connections, see
+ * https://prismatic.io/docs/custom-components/writing-custom-components/#adding-connections.
+ * @param definition A ConnectionfieldDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
+ * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
+ */
+export const connection = <T extends Omit<ConnectionFieldDefinition, "type">>(
+  definition: T
+): T & { type: "connection" } => ({ ...definition, type: "connection" });
+
 export { default as util } from "./util";
 export * from "./types";
 export { default as testing } from "./testing";
+export * from "./errors";

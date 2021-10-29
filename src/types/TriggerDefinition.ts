@@ -2,7 +2,6 @@ import {
   TriggerResult,
   ActionDisplayDefinition,
   TriggerPerformFunction,
-  AuthorizationDefinition,
   Inputs,
 } from ".";
 
@@ -31,8 +30,6 @@ export interface TriggerDefinition<
   scheduleSupport: TriggerOptionChoice;
   /** Specifies whether this Trigger supports synchronous responses to an Integration webhook request. */
   synchronousResponseSupport: TriggerOptionChoice;
-  /** Specifies Authorization settings, if applicable */
-  authorization?: AuthorizationDefinition;
   /** Optional attribute that specifies whether this Trigger will terminate execution. */
   terminateExecution?: boolean;
   /** Specifies whether an Action will break out of a loop. */

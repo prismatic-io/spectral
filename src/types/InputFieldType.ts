@@ -11,4 +11,5 @@ export type InputFieldTypeMap = {
   boolean: unknown;
   code: unknown;
   conditional: ConditionalExpression;
+  connection: never;
 };
