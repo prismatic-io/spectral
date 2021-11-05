@@ -14,7 +14,12 @@ export interface TriggerPayload {
     data: unknown;
     contentType?: string;
   };
+  /** The webhook URLs assigned to this integration's flows upon instance deploy */
   webhookUrls: {
+    [key: string]: string;
+  };
+  /** The optional API keys assigned to the flows of this integration. These may be unique per integration instance and per flow. */
+  webhookApiKeys: {
     [key: string]: string;
   };
   customer: {
