@@ -20,7 +20,7 @@ export interface TriggerPayload {
   };
   /** The optional API keys assigned to the flows of this integration. These may be unique per integration instance and per flow. */
   webhookApiKeys: {
-    [key: string]: string;
+    [key: string]: string[];
   };
   customer: {
     externalId: string | null;
