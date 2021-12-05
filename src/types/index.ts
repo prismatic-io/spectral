@@ -5,6 +5,7 @@
 
 export * from "./ActionDefinition";
 export * from "./ComponentDefinition";
+export * from "./ConnectionDefinition";
 export * from "./Inputs";
 export * from "./ActionPerformReturn";
 export * from "./DisplayDefinition";

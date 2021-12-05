@@ -30,7 +30,7 @@ interface ComponentBase<TPublic extends boolean> {
   /** Specifies the supported Triggers of this Component. */
   triggers?: Record<string, Trigger>;
   /** Specifies the supported Connections of this Component. */
-  connections?: Record<string, ConnectionField>;
+  connections?: Connection[];
 }
 
 export type Component<TPublic extends boolean> = ComponentBase<TPublic> &
@@ -86,6 +86,15 @@ export interface Trigger extends BaseAction {
   examplePayload?: TriggerBaseResult | TriggerBranchingResult;
   /** Specifies if this Trigger appears in the list of 'common' Triggers. Only configurable by Prismatic. @default false */
   isCommonTrigger?: boolean;
+}
+
+export interface Connection {
+  key: string;
+  label: string;
+  comments?: string;
+  oauth2Type?: OAuth2Type;
+  iconPath?: string;
+  inputs: (InputField & { shown?: boolean })[];
 }
 
 /** Collection of input parameters provided by the user or previous steps' outputs */
@@ -168,7 +177,7 @@ export type TriggerPerformFunction = (
 
 export type TriggerPayload = _TriggerPayload;
 
-export type InputField = DefaultInputField | CodeInputField | ConnectionField;
+export type InputField = DefaultInputField | CodeInputField;
 
 /** Defines attributes of a InputField. */
 interface DefaultInputField {
@@ -197,14 +206,6 @@ interface DefaultInputField {
 interface CodeInputField extends DefaultInputField {
   type: "code";
   language?: string;
-}
-
-export interface ConnectionField extends DefaultInputField {
-  type: "connection";
-  key: string;
-  oauth2Type?: OAuth2Type;
-  iconPath?: string;
-  inputs: (Exclude<InputField, ConnectionField> & { shown?: boolean })[];
 }
 
 /** InputField type enumeration. */

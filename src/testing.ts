@@ -12,7 +12,7 @@ import {
   ActionLoggerFunction,
   ActionDefinition,
   ActionInputParameters,
-  ConnectionFieldDefinition,
+  ConnectionDefinition,
   Connection,
   ActionPerformReturn,
   Inputs,
@@ -22,12 +22,12 @@ import {
 } from "./types";
 import { spyOn } from "jest-mock";
 
-export const createConnection = <T extends ConnectionFieldDefinition>(
-  { connectionKey }: T,
-  values: { [Property in keyof T["inputs"]]: unknown }
-): Connection<T> => ({
+export const createConnection = <T extends ConnectionDefinition>(
+  { key }: T,
+  values: Record<string, unknown>
+): Connection => ({
   instanceConfigVarId: "",
-  key: connectionKey,
+  key,
   fields: values,
 });
 

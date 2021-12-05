@@ -13,7 +13,7 @@ import {
   InputFieldDefinition,
   ActionPerformReturn,
   ComponentDefinition,
-  ConnectionFieldDefinition,
+  ConnectionDefinition,
   Inputs,
   ActionPerformBranchingDataReturn,
   ActionPerformDataReturn,
@@ -25,28 +25,20 @@ import {
 import {
   Action,
   Trigger,
-  ConnectionField,
+  Connection,
   Component,
   InputField,
   ServerPerformDataStructureReturn,
   ServerPerformBranchingDataStructureReturn,
 } from "./types/server-types";
 
-const convertInput = (key: string, input: InputFieldDefinition): InputField => {
-  if ("inputs" in input) {
-    return {
-      ...input,
-      key,
-      inputs: Object.entries(input.inputs ?? {}).map(([key, value]) =>
-        convertInput(key, value)
-      ),
-    };
-  }
-  return {
-    ...input,
-    key,
-  };
-};
+const convertInput = (
+  key: string,
+  input: InputFieldDefinition
+): InputField => ({
+  ...input,
+  key,
+});
 
 /**
  * This is a helper function for component() to convert an
@@ -102,12 +94,8 @@ const convertTrigger = (
   examplePayload: trigger.examplePayload || undefined,
 });
 
-const convertConnection = (
-  connectionKey: string,
-  connection: ConnectionFieldDefinition
-): ConnectionField => ({
+const convertConnection = (connection: ConnectionDefinition): Connection => ({
   ...connection,
-  key: connectionKey,
   inputs: Object.entries(connection.inputs ?? {}).map(([key, value]) =>
     convertInput(key, value)
   ),
@@ -138,14 +126,7 @@ export const component = <T extends boolean>(
       convertTrigger(triggerKey, trigger),
     ])
   ),
-  connections: Object.fromEntries(
-    Object.entries(definition.connections || {}).map(
-      ([connectionKey, connection]) => [
-        connectionKey,
-        convertConnection(connectionKey, connection),
-      ]
-    )
-  ),
+  connections: (definition.connections || []).map(convertConnection),
 });
 
 /**
@@ -198,9 +179,8 @@ export const input = <T extends InputFieldDefinition>(definition: T): T =>
  * @param definition A ConnectionfieldDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
  */
-export const connection = <T extends Omit<ConnectionFieldDefinition, "type">>(
-  definition: T
-): T & { type: "connection" } => ({ ...definition, type: "connection" });
+export const connection = <T extends ConnectionDefinition>(definition: T): T =>
+  definition;
 
 export { default as util } from "./util";
 export * from "./types";

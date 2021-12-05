@@ -1,21 +1,14 @@
-import {
-  InputFieldDefinition,
-  Inputs,
-  InputFieldTypeMap,
-  Connection,
-  ConnectionFieldDefinition,
-} from ".";
+import { InputFieldDefinition, Inputs, InputFieldTypeMap } from ".";
 
 /**
  * Collection of input parameters.
  * Inputs can be static values, references to config variables, or
  * references to previous steps' outputs.
  */
-export type ActionInputParameters<TInputs extends Inputs> = {
-  [Property in keyof TInputs]: TInputs[Property] extends ConnectionFieldDefinition
-    ? Connection<TInputs[Property]>
-    : ExtractValue<TInputs[Property]>;
-};
+export type ActionInputParameters<TInputs extends Inputs> =
+  TInputs extends Record<string, InputFieldDefinition>
+    ? { [Property in keyof TInputs]: ExtractValue<TInputs[Property]> }
+    : never;
 
 export type ExtractValue<TValue extends InputFieldDefinition> =
   MapCollectionValues<InputFieldTypeMap[TValue["type"]], TValue["collection"]>;

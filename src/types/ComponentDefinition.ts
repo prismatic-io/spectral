@@ -2,9 +2,9 @@ import { Component } from "./server-types";
 import {
   ActionPerformReturn,
   ActionDefinition,
+  ConnectionDefinition,
   TriggerDefinition,
   TriggerResult,
-  ConnectionFieldDefinition,
 } from ".";
 
 export type ComponentDefinition<T extends boolean> = Omit<
@@ -21,5 +21,5 @@ export type ComponentDefinition<T extends boolean> = Omit<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     TriggerDefinition<any, boolean, TriggerResult<boolean>>
   >;
-  connections?: Record<string, ConnectionFieldDefinition>;
+  connections?: ConnectionDefinition[];
 };

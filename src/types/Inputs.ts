@@ -8,8 +8,7 @@ export type ConnectionInputs = Record<
 
 export type InputFieldDefinition =
   | DefaultInputFieldDefinition
-  | CodeInputFieldDefinition
-  | ConnectionFieldDefinition;
+  | CodeInputFieldDefinition;
 
 interface BaseInputFieldDefinition {
   /** Interface label of the InputField. */
@@ -32,7 +31,7 @@ interface BaseInputFieldDefinition {
 
 /** Defines attributes of a InputField. */
 export interface DefaultInputFieldDefinition extends BaseInputFieldDefinition {
-  type: Exclude<InputFieldType, "code" | "connection">;
+  type: Exclude<InputFieldType, "code">;
 }
 
 /** Defines attributes of a CodeInputField. */
@@ -46,25 +45,13 @@ export enum OAuth2Type {
   AuthorizationCode = "authorization_code",
 }
 
-/** Defines attributes of a ConnectionField. */
-export interface ConnectionFieldDefinition extends BaseInputFieldDefinition {
-  type: Extract<InputFieldType, "connection">;
-  connectionKey: string;
-  oauth2Type?: OAuth2Type;
-  iconPath?: string;
-  inputs: ConnectionInputs;
-}
-
-export interface Connection<
-  TField extends ConnectionFieldDefinition = ConnectionFieldDefinition
-> {
+export interface Connection {
   /** Key of the Connection type. */
-  key: TField["connectionKey"];
+  key: string;
   /** Identifier for the Config Variable hosting this Connection. */
   instanceConfigVarId: string;
   /** Field values supplied to this Connection. */
-  fields: { [Property in keyof TField["inputs"]]: unknown };
-
+  fields: { [key: string]: unknown };
   token?: Record<string, unknown>;
   context?: Record<string, unknown>;
 }
