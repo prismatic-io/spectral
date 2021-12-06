@@ -14,6 +14,8 @@ import {
   ActionPerformReturn,
   ComponentDefinition,
   ConnectionDefinition,
+  DefaultConnectionDefinition,
+  OAuth2ConnectionDefinition,
   Inputs,
   ActionPerformBranchingDataReturn,
   ActionPerformDataReturn,
@@ -176,11 +178,22 @@ export const input = <T extends InputFieldDefinition>(definition: T): T =>
 /**
  * For information on writing custom component connections, see
  * https://prismatic.io/docs/custom-components/writing-custom-components/#adding-connections.
- * @param definition A ConnectionfieldDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
+ * @param definition A DefaultConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
  */
-export const connection = <T extends ConnectionDefinition>(definition: T): T =>
-  definition;
+export const connection = <T extends DefaultConnectionDefinition>(
+  definition: T
+): T => definition;
+
+/**
+ * For information on writing custom component connections, see
+ * https://prismatic.io/docs/custom-components/writing-custom-components/#adding-connections.
+ * @param definition An OAuth2ConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
+ * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
+ */
+export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(
+  definition: T
+): T => definition;
 
 export { default as util } from "./util";
 export * from "./types";

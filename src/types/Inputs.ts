@@ -1,10 +1,7 @@
 import { InputFieldType } from ".";
 
 export type Inputs = Record<string, InputFieldDefinition>;
-export type ConnectionInputs = Record<
-  string,
-  DefaultInputFieldDefinition & { shown?: boolean }
->;
+export type ConnectionInput = DefaultInputFieldDefinition & { shown?: boolean };
 
 export type InputFieldDefinition =
   | DefaultInputFieldDefinition
@@ -38,11 +35,6 @@ export interface DefaultInputFieldDefinition extends BaseInputFieldDefinition {
 export interface CodeInputFieldDefinition extends BaseInputFieldDefinition {
   type: Extract<InputFieldType, "code">;
   language?: string;
-}
-
-export enum OAuth2Type {
-  ClientCredentials = "client_credentials",
-  AuthorizationCode = "authorization_code",
 }
 
 export interface Connection {
