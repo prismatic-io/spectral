@@ -24,6 +24,8 @@ export interface ActionContext {
   logger: ActionLogger;
   /** A key/value store that may be used to store small amounts of data that is persisted between Instance executions */
   instanceState: Record<string, unknown>;
+  /** A key/value store that may be used to store small amounts of data for use later during the execution */
+  executionState: Record<string, unknown>;
   /** A unique id that corresponds to the step on the Integration */
   stepId: string;
   /** A unique id that corresponds to the specific execution of the Integration */

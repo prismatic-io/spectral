@@ -126,6 +126,8 @@ export const credentials = {
  * See https://prismatic.io/docs/custom-components/writing-custom-components/#verifying-correct-logging-in-action-tests for information on testing correct logging behavior in your custom component.
  */
 export const loggerMock = (): ActionLogger => ({
+  metric: console.log as ActionLoggerFunction,
+  trace: spyOn(console, "trace") as unknown as ActionLoggerFunction,
   debug: spyOn(console, "debug") as unknown as ActionLoggerFunction,
   info: spyOn(console, "info") as unknown as ActionLoggerFunction,
   log: spyOn(console, "log") as unknown as ActionLoggerFunction,
@@ -166,6 +168,7 @@ export const invoke = async <
     credential: undefined,
     logger: loggerMock(),
     instanceState: {},
+    executionState: {},
     stepId: "mockStepId",
     executionId: "mockExecutionId",
     ...context,
@@ -235,6 +238,7 @@ export const invokeTrigger = async <
     credential: undefined,
     logger: loggerMock(),
     instanceState: {},
+    executionState: {},
     stepId: "mockStepId",
     executionId: "mockExecutionId",
     ...context,

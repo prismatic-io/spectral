@@ -57,6 +57,8 @@ interface BaseAction {
   authorization?: AuthorizationDefinition;
   /** Optional attribute that specifies whether an Action will terminate execution. */
   terminateExecution?: boolean;
+  /** Specifies whether an Action will break out of a loop. */
+  breakLoop?: boolean;
   /** Determines whether an Action will allow Conditional Branching. */
   allowsBranching?: boolean;
   /** Static Branch names associated with an Action. */
@@ -109,7 +111,9 @@ export interface ServerPerformDataStructureReturn {
   /** The HTTP Status code that will be used if this terminates a synchronous invocation  */
   statusCode?: number;
   /** An optional object, the keys and values of which will be persisted in the instanceState and available for subsequent actions and executions */
-  state?: Record<string, unknown>;
+  instanceState?: Record<string, unknown>;
+  /** An optional object, the keys and values of which will be persisted in the executionState and available for the duration of the execution */
+  executionState?: Record<string, unknown>;
 }
 
 /** Used to represent a binary or serialized data return as content type must be specified */
@@ -121,7 +125,9 @@ interface ServerPerformDataReturn {
   /** The HTTP Status code that will be used if this terminates a synchronous invocation  */
   statusCode?: number;
   /** An optional object, the keys and values of which will be persisted in the instanceState and available for subsequent actions and executions */
-  state?: Record<string, unknown>;
+  instanceState?: Record<string, unknown>;
+  /** An optional object, the keys and values of which will be persisted in the executionState and available for the duration of the execution */
+  executionState?: Record<string, unknown>;
 }
 
 /** Used to represent a branching return of conventional data and does not require content type to be specified */
