@@ -25,6 +25,8 @@ export interface ActionDefinition<
   authorization?: AuthorizationDefinition;
   /** Optional attribute that specifies whether an Action will terminate execution.*/
   terminateExecution?: boolean;
+  /** Specifies whether an Action will break out of a loop. */
+  breakLoop?: boolean;
   /** Determines whether an Action will allow Conditional Branching.*/
   allowsBranching?: AllowsBranching;
   /** Static Branch names associated with an Action. */

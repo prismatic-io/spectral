@@ -14,6 +14,8 @@ export type ActionLoggerFunction = (...args: unknown[]) => void;
  * An object containing logger functions.
  */
 export interface ActionLogger {
+  metric: ActionLoggerFunction;
+  trace: ActionLoggerFunction;
   debug: ActionLoggerFunction;
   info: ActionLoggerFunction;
   log: ActionLoggerFunction;

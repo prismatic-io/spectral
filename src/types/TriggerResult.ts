@@ -8,7 +8,9 @@ export interface TriggerBaseResult {
   /** Optional HTTP response to the request that invoked the integration. */
   response?: HttpResponse;
   /** An optional object, the keys and values of which will be persisted in the instanceState and available for subsequent actions and executions */
-  state?: Record<string, unknown>;
+  instanceState?: Record<string, unknown>;
+  /** An optional object, the keys and values of which will be persisted in the executionState and available for the duration of the execution */
+  executionState?: Record<string, unknown>;
 }
 
 /** Represents the result of a Trigger action that uses branching. */

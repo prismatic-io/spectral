@@ -35,6 +35,8 @@ export interface TriggerDefinition<
   authorization?: AuthorizationDefinition;
   /** Optional attribute that specifies whether this Trigger will terminate execution. */
   terminateExecution?: boolean;
+  /** Specifies whether an Action will break out of a loop. */
+  breakLoop?: boolean;
   /** Determines whether this Trigger allows Conditional Branching. */
   allowsBranching?: AllowsBranching;
   /** Static Branch names associated with this Trigger. */
