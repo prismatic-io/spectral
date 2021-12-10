@@ -40,8 +40,8 @@ export interface CodeInputFieldDefinition extends BaseInputFieldDefinition {
 export interface Connection {
   /** Key of the Connection type. */
   key: string;
-  /** Identifier for the Config Variable hosting this Connection. */
-  instanceConfigVarId: string;
+  /** Key for the Config Variable hosting this Connection. */
+  configVarKey: string;
   /** Field values supplied to this Connection. */
   fields: { [key: string]: unknown };
   token?: Record<string, unknown>;

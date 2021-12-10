@@ -26,7 +26,7 @@ export const createConnection = <T extends ConnectionDefinition>(
   { key }: T,
   values: Record<string, unknown>
 ): Connection => ({
-  instanceConfigVarId: "",
+  configVarKey: "",
   key,
   fields: values,
 });
