@@ -11,8 +11,8 @@ interface DisplayDefinition {
 }
 
 interface ExtraDisplayDefinitionFields {
-  /** Path to icon to use for this Component. Path should be relative to component roto index. */
-  iconPath?: string;
+  /** Path to icon to use for this Component. Path should be relative to the built component source. */
+  iconPath: string;
   /** Category of the Component. */
   category?: string;
 }
