@@ -3,9 +3,9 @@
  * `import { DesiredType } from "@prismatic-io/spectral"`
  */
 
-export * from "./Credential";
-export * from "./AuthorizationDefinition";
 export * from "./ActionDefinition";
+export * from "./ComponentDefinition";
+export * from "./ConnectionDefinition";
 export * from "./Inputs";
 export * from "./ActionPerformReturn";
 export * from "./DisplayDefinition";

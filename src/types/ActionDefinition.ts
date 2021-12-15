@@ -2,7 +2,6 @@ import {
   ActionPerformReturn,
   ActionDisplayDefinition,
   ActionPerformFunction,
-  AuthorizationDefinition,
   Inputs,
 } from ".";
 
@@ -21,8 +20,6 @@ export interface ActionDefinition<
   perform: ActionPerformFunction<T, AllowsBranching, ReturnData>;
   /** InputFields to present in the Prismatic interface for configuration of this Action. */
   inputs: T;
-  /** Specifies Authorization settings, if applicable */
-  authorization?: AuthorizationDefinition;
   /** Optional attribute that specifies whether an Action will terminate execution.*/
   terminateExecution?: boolean;
   /** Specifies whether an Action will break out of a loop. */

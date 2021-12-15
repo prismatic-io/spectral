@@ -6,8 +6,8 @@
  */
 
 /** Import shared types from types/ */
+import { OAuth2Type } from ".";
 import { ActionContext } from "./ActionPerformFunction";
-import { AuthorizationDefinition } from "./AuthorizationDefinition";
 import {
   ActionDisplayDefinition,
   ComponentDisplayDefinition,
@@ -18,24 +18,23 @@ import { TriggerPayload as _TriggerPayload } from "./TriggerPayload";
 import { TriggerBaseResult, TriggerBranchingResult } from "./TriggerResult";
 
 /** Defines attributes of a Component. */
-interface ComponentBase<T extends boolean> {
+interface ComponentBase<TPublic extends boolean> {
   /** Specifies unique key for this Component. */
   key: string;
-  //
   /** Specifies if this Component is available for all Organizations or only your own @default false */
-  public?: T;
+  public?: TPublic;
   /** Defines how the Component is displayed in the Prismatic interface. */
-  display: ComponentDisplayDefinition<T>;
-  /** @deprecated Version of the Component. */
-  version?: string;
+  display: ComponentDisplayDefinition<TPublic>;
   /** Specifies the supported Actions of this Component. */
   actions?: Record<string, Action>;
   /** Specifies the supported Triggers of this Component. */
   triggers?: Record<string, Trigger>;
+  /** Specifies the supported Connections of this Component. */
+  connections?: Connection[];
 }
 
-export type Component<T extends boolean> = ComponentBase<T> &
-  (T extends true
+export type Component<TPublic extends boolean> = ComponentBase<TPublic> &
+  (TPublic extends true
     ? {
         /** Specified the URL for the Component Documentation. */
         documentationUrl: string;
@@ -53,8 +52,6 @@ interface BaseAction {
   display: ActionDisplayDefinition;
   /** InputFields to present in the Prismatic interface for configuration of this Action. */
   inputs: InputField[];
-  /** Specifies Authorization settings, if applicable */
-  authorization?: AuthorizationDefinition;
   /** Optional attribute that specifies whether an Action will terminate execution. */
   terminateExecution?: boolean;
   /** Specifies whether an Action will break out of a loop. */
@@ -89,6 +86,15 @@ export interface Trigger extends BaseAction {
   examplePayload?: TriggerBaseResult | TriggerBranchingResult;
   /** Specifies if this Trigger appears in the list of 'common' Triggers. Only configurable by Prismatic. @default false */
   isCommonTrigger?: boolean;
+}
+
+export interface Connection {
+  key: string;
+  label: string;
+  comments?: string;
+  oauth2Type?: OAuth2Type;
+  iconPath?: string;
+  inputs: (InputField & { shown?: boolean })[];
 }
 
 /** Collection of input parameters provided by the user or previous steps' outputs */
@@ -210,7 +216,8 @@ export type InputFieldType =
   | "boolean"
   | "code"
   | "data"
-  | "conditional";
+  | "conditional"
+  | "connection";
 
 /** Binary data payload */
 export interface DataPayload {

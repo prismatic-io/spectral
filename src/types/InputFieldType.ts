@@ -1,3 +1,4 @@
+import { Connection } from ".";
 import { ConditionalExpression } from "./conditional-logic";
 
 /** InputField type enumeration. */
@@ -11,4 +12,5 @@ export type InputFieldTypeMap = {
   boolean: unknown;
   code: unknown;
   conditional: ConditionalExpression;
+  connection: Connection;
 };
