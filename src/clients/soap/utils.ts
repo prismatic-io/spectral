@@ -112,15 +112,22 @@ const soapRequest: SOAPRequest = async (
   const requestFunction: SoapMethodAsync = client[`${method}Async`];
   let results = undefined;
 
-  if (methodParams === "object" && methodParams !== null) {
-    results = await requestFunction(methodParams);
-  } else {
-    results = await requestFunction({});
+  try {
+    if (typeof methodParams === "object" && methodParams !== null) {
+      results = await requestFunction(methodParams);
+    } else {
+      results = await requestFunction({});
+    }
+    if (util.types.isBool(debug) && debug) {
+      debugRequest(client);
+    }
+    return results;
+  } catch (error) {
+    if (util.types.isBool(debug) && debug) {
+      debugRequest(client);
+    }
+    throw error;
   }
-  if (util.types.isBool(debug) && debug) {
-    debugRequest(client);
-  }
-  return results;
 };
 
 const generateHeader: GenerateHeader = async (
@@ -134,6 +141,7 @@ const generateHeader: GenerateHeader = async (
   } else {
     client = await getSOAPClient(wsdlParam);
   }
+
   let options: string[] = [];
   if (headerOptions) {
     options = Object.values(headerOptions);
@@ -146,25 +154,28 @@ const getSOAPAuth: SOAPAuth = async (
   connection: Connection,
   wsdlDefinition?: string
 ) => {
-  if (isSOAPConnection(connection) && isBasicAuthConnection(connection)) {
-    const {
-      fields: { username, password, loginMethod },
-    } = connection;
-    const result = await soapRequest(
-      {
-        wsdlParam: connection as SOAPConnection,
-        method: util.types.toString(loginMethod),
-      },
-      { username, password }
-    );
-    return result;
-  } else if (isBasicAuthConnection(connection) && wsdlDefinition) {
+  if (isBasicAuthConnection(connection) && wsdlDefinition) {
     const {
       fields: { username, password, loginMethod },
     } = connection;
     const result = await soapRequest(
       {
         wsdlParam: util.types.toString(wsdlDefinition),
+        method: util.types.toString(loginMethod),
+      },
+      { username, password }
+    );
+    return result;
+  } else if (
+    isSOAPConnection(connection) &&
+    isBasicAuthConnection(connection)
+  ) {
+    const {
+      fields: { username, password, loginMethod },
+    } = connection;
+    const result = await soapRequest(
+      {
+        wsdlParam: connection as SOAPConnection,
         method: util.types.toString(loginMethod),
       },
       { username, password }
