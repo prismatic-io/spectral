@@ -5,7 +5,9 @@ export type ConnectionInput = DefaultInputFieldDefinition & { shown?: boolean };
 
 export type InputFieldDefinition =
   | DefaultInputFieldDefinition
-  | CodeInputFieldDefinition;
+  | CodeInputFieldDefinition
+  | ConditionalInputField
+  | ConnectionInputField;
 
 interface BaseInputFieldDefinition {
   /** Interface label of the InputField. */
@@ -28,13 +30,23 @@ interface BaseInputFieldDefinition {
 
 /** Defines attributes of a InputField. */
 export interface DefaultInputFieldDefinition extends BaseInputFieldDefinition {
-  type: Exclude<InputFieldType, "code">;
+  type: Exclude<InputFieldType, "code" | "conditional" | "connection">;
 }
 
 /** Defines attributes of a CodeInputField. */
 export interface CodeInputFieldDefinition extends BaseInputFieldDefinition {
   type: Extract<InputFieldType, "code">;
   language?: string;
+}
+
+/** Defines attributes of a ConditionalInputField. */
+export interface ConditionalInputField extends BaseInputFieldDefinition {
+  type: Extract<InputFieldType, "conditional">;
+}
+
+/** Defines attributes of a ConnectionInputField. */
+export interface ConnectionInputField extends BaseInputFieldDefinition {
+  type: Extract<InputFieldType, "connection">;
 }
 
 export interface Connection {
