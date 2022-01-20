@@ -1,12 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   ClientOverrides,
   HeaderPayload,
   GenerateHeader,
-  GetClient,
   RequestParams,
   SOAPAuth,
   SOAPConnection,
@@ -20,20 +17,32 @@ import { createClientAsync, Client, SoapMethodAsync } from "soap";
 import axios from "axios";
 import { writeFile, rm } from "fs/promises";
 import { v4 as uuid } from "uuid";
+import os from "os";
+import path from "path";
 
+/**
+ * Optionally log out SOAP requests and responses for debugging purposes
+ *
+ * @param client A SOAP client that generates requests and responses
+ */
 const debugRequest = (client: Client) => {
   console.debug(client.lastRequest);
   console.debug(client.lastResponse);
 };
-export const describeWSDL: DescribeWSDL = async (
+
+/**
+ * This function takes either the URL of a WSDL or the XML defining a WSDL, and returns an object describing the methods and attributes defined in the WSDL.
+ *
+ * @param wsdlParam Either the URL where a WSDL is stored, or the XML defining a WSDL.
+ * @returns An object containing the methods and attributes defined in a WSDL
+ */
+const describeWSDL: DescribeWSDL = async (
   wsdlParam: unknown
 ): Promise<string> => {
-  let client: Client;
-  if (isSOAPConnection(wsdlParam)) {
-    client = await getSOAPClient(wsdlParam);
-  } else {
-    client = await getSOAPClient(util.types.toString(wsdlParam));
-  }
+  const client = await getSOAPClient(
+    isSOAPConnection(wsdlParam) ? wsdlParam : util.types.toString(wsdlParam)
+  );
+
   try {
     const result = client.describe();
     return result;
@@ -41,6 +50,12 @@ export const describeWSDL: DescribeWSDL = async (
     throw new Error("Unable to parse WSDL Services due to circular references");
   }
 };
+
+/**
+ * Fetch a WSDL from a URL
+ * @param wsdlDefinitionURL The URL where the WSDL is stored
+ * @returns The WSDL's raw XML
+ */
 const getWSDL = async (wsdlDefinitionURL: string): Promise<string> => {
   const httpClient = axios.create({
     baseURL: wsdlDefinitionURL,
@@ -50,18 +65,27 @@ const getWSDL = async (wsdlDefinitionURL: string): Promise<string> => {
   return util.types.toString(data);
 };
 
-const getSOAPClient: GetClient = async (wsdlParam: unknown) => {
+/**
+ * Create a SOAP client given a WSDL or SOAPConnection
+ * @param wsdlParam a SOAPConnection or XML defining a WSDL
+ * @returns An HTTP client configured to query a SOAP-based API
+ */
+const getSOAPClient = async <
+  T extends string | SOAPConnection = string | SOAPConnection
+>(
+  wsdlParam: T
+): Promise<Client> => {
   if (typeof wsdlParam === "string") {
     const wsdl = util.types.toString(wsdlParam);
-    const filePath = `/tmp/${uuid()}.wsdl`;
+    const filePath = path.join(os.tmpdir(), `${uuid()}.wsdl`);
     await writeFile(filePath, wsdl);
     const client = await createClientAsync(filePath);
     await rm(filePath);
     return client;
-  } else if (isSOAPConnection(wsdlParam as SOAPConnection)) {
+  } else if (isSOAPConnection(wsdlParam)) {
     const {
       fields: { wsdlDefinitionURL },
-    } = wsdlParam as SOAPConnection;
+    } = wsdlParam;
     if (
       !wsdlDefinitionURL ||
       !util.types.isUrl(util.types.toString(wsdlDefinitionURL))
@@ -81,6 +105,11 @@ const getSOAPClient: GetClient = async (wsdlParam: unknown) => {
   }
 };
 
+/**
+ * Override some HTTP client defaults
+ * @param client The client to override
+ * @param overrides An endpoint URL or SOAP headers to override
+ */
 const overrideClientDefaults = (
   client: Client,
   overrides: ClientOverrides
@@ -96,16 +125,19 @@ const overrideClientDefaults = (
   }
 };
 
+/**
+ * Make a request to a SOAP-based API
+ * @param param0
+ * @param methodParams Parameters to pass to the specified SOAP method
+ * @returns The results from the SOAP request, including the full XML of the request and response
+ */
 const soapRequest: SOAPRequest = async (
   { wsdlParam, method, overrides, debug }: RequestParams,
   methodParams?: unknown
 ) => {
-  let client: Client;
-  if (isSOAPConnection(wsdlParam)) {
-    client = await getSOAPClient(wsdlParam);
-  } else {
-    client = await getSOAPClient(wsdlParam);
-  }
+  const client = await getSOAPClient(
+    isSOAPConnection(wsdlParam) ? wsdlParam : util.types.toString(wsdlParam)
+  );
   if (overrides) {
     overrideClientDefaults(client, overrides);
   }
@@ -126,21 +158,28 @@ const soapRequest: SOAPRequest = async (
     if (util.types.isBool(debug) && debug) {
       debugRequest(client);
     }
+    console.warn(
+      "Please verify that the method you specified exists in the WSDL specification."
+    );
     throw error;
   }
 };
 
+/**
+ * Create a SOAP header
+ * @param wsdlParam A SOAPConnection or XML definition of a WSDL
+ * @param headerPayload The contents of a header XML node
+ * @param headerOptions Attributes for a header XML node, like namespace or xmlns
+ * @returns
+ */
 const generateHeader: GenerateHeader = async (
   wsdlParam,
   headerPayload: HeaderPayload,
   headerOptions
 ) => {
-  let client: Client;
-  if (isSOAPConnection(wsdlParam)) {
-    client = await getSOAPClient(wsdlParam);
-  } else {
-    client = await getSOAPClient(wsdlParam);
-  }
+  const client = await getSOAPClient(
+    isSOAPConnection(wsdlParam) ? wsdlParam : util.types.toString(wsdlParam)
+  );
 
   let options: string[] = [];
   if (headerOptions) {
@@ -150,6 +189,12 @@ const generateHeader: GenerateHeader = async (
   return client.getSoapHeaders()[index];
 };
 
+/**
+ * Fetch authentication information for a SOAPConnection
+ * @param connection The SOAPConnection
+ * @param wsdlDefinition The XML WSDL definition
+ * @returns
+ */
 const getSOAPAuth: SOAPAuth = async (
   connection: Connection,
   wsdlDefinition?: string
@@ -187,11 +232,11 @@ const getSOAPAuth: SOAPAuth = async (
 };
 
 export default {
+  describeWSDL,
   generateHeader,
-  getSOAPClient,
   getSOAPAuth,
+  getSOAPClient,
   getWSDL,
   overrideClientDefaults,
   soapRequest,
-  describeWSDL,
 };
