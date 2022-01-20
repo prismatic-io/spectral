@@ -23,6 +23,7 @@ import {
   TriggerBaseResult,
   TriggerBranchingResult,
   TriggerResult,
+  InputFieldDefaultMap,
 } from "./types";
 import {
   Action,
@@ -36,9 +37,11 @@ import {
 
 const convertInput = (
   key: string,
-  input: InputFieldDefinition
+  { default: defaultValue, type, ...rest }: InputFieldDefinition
 ): InputField => ({
-  ...input,
+  ...rest,
+  type,
+  default: defaultValue ?? InputFieldDefaultMap[type],
   key,
 });
 

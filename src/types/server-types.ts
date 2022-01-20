@@ -6,7 +6,7 @@
  */
 
 /** Import shared types from types/ */
-import { OAuth2Type } from ".";
+import { OAuth2Type, InputFieldType, InputFieldDefaultMap } from ".";
 import { ActionContext } from "./ActionPerformFunction";
 import {
   ActionDisplayDefinition,
@@ -192,7 +192,7 @@ interface DefaultInputField {
   /** Text to show as the InputField placeholder. */
   placeholder?: string;
   /** Default value for this field. */
-  default?: string;
+  default?: typeof InputFieldDefaultMap[this["type"]];
   /** Additional text to give guidance to the user configuring the InputField. */
   comments?: string;
   /** Example valid input for this InputField. */
@@ -207,17 +207,6 @@ interface CodeInputField extends DefaultInputField {
   type: "code";
   language?: string;
 }
-
-/** InputField type enumeration. */
-export type InputFieldType =
-  | "string"
-  | "text"
-  | "password"
-  | "boolean"
-  | "code"
-  | "data"
-  | "conditional"
-  | "connection";
 
 /** Binary data payload */
 export interface DataPayload {
