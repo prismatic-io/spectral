@@ -21,8 +21,9 @@ import os from "os";
 import path from "path";
 
 /**
+ * Optionally log out SOAP requests and responses for debugging purposes
  *
- * @param client
+ * @param client A SOAP client that generates requests and responses
  */
 const debugRequest = (client: Client) => {
   console.debug(client.lastRequest);
@@ -126,7 +127,7 @@ const overrideClientDefaults = (
 
 /**
  * Make a request to a SOAP-based API
- * @param param0 An object containing how to connect to a SOAP-based API, the method to onvoke, any overridden values for the HTTP client, and whether or not to log debug messages
+ * @param param0
  * @param methodParams Parameters to pass to the specified SOAP method
  * @returns The results from the SOAP request, including the full XML of the request and response
  */
