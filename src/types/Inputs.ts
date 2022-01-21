@@ -1,4 +1,4 @@
-import { InputFieldType } from ".";
+import { InputFieldDefaultMap, InputFieldType } from ".";
 
 export type Inputs = Record<string, InputFieldDefinition>;
 export type ConnectionInput = DefaultInputFieldDefinition & { shown?: boolean };
@@ -10,6 +10,8 @@ export type InputFieldDefinition =
   | ConnectionInputField;
 
 interface BaseInputFieldDefinition {
+  /** Data type the InputField will collect. */
+  type: InputFieldType;
   /** Interface label of the InputField. */
   label: string;
   /** Collection type of the InputField */
@@ -17,7 +19,7 @@ interface BaseInputFieldDefinition {
   /** Text to show as the InputField placeholder. */
   placeholder?: string;
   /** Default value for this field. */
-  default?: string;
+  default?: typeof InputFieldDefaultMap[this["type"]];
   /** Additional text to give guidance to the user configuring the InputField. */
   comments?: string;
   /** Example valid input for this InputField. */
