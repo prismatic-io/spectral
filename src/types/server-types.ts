@@ -185,6 +185,8 @@ interface DefaultInputField {
   key: string;
   /** Interface label of the InputField. */
   label: string;
+  /** Interface label of the Key if the InputField is a 'keyvaluelist'. */
+  keyLabel?: string;
   /** Data type the InputField will collect. */
   type: InputFieldType;
   /** Collection type of the InputField */

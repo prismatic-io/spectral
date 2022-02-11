@@ -37,12 +37,24 @@ import {
 
 const convertInput = (
   key: string,
-  { default: defaultValue, type, ...rest }: InputFieldDefinition
+  {
+    default: defaultValue,
+    type,
+    label,
+    collection,
+    ...rest
+  }: InputFieldDefinition
 ): InputField => ({
   ...rest,
+  key,
   type,
   default: defaultValue ?? InputFieldDefaultMap[type],
-  key,
+  collection,
+  label: typeof label === "string" ? label : label.value,
+  keyLabel:
+    collection === "keyvaluelist" && typeof label === "object"
+      ? label.key
+      : undefined,
 });
 
 /**
