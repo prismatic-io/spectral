@@ -13,7 +13,7 @@ interface BaseInputFieldDefinition {
   /** Data type the InputField will collect. */
   type: InputFieldType;
   /** Interface label of the InputField. */
-  label: string;
+  label: { key: string; value: string } | string;
   /** Collection type of the InputField */
   collection?: InputFieldCollection;
   /** Text to show as the InputField placeholder. */
