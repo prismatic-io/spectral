@@ -1,12 +1,25 @@
-# spectral
+# @prismatic-io/eslint-config-spectral
 
-This monorepo contains packages to build custom Prismatic components using Typescript.
+This package contains a recommended [ESLint](https://eslint.org/) configuration to aid in developing custom Prismatic components.
 
-## Building Locally
+## Using the Config
 
-You will need `yarn` and `node` installed.
-Run `yarn turbo run build` to build and `yarn turbo run tests` to run the test suites. `yarn pack` and `yarn link` are both useful for testing changes locally.
+To install, run:
 
+```bash
+npm install @prismatic-io/eslint-config-spectral --save-dev
+```
+
+You will need to update your [ESLint configuration](https://eslint.org/docs/user-guide/configuring/) to reference the config in this package. The easiest way is to add an `eslintConfig` block to your `package.json` file:
+
+```jsonc
+"eslintConfig": {
+  "root": true,
+  "extends": ["@prismatic-io/eslint-config-spectral"]
+}
+```
+
+Note that you do not need to install the plugin packages as peer dependencies as resolution of those packages is handled with [Microsoft's ESLint patch](https://www.npmjs.com/package/@rushstack/eslint-patch). There are still a handful of peer dependencies you will need to install - use `npm info "@prismatic-io/eslint-config-spectral@latest" peerDependencies` to list them or use `npx install-peerdeps --dev @prismatic-io/eslint-config-spectral` to install them automatically.
 
 ## What is Prismatic?
 
@@ -41,3 +54,12 @@ Here are some example use cases:
 - Email activity summary reports with parameters and intervals defined on a per-customer basis.
 
 For information on the Prismatic platform, check out our [website](https://prismatic.io) and [docs](https://prismatic.io/docs).
+
+## Building Spectral Locally
+
+To build eslint-config-spectral locally, you'll need `yarn` and `node` installed.
+Run `yarn build` to build the package, or `yarn pack` to build a tarball that can be used in custom components for testing changes to eslint-config-spectral.
+
+## License
+
+This repository is [MIT licensed](./LICENSE).

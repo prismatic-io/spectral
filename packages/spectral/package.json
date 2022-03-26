@@ -1,0 +1,91 @@
+{
+  "name": "@prismatic-io/spectral",
+  "version": "5.3.1",
+  "description": "Utility library for building Prismatic components",
+  "keywords": [
+    "prismatic"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "homepage": "https://prismatic.io",
+  "bugs": {
+    "url": "https://github.com/prismatic-io/spectral"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prismatic-io/spectral.git"
+  },
+  "license": "MIT",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "yarn run format && yarn run lint && yarn run clean && tsc",
+    "prepack": "yarn run build",
+    "format": "yarn run lint-fix && prettier --loglevel error --write 'src/**/*.ts' '*.{ts,js,json}' '!sidebars.{js,jse}'",
+    "check-format": "prettier --check 'src/**/*.ts' '*.{ts,js,json}' '!sidebars.{js,jse}'",
+    "check": "yarn run check-format && yarn run lint",
+    "lint": "eslint --ext .ts,.js src/",
+    "lint-fix": "eslint --fix --ext .ts,.js src/",
+    "test": "jest --maxWorkers=4",
+    "docs": "rm -f sidebars.{js,jse} && typedoc"
+  },
+  "files": [
+    "dist/"
+  ],
+  "dependencies": {
+    "axios": "0.24.0",
+    "date-fns": "2.17.0",
+    "jest-mock": "27.0.3",
+    "soap": "0.43.0",
+    "uuid": "8.3.1",
+    "valid-url": "1.0.9"
+  },
+  "devDependencies": {
+    "@types/axios": "0.14.0",
+    "@types/jest": "26.0.23",
+    "@types/node": "14.14.35",
+    "@types/sax": "1.2.4",
+    "@types/uuid": "8.3.1",
+    "@types/valid-url": "1.0.3",
+    "@typescript-eslint/eslint-plugin": "4.27.0",
+    "@typescript-eslint/parser": "4.27.0",
+    "eslint": "7.28.0",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-jest": "24.3.6",
+    "eslint-plugin-prettier": "3.4.0",
+    "fast-check": "2.16.0",
+    "jest": "27.0.4",
+    "prettier": "2.3.1",
+    "ts-jest": "27.0.3",
+    "typedoc": "0.17.7",
+    "typedoc-plugin-markdown": "2.4.2",
+    "typedoc-plugin-remove-references": "0.0.5",
+    "typescript": "4.3.4"
+  },
+  "eslintConfig": {
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "env": {
+      "node": true
+    },
+    "parserOptions": {
+      "project": [
+        "./tsconfig.json"
+      ]
+    },
+    "plugins": [
+      "@typescript-eslint",
+      "prettier"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:@typescript-eslint/recommended-requiring-type-checking",
+      "plugin:prettier/recommended"
+    ],
+    "rules": {
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/restrict-template-expressions": "off"
+    }
+  }
+}
