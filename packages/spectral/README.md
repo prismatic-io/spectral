@@ -1,12 +1,16 @@
-# spectral
+# @prismatic-io/spectral
 
-This monorepo contains packages to build custom Prismatic components using Typescript.
+This repository contains code for Prismatic's TypeScript library, `spectral`, which is used to build custom Prismatic components.
 
-## Building Locally
+## Using Spectral
 
-You will need `yarn` and `node` installed.
-Run `yarn turbo run build` to build and `yarn turbo run tests` to run the test suites. `yarn pack` and `yarn link` are both useful for testing changes locally.
+To install spectral, run:
 
+```bash
+npm install @prismatic-io/spectral
+```
+
+Please see our [documentation](https://prismatic.io/docs/custom-components/writing-custom-components) on writing and publishing custom components for Prismatic's platform.
 
 ## What is Prismatic?
 
@@ -41,3 +45,12 @@ Here are some example use cases:
 - Email activity summary reports with parameters and intervals defined on a per-customer basis.
 
 For information on the Prismatic platform, check out our [website](https://prismatic.io) and [docs](https://prismatic.io/docs).
+
+## Building Spectral Locally
+
+To build spectral locally, you'll need `yarn` and `node` installed.
+Run `yarn build` to build the package, or `yarn pack` to build a tarball that can be used in custom components for testing changes to spectral.
+
+## License
+
+This repository is [MIT licensed](./LICENSE).

@@ -5,7 +5,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Spectral
+      - name: Checkout
         uses: actions/checkout@v2
       - name: Install Dependencies
         uses: borales/actions-yarn@v2.3.0
@@ -14,12 +14,12 @@ jobs:
       - name: Check Formatting
         uses: borales/actions-yarn@v2.3.0
         with:
-          cmd: run check
-      - name: Build Spectral
+          cmd: turbo run check
+      - name: Build
         uses: borales/actions-yarn@v2.3.0
         with:
-          cmd: build
+          cmd: turbo run build
       - name: Run Tests
         uses: borales/actions-yarn@v2.3.0
         with:
-          cmd: test
+          cmd: turbo run test
