@@ -1,25 +1,20 @@
-# @prismatic-io/eslint-config-spectral
+# @prismatic-io/generator-spectral
 
-This package contains a recommended [ESLint](https://eslint.org/) configuration to aid in developing custom Prismatic components.
+This package contains a [Yeoman](https://yeoman.io/) generator to scaffold custom Prismatic components.
 
-## Using the Config
+## Using the Generator
 
-To install, run:
+You will need to [install Yeoman](https://yeoman.io/learning/) and this package:
 
 ```bash
-npm install @prismatic-io/eslint-config-spectral --save-dev
+npm install -g yo @prismatic-io/generator-spectral
 ```
 
-You will need to update your [ESLint configuration](https://eslint.org/docs/user-guide/configuring/) to reference the config in this package. The easiest way is to add an `eslintConfig` block to your `package.json` file:
+Then invoke `yo` with the generator package to start writing your own component:
 
-```jsonc
-"eslintConfig": {
-  "root": true,
-  "extends": ["@prismatic-io/eslint-config-spectral"]
-}
+```bash
+yo @prismatic-io/spectral:component
 ```
-
-Note that you do not need to install the plugin packages as peer dependencies as resolution of those packages is handled with [Microsoft's ESLint patch](https://www.npmjs.com/package/@rushstack/eslint-patch). There are still a handful of peer dependencies you will need to install - use `npm info "@prismatic-io/eslint-config-spectral@latest" peerDependencies` to list them or use `npx install-peerdeps --dev @prismatic-io/eslint-config-spectral` to install them automatically.
 
 ## What is Prismatic?
 
