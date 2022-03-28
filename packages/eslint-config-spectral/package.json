@@ -16,6 +16,10 @@
     "type": "git",
     "url": "https://github.com/prismatic-io/spectral.git"
   },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf dist",
