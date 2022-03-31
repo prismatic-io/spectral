@@ -21,7 +21,7 @@ export const <%= action.key %> = action({
   perform: async (context, { connection, myInput }) => {
     const client = createClient(connection);
     return {
-      data: `Hello, ${myInput}`,
+      data: await client.call(myInput),
     };
   },
   inputs: {

@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/generator-spectral",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Yeoman generator for scaffolding out Prismatic components",
   "keywords": [
     "prismatic",
