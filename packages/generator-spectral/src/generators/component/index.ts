@@ -1,6 +1,6 @@
 import path from "path";
 import Generator from "yeoman-generator";
-import { camelCase } from "lodash";
+import { camelCase, merge } from "lodash";
 
 class ComponentGenerator extends Generator {
   answers!: {
@@ -60,6 +60,8 @@ class ComponentGenerator extends Generator {
         when: () => !Boolean(this.options.description),
       },
     ]);
+
+    merge(this.answers, this.options);
   }
 
   async writing() {
@@ -71,6 +73,7 @@ class ComponentGenerator extends Generator {
     const templateFiles = [
       ["assets", "icon.png"],
       ["src", "index.ts"],
+      ["src", "index.test.ts"],
       ["src", "client.ts"],
       "jest.config.js",
       "package.json",
@@ -89,6 +92,10 @@ class ComponentGenerator extends Generator {
         test: "jest",
         lint: "eslint --ext .ts .",
       },
+      eslintConfig: {
+        root: true,
+        extends: ["@prismatic-io/eslint-config-spectral"],
+      },
     });
 
     await this.addDependencies("@prismatic-io/spectral");
@@ -102,6 +109,7 @@ class ComponentGenerator extends Generator {
       typescript: "4.3.5",
       webpack: "5.43.0",
       "webpack-cli": "4.7.2",
+      eslint: "6.8.0",
     });
   }
 }
