@@ -1,0 +1,50 @@
+{
+  "name": "@prismatic-io/generator-spectral",
+  "version": "1.0.0",
+  "description": "Yeoman generator for scaffolding out Prismatic components",
+  "keywords": [
+    "prismatic",
+    "yeoman-generator"
+  ],
+  "homepage": "https://prismatic.io",
+  "bugs": {
+    "url": "https://github.com/prismatic-io/spectral"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prismatic-io/spectral.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "license": "MIT",
+  "scripts": {
+    "copy": "copyfiles --error --up 2 'src/generators/*/templates/**' 'generators'",
+    "clean": "rm -rf generators tmp",
+    "build": "yarn run clean && tsc && yarn run copy",
+    "prepack": "yarn run build",
+    "yo": "yo",
+    "yo-component": "yarn run build && mkdir -p tmp && cd tmp && yo ../generators/component",
+    "yo-action": "cd tmp/src && yo ../../generators/action",
+    "yo-trigger": "cd tmp/src && yo ../../generators/trigger",
+    "yo-connection": "cd tmp/src && yo ../../generators/connection"
+  },
+  "files": [
+    "generators"
+  ],
+  "dependencies": {
+    "yeoman-generator": "5.6.1",
+    "lodash": "4.17.21"
+  },
+  "devDependencies": {
+    "@types/lodash": "4.14.181",
+    "@types/yeoman-generator": "5.2.9",
+    "copyfiles": "2.4.1",
+    "eslint": "8.12.0",
+    "prettier": "2.6.1",
+    "typescript": "4.6.3",
+    "yo": "4.3.0",
+    "mem-fs": "2.2.1"
+  }
+}

@@ -120,3 +120,7 @@ package/
 
 # Cache files
 .DS_Store
+
+# Generator
+packages/generator-spectral/generators
+tmp

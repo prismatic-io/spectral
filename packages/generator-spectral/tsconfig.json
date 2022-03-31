@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "lib": ["esnext"],
+    "module": "commonjs",
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "types": ["node"],
+    "outDir": "generators"
+  },
+  "include": ["src/generators"],
+  "exclude": ["node_modules", "**/templates/**"]
+}
