@@ -25,6 +25,11 @@ class ComponentGenerator extends Generator {
       description: "Description of Component",
       alias: "d",
     });
+    this.option("connectionType", {
+      type: String,
+      description: "Type of Connection",
+      alias: "t",
+    });
   }
 
   initializing() {
@@ -42,6 +47,7 @@ class ComponentGenerator extends Generator {
       destinationPath: path.join("src", "connections.ts"),
       label: "My Connection",
       comments: "This is my connection",
+      connectionType: this.options.connectionType,
     });
   }
 

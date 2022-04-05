@@ -27,6 +27,11 @@ class ConnectionGenerator extends Generator {
       description: "Comments of Connection",
       alias: "c",
     });
+    this.option("connectionType", {
+      type: String,
+      description: "Type of Connection",
+      alias: "t",
+    });
     this.option("destinationPath", {
       type: String,
       description: "Override destination path within root",
@@ -56,6 +61,9 @@ class ConnectionGenerator extends Generator {
           name: label,
           value: key,
         })),
+        when: () =>
+          !Boolean(this.options.connectionType) ||
+          !Object.keys(connectionTypes).includes(this.options.connectionType),
       },
     ]);
 
