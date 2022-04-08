@@ -22,8 +22,16 @@ export interface TriggerPayload {
   webhookApiKeys: {
     [key: string]: string[];
   };
+  /** The URL that was used to invoke the execution. */
+  invokeUrl: string;
+  executionId: string;
   customer: {
+    id: string | null;
     externalId: string | null;
+    name: string | null;
+  };
+  instance: {
+    id: string | null;
     name: string | null;
   };
 }

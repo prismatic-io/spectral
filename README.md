@@ -5,7 +5,7 @@ This monorepo contains packages to build custom Prismatic components using Types
 ## Building Locally
 
 You will need `yarn` and `node` installed.
-Run `yarn turbo run build` to build and `yarn turbo run tests` to run the test suites. `yarn pack` and `yarn link` are both useful for testing changes locally.
+Run `yarn turbo run build` to build and `yarn turbo run test` to run the test suites. `yarn pack` and `yarn link` are both useful for testing changes locally.
 
 
 ## What is Prismatic?
