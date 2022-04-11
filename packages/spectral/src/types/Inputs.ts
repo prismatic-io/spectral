@@ -26,19 +26,22 @@ interface BaseInputFieldDefinition {
   example?: string;
   /** Indicate if this InputField is required. */
   required?: boolean;
-  /** Dictates possible choices for the input. */
-  model?: InputFieldChoice[];
 }
 
 /** Defines attributes of a InputField. */
 export interface DefaultInputFieldDefinition extends BaseInputFieldDefinition {
   type: Exclude<InputFieldType, "code" | "conditional" | "connection">;
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
 }
 
 /** Defines attributes of a CodeInputField. */
 export interface CodeInputFieldDefinition extends BaseInputFieldDefinition {
   type: Extract<InputFieldType, "code">;
+  /** Code language of this field. */
   language?: string;
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
 }
 
 /** Defines attributes of a ConditionalInputField. */

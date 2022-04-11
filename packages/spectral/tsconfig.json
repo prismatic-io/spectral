@@ -1,16 +1,16 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "lib": ["esnext", "DOM"],
     "module": "commonjs",
+    "lib": ["esnext", "DOM"],
+    "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "types": ["node", "jest"],
+    "types": ["node"],
     "declaration": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "strict": true
+    "outDir": "dist"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["**/*.test.ts", "**/*.test-d.ts"]
 }

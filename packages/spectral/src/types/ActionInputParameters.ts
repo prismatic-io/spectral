@@ -5,21 +5,20 @@ import { InputFieldDefinition, Inputs, InputFieldTypeMap } from ".";
  * Inputs can be static values, references to config variables, or
  * references to previous steps' outputs.
  */
-export type ActionInputParameters<TInputs extends Inputs> =
-  TInputs extends Record<string, InputFieldDefinition>
-    ? { [Property in keyof TInputs]: ExtractValue<TInputs[Property]> }
-    : never;
+export type ActionInputParameters<TInputs extends Inputs> = {
+  [Property in keyof TInputs]: ExtractValue<TInputs[Property]>;
+};
 
 export type ExtractValue<TValue extends InputFieldDefinition> =
   MapCollectionValues<InputFieldTypeMap[TValue["type"]], TValue["collection"]>;
 
 export type MapCollectionValues<
   TType,
-  TCollection extends InputFieldDefinition["collection"] | undefined
+  TCollection extends InputFieldDefinition["collection"]
 > = TCollection extends "keyvaluelist"
-  ? KeyValuePair<TType>[] | undefined
+  ? KeyValuePair<TType>[]
   : TCollection extends "valuelist"
-  ? TType[] | undefined
+  ? TType[]
   : TType;
 
 /**
