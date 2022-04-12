@@ -4,147 +4,28 @@
  * be processed by the Prismatic API.
  */
 
-/**
- * Both component author-facing types and server types that
- * the Prismatic API expects are imported here.
- */
 import {
   ActionDefinition,
   InputFieldDefinition,
-  ActionPerformReturn,
   ComponentDefinition,
-  ConnectionDefinition,
   DefaultConnectionDefinition,
   OAuth2ConnectionDefinition,
   Inputs,
-  ActionPerformBranchingDataReturn,
-  ActionPerformDataReturn,
   TriggerDefinition,
-  TriggerBaseResult,
-  TriggerBranchingResult,
-  TriggerResult,
-  InputFieldDefaultMap,
 } from "./types";
-import {
-  Action,
-  Trigger,
-  Connection,
-  Component,
-  InputField,
-  ServerPerformDataStructureReturn,
-  ServerPerformBranchingDataStructureReturn,
-} from "./types/server-types";
-
-const convertInput = (
-  key: string,
-  {
-    default: defaultValue,
-    type,
-    label,
-    collection,
-    ...rest
-  }: InputFieldDefinition
-): InputField => ({
-  ...rest,
-  key,
-  type,
-  default: defaultValue ?? InputFieldDefaultMap[type],
-  collection,
-  label: typeof label === "string" ? label : label.value,
-  keyLabel:
-    collection === "keyvaluelist" && typeof label === "object"
-      ? label.key
-      : undefined,
-});
-
-/**
- * This is a helper function for component() to convert an
- * action defined in TypeScript into an action object that
- * Prismatic's API can process.
- * @param actionKey The unique identifier of an action.
- * @param action The action definition, including its inputs, perform function, and app display information.
- * @returns This function returns an action object that has the shape the Prismatic API expects.
- */
-const convertAction = (
-  actionKey: string,
-  action: ActionDefinition<
-    Inputs,
-    boolean,
-    | undefined
-    | ActionPerformBranchingDataReturn<unknown>
-    | ActionPerformDataReturn<unknown>
-  >
-): Action => ({
-  ...action,
-  key: actionKey,
-  inputs: Object.entries(action.inputs ?? {}).map(([key, value]) =>
-    convertInput(key, value)
-  ),
-  perform: action.perform as Action["perform"],
-  examplePayload: action.examplePayload as
-    | ServerPerformDataStructureReturn
-    | ServerPerformBranchingDataStructureReturn,
-});
-
-/**
- * This is a helper function for component() to convert a
- * trigger defined in TypeScript into an trigger object that
- * Prismatic's API can process.
- * @param triggerKey The unique identifier of a trigger.
- * @param trigger The trigger definition, including its inputs, perform function, and app display information.
- * @returns This function returns a trigger object that has the shape the Prismatic API expects.
- */
-const convertTrigger = (
-  triggerKey: string,
-  trigger: TriggerDefinition<
-    Inputs,
-    boolean,
-    undefined | TriggerBaseResult | TriggerBranchingResult
-  >
-): Trigger => ({
-  ...trigger,
-  key: triggerKey,
-  inputs: Object.entries(trigger.inputs ?? {}).map(([key, value]) =>
-    convertInput(key, value)
-  ),
-  perform: trigger.perform as Trigger["perform"],
-  examplePayload: trigger.examplePayload || undefined,
-});
-
-const convertConnection = (connection: ConnectionDefinition): Connection => ({
-  ...connection,
-  inputs: Object.entries(connection.inputs ?? {}).map(([key, value]) =>
-    convertInput(key, value)
-  ),
-});
+import { convertComponent } from "./serverTypes/convert";
 
 /**
  * This function creates a component object that can be
  * imported into the Prismatic API. For information on using
  * this function to write custom components, see
  * https://prismatic.io/docs/custom-components/writing-custom-components/#exporting-a-component.
- * @param definition A ComponentDefinition type object, including display infromation, unique key, and a set of actions the component implements.
+ * @param definition A ComponentDefinition type object, including display information, unique key, and a set of actions the component implements.
  * @returns This function returns a component object that has the shape the Prismatic API expects.
  */
 export const component = <T extends boolean>(
   definition: ComponentDefinition<T>
-): Component<T> => ({
-  ...definition,
-  documentationUrl: definition.documentationUrl || null,
-  actions: Object.fromEntries(
-    Object.entries(definition.actions || {}).map(([actionKey, action]) => [
-      actionKey,
-      convertAction(actionKey, action),
-    ])
-  ),
-  triggers: Object.fromEntries(
-    Object.entries(definition.triggers || {}).map(([triggerKey, trigger]) => [
-      triggerKey,
-      convertTrigger(triggerKey, trigger),
-    ])
-  ),
-  connections: (definition.connections || []).map(convertConnection),
-});
+): ReturnType<typeof convertComponent> => convertComponent(definition);
 
 /**
  * This function creates an action object that can be referenced
@@ -155,13 +36,9 @@ export const component = <T extends boolean>(
  * @param definition An ActionDefinition type object that includes UI display information, a function to perform when the action is invoked, and a an object containing inputs for the perform function.
  * @returns This function validates the shape of the `definition` object provided, and returns the same action object.
  */
-export const action = <
-  T extends Inputs,
-  AllowsBranching extends boolean,
-  ReturnData extends ActionPerformReturn<AllowsBranching, unknown>
->(
-  definition: ActionDefinition<T, AllowsBranching, ReturnData>
-): ActionDefinition<T, AllowsBranching, ReturnData> => definition;
+export const action = <T extends Inputs>(
+  definition: ActionDefinition<T>
+): ActionDefinition<T> => definition;
 
 /**
  * This function creates a trigger object that can be referenced
@@ -172,13 +49,9 @@ export const action = <
  * @param definition A TriggerDefinition type object that includes UI display information, a function to perform when the trigger is invoked, and a an object containing inputs for the perform function.
  * @returns This function validates the shape of the `definition` object provided, and returns the same trigger object.
  */
-export const trigger = <
-  T extends Inputs,
-  AllowsBranching extends boolean,
-  Result extends TriggerResult<AllowsBranching>
->(
-  definition: TriggerDefinition<T, AllowsBranching, Result>
-): TriggerDefinition<T, AllowsBranching, Result> => definition;
+export const trigger = <T extends Inputs>(
+  definition: TriggerDefinition<T>
+): TriggerDefinition<T> => definition;
 
 /**
  * For information and examples on how to write inputs

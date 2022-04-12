@@ -14,10 +14,8 @@ import {
   ActionInputParameters,
   ConnectionDefinition,
   Connection,
-  ActionPerformReturn,
   Inputs,
   TriggerDefinition,
-  TriggerResult,
   TriggerPayload,
 } from "./types";
 import { spyOn } from "jest-mock";
@@ -59,21 +57,13 @@ interface InvokeReturn<ReturnData> {
  * to avoid extra casting within test methods. Returns an InvokeResult containing both the
  * action result and a mock logger for asserting logging.
  */
-export const invoke = async <
-  T extends Inputs,
-  AllowsBranching extends boolean,
-  ReturnData extends ActionPerformReturn<AllowsBranching, unknown>
->(
-  actionBase:
-    | ActionDefinition<T, AllowsBranching, ReturnData>
-    | Record<string, ActionDefinition<T, AllowsBranching, ReturnData>>,
+export const invoke = async <T extends Inputs>(
+  { perform }: ActionDefinition<T>,
   params: ActionInputParameters<T>,
   context?: Partial<ActionContext>
-): Promise<InvokeReturn<ReturnData>> => {
-  const action = (
-    actionBase.perform ? actionBase : Object.values(actionBase)[0]
-  ) as ActionDefinition<T, AllowsBranching, ReturnData>;
-
+): Promise<
+  InvokeReturn<Awaited<ReturnType<ActionDefinition<T>["perform"]>>>
+> => {
   const realizedContext = {
     logger: loggerMock(),
     instanceState: {},
@@ -83,7 +73,7 @@ export const invoke = async <
     ...context,
   };
 
-  const result = await action.perform(realizedContext, params);
+  const result = await perform(realizedContext, params);
 
   return {
     result,
@@ -134,22 +124,14 @@ export const defaultTriggerPayload = (): TriggerPayload => {
  * to avoid extra casting within test methods. Returns an InvokeResult containing both the
  * trigger result and a mock logger for asserting logging.
  */
-export const invokeTrigger = async <
-  T extends Inputs,
-  AllowsBranching extends boolean,
-  Result extends TriggerResult<AllowsBranching>
->(
-  triggerBase:
-    | TriggerDefinition<T, AllowsBranching, Result>
-    | Record<string, TriggerDefinition<T, AllowsBranching, Result>>,
+export const invokeTrigger = async <T extends Inputs>(
+  { perform }: TriggerDefinition<T>,
   context?: Partial<ActionContext>,
   payload?: TriggerPayload,
   params?: ActionInputParameters<T>
-): Promise<InvokeReturn<Result>> => {
-  const trigger = (
-    triggerBase.perform ? triggerBase : Object.values(triggerBase)[0]
-  ) as TriggerDefinition<T, AllowsBranching, Result>;
-
+): Promise<
+  InvokeReturn<Awaited<ReturnType<TriggerDefinition<T>["perform"]>>>
+> => {
   const realizedContext = {
     logger: loggerMock(),
     instanceState: {},
@@ -166,7 +148,7 @@ export const invokeTrigger = async <
 
   const realizedParams = params || ({} as ActionInputParameters<T>);
 
-  const result = await trigger.perform(
+  const result = await perform(
     realizedContext,
     realizedPayload,
     realizedParams

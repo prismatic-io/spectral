@@ -3,7 +3,7 @@ import { HttpResponse } from "./HttpResponse";
 
 /** Represents the result of a Trigger action. */
 export interface TriggerBaseResult {
-  /** The payload in the requst that invoked the Integration, which is returned as a result for later use. */
+  /** The payload in the request that invoked the Integration, which is returned as a result for later use. */
   payload: TriggerPayload;
   /** Optional HTTP response to the request that invoked the integration. */
   response?: HttpResponse;
@@ -20,6 +20,6 @@ export interface TriggerBranchingResult extends TriggerBaseResult {
 }
 
 /** Required return type of all trigger perform functions */
-export type TriggerResult<AllowsBranching extends boolean> =
+export type TriggerResult<AllowsBranching extends boolean | undefined> =
   | (AllowsBranching extends true ? TriggerBranchingResult : TriggerBaseResult)
   | undefined;

@@ -8,9 +8,9 @@
 import parseISODate from "date-fns/parseISO";
 import dateIsValid from "date-fns/isValid";
 import dateIsDate from "date-fns/isDate";
+import { configure } from "safe-stable-stringify";
 import { isWebUri } from "valid-url";
-import { DataPayload } from "./types/server-types";
-import { KeyValuePair } from "./types";
+import { KeyValuePair, DataPayload } from "./types";
 
 /**
  * Determine if a variable is a boolean (true or false).
@@ -213,12 +213,17 @@ const isUrl = (value: string): boolean => isWebUri(value) !== undefined;
  * If that array were passed into `util.types.keyValPairListToObject()`, an object would be returned of the form
  * `{foo: "bar", baz: 5}`.
  * @param kvpList An array of objects with `key` and `value` properties.
+ * @param valueConverter Optional function to call for each `value`.
  */
-const keyValPairListToObject = (
-  kvpList: KeyValuePair<unknown>[] = []
-): Record<string, unknown> => {
+const keyValPairListToObject = <TValue = unknown>(
+  kvpList: KeyValuePair<unknown>[] = [],
+  valueConverter?: (value: unknown) => TValue
+): Record<string, TValue> => {
   return kvpList.reduce(
-    (result, { key, value }) => ({ ...result, [key]: value }),
+    (result, { key, value }) => ({
+      ...result,
+      [key]: valueConverter ? valueConverter(value) : value,
+    }),
     {}
   );
 };
@@ -349,6 +354,16 @@ const isJSON = (value: string): boolean => {
   }
 };
 
+/** This function accepts an arbitrary object/value and safely serializes it (handles cyclic references).
+ *
+ * @param value Arbitrary object/value to serialize.
+ * @returns JSON serialized text that can be safely logged.
+ */
+export const toJSON = (value: unknown): string => {
+  const stringify = configure({ circularValue: undefined });
+  return stringify(value, null, 2);
+};
+
 /**
  * This function returns a lower cased version of the headers passed to it.
  *
@@ -385,6 +400,7 @@ export default {
     toString,
     keyValPairListToObject,
     isJSON,
+    toJSON,
     lowerCaseHeaders,
   },
   docs: {

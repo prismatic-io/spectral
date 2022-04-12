@@ -594,12 +594,35 @@ describe("util", () => {
       );
     });
 
-    describe("JSON", () => {
-      it("returns true in the case of actual JSON", () => {
-        expect(
-          util.types.lowerCaseHeaders({ "Content-Type": "Application/Json" })
-        ).toStrictEqual({ "content-type": "Application/Json" });
-      });
+    it("serializes JSON", () => {
+      fc.assert(
+        fc.property(validJSON, (v) => {
+          expect(() => util.types.toJSON(v)).not.toThrow();
+        })
+      );
+    });
+
+    it("removes functions", () => {
+      const value = {
+        foo: () => {
+          return;
+        },
+      };
+      expect(util.types.toJSON(value)).toStrictEqual("{}");
+    });
+
+    it("removes cyclic data", () => {
+      const value: Record<string, unknown> = {};
+      value.value = value;
+      expect(util.types.toJSON(value)).toStrictEqual("{}");
+    });
+  });
+
+  describe("headers", () => {
+    it("lowercase headers", () => {
+      expect(
+        util.types.lowerCaseHeaders({ "Content-Type": "Application/Json" })
+      ).toStrictEqual({ "content-type": "Application/Json" });
     });
   });
 });
