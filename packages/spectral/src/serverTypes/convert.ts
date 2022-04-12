@@ -25,10 +25,8 @@ const wrapPerform = <T>(
 ): ((...args: any[]) => Promise<T>) => {
   return async (...args: any[]): Promise<T> => {
     try {
-      console.log("before");
       return await fn(...args);
     } catch (error) {
-      console.log("error handler");
       throw new Error(toJSON(serializeError(errorHandler(error))));
     }
   };
