@@ -13,7 +13,6 @@ export * from "./DisplayDefinition";
 export * from "./ActionInputParameters";
 export * from "./ActionLogger";
 export * from "./ActionPerformFunction";
-export * from "./InputFieldType";
 export * from "./conditional-logic";
 export * from "./TriggerResult";
 export * from "./TriggerPerformFunction";

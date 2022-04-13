@@ -2,6 +2,7 @@ import { createHarness, ComponentTestHarness } from "./testing";
 import { component, connection, input, action, trigger } from ".";
 import { ConnectionValue } from "./serverTypes";
 import { OAuth2Type } from "./types";
+import util from "./util";
 
 const testConnection = connection({
   key: "connection",
@@ -83,12 +84,26 @@ const fooInput = input({
   type: "string",
 });
 
+const cleanInput = input({
+  label: "Clean",
+  type: "string",
+  clean: (value) => util.types.toNumber(value),
+});
+
 const fooAction = action({
   display: {
     label: "Foo",
     description: "Foo",
   },
   inputs: { connectionInput, fooInput },
+  perform: async (context, params) => {
+    return Promise.resolve({ data: params });
+  },
+});
+
+const cleanAction = action({
+  display: { label: "Clean", description: "Clean" },
+  inputs: { cleanInput },
   perform: async (context, params) => {
     return Promise.resolve({ data: params });
   },
@@ -115,7 +130,7 @@ const sample = component({
     iconPath: "icon.png",
   },
   triggers: { fooTrigger },
-  actions: { fooAction },
+  actions: { fooAction, cleanAction },
   connections: [testConnection],
 });
 
@@ -145,5 +160,16 @@ describe("invoking", () => {
       fooInput: "hello",
     });
     expect(result?.data).toMatchObject({ fooInput: "hello" });
+  });
+});
+
+describe("clean inputs", () => {
+  const harness = createHarness(sample);
+
+  it("should clean inputs", async () => {
+    const result = await harness.action("cleanAction", {
+      cleanInput: "200",
+    });
+    expect(result?.data).toMatchObject({ cleanInput: 200 });
   });
 });

@@ -1,25 +1,47 @@
-import { InputFieldDefaultMap, InputFieldType } from ".";
+import { ConditionalExpression } from "./conditional-logic";
+
+/** InputField type enumeration. */
+export type InputFieldType = InputFieldDefinition["type"];
+export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> =
+  {
+    string: "",
+    data: "",
+    text: "",
+    password: "",
+    boolean: "false",
+    code: "",
+    conditional: undefined,
+    connection: undefined,
+  };
 
 export type Inputs = Record<string, InputFieldDefinition>;
-export type ConnectionInput = DefaultInputFieldDefinition & { shown?: boolean };
+export type ConnectionInput = (
+  | StringInputField
+  | DataInputField
+  | TextInputField
+  | PasswordInputField
+  | BooleanInputField
+) & { shown?: boolean };
 
 export type InputFieldDefinition =
-  | DefaultInputFieldDefinition
-  | CodeInputFieldDefinition
+  | StringInputField
+  | DataInputField
+  | TextInputField
+  | PasswordInputField
+  | BooleanInputField
+  | CodeInputField
   | ConditionalInputField
   | ConnectionInputField;
 
-interface BaseInputFieldDefinition {
-  /** Data type the InputField will collect. */
-  type: InputFieldType;
+export type InputCleanFunction<TValue, TResult = TValue> = (
+  value: TValue
+) => TResult;
+
+interface BaseInputField {
   /** Interface label of the InputField. */
   label: { key: string; value: string } | string;
-  /** Collection type of the InputField */
-  collection?: InputFieldCollection;
   /** Text to show as the InputField placeholder. */
   placeholder?: string;
-  /** Default value for this field. */
-  default?: typeof InputFieldDefaultMap[this["type"]];
   /** Additional text to give guidance to the user configuring the InputField. */
   comments?: string;
   /** Example valid input for this InputField. */
@@ -28,30 +50,109 @@ interface BaseInputFieldDefinition {
   required?: boolean;
 }
 
-/** Defines attributes of a InputField. */
-export interface DefaultInputFieldDefinition extends BaseInputFieldDefinition {
-  type: Exclude<InputFieldType, "code" | "conditional" | "connection">;
+export interface StringInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "string";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: unknown;
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+}
+
+export interface DataInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "data";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: unknown;
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+}
+
+export interface TextInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "text";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: unknown;
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+}
+
+export interface PasswordInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "password";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: unknown;
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+}
+
+export interface BooleanInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "boolean";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: unknown;
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
 }
 
 /** Defines attributes of a CodeInputField. */
-export interface CodeInputFieldDefinition extends BaseInputFieldDefinition {
-  type: Extract<InputFieldType, "code">;
+export interface CodeInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "code";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: unknown;
   /** Code language of this field. */
   language?: string;
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
 }
 
 /** Defines attributes of a ConditionalInputField. */
-export interface ConditionalInputField extends BaseInputFieldDefinition {
-  type: Extract<InputFieldType, "conditional">;
+export interface ConditionalInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "conditional";
+  /** Collection type of the InputField */
+  collection: Extract<InputFieldCollection, "valuelist">;
+  /** Default value for this field. */
+  default?: ConditionalExpression;
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
 }
 
 /** Defines attributes of a ConnectionInputField. */
-export interface ConnectionInputField extends BaseInputFieldDefinition {
-  type: Extract<InputFieldType, "connection">;
+export interface ConnectionInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "connection";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: Connection;
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
 }
 
 export interface Connection {

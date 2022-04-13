@@ -1,4 +1,6 @@
-import { InputFieldDefinition, Inputs, InputFieldTypeMap } from ".";
+import { Inputs } from ".";
+import { ConditionalExpression } from "./conditional-logic";
+import { InputFieldCollection, InputCleanFunction, Connection } from "./Inputs";
 
 /**
  * Collection of input parameters.
@@ -6,15 +8,21 @@ import { InputFieldDefinition, Inputs, InputFieldTypeMap } from ".";
  * references to previous steps' outputs.
  */
 export type ActionInputParameters<TInputs extends Inputs> = {
-  [Property in keyof TInputs]: ExtractValue<TInputs[Property]>;
+  [Property in keyof TInputs]: TInputs[Property]["clean"] extends InputCleanFunction<any>
+    ? ReturnType<TInputs[Property]["clean"]>
+    : TInputs[Property]["type"] extends "connection"
+    ? ExtractValue<Connection, TInputs[Property]["collection"]>
+    : TInputs[Property]["type"] extends "conditional"
+    ? ExtractValue<ConditionalExpression, TInputs[Property]["collection"]>
+    : ExtractValue<
+        TInputs[Property]["default"],
+        TInputs[Property]["collection"]
+      >;
 };
 
-export type ExtractValue<TValue extends InputFieldDefinition> =
-  MapCollectionValues<InputFieldTypeMap[TValue["type"]], TValue["collection"]>;
-
-export type MapCollectionValues<
+export type ExtractValue<
   TType,
-  TCollection extends InputFieldDefinition["collection"]
+  TCollection extends InputFieldCollection | undefined
 > = TCollection extends "keyvaluelist"
   ? KeyValuePair<TType>[]
   : TCollection extends "valuelist"

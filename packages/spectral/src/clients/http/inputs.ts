@@ -1,4 +1,4 @@
-import { input } from "../..";
+import { input, util } from "../..";
 import { Method, ResponseType } from "axios";
 
 const supportedMethods: Method[] = [
@@ -28,6 +28,7 @@ export const url = input({
   required: true,
   comments: "This is the URL to call.",
   example: "/sobjects/Account",
+  clean: (value) => util.types.toString(value),
 });
 
 export const data = input({
@@ -38,6 +39,7 @@ export const data = input({
   comments:
     "The HTTP body payload to send to the URL. Must be a string or a reference to output from a previous step.",
   example: '{"exampleKey": "Example Data"}',
+  clean: (value) => util.types.toString(value),
 });
 
 export const timeout = input({
@@ -47,6 +49,7 @@ export const timeout = input({
   comments:
     "The maximum time that a client will await a response to its request",
   example: "2000",
+  clean: (value) => util.types.toNumber(value),
 });
 
 export const method = input({
@@ -54,6 +57,7 @@ export const method = input({
   type: "string",
   model: supportedMethods.map((method) => ({ label: method, value: method })),
   comments: "The HTTP method to use.",
+  clean: (value) => util.types.toString(value),
 });
 
 export const responseType = input({
@@ -68,6 +72,7 @@ export const responseType = input({
     label: responseType,
     value: responseType,
   })),
+  clean: (value) => util.types.toString(value),
 });
 
 export const headers = input({
@@ -97,6 +102,7 @@ export const maxRetries = input({
   required: false,
   comments: "The maximum number of retries to attempt.",
   default: "0",
+  clean: (value) => util.types.toNumber(value),
 });
 
 export const retryDelayMS = input({
@@ -115,6 +121,7 @@ export const useExponentialBackoff = input({
   required: false,
   comments:
     "Specifies whether to use a pre-defined exponential backoff strategy for retries.",
+  clean: (value) => util.types.toBool(value),
 });
 
 export const retryOnAllErrors = input({
@@ -123,6 +130,7 @@ export const retryOnAllErrors = input({
   default: "false",
   required: false,
   comments: "If true, retries on all erroneous responses regardless of type.",
+  clean: (value) => util.types.toBool(value),
 });
 
 export const formData = input({
@@ -150,4 +158,5 @@ export const debugRequest = input({
   type: "boolean",
   required: false,
   comments: "Enabling this flag will log out the current request.",
+  clean: (value) => util.types.toBool(value),
 });
