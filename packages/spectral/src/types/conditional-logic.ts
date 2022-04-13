@@ -1,6 +1,6 @@
 /**
  * This file contains types to help define conditional logic for the Prismatic
- * branch component, https://prismatic.io/docs/components/branch
+ * branch component, https://prismatic.io/docs/components/branch/
  */
 
 /** @ignore */
