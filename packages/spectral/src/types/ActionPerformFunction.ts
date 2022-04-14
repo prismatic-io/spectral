@@ -18,8 +18,10 @@ export type ActionPerformFunction<
 export interface ActionContext {
   /** Logger for permanent logging; console calls are also captured */
   logger: ActionLogger;
-  /** A key/value store that may be used to store small amounts of data that is persisted between Instance executions */
+  /** A a flow-specific key/value store that may be used to store small amounts of data that is persisted between Instance executions */
   instanceState: Record<string, unknown>;
+  /** An key/value store what is shared between flows on an Instance that may be used to store small amounts of data that is persisted between Instance executions */
+  crossFlowState: Record<string, unknown>;
   /** A key/value store that may be used to store small amounts of data for use later during the execution */
   executionState: Record<string, unknown>;
   /** A unique id that corresponds to the step on the Integration */

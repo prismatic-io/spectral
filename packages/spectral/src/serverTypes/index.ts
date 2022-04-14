@@ -41,6 +41,7 @@ interface ActionLogger {
 interface ActionContext {
   logger: ActionLogger;
   instanceState: Record<string, unknown>;
+  crossFlowState: Record<string, unknown>;
   executionState: Record<string, unknown>;
   stepId: string;
   executionId: string;
@@ -85,6 +86,7 @@ interface TriggerBaseResult {
   payload: TriggerPayload;
   response?: HttpResponse;
   instanceState?: Record<string, unknown>;
+  crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
 }
 
@@ -141,6 +143,7 @@ interface ServerPerformDataStructureReturn {
   contentType?: string;
   statusCode?: number;
   instanceState?: Record<string, unknown>;
+  crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
 }
 
@@ -149,6 +152,7 @@ interface ServerPerformDataReturn {
   contentType: string;
   statusCode?: number;
   instanceState?: Record<string, unknown>;
+  crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
 }
 

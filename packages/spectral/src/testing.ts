@@ -67,6 +67,7 @@ export const invoke = async <T extends Inputs>(
   const realizedContext = {
     logger: loggerMock(),
     instanceState: {},
+    crossFlowState: {},
     executionState: {},
     stepId: "mockStepId",
     executionId: "mockExecutionId",
@@ -135,6 +136,7 @@ export const invokeTrigger = async <T extends Inputs>(
   const realizedContext = {
     logger: loggerMock(),
     instanceState: {},
+    crossFlowState: {},
     executionState: {},
     stepId: "mockStepId",
     executionId: "mockExecutionId",
