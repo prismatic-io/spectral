@@ -3,7 +3,7 @@ interface DisplayDefinition {
   description: string;
 }
 
-interface Component {
+export interface Component {
   key: string;
   public?: boolean;
   documentationUrl?: string;
@@ -13,7 +13,7 @@ interface Component {
   connections: Connection[];
 }
 
-interface Action {
+export interface Action {
   key: string;
   display: DisplayDefinition & { directions?: string; important?: boolean };
   inputs: Input[];
@@ -26,9 +26,9 @@ interface Action {
   examplePayload?: unknown;
 }
 
-type ActionLoggerFunction = (...args: unknown[]) => void;
+export type ActionLoggerFunction = (...args: unknown[]) => void;
 
-interface ActionLogger {
+export interface ActionLogger {
   metric: ActionLoggerFunction;
   trace: ActionLoggerFunction;
   debug: ActionLoggerFunction;
@@ -38,7 +38,7 @@ interface ActionLogger {
   error: ActionLoggerFunction;
 }
 
-interface ActionContext {
+export interface ActionContext {
   logger: ActionLogger;
   instanceState: Record<string, unknown>;
   crossFlowState: Record<string, unknown>;
@@ -49,7 +49,7 @@ interface ActionContext {
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";
 
-interface TriggerPayload {
+export interface TriggerPayload {
   headers: Record<string, string>;
   queryParameters: Record<string, string>;
   rawBody: {
@@ -94,15 +94,18 @@ interface TriggerBranchingResult extends TriggerBaseResult {
   branch: string;
 }
 
-type TriggerResult = TriggerBranchingResult | TriggerBaseResult | undefined;
+export type TriggerResult =
+  | TriggerBranchingResult
+  | TriggerBaseResult
+  | undefined;
 
-type TriggerPerformFunction = (
+export type TriggerPerformFunction = (
   context: ActionContext,
   payload: TriggerPayload,
   params: Record<string, unknown>
 ) => Promise<TriggerResult>;
 
-interface Trigger {
+export interface Trigger {
   key: string;
   display: DisplayDefinition & { directions?: string; important?: boolean };
   inputs: Input[];
@@ -118,18 +121,26 @@ interface Trigger {
   isCommonTrigger?: boolean;
 }
 
-enum OAuth2Type {
+export enum OAuth2Type {
   ClientCredentials = "client_credentials",
   AuthorizationCode = "authorization_code",
 }
 
-interface Connection {
+export interface Connection {
   key: string;
   label: string;
   comments?: string;
   oauth2Type?: OAuth2Type;
   iconPath?: string;
   inputs: (Input & { shown?: boolean })[];
+}
+
+export interface ConnectionValue {
+  key: string;
+  configVarKey: string;
+  fields: { [key: string]: unknown };
+  token?: Record<string, unknown>;
+  context?: Record<string, unknown>;
 }
 
 interface ServerPerformDataStructureReturn {
@@ -165,14 +176,14 @@ interface ServerPerformBranchingDataReturn extends ServerPerformDataReturn {
   branch: string;
 }
 
-type ActionPerformReturn =
+export type ActionPerformReturn =
   | ServerPerformDataStructureReturn
   | ServerPerformBranchingDataStructureReturn
   | ServerPerformDataReturn
   | ServerPerformBranchingDataReturn
   | undefined; // Allow an action to return nothing to reduce component implementation boilerplate
 
-type ActionPerformFunction = (
+export type ActionPerformFunction = (
   context: ActionContext,
   params: Record<string, unknown>
 ) => Promise<ActionPerformReturn>;
@@ -182,7 +193,7 @@ interface InputFieldChoice {
   value: string;
 }
 
-interface Input {
+export interface Input {
   key: string;
   label: string;
   keyLabel?: string;
@@ -196,5 +207,3 @@ interface Input {
   model?: InputFieldChoice[];
   language?: string;
 }
-
-export type { Component, Trigger, Action, Connection, Input };

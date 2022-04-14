@@ -13,6 +13,10 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
+    "tsd": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
     "check": {
       "outputs": []
     },

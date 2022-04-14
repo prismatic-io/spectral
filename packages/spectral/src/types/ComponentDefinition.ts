@@ -12,13 +12,12 @@ export interface ComponentHooks {
   error?: ErrorHandler;
 }
 
-interface BaseComponentDefinition<TPublic extends boolean = false> {
+/** Defines attributes of a Component. */
+export type ComponentDefinition<TPublic extends boolean> = {
   /** Specifies unique key for this Component. */
   key: string;
   /** Specifies if this Component is available for all Organizations or only your own @default false */
   public?: TPublic;
-  /** Specified the URL for the Component Documentation. */
-  documentationUrl?: string;
   /** Defines how the Component is displayed in the Prismatic interface. */
   display: ComponentDisplayDefinition<TPublic>;
   /** Specifies the supported Actions of this Component. */
@@ -29,9 +28,9 @@ interface BaseComponentDefinition<TPublic extends boolean = false> {
   connections?: ConnectionDefinition[];
   /** Hooks */
   hooks?: ComponentHooks;
-}
-
-/** Defines attributes of a Component. */
-export type ComponentDefinition<TPublic extends boolean = false> =
-  BaseComponentDefinition<TPublic> &
-    (TPublic extends true ? { documentationUrl: string } : unknown);
+} & (TPublic extends true
+  ? {
+      /** Specified the URL for the Component Documentation. */
+      documentationUrl: string;
+    }
+  : unknown);
