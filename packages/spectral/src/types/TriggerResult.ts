@@ -10,7 +10,7 @@ export interface TriggerBaseResult {
   /** An optional object, the keys and values of which will be persisted in the flow-specific instanceState and available for subsequent actions and executions */
   instanceState?: Record<string, unknown>;
   /** An optional object, the keys and values of which will be persisted in the crossFlowState and available in any flow for subsequent actions and executions */
-  crossFlowState: Record<string, unknown>;
+  crossFlowState?: Record<string, unknown>;
   /** An optional object, the keys and values of which will be persisted in the executionState and available for the duration of the execution */
   executionState?: Record<string, unknown>;
 }
