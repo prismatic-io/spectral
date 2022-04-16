@@ -89,7 +89,7 @@ const convertConnection = (
   ),
 });
 
-export const convertComponent = <TPublic extends boolean = false>({
+export const convertComponent = <TPublic extends boolean>({
   connections = [],
   actions = {},
   triggers = {},

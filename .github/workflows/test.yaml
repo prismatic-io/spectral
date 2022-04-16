@@ -23,3 +23,7 @@ jobs:
         uses: borales/actions-yarn@v2.3.0
         with:
           cmd: turbo run test
+      - name: Run Type Tests
+        uses: borales/actions-yarn@v2.3.0
+        with:
+          cmd: turbo run tsd

@@ -5,25 +5,30 @@
  * https://prismatic.io/docs/custom-components/writing-custom-components/#testing-a-component
  */
 
-/** */
 import {
-  ActionContext,
+  TriggerPayload,
+  TriggerResult,
+  Connection,
+  ConnectionValue,
   ActionLogger,
   ActionLoggerFunction,
-  ActionDefinition,
-  ActionInputParameters,
+  Component,
+  ActionContext,
+  ActionPerformReturn,
+} from "./serverTypes";
+import {
   ConnectionDefinition,
-  Connection,
-  Inputs,
+  ActionDefinition,
   TriggerDefinition,
-  TriggerPayload,
+  Inputs,
+  ActionInputParameters,
 } from "./types";
 import { spyOn } from "jest-mock";
 
-export const createConnection = <T extends ConnectionDefinition>(
+export const createConnection = <T extends Connection>(
   { key }: T,
   values: Record<string, unknown>
-): Connection => ({
+): ConnectionValue => ({
   configVarKey: "",
   key,
   fields: values,
@@ -162,8 +167,78 @@ export const invokeTrigger = async <T extends Inputs>(
   };
 };
 
+export class ComponentTestHarness<TComponent extends Component> {
+  component: TComponent;
+
+  constructor(component: TComponent) {
+    this.component = component;
+  }
+
+  public connectionValue({ key }: ConnectionDefinition): ConnectionValue {
+    const { PRISMATIC_CONNECTION_VALUE: value } = process.env;
+    if (!value) {
+      throw new Error("Unable to find connection value.");
+    }
+    const result: ConnectionValue = {
+      ...JSON.parse(value),
+      key,
+    };
+    return result;
+  }
+
+  public async trigger(
+    key: string,
+    payload?: TriggerPayload,
+    params?: Record<string, unknown>,
+    context?: Partial<ActionContext>
+  ): Promise<TriggerResult> {
+    const realizedContext = {
+      logger: loggerMock(),
+      instanceState: {},
+      crossFlowState: {},
+      executionState: {},
+      stepId: "mockStepId",
+      executionId: "mockExecutionId",
+      ...context,
+    };
+
+    const trigger = this.component.triggers[key];
+    return trigger.perform(
+      realizedContext,
+      { ...defaultTriggerPayload(), ...payload },
+      { ...params }
+    );
+  }
+
+  public async action(
+    key: string,
+    params?: Record<string, unknown>,
+    context?: Partial<ActionContext>
+  ): Promise<ActionPerformReturn> {
+    const realizedContext = {
+      logger: loggerMock(),
+      instanceState: {},
+      crossFlowState: {},
+      executionState: {},
+      stepId: "mockStepId",
+      executionId: "mockExecutionId",
+      ...context,
+    };
+
+    const action = this.component.actions[key];
+    return action.perform(realizedContext, { ...params });
+  }
+}
+
+export const createHarness = <TComponent extends Component>(
+  component: TComponent
+): ComponentTestHarness<TComponent> => {
+  return new ComponentTestHarness(component);
+};
+
 export default {
+  loggerMock,
   invoke,
   invokeTrigger,
-  loggerMock,
+  createHarness,
 };
