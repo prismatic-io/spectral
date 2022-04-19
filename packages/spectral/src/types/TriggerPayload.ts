@@ -14,6 +14,8 @@ export interface TriggerPayload {
     data: unknown;
     contentType?: string;
   };
+  /** Extended path information from the webhook trigger */
+  pathFragment: string;
   /** The webhook URLs assigned to this integration's flows upon instance deploy */
   webhookUrls: {
     [key: string]: string;
