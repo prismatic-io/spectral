@@ -104,6 +104,7 @@ export const defaultTriggerPayload = (): TriggerPayload => {
       data: JSON.stringify(payloadData),
       contentType,
     },
+    pathFragment: "",
     webhookUrls: {
       "Flow 1": "https://example.com",
     },

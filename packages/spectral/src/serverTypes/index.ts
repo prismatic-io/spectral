@@ -60,6 +60,7 @@ export interface TriggerPayload {
     data: unknown;
     contentType?: string;
   };
+  pathFragment: string;
   webhookUrls: Record<string, string>;
   webhookApiKeys: Record<string, string[]>;
   invokeUrl: string;
