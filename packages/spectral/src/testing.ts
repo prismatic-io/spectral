@@ -22,6 +22,8 @@ import {
   TriggerDefinition,
   Inputs,
   ActionInputParameters,
+  ActionPerformReturn as InvokeActionPerformReturn,
+  TriggerResult as InvokeTriggerResult,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -62,13 +64,15 @@ interface InvokeReturn<ReturnData> {
  * to avoid extra casting within test methods. Returns an InvokeResult containing both the
  * action result and a mock logger for asserting logging.
  */
-export const invoke = async <T extends Inputs>(
-  { perform }: ActionDefinition<T>,
-  params: ActionInputParameters<T>,
+export const invoke = async <
+  TInputs extends Inputs,
+  TAllowsBranching extends boolean,
+  TReturn extends InvokeActionPerformReturn<TAllowsBranching, unknown>
+>(
+  { perform }: ActionDefinition<TInputs, TAllowsBranching, TReturn>,
+  params: ActionInputParameters<TInputs>,
   context?: Partial<ActionContext>
-): Promise<
-  InvokeReturn<Awaited<ReturnType<ActionDefinition<T>["perform"]>>>
-> => {
+): Promise<InvokeReturn<TReturn>> => {
   const realizedContext = {
     logger: loggerMock(),
     instanceState: {},
@@ -131,14 +135,16 @@ export const defaultTriggerPayload = (): TriggerPayload => {
  * to avoid extra casting within test methods. Returns an InvokeResult containing both the
  * trigger result and a mock logger for asserting logging.
  */
-export const invokeTrigger = async <T extends Inputs>(
-  { perform }: TriggerDefinition<T>,
+export const invokeTrigger = async <
+  TInputs extends Inputs,
+  TAllowsBranching extends boolean,
+  TResult extends InvokeTriggerResult<TAllowsBranching>
+>(
+  { perform }: TriggerDefinition<TInputs, TAllowsBranching, TResult>,
   context?: Partial<ActionContext>,
   payload?: TriggerPayload,
-  params?: ActionInputParameters<T>
-): Promise<
-  InvokeReturn<Awaited<ReturnType<TriggerDefinition<T>["perform"]>>>
-> => {
+  params?: ActionInputParameters<TInputs>
+): Promise<InvokeReturn<TResult>> => {
   const realizedContext = {
     logger: loggerMock(),
     instanceState: {},
@@ -154,7 +160,7 @@ export const invokeTrigger = async <T extends Inputs>(
     ...payload,
   };
 
-  const realizedParams = params || ({} as ActionInputParameters<T>);
+  const realizedParams = params || ({} as ActionInputParameters<TInputs>);
 
   const result = await perform(
     realizedContext,

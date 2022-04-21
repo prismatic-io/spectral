@@ -21,9 +21,9 @@ export type ComponentDefinition<TPublic extends boolean> = {
   /** Defines how the Component is displayed in the Prismatic interface. */
   display: ComponentDisplayDefinition<TPublic>;
   /** Specifies the supported Actions of this Component. */
-  actions?: Record<string, ActionDefinition<any>>;
+  actions?: Record<string, ActionDefinition<any, boolean, any>>;
   /** Specifies the supported Triggers of this Component. */
-  triggers?: Record<string, TriggerDefinition<any>>;
+  triggers?: Record<string, TriggerDefinition<any, boolean, any>>;
   /** Specifies the supported Connections of this Component. */
   connections?: ConnectionDefinition[];
   /** Hooks */

@@ -1,4 +1,9 @@
-import { ActionDisplayDefinition, TriggerPerformFunction, Inputs } from ".";
+import {
+  ActionDisplayDefinition,
+  TriggerPerformFunction,
+  Inputs,
+  TriggerResult,
+} from ".";
 
 const optionChoices = ["invalid", "valid", "required"] as const;
 
@@ -10,11 +15,15 @@ export const TriggerOptionChoices: TriggerOptionChoice[] = [...optionChoices];
  * TriggerDefinition is the type of the object that is passed in to `trigger` function to
  * define a component trigger.
  */
-export interface TriggerDefinition<TInputs extends Inputs> {
+export interface TriggerDefinition<
+  TInputs extends Inputs,
+  TAllowsBranching extends boolean,
+  TResult extends TriggerResult<TAllowsBranching>
+> {
   /** Defines how the Trigger is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
   /** Function to perform when this Trigger is invoked. */
-  perform: TriggerPerformFunction<this["inputs"], this["allowsBranching"]>;
+  perform: TriggerPerformFunction<TInputs, TAllowsBranching, TResult>;
   /** InputFields to present in the Prismatic interface for configuration of this Trigger. */
   inputs: TInputs;
   /** Specifies whether this Trigger supports executing the Integration on a recurring schedule. */
@@ -26,7 +35,7 @@ export interface TriggerDefinition<TInputs extends Inputs> {
   /** Specifies whether an Action will break out of a loop. */
   breakLoop?: boolean;
   /** Determines whether this Trigger allows Conditional Branching. */
-  allowsBranching?: boolean;
+  allowsBranching?: TAllowsBranching;
   /** Static Branch names associated with this Trigger. */
   staticBranchNames?: string[];
   /** The Input associated with Dynamic Branching. */
