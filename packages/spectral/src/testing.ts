@@ -8,7 +8,6 @@
 import {
   TriggerPayload,
   TriggerResult,
-  Connection,
   ConnectionValue,
   ActionLogger,
   ActionLoggerFunction,
@@ -27,7 +26,7 @@ import {
 } from "./types";
 import { spyOn } from "jest-mock";
 
-export const createConnection = <T extends Connection>(
+export const createConnection = <T extends ConnectionDefinition>(
   { key }: T,
   values: Record<string, unknown>
 ): ConnectionValue => ({
