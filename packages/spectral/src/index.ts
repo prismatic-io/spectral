@@ -12,6 +12,8 @@ import {
   OAuth2ConnectionDefinition,
   Inputs,
   TriggerDefinition,
+  ActionPerformReturn,
+  TriggerResult,
 } from "./types";
 import { convertComponent } from "./serverTypes/convert";
 
@@ -36,9 +38,13 @@ export const component = <T extends boolean>(
  * @param definition An ActionDefinition type object that includes UI display information, a function to perform when the action is invoked, and a an object containing inputs for the perform function.
  * @returns This function validates the shape of the `definition` object provided, and returns the same action object.
  */
-export const action = <T extends Inputs>(
-  definition: ActionDefinition<T>
-): ActionDefinition<T> => definition;
+export const action = <
+  TInputs extends Inputs,
+  TAllowsBranching extends boolean,
+  TReturn extends ActionPerformReturn<TAllowsBranching, unknown>
+>(
+  definition: ActionDefinition<TInputs, TAllowsBranching, TReturn>
+): ActionDefinition<TInputs, TAllowsBranching, TReturn> => definition;
 
 /**
  * This function creates a trigger object that can be referenced
@@ -49,9 +55,13 @@ export const action = <T extends Inputs>(
  * @param definition A TriggerDefinition type object that includes UI display information, a function to perform when the trigger is invoked, and a an object containing inputs for the perform function.
  * @returns This function validates the shape of the `definition` object provided, and returns the same trigger object.
  */
-export const trigger = <T extends Inputs>(
-  definition: TriggerDefinition<T>
-): TriggerDefinition<T> => definition;
+export const trigger = <
+  TInputs extends Inputs,
+  TAllowsBranching extends boolean,
+  TResult extends TriggerResult<TAllowsBranching>
+>(
+  definition: TriggerDefinition<TInputs, TAllowsBranching, TResult>
+): TriggerDefinition<TInputs, TAllowsBranching, TResult> => definition;
 
 /**
  * For information and examples on how to write inputs

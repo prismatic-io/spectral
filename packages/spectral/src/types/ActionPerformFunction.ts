@@ -8,11 +8,12 @@ import {
 /** Definition of the function to perform when an Action is invoked. */
 export type ActionPerformFunction<
   TInputs extends Inputs,
-  AllowsBranching extends boolean | undefined
+  TAllowsBranching extends boolean | undefined,
+  TReturn extends ActionPerformReturn<TAllowsBranching, unknown>
 > = (
   context: ActionContext,
   params: ActionInputParameters<TInputs>
-) => Promise<ActionPerformReturn<AllowsBranching, unknown>>;
+) => Promise<TReturn>;
 
 /** Context provided to perform method containing helpers and contextual data */
 export interface ActionContext {

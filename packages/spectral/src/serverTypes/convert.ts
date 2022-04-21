@@ -45,7 +45,7 @@ const convertInput = (
 
 const convertAction = (
   actionKey: string,
-  { inputs = {}, perform, ...action }: ActionDefinition<Inputs>,
+  { inputs = {}, perform, ...action }: ActionDefinition<Inputs, boolean, any>,
   hooks?: ComponentHooks
 ): ServerAction => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) =>
@@ -69,7 +69,7 @@ const convertAction = (
 
 const convertTrigger = (
   triggerKey: string,
-  { inputs = {}, perform, ...trigger }: TriggerDefinition<Inputs>,
+  { inputs = {}, perform, ...trigger }: TriggerDefinition<Inputs, boolean, any>,
   hooks?: ComponentHooks
 ): ServerTrigger => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) =>
