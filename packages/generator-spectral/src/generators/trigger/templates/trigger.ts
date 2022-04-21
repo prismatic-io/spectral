@@ -6,9 +6,9 @@ export const <%= trigger.key %> = trigger({
     description: "<%= trigger.description %>",
   },
   perform: async (context, payload, params) => {
-    return {
+    return Promise.resolve({
       payload,
-    };
+    });
   },
   inputs: {},
   synchronousResponseSupport: "valid",
