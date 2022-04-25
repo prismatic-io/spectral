@@ -12,6 +12,10 @@ export interface ActionPerformDataReturn<ReturnData> {
   crossFlowState?: Record<string, unknown>;
   /** An optional object, the keys and values of which will be persisted in the executionState and available for the duration of the execution */
   executionState?: Record<string, unknown>;
+  /** A field populated by the Prismatic platform which indicates whether the trigger failed with an error during execution. */
+  failed?: boolean;
+  /** A field populated by the Prismatic platform which may refer to an object that contains data about any error that resulted in failure. */
+  error?: Record<string, unknown>;
 }
 
 /** Used to represent a branching return of conventional data and does not require content type to be specified */
