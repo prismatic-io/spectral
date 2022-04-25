@@ -89,6 +89,8 @@ interface TriggerBaseResult {
   instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
+  failed?: boolean;
+  error?: Record<string, unknown>;
 }
 
 interface TriggerBranchingResult extends TriggerBaseResult {
@@ -157,6 +159,8 @@ interface ServerPerformDataStructureReturn {
   instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
+  failed?: boolean;
+  error?: Record<string, unknown>;
 }
 
 interface ServerPerformDataReturn {
@@ -166,6 +170,8 @@ interface ServerPerformDataReturn {
   instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
+  failed?: boolean;
+  error?: Record<string, unknown>;
 }
 
 interface ServerPerformBranchingDataStructureReturn
