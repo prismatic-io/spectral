@@ -1,5 +1,5 @@
 import { serializeError } from "serialize-error";
-import { toJSON } from "../util";
+import util from "../util";
 import { ErrorHandler } from "../types";
 
 type PerformFn = (...args: any[]) => Promise<any>;
@@ -44,7 +44,7 @@ export const createPerform = (
       }
 
       const handled = errorHandler(error);
-      const serialized = toJSON(serializeError(handled));
+      const serialized = util.types.toJSON(serializeError(handled));
       throw new Error(serialized);
     }
   };

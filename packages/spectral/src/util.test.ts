@@ -556,14 +556,10 @@ describe("util", () => {
       );
     });
 
-    it("handles KeyValueList as undefined", () => {
-      fc.assert(
-        fc.property(bufferArbitrary, () => {
-          expect(util.types.keyValPairListToObject(undefined)).toStrictEqual(
-            {}
-          );
-        })
-      );
+    it.each([undefined, null, ""])("handles invalid values", (value) => {
+      expect(
+        util.types.keyValPairListToObject(value as unknown as any)
+      ).toStrictEqual({});
     });
   });
 
