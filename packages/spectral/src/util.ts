@@ -216,10 +216,10 @@ const isUrl = (value: string): boolean => isWebUri(value) !== undefined;
  * @param valueConverter Optional function to call for each `value`.
  */
 const keyValPairListToObject = <TValue = unknown>(
-  kvpList: KeyValuePair<unknown>[] = [],
+  kvpList: KeyValuePair<unknown>[],
   valueConverter?: (value: unknown) => TValue
 ): Record<string, TValue> => {
-  return kvpList.reduce(
+  return (kvpList || []).reduce(
     (result, { key, value }) => ({
       ...result,
       [key]: valueConverter ? valueConverter(value) : value,
@@ -359,7 +359,7 @@ const isJSON = (value: string): boolean => {
  * @param value Arbitrary object/value to serialize.
  * @returns JSON serialized text that can be safely logged.
  */
-export const toJSON = (value: unknown): string => {
+const toJSON = (value: unknown): string => {
   const stringify = configure({ circularValue: undefined });
   return stringify(value, null, 2);
 };

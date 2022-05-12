@@ -55,6 +55,7 @@ export const timeout = input({
 export const method = input({
   label: "Method",
   type: "string",
+  required: true,
   model: supportedMethods.map((method) => ({ label: method, value: method })),
   comments: "The HTTP method to use.",
   clean: (value) => util.types.toString(value),
@@ -65,14 +66,14 @@ export const responseType = input({
   placeholder: "Response Type",
   type: "string",
   default: "json",
-  required: false,
+  required: true,
   comments:
     "The type of data you expect in the response. You can request json, text, or binary data.",
   model: supportedResponseTypes.map((responseType) => ({
     label: responseType,
     value: responseType,
   })),
-  clean: (value) => util.types.toString(value),
+  clean: (value) => util.types.toString(value) as ResponseType,
 });
 
 export const headers = input({
@@ -112,6 +113,7 @@ export const retryDelayMS = input({
   required: false,
   comments: "The delay in milliseconds between retries.",
   default: "0",
+  clean: (value) => util.types.toNumber(value, 0),
 });
 
 export const useExponentialBackoff = input({
@@ -124,7 +126,7 @@ export const useExponentialBackoff = input({
   clean: (value) => util.types.toBool(value),
 });
 
-export const retryOnAllErrors = input({
+export const retryAllErrors = input({
   label: "Retry On All Errors",
   type: "boolean",
   default: "false",
@@ -160,3 +162,20 @@ export const debugRequest = input({
   comments: "Enabling this flag will log out the current request.",
   clean: (value) => util.types.toBool(value),
 });
+
+export const inputs = {
+  url,
+  method,
+  data,
+  formData,
+  fileData,
+  queryParams,
+  headers,
+  responseType,
+  timeout,
+  debugRequest,
+  retryDelayMS,
+  retryAllErrors,
+  maxRetries,
+  useExponentialBackoff,
+};

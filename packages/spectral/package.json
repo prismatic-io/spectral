@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "6.5.0",
+  "version": "6.5.1",
   "description": "Utility library for building Prismatic components",
   "keywords": [
     "prismatic"
@@ -37,9 +37,10 @@
     "dist/"
   ],
   "dependencies": {
-    "axios": "0.26.1",
-    "axios-retry": "3.2.4",
+    "axios": "0.27.2",
+    "axios-retry": "3.2.5",
     "date-fns": "2.28.0",
+    "form-data": "4.0.0",
     "jest-mock": "27.0.3",
     "soap": "0.43.0",
     "uuid": "8.3.2",
