@@ -142,7 +142,10 @@ export const sendRawRequest = async (
     throw new Error("Cannot specify both Data and File/Form Data.");
   }
 
-  const payload = values.data || toFormData(values.formData, values.fileData);
+  const payload =
+    !isEmpty(values.formData) || !isEmpty(values.fileData)
+      ? toFormData(values.formData, values.fileData)
+      : values.data;
 
   const client = createClient({
     baseUrl,
