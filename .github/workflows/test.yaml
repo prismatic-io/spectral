@@ -14,16 +14,16 @@ jobs:
       - name: Check Formatting
         uses: borales/actions-yarn@v2.3.0
         with:
-          cmd: turbo run check
+          cmd: run check
       - name: Build
         uses: borales/actions-yarn@v2.3.0
         with:
-          cmd: turbo run build
+          cmd: run build
       - name: Run Tests
         uses: borales/actions-yarn@v2.3.0
         with:
-          cmd: turbo run test
+          cmd: run test
       - name: Run Type Tests
         uses: borales/actions-yarn@v2.3.0
         with:
-          cmd: turbo run tsd
+          cmd: run tsd
