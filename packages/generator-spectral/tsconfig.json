@@ -6,7 +6,7 @@
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "types": ["node"],
+    "types": ["node", "jest"],
     "outDir": "generators"
   },
   "include": ["src/generators"],
