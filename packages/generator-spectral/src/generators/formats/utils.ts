@@ -17,7 +17,13 @@ export const stripUndefined = <T extends Record<string, any>>(data: T): T =>
     return { ...result, [key]: value };
   }, {} as T);
 
-// TODO: Find a better solution than this function.
+export const escapeQuotes = (value: unknown): unknown => {
+  if (typeof value !== "string") {
+    return value;
+  }
+  return value.replace(/"/g, '\\"');
+};
+
 export const createDescription = (text?: string): string => {
   if (!text) {
     return "";
@@ -36,8 +42,11 @@ export type Input = Omit<
   "clean" | "collection" | "model"
 > & {
   clean: GeneratedFunction;
+  /** Upstream API key for this input */
+  upstreamKey: string;
+  /** Key to use in code generation */
   key: string;
-  // FIXME: Improve type safety here by using the original model definition.
+  // FIXME: Improve type safety here by using the original model definition from InputFieldDefinition.
   model?: InputFieldChoice[];
 };
 

@@ -1,4 +1,3 @@
-import { camelCase } from "lodash";
 import { OAuth2Type } from "@prismatic-io/spectral";
 import {
   CodeBlockWriter,
@@ -45,20 +44,21 @@ const writeInput = (
     .writeLine("},");
 
 const buildConnectionDeclaration = ({
-  key: rawKey,
+  key,
   label,
   oauth2Type,
   iconPath,
   comments,
   inputs,
 }: Connection): VariableDeclarationStructure => {
-  const key = camelCase(rawKey);
   const connectionFn =
     oauth2Type === undefined ? "connection" : "oauth2Connection";
 
   return {
     kind: StructureKind.VariableDeclaration,
     name: key,
+    leadingTrivia: (writer) => writer.blankLine(),
+    trailingTrivia: (writer) => writer.blankLine(),
     initializer: (writer) =>
       writer
         .writeLine(`${connectionFn}({`)
@@ -94,7 +94,7 @@ const buildConnectionDeclaration = ({
 export const writeConnections = (
   project: Project,
   connections: Connection[]
-): { file: SourceFile; connectionNames: string[] } => {
+): SourceFile => {
   const file = project.createSourceFile(
     path.join("src", "connections.ts"),
     undefined,
@@ -131,7 +131,7 @@ export const writeConnections = (
     }))
   );
 
-  // TODO: Sort these to prefer OAuth2 if it exists.
+  // TODO: Sort these to prefer OAuth2, then API key, then basic.
   const names = declarations.map(({ name }) => name);
   file.addExportAssignment({
     isExportEquals: false,
@@ -139,5 +139,5 @@ export const writeConnections = (
       writer.write("[").write(names.join(", ")).write("]"),
   });
 
-  return { file, connectionNames: names };
+  return file;
 };

@@ -1,6 +1,7 @@
 import SwaggerParser, { dereference } from "@apidevtools/swagger-parser";
 import { OpenAPI, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
-import { camelCase, isEmpty, startCase, merge } from "lodash";
+import { camelCase, isEmpty, result, startCase } from "lodash";
+import { getInputs } from "./inputs";
 import {
   Action,
   Component,
@@ -9,119 +10,9 @@ import {
   Input,
   Result,
   stripUndefined,
-} from "../utils";
-import {
-  InputFieldChoice,
-  InputFieldType,
-  OAuth2Type,
-} from "@prismatic-io/spectral";
+} from "../../utils";
+import { OAuth2Type } from "@prismatic-io/spectral";
 import { WriterFunction } from "ts-morph";
-
-const toInputType: { [x: string]: { type: InputFieldType; cleanFn: string } } =
-  {
-    string: {
-      type: "string",
-      cleanFn: "toString",
-    },
-    integer: {
-      type: "string",
-      cleanFn: "toNumber",
-    },
-    number: {
-      type: "string",
-      cleanFn: "toNumber",
-    },
-    boolean: {
-      type: "boolean",
-      cleanFn: "toBool",
-    },
-  };
-
-const buildInput = (parameter: OpenAPI.Parameter): Input => {
-  if ("$ref" in parameter) {
-    throw new Error("$ref nodes are not supported.");
-  }
-
-  const schemaType = parameter.schema?.type;
-  const { type, cleanFn } = toInputType[schemaType] ?? toInputType["string"];
-
-  const model = getInputModel(parameter.schema);
-
-  const input = stripUndefined<Input>({
-    key: parameter.name,
-    label: startCase(parameter.name),
-    type,
-    required: parameter.required,
-    comments: parameter.description,
-    default: parameter.schema?.default,
-    example: parameter.schema?.example,
-    model,
-    clean: `(value) => util.types.${cleanFn}(value) || undefined`,
-  });
-  return input;
-};
-
-const getProperties = (
-  schema: OpenAPIV3.SchemaObject | OpenAPIV3_1.SchemaObject
-): Record<string, OpenAPIV3.SchemaObject | OpenAPIV3_1.SchemaObject> => {
-  return merge(
-    schema.properties ?? {},
-    ...(schema.allOf ?? []).map((v) => (v as any).properties) // FIXME: any usage
-  ) as Record<string, OpenAPIV3.SchemaObject | OpenAPIV3_1.SchemaObject>;
-};
-
-const getInputModel = (
-  schema: OpenAPIV3.SchemaObject | OpenAPIV3_1.SchemaObject
-): InputFieldChoice[] | undefined => {
-  if (schema?.type === "boolean") {
-    // No point generating model values for boolean
-    return undefined;
-  }
-
-  if (schema?.enum) {
-    return (schema?.enum ?? []).map<InputFieldChoice>((v) => ({
-      label: startCase(v),
-      value: v,
-    }));
-  }
-
-  // Some schemas unnecessarily nest inside of an allOf so try to handle those.
-  if (schema?.allOf && schema?.allOf?.[0] && !("$ref" in schema?.allOf?.[0])) {
-    return (schema?.allOf?.[0]?.enum ?? []).map<InputFieldChoice>((v) => ({
-      label: startCase(v),
-      value: v,
-    }));
-  }
-
-  return undefined;
-};
-
-const buildBodyInputs = (
-  schema: OpenAPIV3.SchemaObject | OpenAPIV3_1.SchemaObject
-): Input[] => {
-  const requiredKeys = new Set(schema.required ?? []);
-  const properties = getProperties(schema);
-
-  return Object.entries(properties).map<Input>(([key, prop]) => {
-    const schemaType = prop?.type;
-    const { type, cleanFn } =
-      toInputType[schemaType as string] ?? toInputType["string"];
-
-    const model = getInputModel(prop);
-
-    return stripUndefined<Input>({
-      key,
-      label: startCase(key),
-      type,
-      required: requiredKeys.has(key),
-      comments: prop.description,
-      default: prop.default,
-      example: prop.example,
-      model,
-      clean: `(value) => util.types.${cleanFn}(value) || undefined`,
-    });
-  });
-};
 
 const buildPerformFunction = (
   pathTemplate: string,
@@ -131,34 +22,36 @@ const buildPerformFunction = (
   bodyInputs: Input[]
 ): WriterFunction => {
   const destructureNames = [...pathInputs, ...queryInputs, ...bodyInputs]
-    .map(({ key }) => camelCase(key))
+    .map(({ key }) => key)
     .join(", ");
 
   // Path inputs are handled by matching casing and using string interpolation.
-  const path = pathTemplate.replace(
-    /{([^}]+)}/g,
-    (_, match) => `\${${camelCase(match)}}`
-  );
+  const path = pathInputs
+    .reduce<string>(
+      (result, { key, upstreamKey }) =>
+        result.replace(`{${upstreamKey}}`, `{${key}}`),
+      pathTemplate
+    )
+    // Update placeholder to interpolation syntax
+    .replace(/{([^}]+)}/g, (_, match) => `\${${match}}`);
 
-  // Query param inputs need to be converted to the upstream casing expectations.
+  // Query param inputs need to be converted to the upstream key expectations.
   const queryMapping = queryInputs
-    .map(({ key }) => {
-      const camelCased = camelCase(key);
-      return key === camelCased ? key : `"${key}": ${camelCased}`;
-    })
+    .map(({ key, upstreamKey }) =>
+      key === upstreamKey ? key : `"${upstreamKey}": ${key}`
+    )
     .join(", ");
 
-  // Body inputs need to be converted to the upstream casing expectations.
-  const bodyMapping = bodyInputs.map(({ key }) => {
-    const camelCased = camelCase(key);
-    return key === camelCased ? key : `"${key}": ${camelCased}`;
-  });
+  // Body inputs need to be converted to the upstream key expectations.
+  const bodyMapping = bodyInputs.map(({ key, upstreamKey }) =>
+    key === upstreamKey ? key : `"${upstreamKey}": ${key}`
+  );
 
   return (writer) =>
     writer
       .writeLine(`async (context, { connection, ${destructureNames} }) => {`)
       .conditionalWriteLine(
-        verb === "post" && !isEmpty(bodyMapping),
+        !isEmpty(bodyMapping),
         () => `const payload = { ${bodyMapping} };`
       )
       .conditionalWriteLine(
@@ -181,45 +74,6 @@ const buildPerformFunction = (
       .write(");")
       .writeLine("return {data};")
       .writeLine("}");
-};
-
-const getInputs = (
-  operation: OpenAPIV3.OperationObject | OpenAPIV3_1.OperationObject
-): {
-  pathInputs: Input[];
-  queryInputs: Input[];
-  bodyInputs: Input[];
-  payloadContentType: string;
-} => {
-  if (
-    typeof operation.requestBody !== "undefined" &&
-    "$ref" in operation.requestBody
-  ) {
-    throw new Error("All refs should be resolved before computing Inputs.");
-  }
-
-  const pathInputs = (operation.parameters ?? [])
-    .filter((p) => !("$ref" in p) && p.in === "path")
-    .map(buildInput);
-
-  const queryInputs = (operation.parameters ?? [])
-    .filter((p) => !("$ref" in p) && p.in === "query")
-    .map(buildInput);
-
-  const requestBodySchema =
-    operation.requestBody?.content?.["application/json"]?.schema;
-  if (typeof requestBodySchema !== "undefined" && "$ref" in requestBodySchema) {
-    throw new Error("All refs should be resolved before computing Inputs.");
-  }
-  const bodyInputs =
-    requestBodySchema === undefined ? [] : buildBodyInputs(requestBodySchema);
-
-  return {
-    pathInputs,
-    queryInputs,
-    bodyInputs,
-    payloadContentType: "application/json",
-  };
 };
 
 const buildAction = (
@@ -281,12 +135,33 @@ const buildConnections = (
 
   if (scheme.type === "apiKey") {
     const connection = stripUndefined<Connection>({
-      key,
+      key: camelCase(key),
       label: startCase(key),
       comments: scheme.description,
       inputs: {
         apiKey: {
           label: startCase(scheme.name),
+          type: "password",
+          required: true,
+        },
+      },
+    });
+    return [connection];
+  }
+
+  if (scheme.type === "http") {
+    const connection = stripUndefined<Connection>({
+      key: camelCase(key),
+      label: startCase(key),
+      comments: scheme.description,
+      inputs: {
+        username: {
+          label: "Username",
+          type: "string",
+          required: true,
+        },
+        password: {
+          label: "Password",
           type: "password",
           required: true,
         },
@@ -301,7 +176,7 @@ const buildConnections = (
       const usesScopes =
         authCodeFlow?.scopes && Object.keys(authCodeFlow.scopes).length > 0;
       const connection = stripUndefined<Connection>({
-        key,
+        key: camelCase(key),
         label: "OAuth 2.0", // TODO: Apparently OpenAPI lacks a name for this scheme? Ok.
         oauth2Type: OAuth2Type.AuthorizationCode,
         inputs: {
