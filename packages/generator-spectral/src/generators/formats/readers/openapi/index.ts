@@ -50,14 +50,6 @@ const buildPerformFunction = (
   return (writer) =>
     writer
       .writeLine(`async (context, { connection, ${destructureNames} }) => {`)
-      .conditionalWriteLine(
-        !isEmpty(bodyMapping),
-        () => `const payload = { ${bodyMapping} };`
-      )
-      .conditionalWriteLine(
-        !isEmpty(queryMapping),
-        () => `const params = { ${queryMapping} };`
-      )
       .blankLineIfLastNot()
       // FIXME: Apparently type inference doesn't work with inlined inputs!?
       .writeLine("const client = createClient(connection as Connection);")
@@ -67,10 +59,13 @@ const buildPerformFunction = (
       .write(path)
       .write("`")
       .conditionalWrite(
-        verb === "post",
-        () => `, ${!isEmpty(bodyMapping) ? "payload" : "{}"}`
+        ["post", "put", "patch"].includes(verb),
+        () => `, { ${bodyMapping} }`
       )
-      .conditionalWrite(!isEmpty(queryMapping), () => ", { params }")
+      .conditionalWrite(
+        !isEmpty(queryMapping),
+        () => `, { params: { ${queryMapping} } }`
+      )
       .write(");")
       .writeLine("return {data};")
       .writeLine("}");
@@ -86,7 +81,7 @@ const buildAction = (
   }
 
   const { pathInputs, queryInputs, bodyInputs } = getInputs(operation);
-  const [_, groupTag] = path.split("/");
+  const groupTag = camelCase(path === "/" ? "root" : path.split("/")[1]);
 
   // Repackage inputs; need to ensure we camelCase to handle hyphenated identifiers.
   const inputs = [...pathInputs, ...queryInputs, ...bodyInputs].reduce(
