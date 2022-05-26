@@ -10,7 +10,7 @@ import {
   VariableDeclarationKind,
   VariableDeclarationStructure,
 } from "ts-morph";
-import { Action, createDescription, Input } from "../utils";
+import { Action, createDescription, escapeQuotes, Input } from "../utils";
 
 const writeInput = (
   writer: CodeBlockWriter,
@@ -46,7 +46,10 @@ const writeInput = (
       );
       return `model: [${options.join(", ")}],`;
     })
-    .conditionalWriteLine(example !== undefined, `example: "${example}",`)
+    .conditionalWriteLine(
+      example !== undefined,
+      `example: "${escapeQuotes(example)}",`
+    )
     .conditionalWriteLine(
       clean !== undefined,
       () => `clean: ${typeof clean === "string" ? clean : clean(writer)},`

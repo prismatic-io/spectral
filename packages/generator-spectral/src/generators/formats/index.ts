@@ -1,3 +1,4 @@
+import path from "path";
 import { camelCase } from "lodash";
 import Generator from "yeoman-generator";
 import { read } from "./readers/openapi";
@@ -7,6 +8,7 @@ class FormatsGenerator extends Generator {
   values: {
     key: string;
     name: string;
+    icon?: string;
     openapi: string;
   };
 
@@ -23,20 +25,30 @@ class FormatsGenerator extends Generator {
       description: "Name of Component",
       alias: "n",
     });
+    this.option("icon", {
+      type: String,
+      description: "Path to png icon to use",
+      alias: "i",
+    });
     this.option("openapi", {
       type: String,
       description: "Path to OpenAPI specification to generate from",
     });
   }
 
-  initializing() {
+  async initializing() {
     if (!this.options.openapi) {
       throw new Error("Path to OpenAPI specification must be specified.");
+    }
+
+    if (this.options.icon && !this.fs.exists(this.options.icon)) {
+      throw new Error("Specified png icon does not exist.");
     }
 
     this.values = {
       key: camelCase(this.options.name),
       name: this.options.name,
+      icon: this.options.icon,
       openapi: this.options.openapi,
     };
   }
@@ -79,6 +91,10 @@ class FormatsGenerator extends Generator {
 
     const result = await read(this.values.openapi);
     await write(this.values.key, result);
+
+    if (this.values.icon) {
+      this.fs.copy(this.values.icon, path.join("assets", "icon.png"));
+    }
   }
 
   async end() {
