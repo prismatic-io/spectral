@@ -8,7 +8,9 @@ const keywordReplacements: Record<string, string> = {
   public: "isPublic",
   protected: "isProtected",
   private: "isPrivate",
+  interface: "anInterface",
   context: "ctx",
+  data: "aData",
 };
 
 /** Convert key to a "safe key". Specifically avoiding Javascript/Typescript keywords
@@ -141,7 +143,11 @@ const buildBodyInputs = (
 };
 
 export const getInputs = (
-  operation: OpenAPIV3.OperationObject | OpenAPIV3_1.OperationObject
+  operation: OpenAPIV3.OperationObject | OpenAPIV3_1.OperationObject,
+  sharedParameters: (
+    | OpenAPIV3.ParameterObject
+    | OpenAPIV3_1.ParameterObject
+  )[] = []
 ): {
   pathInputs: Input[];
   queryInputs: Input[];
@@ -155,15 +161,18 @@ export const getInputs = (
     throw new Error("All refs should be resolved before computing Inputs.");
   }
 
-  const seen = new Set<string>();
+  const seenKeys = new Set<string>(["connection"]);
 
-  const pathInputs = (operation.parameters ?? [])
+  // Merge in Path Item level parameters with the specific parameters to this Operation.
+  const parameters = [...sharedParameters, ...(operation.parameters ?? [])];
+
+  const pathInputs = (parameters ?? [])
     .filter((p) => !("$ref" in p) && p.in === "path")
-    .map((p) => buildInput(p, seen));
+    .map((p) => buildInput(p, seenKeys));
 
-  const queryInputs = (operation.parameters ?? [])
+  const queryInputs = (parameters ?? [])
     .filter((p) => !("$ref" in p) && p.in === "query")
-    .map((p) => buildInput(p, seen));
+    .map((p) => buildInput(p, seenKeys));
 
   const requestBodySchema =
     operation.requestBody?.content?.["application/json"]?.schema;
@@ -173,7 +182,7 @@ export const getInputs = (
   const bodyInputs =
     requestBodySchema === undefined
       ? []
-      : buildBodyInputs(requestBodySchema, seen);
+      : buildBodyInputs(requestBodySchema, seenKeys);
 
   return {
     pathInputs,

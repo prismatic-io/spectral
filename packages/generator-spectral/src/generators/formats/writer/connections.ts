@@ -1,4 +1,5 @@
 import { OAuth2Type } from "@prismatic-io/spectral";
+import { sortBy } from "lodash";
 import {
   CodeBlockWriter,
   Project,
@@ -122,6 +123,11 @@ export const writeConnections = (
     namedImports,
   });
 
+  const sortedConnectionKeys = sortBy(
+    connections,
+    ({ orderPriority }) => orderPriority
+  ).map(({ key }) => key);
+
   const declarations = connections.map(buildConnectionDeclaration);
   file.addVariableStatements(
     declarations.map((decl) => ({
@@ -131,12 +137,10 @@ export const writeConnections = (
     }))
   );
 
-  // TODO: Sort these to prefer OAuth2, then API key, then basic.
-  const names = declarations.map(({ name }) => name);
   file.addExportAssignment({
     isExportEquals: false,
     expression: (writer) =>
-      writer.write("[").write(names.join(", ")).write("]"),
+      writer.write("[").write(sortedConnectionKeys.join(", ")).write("]"),
   });
 
   return file;
