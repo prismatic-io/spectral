@@ -5,6 +5,10 @@ import { InputFieldChoice, InputFieldType } from "@prismatic-io/spectral";
 
 const keywordReplacements: Record<string, string> = {
   default: "defaultValue",
+  public: "isPublic",
+  protected: "isProtected",
+  private: "isPrivate",
+  context: "ctx",
 };
 
 /** Convert key to a "safe key". Specifically avoiding Javascript/Typescript keywords

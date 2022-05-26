@@ -1,9 +1,8 @@
 const path = require("path");
-const webpack = require("webpack");
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-  mode: "development",
+  mode: "production",
   target: "node",
   plugins: [
     new CopyPlugin({

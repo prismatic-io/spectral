@@ -10,6 +10,7 @@ class FormatsGenerator extends Generator {
     name: string;
     icon?: string;
     openapi: string;
+    public: boolean;
   };
 
   constructor(
@@ -18,7 +19,7 @@ class FormatsGenerator extends Generator {
     features: Generator.GeneratorFeatures | undefined
   ) {
     super(args, options, features);
-    this.values = { key: "", name: "", openapi: "" };
+    this.values = { key: "", name: "", openapi: "", public: false };
 
     this.option("name", {
       type: String,
@@ -33,6 +34,10 @@ class FormatsGenerator extends Generator {
     this.option("openapi", {
       type: String,
       description: "Path to OpenAPI specification to generate from",
+    });
+    this.option("public", {
+      type: Boolean,
+      hide: true,
     });
   }
 
@@ -50,6 +55,7 @@ class FormatsGenerator extends Generator {
       name: this.options.name,
       icon: this.options.icon,
       openapi: this.options.openapi,
+      public: this.options.public ?? false,
     };
   }
 
@@ -59,8 +65,11 @@ class FormatsGenerator extends Generator {
     this.renderTemplate(["assets", "icon.png"]);
 
     this.packageJson.merge({
-      name: this.values.key,
+      name: this.values.public
+        ? `@prismatic-io/${this.values.key}`
+        : this.values.key,
       private: true,
+      version: "0.0.1",
       scripts: {
         build: "webpack",
         test: "jest",
@@ -90,7 +99,7 @@ class FormatsGenerator extends Generator {
     });
 
     const result = await read(this.values.openapi);
-    await write(this.values.key, result);
+    await write(this.values.key, this.values.public, result);
 
     if (this.values.icon) {
       this.fs.copy(this.values.icon, path.join("assets", "icon.png"));
@@ -98,12 +107,13 @@ class FormatsGenerator extends Generator {
   }
 
   async end() {
-    this.log("\nFormatting code...\n\n");
+    this.log("\nFormatting code...");
     this.spawnCommandSync("npm", ["run", "format"], { stdio: "ignore" });
 
+    this.log("\n\n");
     this.log.ok(`"${this.values.name}" is ready for development.`);
-    this.log(`
-To install or update dependencies, run either "npm install" or "yarn install"
+    this
+      .log(`To install or update dependencies, run either "npm install" or "yarn install"
 To build the component, run "npm run build" or "yarn run build"
 To test the component, run "npm run test" or "yarn run test"
 To publish the component, run "prism components:publish"

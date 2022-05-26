@@ -7,6 +7,7 @@ import { writeActions } from "./actions";
 const writeComponentIndex = (
   project: Project,
   key: string,
+  isPublic: boolean,
   { display: { label, description, iconPath } }: Component
 ): SourceFile => {
   const file = project.createSourceFile(
@@ -37,10 +38,15 @@ const writeComponentIndex = (
       writer
         .writeLine("component({")
         .writeLine(`key: "${key}",`)
+        .conditionalWriteLine(isPublic, "public: true,")
+        .conditionalWriteLine(
+          isPublic,
+          `documentationUrl: "https://prismatic.io/docs/components/${key}/",`
+        )
         .writeLine("display: {")
         .writeLine(`label: "${label}",`)
         .writeLine(`description: "${createDescription(description)}",`)
-        .writeLine(`category: "Application Connectors",`)
+        .conditionalWriteLine(isPublic, `category: "Application Connectors",`)
         .writeLine(`iconPath: "${iconPath}",`)
         .writeLine("},")
         .writeLine("hooks: { error: handleErrors },")
@@ -140,8 +146,35 @@ const writeClient = (
   return file;
 };
 
+const writeDocumentationFiles = (
+  project: Project,
+  component: Component,
+  connections: Connection[]
+): SourceFile[] => {
+  project.createDirectory("documentation");
+
+  const descriptionFile = project.createSourceFile(
+    path.join("documentation", "description.mdx"),
+    (writer) => writer.writeLine(component.display.description)
+  );
+
+  if (connections.length > 0) {
+    project.createDirectory(path.join("documentation", "connections"));
+  }
+
+  const connectionFiles = connections.map((connection) =>
+    project.createSourceFile(
+      path.join("documentation", "connections", `${connection.key}.mdx`),
+      (writer) => writer.blankLine()
+    )
+  );
+
+  return [descriptionFile, ...connectionFiles];
+};
+
 export const write = async (
   key: string,
+  isPublic: boolean,
   { baseUrl, component, actions, connections }: Result
 ): Promise<Project> => {
   const project = new Project();
@@ -150,7 +183,11 @@ export const write = async (
   writeConnections(project, connections);
   writeActions(project, actions);
   writeClient(project, baseUrl, connections);
-  writeComponentIndex(project, key, component);
+  writeComponentIndex(project, key, isPublic, component);
+
+  if (isPublic) {
+    writeDocumentationFiles(project, component, connections);
+  }
 
   await project.save();
 
