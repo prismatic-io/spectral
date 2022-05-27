@@ -17,13 +17,6 @@ export const stripUndefined = <T extends Record<string, any>>(data: T): T =>
     return { ...result, [key]: value };
   }, {} as T);
 
-export const escapeQuotes = (value: unknown): unknown => {
-  if (typeof value !== "string") {
-    return value;
-  }
-  return value.replace(/"/g, '\\"');
-};
-
 export const createDescription = (text?: string): string => {
   if (!text) {
     return "";
@@ -32,7 +25,7 @@ export const createDescription = (text?: string): string => {
   const strippedText = stripTags(text);
   const [nonEmptyLine] = strippedText.split("\n").filter((t) => t.trim() != "");
   const [fragment] = nonEmptyLine.split(/[.!?]/g);
-  return fragment.replace(/[`'"]/g, '\\"');
+  return fragment;
 };
 
 export type GeneratedFunction = string | WriterFunction;
@@ -65,7 +58,10 @@ export type Action = Omit<
 };
 
 export type ConnectionInput = ConnectionInputDefinition;
-export type Connection = ConnectionDefinition;
+export type Connection = ConnectionDefinition & {
+  /** Ordering priority for this Connection. Lower values will be earlier in the preferred Connection sequence. */
+  orderPriority: number;
+};
 
 export type Component = Pick<ComponentDefinition<false>, "display">;
 

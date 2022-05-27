@@ -29,7 +29,7 @@
     "check": "yarn run check-format && yarn run lint",
     "lint": "eslint --ext .ts .",
     "lint-fix": "eslint --fix --ext .ts .",
-    "test": "jest --maxWorkers=4",
+    "test": "jest",
     "tsd": "tsd",
     "docs": "rm -f sidebars.{js,jse} && typedoc"
   },
