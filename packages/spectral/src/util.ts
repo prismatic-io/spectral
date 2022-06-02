@@ -25,16 +25,16 @@ const isBool = (value: unknown): value is boolean =>
   value === true || value === false;
 
 /**
- * Convert truthey (true, "t", "true", "y", "yes") values to boolean `true`,
- * and falsey (false, "f", "false", "n", "no") values to boolean `false`.
- * Truthy/falsey checks are case-insensitive.
+ * Convert truthy (true, "t", "true", "y", "yes") values to boolean `true`,
+ * and falsy (false, "f", "false", "n", "no") values to boolean `false`.
+ * Truthy/falsy checks are case-insensitive.
  *
  * In the event that `value` is undefined or an empty string, a default value can be provided.
  * For example, `util.types.toBool('', true)` will return `true`.
  *
  * @param value The value to convert to a boolean.
  * @param defaultValue The value to return if `value` is undefined or an empty string.
- * @returns The boolean equivalent of the truthey or falsey `value`.
+ * @returns The boolean equivalent of the truthy or falsy `value`.
  */
 const toBool = (value: unknown, defaultValue?: boolean): boolean => {
   if (isBool(value)) {
