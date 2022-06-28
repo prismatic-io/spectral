@@ -8,22 +8,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Dependencies
-        uses: borales/actions-yarn@v2.3.0
+        uses: borales/actions-yarn@v3.0.0
         with:
           cmd: install
       - name: Check Formatting
-        uses: borales/actions-yarn@v2.3.0
+        uses: borales/actions-yarn@v3.0.0
         with:
           cmd: run check
       - name: Build
-        uses: borales/actions-yarn@v2.3.0
+        uses: borales/actions-yarn@v3.0.0
         with:
           cmd: run build
       - name: Run Tests
-        uses: borales/actions-yarn@v2.3.0
+        uses: borales/actions-yarn@v3.0.0
         with:
           cmd: run test
       - name: Run Type Tests
-        uses: borales/actions-yarn@v2.3.0
+        uses: borales/actions-yarn@v3.0.0
         with:
           cmd: run tsd
