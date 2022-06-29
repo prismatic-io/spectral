@@ -45,6 +45,18 @@ export interface ActionContext {
   executionState: Record<string, unknown>;
   stepId: string;
   executionId: string;
+  webhookUrls: Record<string, string>;
+  webhookApiKeys: Record<string, string[]>;
+  invokeUrl: string;
+  customer: {
+    id: string | null;
+    externalId: string | null;
+    name: string | null;
+  };
+  instance: {
+    id: string | null;
+    name: string | null;
+  };
 }
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";

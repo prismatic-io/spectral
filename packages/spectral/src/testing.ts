@@ -79,6 +79,22 @@ export const invoke = async <
     executionState: {},
     stepId: "mockStepId",
     executionId: "mockExecutionId",
+    webhookUrls: {
+      "Flow 1": "https://example.com",
+    },
+    webhookApiKeys: {
+      "Flow 1": ["example-123", "example-456"],
+    },
+    invokeUrl: "https://example.com",
+    customer: {
+      id: "customerId",
+      name: "Customer 1",
+      externalId: "1234",
+    },
+    instance: {
+      id: "instanceId",
+      name: "Instance 1",
+    },
     ...context,
   };
 
@@ -151,6 +167,22 @@ export const invokeTrigger = async <
     executionState: {},
     stepId: "mockStepId",
     executionId: "mockExecutionId",
+    webhookUrls: {
+      "Flow 1": "https://example.com",
+    },
+    webhookApiKeys: {
+      "Flow 1": ["example-123", "example-456"],
+    },
+    invokeUrl: "https://example.com",
+    customer: {
+      id: "customerId",
+      name: "Customer 1",
+      externalId: "1234",
+    },
+    instance: {
+      id: "instanceId",
+      name: "Instance 1",
+    },
     ...context,
   };
 
@@ -205,6 +237,22 @@ export class ComponentTestHarness<TComponent extends Component> {
       executionState: {},
       stepId: "mockStepId",
       executionId: "mockExecutionId",
+      webhookUrls: {
+        "Flow 1": "https://example.com",
+      },
+      webhookApiKeys: {
+        "Flow 1": ["example-123", "example-456"],
+      },
+      invokeUrl: "https://example.com",
+      customer: {
+        id: "customerId",
+        name: "Customer 1",
+        externalId: "1234",
+      },
+      instance: {
+        id: "instanceId",
+        name: "Instance 1",
+      },
       ...context,
     };
 
@@ -228,6 +276,22 @@ export class ComponentTestHarness<TComponent extends Component> {
       executionState: {},
       stepId: "mockStepId",
       executionId: "mockExecutionId",
+      webhookUrls: {
+        "Flow 1": "https://example.com",
+      },
+      webhookApiKeys: {
+        "Flow 1": ["example-123", "example-456"],
+      },
+      invokeUrl: "https://example.com",
+      customer: {
+        id: "customerId",
+        name: "Customer 1",
+        externalId: "1234",
+      },
+      instance: {
+        id: "instanceId",
+        name: "Instance 1",
+      },
       ...context,
     };
 
