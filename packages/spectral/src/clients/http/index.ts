@@ -57,6 +57,7 @@ export interface ClientProps {
   baseUrl?: string;
   responseType?: AxiosRequestConfig["responseType"];
   headers?: AxiosRequestConfig["headers"];
+  params?: Record<string, any>;
   timeout?: number;
   debug?: boolean;
   retryConfig?: RetryConfig;
@@ -89,6 +90,7 @@ export const createClient = ({
   responseType,
   headers,
   timeout,
+  params,
   debug = false,
   retryConfig,
 }: ClientProps): HttpClient => {
@@ -97,6 +99,7 @@ export const createClient = ({
     responseType,
     headers,
     timeout,
+    params,
     maxContentLength: Infinity,
     maxBodyLength: Infinity,
   });
