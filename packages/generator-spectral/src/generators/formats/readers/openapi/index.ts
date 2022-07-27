@@ -1,4 +1,4 @@
-import SwaggerParser, { dereference } from "@apidevtools/swagger-parser";
+import SwaggerParser, { dereference, parse } from "@apidevtools/swagger-parser";
 import { OpenAPI } from "openapi-types";
 import {
   Action,
@@ -37,7 +37,8 @@ const buildComponent = (api: OpenAPI.Document): Component => {
 
 export const read = async (filePath: string): Promise<Result> => {
   // FIXME: https://github.com/APIDevTools/swagger-parser/issues/186
-  const api = await dereference.bind(SwaggerParser)(filePath);
+  // const api = await dereference.bind(SwaggerParser)(filePath);
+  const api = await parse.bind(SwaggerParser)(filePath);
 
   const component = buildComponent(api);
 
