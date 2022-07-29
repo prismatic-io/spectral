@@ -1,5 +1,10 @@
-import { action, trigger, connection } from ".";
-import { invoke, invokeTrigger, createConnection } from "./testing";
+import { action, trigger, connection, dataSource } from ".";
+import {
+  invoke,
+  invokeTrigger,
+  invokeDataSource,
+  createConnection,
+} from "./testing";
 
 const myConnection = connection({
   key: "myConnection",
@@ -42,6 +47,12 @@ const branchingTrigger = trigger({
     Promise.resolve({ payload, branch: "Foo" }),
 });
 
+const basicDataSource = dataSource({
+  display: { label: "Basic Data Source", description: "Basic Data Source" },
+  inputs: {},
+  perform: async () => Promise.resolve({ content: "Hello" }),
+});
+
 describe("createConnection", () => {
   it("works with connection types", () => {
     const conn = createConnection(myConnection, {
@@ -67,5 +78,14 @@ describe("triggerInvoke", () => {
       result: { branch },
     } = await invokeTrigger(branchingTrigger);
     expect(branch).toStrictEqual("Foo");
+  });
+});
+
+describe("dataSourceInvoke", () => {
+  it("basic example works", async () => {
+    const {
+      result: { content },
+    } = await invokeDataSource(basicDataSource, {});
+    expect(content).toStrictEqual("Hello");
   });
 });

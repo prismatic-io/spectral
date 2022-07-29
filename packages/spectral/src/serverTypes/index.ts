@@ -1,3 +1,5 @@
+import { DataSourceType } from "../types";
+
 interface DisplayDefinition {
   label: string;
   description: string;
@@ -10,6 +12,7 @@ export interface Component {
   display: DisplayDefinition & { category?: string; iconPath?: string };
   actions: Record<string, Action>;
   triggers: Record<string, Trigger>;
+  dataSources: Record<string, DataSource>;
   connections: Connection[];
 }
 
@@ -134,6 +137,24 @@ export interface Trigger {
   synchronousResponseSupport: TriggerOptionChoice;
   examplePayload?: unknown;
   isCommonTrigger?: boolean;
+}
+
+export type DataSourceResult = {
+  content: DataSourceType;
+  supplementalData: { data: unknown; contentType: string };
+};
+
+export type DataSourcePerformFunction = (
+  context: ActionContext,
+  params: Record<string, unknown>
+) => Promise<DataSourceResult>;
+
+export interface DataSource {
+  key: string;
+  display: DisplayDefinition & { directions?: string; important?: boolean };
+  inputs: Input[];
+  perform: DataSourcePerformFunction;
+  examplePayload?: unknown;
 }
 
 export enum OAuth2Type {

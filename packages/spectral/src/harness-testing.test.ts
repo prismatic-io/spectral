@@ -1,5 +1,5 @@
 import { createHarness, ComponentTestHarness } from "./testing";
-import { component, connection, input, action, trigger } from ".";
+import { component, connection, input, action, trigger, dataSource } from ".";
 import { ConnectionValue } from "./serverTypes";
 import { OAuth2Type } from "./types";
 import util from "./util";
@@ -122,6 +122,17 @@ const fooTrigger = trigger({
   synchronousResponseSupport: "invalid",
 });
 
+const fooDataSource = dataSource({
+  display: {
+    label: "Foo",
+    description: "Foo",
+  },
+  inputs: { connectionInput, fooInput },
+  perform: async (context, params) => {
+    return Promise.resolve({ content: params });
+  },
+});
+
 const sample = component({
   key: "sample",
   display: {
@@ -131,6 +142,7 @@ const sample = component({
   },
   triggers: { fooTrigger },
   actions: { fooAction, cleanAction },
+  dataSources: { fooDataSource },
   connections: [testConnection],
 });
 
@@ -160,6 +172,14 @@ describe("invoking", () => {
       fooInput: "hello",
     });
     expect(result?.data).toMatchObject({ fooInput: "hello" });
+  });
+
+  it("should allow invoking a datasource", async () => {
+    const result = await harness.dataSource("fooDataSource", {
+      connectionInput: harness.connectionValue(testConnection),
+      fooInput: "hello",
+    });
+    expect(result?.content).toMatchObject({ fooInput: "hello" });
   });
 });
 

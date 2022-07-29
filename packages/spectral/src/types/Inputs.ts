@@ -1,4 +1,5 @@
 import { ConditionalExpression } from "./conditional-logic";
+import { ObjectSelection, ObjectFieldMap } from "./DataSourceType";
 
 /** InputField type enumeration. */
 export type InputFieldType = InputFieldDefinition["type"];
@@ -12,6 +13,8 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> =
     code: "",
     conditional: undefined,
     connection: undefined,
+    objectselection: undefined,
+    objectfieldmap: undefined,
   };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -31,7 +34,9 @@ export type InputFieldDefinition =
   | BooleanInputField
   | CodeInputField
   | ConditionalInputField
-  | ConnectionInputField;
+  | ConnectionInputField
+  | ObjectSelectionInputField
+  | ObjectFieldMapInputField;
 
 export type InputCleanFunction<TValue, TResult = TValue> = (
   value: TValue
@@ -164,6 +169,30 @@ export interface Connection {
   fields: { [key: string]: unknown };
   token?: Record<string, unknown>;
   context?: Record<string, unknown>;
+}
+
+/** Defines attributes of an ObjectSelectionInputField. */
+export interface ObjectSelectionInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "objectselection";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: ObjectSelection;
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+}
+
+/** Defines attributes of an ObjectFieldMapInputField. */
+export interface ObjectFieldMapInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "objectfieldmap";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: ObjectFieldMap;
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
 }
 
 /** Defines a single Choice option for a InputField. */
