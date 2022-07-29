@@ -621,4 +621,82 @@ describe("util", () => {
       ).toStrictEqual({ "content-type": "Application/Json" });
     });
   });
+
+  describe("objectselection", () => {
+    it("detects valid values", () => {
+      const v = [{ key: "foo", fields: [{ key: "bar" }, { key: "biz" }] }];
+      expect(util.types.isObjectSelection(v)).toStrictEqual(true);
+    });
+
+    it("detects invalid values", () => {
+      const v1 = [
+        { missingKey: "foo", fields: [{ key: "bar" }, { key: "biz" }] },
+      ];
+      const v2 = [
+        { key: "foo", fields: [{ missingKey: "bar" }, { key: "biz" }] },
+      ];
+      expect(util.types.isObjectSelection(v1)).toStrictEqual(false);
+      expect(util.types.isObjectSelection(v2)).toStrictEqual(false);
+    });
+
+    it("coerces valid values", () => {
+      const v = [{ key: "foo", fields: [{ key: "bar" }, { key: "biz" }] }];
+      expect(util.types.toObjectSelection(v)).toStrictEqual(v);
+    });
+
+    it("throws on invalid values", () => {
+      const v1 = [
+        { missingKey: "foo", fields: [{ key: "bar" }, { key: "biz" }] },
+      ];
+      const v2 = [
+        { key: "foo", fields: [{ missingKey: "bar" }, { key: "biz" }] },
+      ];
+      const error = "cannot be coerced to ObjectSelection";
+      expect(() => util.types.toObjectSelection(v1)).toThrow(error);
+      expect(() => util.types.toObjectSelection(v2)).toThrow(error);
+    });
+  });
+
+  describe("objectfieldmap", () => {
+    it("detects valid values", () => {
+      const v = [{ key: "foo", value: { objectKey: "bar", fieldKey: "biz" } }];
+      expect(util.types.isObjectFieldMap(v)).toStrictEqual(true);
+    });
+
+    it("detects invalid values", () => {
+      const v1 = [
+        { missingKey: "foo", value: { objectKey: "bar", fieldKey: "biz" } },
+      ];
+      const v2 = [
+        { key: "foo", value: { missingObjectKey: "bar", fieldKey: "biz" } },
+      ];
+      const v3 = [
+        { key: "foo", value: { objectKey: "bar", missingFieldKey: "biz" } },
+      ];
+      expect(util.types.isObjectFieldMap(v1)).toStrictEqual(false);
+      expect(util.types.isObjectFieldMap(v2)).toStrictEqual(false);
+      expect(util.types.isObjectFieldMap(v3)).toStrictEqual(false);
+    });
+  });
+
+  it("coerces valid values", () => {
+    const v = [{ key: "foo", value: { objectKey: "bar", fieldKey: "biz" } }];
+    expect(util.types.toObjectFieldMap(v)).toStrictEqual(v);
+  });
+
+  it("throws on invalid values", () => {
+    const v1 = [
+      { missingKey: "foo", value: { objectKey: "bar", fieldKey: "biz" } },
+    ];
+    const v2 = [
+      { key: "foo", value: { missingObjectKey: "bar", fieldKey: "biz" } },
+    ];
+    const v3 = [
+      { key: "foo", value: { objectKey: "bar", missingFieldKey: "biz" } },
+    ];
+    const error = "cannot be coerced to ObjectFieldMap";
+    expect(() => util.types.toObjectFieldMap(v1)).toThrow(error);
+    expect(() => util.types.toObjectFieldMap(v2)).toThrow(error);
+    expect(() => util.types.toObjectFieldMap(v3)).toThrow(error);
+  });
 });

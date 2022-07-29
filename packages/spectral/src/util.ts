@@ -10,7 +10,99 @@ import dateIsValid from "date-fns/isValid";
 import dateIsDate from "date-fns/isDate";
 import { configure } from "safe-stable-stringify";
 import { isWebUri } from "valid-url";
-import { KeyValuePair, DataPayload } from "./types";
+import {
+  KeyValuePair,
+  DataPayload,
+  ObjectSelection,
+  ObjectFieldMap,
+} from "./types";
+
+const isObjectWithTruthyKeys = (value: unknown, keys: string[]): boolean => {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    keys.every(
+      (key) =>
+        key in value && Boolean((value as Record<string, unknown>)?.[key])
+    )
+  );
+};
+
+/**
+ * @param value The value to test
+ * @returns This function returns true if the type of `value` is an ObjectSelection, or false otherwise.
+ */
+const isObjectSelection = (value: unknown): value is ObjectSelection => {
+  if (Array.isArray(value)) {
+    for (const selection of value) {
+      if (isObjectWithTruthyKeys(selection, ["key", "fields"])) {
+        const { fields } = selection as Record<string, unknown>;
+        if (
+          !Array.isArray(fields) ||
+          fields.length === 0 ||
+          !fields.every((field) => isObjectWithTruthyKeys(field, ["key"]))
+        ) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+  } else {
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * This function coerces a provided value into an ObjectSelection if possible.
+ * @param value The value to coerce to ObjectSelection.
+ * @returns This function returns the the value as an ObjectSelection if possible.
+ */
+const toObjectSelection = (value: unknown): ObjectSelection => {
+  if (isObjectSelection(value)) {
+    return value;
+  }
+
+  throw new Error(`Value '${value}' cannot be coerced to ObjectSelection.`);
+};
+
+/**
+ * @param value The value to test
+ * @returns This function returns true if the type of `value` is an ObjectFieldMap, or false otherwise.
+ */
+const isObjectFieldMap = (value: unknown): value is ObjectFieldMap => {
+  if (Array.isArray(value)) {
+    for (const fieldMap of value) {
+      if (isObjectWithTruthyKeys(fieldMap, ["key", "value"])) {
+        const { value: val } = fieldMap as Record<string, unknown>;
+        if (!isObjectWithTruthyKeys(val, ["objectKey", "fieldKey"])) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+  } else {
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * This function coerces a provided value into an ObjectFieldMap if possible.
+ * @param value The value to coerce to ObjectFieldMap.
+ * @returns This function returns the the value as an ObjectFieldMap if possible.
+ */
+const toObjectFieldMap = (value: unknown): ObjectFieldMap => {
+  if (isObjectFieldMap(value)) {
+    return value;
+  }
+
+  throw new Error(`Value '${value}' cannot be coerced to ObjectFieldMap.`);
+};
 
 /**
  * Determine if a variable is a boolean (true or false).
@@ -402,6 +494,10 @@ export default {
     isJSON,
     toJSON,
     lowerCaseHeaders,
+    isObjectSelection,
+    toObjectSelection,
+    isObjectFieldMap,
+    toObjectFieldMap,
   },
   docs: {
     formatJsonExample,

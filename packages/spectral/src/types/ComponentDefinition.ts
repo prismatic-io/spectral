@@ -3,6 +3,7 @@ import {
   ConnectionDefinition,
   ComponentDisplayDefinition,
   TriggerDefinition,
+  DataSourceDefinition,
 } from ".";
 
 export type ErrorHandler = (error: unknown) => unknown;
@@ -24,6 +25,8 @@ export type ComponentDefinition<TPublic extends boolean> = {
   actions?: Record<string, ActionDefinition<any, boolean, any>>;
   /** Specifies the supported Triggers of this Component. */
   triggers?: Record<string, TriggerDefinition<any, boolean, any>>;
+  /** Specifies the supported Data Sources of this Component. */
+  dataSources?: Record<string, DataSourceDefinition<any, any>>;
   /** Specifies the supported Connections of this Component. */
   connections?: ConnectionDefinition[];
   /** Hooks */

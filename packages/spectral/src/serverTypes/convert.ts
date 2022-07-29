@@ -7,6 +7,7 @@ import {
   TriggerDefinition,
   InputFieldDefaultMap,
   ComponentHooks,
+  DataSourceDefinition,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -14,6 +15,7 @@ import {
   Action as ServerAction,
   Trigger as ServerTrigger,
   Input as ServerInput,
+  DataSource as ServerDataSource,
 } from ".";
 import { InputCleaners, createPerform } from "./perform";
 
@@ -87,6 +89,26 @@ const convertTrigger = (
   };
 };
 
+const convertDataSource = (
+  dataSourceKey: string,
+  { inputs = {}, perform, ...dataSource }: DataSourceDefinition<Inputs, any>,
+  hooks?: ComponentHooks
+): ServerDataSource => {
+  const convertedInputs = Object.entries(inputs).map(([key, value]) =>
+    convertInput(key, value)
+  );
+
+  return {
+    ...dataSource,
+    key: dataSourceKey,
+    inputs: convertedInputs,
+    perform: createPerform(perform, {
+      inputCleaners: {},
+      errorHandler: hooks?.error,
+    }),
+  };
+};
+
 const convertConnection = ({
   inputs = {},
   ...connection
@@ -105,6 +127,7 @@ export const convertComponent = <TPublic extends boolean>({
   connections = [],
   actions = {},
   triggers = {},
+  dataSources = {},
   hooks,
   ...definition
 }: ComponentDefinition<TPublic>): ServerComponent => {
@@ -124,10 +147,19 @@ export const convertComponent = <TPublic extends boolean>({
     {}
   );
 
+  const convertedDataSources = Object.entries(dataSources).reduce(
+    (result, [dataSourceKey, dataSource]) => ({
+      ...result,
+      [dataSourceKey]: convertDataSource(dataSourceKey, dataSource, hooks),
+    }),
+    {}
+  );
+
   return {
     ...definition,
     connections: connections.map(convertConnection),
     actions: convertedActions,
     triggers: convertedTriggers,
+    dataSources: convertedDataSources,
   };
 };

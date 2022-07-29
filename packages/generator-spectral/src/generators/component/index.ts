@@ -43,6 +43,11 @@ class ComponentGenerator extends Generator {
       label: "My Trigger",
       description: "This is my trigger",
     });
+    this.composeWith(require.resolve("../dataSource"), {
+      destinationPath: path.join("src", "dataSource.ts"),
+      label: "My Data Source",
+      description: "This is my data source",
+    });
     this.composeWith(require.resolve("../connection"), {
       destinationPath: path.join("src", "connections.ts"),
       label: "My Connection",

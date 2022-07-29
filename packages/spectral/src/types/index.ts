@@ -19,3 +19,7 @@ export * from "./TriggerPerformFunction";
 export * from "./TriggerDefinition";
 export * from "./HttpResponse";
 export * from "./TriggerPayload";
+export * from "./DataSourceDefinition";
+export * from "./DataSourcePerformFunction";
+export * from "./DataSourceResult";
+export * from "./DataSourceType";

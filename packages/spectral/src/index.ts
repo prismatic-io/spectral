@@ -14,6 +14,9 @@ import {
   TriggerDefinition,
   ActionPerformReturn,
   TriggerResult,
+  DataSourceDefinition,
+  DataSourceResult,
+  DataSourceType,
 } from "./types";
 import { convertComponent } from "./serverTypes/convert";
 
@@ -62,6 +65,22 @@ export const trigger = <
 >(
   definition: TriggerDefinition<TInputs, TAllowsBranching, TResult>
 ): TriggerDefinition<TInputs, TAllowsBranching, TResult> => definition;
+
+/**
+ * This function creates a data source object that can be referenced
+ * by a custom component. It helps ensure that the shape of the
+ * data source object conforms to what the Prismatic API expects.
+ * For information on writing custom component data sources, see
+ * https://prismatic.io/docs/custom-components/writing-custom-components/#writing-data-sources.
+ * @param definition A DataSourceDefinition type object that includes UI display information, a function to perform when the data source is invoked, and a an object containing inputs for the perform function.
+ * @returns This function validates the shape of the `definition` object provided, and returns the same data source object.
+ */
+export const dataSource = <
+  TInputs extends Inputs,
+  TResult extends DataSourceResult<DataSourceType>
+>(
+  definition: DataSourceDefinition<TInputs, TResult>
+): DataSourceDefinition<TInputs, TResult> => definition;
 
 /**
  * For information and examples on how to write inputs

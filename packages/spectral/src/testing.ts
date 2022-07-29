@@ -14,6 +14,7 @@ import {
   Component,
   ActionContext,
   ActionPerformReturn,
+  DataSourceResult,
 } from "./serverTypes";
 import {
   ConnectionDefinition,
@@ -21,8 +22,11 @@ import {
   TriggerDefinition,
   Inputs,
   ActionInputParameters,
+  DataSourceDefinition,
+  DataSourceType,
   ActionPerformReturn as InvokeActionPerformReturn,
   TriggerResult as InvokeTriggerResult,
+  DataSourceResult as InvokeDataSourceResult,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -49,6 +53,31 @@ export const loggerMock = (): ActionLogger => ({
   error: spyOn(console, "error") as unknown as ActionLoggerFunction,
 });
 
+const baseContext = {
+  logger: loggerMock(),
+  instanceState: {},
+  crossFlowState: {},
+  executionState: {},
+  stepId: "mockStepId",
+  executionId: "mockExecutionId",
+  webhookUrls: {
+    "Flow 1": "https://example.com",
+  },
+  webhookApiKeys: {
+    "Flow 1": ["example-123", "example-456"],
+  },
+  invokeUrl: "https://example.com",
+  customer: {
+    id: "customerId",
+    name: "Customer 1",
+    externalId: "1234",
+  },
+  instance: {
+    id: "instanceId",
+    name: "Instance 1",
+  },
+};
+
 /**
  * The type of data returned by an `invoke()` function used for unit testing component actions.
  */
@@ -72,32 +101,7 @@ export const invoke = async <
   params: ActionInputParameters<TInputs>,
   context?: Partial<ActionContext>
 ): Promise<InvokeReturn<TReturn>> => {
-  const realizedContext = {
-    logger: loggerMock(),
-    instanceState: {},
-    crossFlowState: {},
-    executionState: {},
-    stepId: "mockStepId",
-    executionId: "mockExecutionId",
-    webhookUrls: {
-      "Flow 1": "https://example.com",
-    },
-    webhookApiKeys: {
-      "Flow 1": ["example-123", "example-456"],
-    },
-    invokeUrl: "https://example.com",
-    customer: {
-      id: "customerId",
-      name: "Customer 1",
-      externalId: "1234",
-    },
-    instance: {
-      id: "instanceId",
-      name: "Instance 1",
-    },
-    ...context,
-  };
-
+  const realizedContext = { ...baseContext, ...context };
   const result = await perform(realizedContext, params);
 
   return {
@@ -160,32 +164,7 @@ export const invokeTrigger = async <
   payload?: TriggerPayload,
   params?: ActionInputParameters<TInputs>
 ): Promise<InvokeReturn<TResult>> => {
-  const realizedContext = {
-    logger: loggerMock(),
-    instanceState: {},
-    crossFlowState: {},
-    executionState: {},
-    stepId: "mockStepId",
-    executionId: "mockExecutionId",
-    webhookUrls: {
-      "Flow 1": "https://example.com",
-    },
-    webhookApiKeys: {
-      "Flow 1": ["example-123", "example-456"],
-    },
-    invokeUrl: "https://example.com",
-    customer: {
-      id: "customerId",
-      name: "Customer 1",
-      externalId: "1234",
-    },
-    instance: {
-      id: "instanceId",
-      name: "Instance 1",
-    },
-    ...context,
-  };
-
+  const realizedContext = { ...baseContext, ...context };
   const realizedPayload = {
     ...defaultTriggerPayload(),
     ...payload,
@@ -198,6 +177,29 @@ export const invokeTrigger = async <
     realizedPayload,
     realizedParams
   );
+
+  return {
+    result,
+    loggerMock: realizedContext.logger,
+  };
+};
+
+/**
+ * Invokes specified DataSourceDefinition perform function using supplied params
+ * and optional context. Accepts a generic type matching DataSourceResult as a convenience
+ * to avoid extra casting within test methods. Returns an InvokeResult containing both the
+ * action result and a mock logger for asserting logging.
+ */
+export const invokeDataSource = async <
+  TInputs extends Inputs,
+  TReturn extends InvokeDataSourceResult<DataSourceType>
+>(
+  { perform }: DataSourceDefinition<TInputs, TReturn>,
+  params: ActionInputParameters<TInputs>,
+  context?: Partial<ActionContext>
+): Promise<InvokeReturn<TReturn>> => {
+  const realizedContext = { ...baseContext, ...context };
+  const result = await perform(realizedContext, params);
 
   return {
     result,
@@ -230,32 +232,7 @@ export class ComponentTestHarness<TComponent extends Component> {
     params?: Record<string, unknown>,
     context?: Partial<ActionContext>
   ): Promise<TriggerResult> {
-    const realizedContext = {
-      logger: loggerMock(),
-      instanceState: {},
-      crossFlowState: {},
-      executionState: {},
-      stepId: "mockStepId",
-      executionId: "mockExecutionId",
-      webhookUrls: {
-        "Flow 1": "https://example.com",
-      },
-      webhookApiKeys: {
-        "Flow 1": ["example-123", "example-456"],
-      },
-      invokeUrl: "https://example.com",
-      customer: {
-        id: "customerId",
-        name: "Customer 1",
-        externalId: "1234",
-      },
-      instance: {
-        id: "instanceId",
-        name: "Instance 1",
-      },
-      ...context,
-    };
-
+    const realizedContext = { ...baseContext, ...context };
     const trigger = this.component.triggers[key];
     return trigger.perform(
       realizedContext,
@@ -269,34 +246,19 @@ export class ComponentTestHarness<TComponent extends Component> {
     params?: Record<string, unknown>,
     context?: Partial<ActionContext>
   ): Promise<ActionPerformReturn> {
-    const realizedContext = {
-      logger: loggerMock(),
-      instanceState: {},
-      crossFlowState: {},
-      executionState: {},
-      stepId: "mockStepId",
-      executionId: "mockExecutionId",
-      webhookUrls: {
-        "Flow 1": "https://example.com",
-      },
-      webhookApiKeys: {
-        "Flow 1": ["example-123", "example-456"],
-      },
-      invokeUrl: "https://example.com",
-      customer: {
-        id: "customerId",
-        name: "Customer 1",
-        externalId: "1234",
-      },
-      instance: {
-        id: "instanceId",
-        name: "Instance 1",
-      },
-      ...context,
-    };
-
+    const realizedContext = { ...baseContext, ...context };
     const action = this.component.actions[key];
     return action.perform(realizedContext, { ...params });
+  }
+
+  public async dataSource(
+    key: string,
+    params?: Record<string, unknown>,
+    context?: Partial<ActionContext>
+  ): Promise<DataSourceResult> {
+    const realizedContext = { ...baseContext, ...context };
+    const dataSource = this.component.dataSources[key];
+    return dataSource.perform(realizedContext, { ...params });
   }
 }
 
@@ -311,4 +273,5 @@ export default {
   invoke,
   invokeTrigger,
   createHarness,
+  invokeDataSource,
 };
