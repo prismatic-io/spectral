@@ -1,5 +1,24 @@
 import { ConditionalExpression } from "./conditional-logic";
-import { ObjectSelection, ObjectFieldMap } from "./DataSourceType";
+
+export type ObjectSelection = {
+  key: string;
+  label?: string;
+  fields: {
+    key: string;
+    label?: string;
+  }[];
+}[];
+
+export type ObjectFieldMap = {
+  key: string;
+  label?: string;
+  value: {
+    objectKey: string;
+    objectLabel?: string;
+    fieldKey: string;
+    fieldLabel?: string;
+  };
+}[];
 
 /** InputField type enumeration. */
 export type InputFieldType = InputFieldDefinition["type"];

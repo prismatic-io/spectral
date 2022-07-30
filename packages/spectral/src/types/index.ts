@@ -22,4 +22,3 @@ export * from "./TriggerPayload";
 export * from "./DataSourceDefinition";
 export * from "./DataSourcePerformFunction";
 export * from "./DataSourceResult";
-export * from "./DataSourceType";
