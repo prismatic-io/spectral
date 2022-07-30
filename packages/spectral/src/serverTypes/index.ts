@@ -1,5 +1,4 @@
-import { DataSourceType } from "../types";
-
+import { DataSourceResultType, DataSourceResultFieldType } from "../types";
 interface DisplayDefinition {
   label: string;
   description: string;
@@ -140,7 +139,7 @@ export interface Trigger {
 }
 
 export type DataSourceResult = {
-  content: DataSourceType;
+  result: DataSourceResultType;
   supplementalData: { data: unknown; contentType: string };
 };
 
@@ -154,6 +153,7 @@ export interface DataSource {
   display: DisplayDefinition & { directions?: string; important?: boolean };
   inputs: Input[];
   perform: DataSourcePerformFunction;
+  resultFieldType: DataSourceResultFieldType;
   examplePayload?: unknown;
 }
 

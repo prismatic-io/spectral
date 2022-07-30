@@ -16,7 +16,7 @@ import {
   TriggerResult,
   DataSourceDefinition,
   DataSourceResult,
-  DataSourceType,
+  DataSourceResultType,
 } from "./types";
 import { convertComponent } from "./serverTypes/convert";
 
@@ -77,7 +77,7 @@ export const trigger = <
  */
 export const dataSource = <
   TInputs extends Inputs,
-  TResult extends DataSourceResult<DataSourceType>
+  TResult extends DataSourceResult<DataSourceResultType>
 >(
   definition: DataSourceDefinition<TInputs, TResult>
 ): DataSourceDefinition<TInputs, TResult> => definition;

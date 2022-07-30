@@ -1,7 +1,7 @@
 import {
   Inputs,
   DataSourceResult,
-  DataSourceType,
+  DataSourceResultType,
   ActionInputParameters,
   ActionContext,
 } from ".";
@@ -9,7 +9,7 @@ import {
 /** Definition of the function to perform when a Data Source is invoked. */
 export type DataSourcePerformFunction<
   T extends Inputs,
-  TResult extends DataSourceResult<DataSourceType>
+  TResult extends DataSourceResult<DataSourceResultType>
 > = (
   context: ActionContext,
   params: ActionInputParameters<T>

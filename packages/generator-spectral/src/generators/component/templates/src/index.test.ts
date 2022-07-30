@@ -42,6 +42,6 @@ describe("test my data source", () => {
       }),
       myInput: "some input",
     });
-    expect(result.content).toBe("Hello, some input");
+    expect(result.result).toBe("Hello, some input");
   });
 });

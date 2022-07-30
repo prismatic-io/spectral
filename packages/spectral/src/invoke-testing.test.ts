@@ -50,7 +50,8 @@ const branchingTrigger = trigger({
 const basicDataSource = dataSource({
   display: { label: "Basic Data Source", description: "Basic Data Source" },
   inputs: {},
-  perform: async () => Promise.resolve({ content: "Hello" }),
+  perform: async () => Promise.resolve({ result: "Hello" }),
+  resultFieldType: "string",
 });
 
 describe("createConnection", () => {
@@ -84,8 +85,8 @@ describe("triggerInvoke", () => {
 describe("dataSourceInvoke", () => {
   it("basic example works", async () => {
     const {
-      result: { content },
+      result: { result },
     } = await invokeDataSource(basicDataSource, {});
-    expect(content).toStrictEqual("Hello");
+    expect(result).toStrictEqual("Hello");
   });
 });

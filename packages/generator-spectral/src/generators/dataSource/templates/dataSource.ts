@@ -21,13 +21,14 @@ export const <%= dataSource.key %> = dataSource({
   perform: async (context, { connection, myInput }) => {
     const client = createClient(connection);
     return {
-      content: await client.call(myInput),
+      result: await client.call(myInput),
     };
   },
   inputs: {
     connection: myConnectionField,
     myInput: myInputField,
   },
+  resultFieldType: "string",
 });
 
 export default { <%= dataSource.key %> };

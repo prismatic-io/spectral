@@ -23,7 +23,7 @@ import {
   Inputs,
   ActionInputParameters,
   DataSourceDefinition,
-  DataSourceType,
+  DataSourceResultType,
   ActionPerformReturn as InvokeActionPerformReturn,
   TriggerResult as InvokeTriggerResult,
   DataSourceResult as InvokeDataSourceResult,
@@ -192,7 +192,7 @@ export const invokeTrigger = async <
  */
 export const invokeDataSource = async <
   TInputs extends Inputs,
-  TReturn extends InvokeDataSourceResult<DataSourceType>
+  TReturn extends InvokeDataSourceResult<DataSourceResultType>
 >(
   { perform }: DataSourceDefinition<TInputs, TReturn>,
   params: ActionInputParameters<TInputs>,
