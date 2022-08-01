@@ -699,4 +699,35 @@ describe("util", () => {
     expect(() => util.types.toObjectFieldMap(v2)).toThrow(error);
     expect(() => util.types.toObjectFieldMap(v3)).toThrow(error);
   });
+
+  describe("jsonform", () => {
+    it("detects valid values", () => {
+      const v = { schema: {}, uiSchema: {}, data: {} };
+      expect(util.types.isJSONForm(v)).toStrictEqual(true);
+    });
+
+    it("detects invalid values", () => {
+      const v1 = { missindSchema: {}, uiSchema: {}, data: {} };
+      const v2 = { schema: {}, missingUiSchema: {}, data: {} };
+      const v3 = { schema: {}, uiSchema: {}, missingData: {} };
+      expect(util.types.isObjectFieldMap(v1)).toStrictEqual(false);
+      expect(util.types.isObjectFieldMap(v2)).toStrictEqual(false);
+      expect(util.types.isObjectFieldMap(v3)).toStrictEqual(false);
+    });
+  });
+
+  it("coerces valid values", () => {
+    const v = { schema: {}, uiSchema: {}, data: {} };
+    expect(util.types.toJSONForm(v)).toStrictEqual(v);
+  });
+
+  it("throws on invalid values", () => {
+    const v1 = { missindSchema: {}, uiSchema: {}, data: {} };
+    const v2 = { schema: {}, missingUiSchema: {}, data: {} };
+    const v3 = { schema: {}, uiSchema: {}, missingData: {} };
+    const error = "cannot be coerced to JSONForm";
+    expect(() => util.types.toJSONForm(v1)).toThrow(error);
+    expect(() => util.types.toJSONForm(v2)).toThrow(error);
+    expect(() => util.types.toJSONForm(v3)).toThrow(error);
+  });
 });

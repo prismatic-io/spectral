@@ -20,6 +20,12 @@ export type ObjectFieldMap = {
   };
 }[];
 
+export type JSONForm = {
+  schema: Record<string, unknown>;
+  uiSchema: Record<string, unknown>;
+  data: unknown;
+};
+
 /** InputField type enumeration. */
 export type InputFieldType = InputFieldDefinition["type"];
 export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> =
@@ -34,6 +40,7 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> =
     connection: undefined,
     objectselection: undefined,
     objectfieldmap: undefined,
+    jsonform: undefined,
   };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -55,7 +62,8 @@ export type InputFieldDefinition =
   | ConditionalInputField
   | ConnectionInputField
   | ObjectSelectionInputField
-  | ObjectFieldMapInputField;
+  | ObjectFieldMapInputField
+  | JSONFormInputField;
 
 export type InputCleanFunction<TValue, TResult = TValue> = (
   value: TValue
@@ -210,6 +218,18 @@ export interface ObjectFieldMapInputField extends BaseInputField {
   collection?: InputFieldCollection;
   /** Default value for this field. */
   default?: ObjectFieldMap;
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+}
+
+/** Defines attributes of a JSONFOrmInputField. */
+export interface JSONFormInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "jsonform";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: JSONForm;
   /** Clean function */
   clean?: InputCleanFunction<NonNullable<this["default"]>>;
 }

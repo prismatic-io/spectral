@@ -2,6 +2,7 @@ import {
   ObjectSelection,
   ObjectFieldMap,
   InputFieldDefaultMap,
+  JSONForm,
 } from "./Inputs";
 
 /** The type of field that is appropriate for rendering the data that is the result of the data source perform function. */
@@ -11,6 +12,7 @@ export type DataSourceResultFieldType = keyof typeof InputFieldDefaultMap;
 export type DataSourceResultType =
   | ObjectSelection
   | ObjectFieldMap
+  | JSONForm
   | Buffer
   | boolean
   | number
