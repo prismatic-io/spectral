@@ -15,6 +15,7 @@ import {
   DataPayload,
   ObjectSelection,
   ObjectFieldMap,
+  JSONForm,
 } from "./types";
 
 const isObjectWithTruthyKeys = (value: unknown, keys: string[]): boolean => {
@@ -102,6 +103,27 @@ const toObjectFieldMap = (value: unknown): ObjectFieldMap => {
   }
 
   throw new Error(`Value '${value}' cannot be coerced to ObjectFieldMap.`);
+};
+
+/**
+ * @param value The value to test
+ * @returns This function returns true if the type of `value` is a JSONForm, or false otherwise.
+ */
+const isJSONForm = (value: unknown): value is JSONForm => {
+  return isObjectWithTruthyKeys(value, ["schema", "uiSchema", "data"]);
+};
+
+/**
+ * This function coerces a provided value into a JSONForm if possible.
+ * @param value The value to coerce to JSONForm.
+ * @returns This function returns the the value as a JSONForm if possible.
+ */
+const toJSONForm = (value: unknown): JSONForm => {
+  if (isJSONForm(value)) {
+    return value;
+  }
+
+  throw new Error(`Value '${value}' cannot be coerced to JSONForm.`);
 };
 
 /**
@@ -498,6 +520,8 @@ export default {
     toObjectSelection,
     isObjectFieldMap,
     toObjectFieldMap,
+    isJSONForm,
+    toJSONForm,
   },
   docs: {
     formatJsonExample,
