@@ -1,6 +1,6 @@
 import { myAction } from "./actions";
 import { myTrigger } from "./triggers";
-import { myDataSource } from "./dataSource";
+import { myDataSource } from "./dataSources";
 import { myConnection } from "./connections";
 import {
   invoke,
