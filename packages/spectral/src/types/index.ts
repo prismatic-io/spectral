@@ -22,4 +22,6 @@ export * from "./TriggerPayload";
 export * from "./DataSourceDefinition";
 export * from "./DataSourcePerformFunction";
 export * from "./DataSourceResult";
+export * from "./Instance";
+export * from "./Customer";
 export * as serverTypes from "../serverTypes";

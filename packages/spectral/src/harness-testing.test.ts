@@ -128,7 +128,7 @@ const fooDataSource = dataSource({
     description: "Foo",
   },
   inputs: { connectionInput, fooInput },
-  perform: async (context, params) => {
+  perform: async (params) => {
     return Promise.resolve({ result: params });
   },
   resultFieldType: "data",

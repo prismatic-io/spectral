@@ -1,8 +1,16 @@
-import { DataSourceResultType, DataSourceResultFieldType } from "../types";
+import {
+  DataSourceResultType,
+  DataSourceResultFieldType,
+  Instance,
+  Customer,
+} from "../types";
 interface DisplayDefinition {
   label: string;
   description: string;
 }
+
+export { Instance } from "../types";
+export { Customer } from "../types";
 
 export interface Component {
   key: string;
@@ -50,15 +58,8 @@ export interface ActionContext {
   webhookUrls: Record<string, string>;
   webhookApiKeys: Record<string, string[]>;
   invokeUrl: string;
-  customer: {
-    id: string | null;
-    externalId: string | null;
-    name: string | null;
-  };
-  instance: {
-    id: string | null;
-    name: string | null;
-  };
+  customer: Customer;
+  instance: Instance;
 }
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";
@@ -79,15 +80,8 @@ export interface TriggerPayload {
   webhookApiKeys: Record<string, string[]>;
   invokeUrl: string;
   executionId: string;
-  customer: {
-    id: string | null;
-    externalId: string | null;
-    name: string | null;
-  };
-  instance: {
-    id: string | null;
-    name: string | null;
-  };
+  customer: Customer;
+  instance: Instance;
 }
 
 interface HttpResponse {
@@ -140,11 +134,10 @@ export interface Trigger {
 
 export type DataSourceResult = {
   result: DataSourceResultType;
-  supplementalData: { data: unknown; contentType: string };
+  supplementalData?: { data: unknown; contentType: string };
 };
 
 export type DataSourcePerformFunction = (
-  context: ActionContext,
   params: Record<string, unknown>
 ) => Promise<DataSourceResult>;
 
