@@ -3,6 +3,8 @@ import {
   ActionPerformReturn,
   ActionInputParameters,
   ActionLogger,
+  Instance,
+  Customer,
 } from ".";
 
 /** Definition of the function to perform when an Action is invoked. */
@@ -35,15 +37,8 @@ export interface ActionContext {
   webhookApiKeys: Record<string, string[]>;
   /** The URL used to invoke the current execution */
   invokeUrl: string;
-  /** An object containing the ID, External ID and name of the customer the instance is deployed to */
-  customer: {
-    id: string | null;
-    externalId: string | null;
-    name: string | null;
-  };
-  /** An object containing the ID ad name of the currently running instance */
-  instance: {
-    id: string | null;
-    name: string | null;
-  };
+  /** Contains attributes of the Customer for whom an Instance is being executed. */
+  customer: Customer;
+  /** Contains attributes of the Instance that is being executed. */
+  instance: Instance;
 }

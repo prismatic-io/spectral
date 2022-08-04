@@ -27,6 +27,10 @@ export const createPerform = (
 ): PerformFn => {
   return async (...args: any[]): Promise<any> => {
     try {
+      if (args.length === 1) {
+        const [params] = args;
+        return await performFn(cleanParams(params, inputCleaners));
+      }
       if (args.length === 2) {
         const [context, params] = args;
         return await performFn(context, cleanParams(params, inputCleaners));

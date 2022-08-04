@@ -23,10 +23,8 @@ import {
   Inputs,
   ActionInputParameters,
   DataSourceDefinition,
-  DataSourceResultType,
   ActionPerformReturn as InvokeActionPerformReturn,
   TriggerResult as InvokeTriggerResult,
-  DataSourceResult as InvokeDataSourceResult,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -79,7 +77,7 @@ const baseContext = {
 };
 
 /**
- * The type of data returned by an `invoke()` function used for unit testing component actions.
+ * The type of data returned by an `invoke()` function used for unit testing component actions and triggers.
  */
 interface InvokeReturn<ReturnData> {
   result: ReturnData;
@@ -185,26 +183,20 @@ export const invokeTrigger = async <
 };
 
 /**
- * Invokes specified DataSourceDefinition perform function using supplied params
- * and optional context. Accepts a generic type matching DataSourceResult as a convenience
- * to avoid extra casting within test methods. Returns an InvokeResult containing both the
- * action result and a mock logger for asserting logging.
+ * Invokes specified DataSourceDefinition perform function using supplied params.
+ * Accepts a generic type matching DataSourceResult as a convenience to avoid extra
+ * casting within test methods. Returns a DataSourceResult.
  */
 export const invokeDataSource = async <
   TInputs extends Inputs,
-  TReturn extends InvokeDataSourceResult<DataSourceResultType>
+  TReturn extends DataSourceResult
 >(
   { perform }: DataSourceDefinition<TInputs, TReturn>,
-  params: ActionInputParameters<TInputs>,
-  context?: Partial<ActionContext>
-): Promise<InvokeReturn<TReturn>> => {
-  const realizedContext = { ...baseContext, ...context };
-  const result = await perform(realizedContext, params);
+  params: ActionInputParameters<TInputs>
+): Promise<TReturn> => {
+  const result = await perform(params);
 
-  return {
-    result,
-    loggerMock: realizedContext.logger,
-  };
+  return result;
 };
 
 export class ComponentTestHarness<TComponent extends Component> {
@@ -253,12 +245,10 @@ export class ComponentTestHarness<TComponent extends Component> {
 
   public async dataSource(
     key: string,
-    params?: Record<string, unknown>,
-    context?: Partial<ActionContext>
+    params?: Record<string, unknown>
   ): Promise<DataSourceResult> {
-    const realizedContext = { ...baseContext, ...context };
     const dataSource = this.component.dataSources[key];
-    return dataSource.perform(realizedContext, { ...params });
+    return dataSource.perform({ ...params });
   }
 }
 

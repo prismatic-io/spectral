@@ -1,3 +1,5 @@
+import { Instance, Customer } from ".";
+
 /** Represents a Trigger Payload, which is data passed into a Trigger to invoke an Integration execution. */
 export interface TriggerPayload {
   headers: {
@@ -27,13 +29,8 @@ export interface TriggerPayload {
   /** The URL that was used to invoke the execution. */
   invokeUrl: string;
   executionId: string;
-  customer: {
-    id: string | null;
-    externalId: string | null;
-    name: string | null;
-  };
-  instance: {
-    id: string | null;
-    name: string | null;
-  };
+  /** Contains attributes of the Customer for whom an Instance is being executed. */
+  customer: Customer;
+  /** Contains attributes of the Instance that is being executed. */
+  instance: Instance;
 }

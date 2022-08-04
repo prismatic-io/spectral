@@ -18,7 +18,7 @@ export const <%= dataSource.key %> = dataSource({
     label: "<%= dataSource.label %>",
     description: "<%= dataSource.description %>",
   },
-  perform: async (context, { connection, myInput }) => {
+  perform: async ({ connection, myInput }) => {
     const client = createClient(connection);
     return {
       result: await client.call(myInput),

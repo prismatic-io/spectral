@@ -84,9 +84,7 @@ describe("triggerInvoke", () => {
 
 describe("dataSourceInvoke", () => {
   it("basic example works", async () => {
-    const {
-      result: { result },
-    } = await invokeDataSource(basicDataSource, {});
+    const { result } = await invokeDataSource(basicDataSource, {});
     expect(result).toStrictEqual("Hello");
   });
 });
