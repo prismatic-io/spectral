@@ -128,10 +128,10 @@ const fooDataSource = dataSource({
     description: "Foo",
   },
   inputs: { connectionInput, fooInput },
-  perform: async (params) => {
-    return Promise.resolve({ result: params });
+  perform: async ({ fooInput }) => {
+    return Promise.resolve({ result: fooInput });
   },
-  resultFieldType: "data",
+  resultFieldType: "string",
 });
 
 const sample = component({
@@ -180,7 +180,7 @@ describe("invoking", () => {
       connectionInput: harness.connectionValue(testConnection),
       fooInput: "hello",
     });
-    expect(result?.result).toMatchObject({ fooInput: "hello" });
+    expect(result?.result).toBe("hello");
   });
 });
 
