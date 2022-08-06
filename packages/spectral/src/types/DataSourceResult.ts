@@ -1,12 +1,20 @@
-import {
-  ObjectSelection,
-  ObjectFieldMap,
-  InputFieldDefaultMap,
-  JSONForm,
-} from "./Inputs";
+import { ObjectSelection, ObjectFieldMap, JSONForm } from "./Inputs";
 
 /** The type of field that is appropriate for rendering the data that is the result of the data source perform function. */
-export type DataSourceResultFieldType = keyof typeof InputFieldDefaultMap;
+export type DataSourceResultFieldType =
+  | "string"
+  | "date"
+  | "timestamp"
+  | "picklist"
+  | "schedule"
+  | "code"
+  | "credential"
+  | "boolean"
+  | "number"
+  | "connection"
+  | "objectSelection"
+  | "objectFieldMap"
+  | "jsonForm";
 
 /** The actual data type of the data that is the result of the data source perform function. */
 export type DataSourceResultType =

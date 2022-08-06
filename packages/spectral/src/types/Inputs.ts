@@ -3,6 +3,7 @@ import { ConditionalExpression } from "./conditional-logic";
 export type ObjectSelection = {
   key: string;
   label?: string;
+  selected?: boolean;
   fields: {
     key: string;
     label?: string;
@@ -13,6 +14,12 @@ export type ObjectFieldMap = {
   key: string;
   label?: string;
   value: {
+    objectKey: string;
+    objectLabel?: string;
+    fieldKey: string;
+    fieldLabel?: string;
+  };
+  defaultValue?: {
     objectKey: string;
     objectLabel?: string;
     fieldKey: string;
