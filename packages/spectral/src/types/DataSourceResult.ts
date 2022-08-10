@@ -33,6 +33,8 @@ export type DataSourceResultType =
 export type DataSourceResult<TDataSourceResultType> = {
   /** The resulting data that is returned from the data source. */
   result: TDataSourceResultType;
-  /** Additional data that may be useful for out-of-band processing at a later time. */
+  /** Additional data that may be useful for out-of-band processing at a later time.
+   *  NOTE: This is only available when the Data Source is called as part of fetching
+   *  contents for a Configuration Wizard Page. */
   supplementalData?: { data: unknown; contentType: string };
 };

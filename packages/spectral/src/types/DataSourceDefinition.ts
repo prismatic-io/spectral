@@ -25,4 +25,6 @@ export interface DataSourceDefinition<
   inputs: TInputs;
   /** An example of the payload outputted by this Data Source. */
   examplePayload?: Awaited<ReturnType<this["perform"]>>;
+  /** Specifies the name of a Data Source in this Component which can provide additional details about the content for this Data Source, such as example values when selecting particular API object fields. */
+  detailDataSource?: string;
 }

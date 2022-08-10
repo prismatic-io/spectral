@@ -21,9 +21,7 @@ export type ObjectFieldMap = {
   };
   defaultValue?: {
     objectKey: string;
-    objectLabel?: string;
     fieldKey: string;
-    fieldLabel?: string;
   };
 }[];
 
