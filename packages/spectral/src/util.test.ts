@@ -622,7 +622,7 @@ describe("util", () => {
     });
   });
 
-  describe("objectselection", () => {
+  describe("objectSelection", () => {
     it("detects valid values", () => {
       const v = [{ key: "foo", fields: [{ key: "bar" }, { key: "biz" }] }];
       expect(util.types.isObjectSelection(v)).toStrictEqual(true);
@@ -657,7 +657,7 @@ describe("util", () => {
     });
   });
 
-  describe("objectfieldmap", () => {
+  describe("objectFieldMap", () => {
     it("detects valid values", () => {
       const v = [{ key: "foo", value: { objectKey: "bar", fieldKey: "biz" } }];
       expect(util.types.isObjectFieldMap(v)).toStrictEqual(true);
@@ -700,7 +700,7 @@ describe("util", () => {
     expect(() => util.types.toObjectFieldMap(v3)).toThrow(error);
   });
 
-  describe("jsonform", () => {
+  describe("jsonForm", () => {
     it("detects valid values", () => {
       const v = { schema: {}, uiSchema: {}, data: {} };
       expect(util.types.isJSONForm(v)).toStrictEqual(true);

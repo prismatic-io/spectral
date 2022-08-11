@@ -43,9 +43,9 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> =
     code: "",
     conditional: undefined,
     connection: undefined,
-    objectselection: undefined,
-    objectfieldmap: undefined,
-    jsonform: undefined,
+    objectSelection: undefined,
+    objectFieldMap: undefined,
+    jsonForm: undefined,
   };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -206,7 +206,7 @@ export interface Connection {
 /** Defines attributes of an ObjectSelectionInputField. */
 export interface ObjectSelectionInputField extends BaseInputField {
   /** Data type the InputField will collect. */
-  type: "objectselection";
+  type: "objectSelection";
   /** Collection type of the InputField */
   collection?: InputFieldCollection;
   /** Default value for this field. */
@@ -218,7 +218,7 @@ export interface ObjectSelectionInputField extends BaseInputField {
 /** Defines attributes of an ObjectFieldMapInputField. */
 export interface ObjectFieldMapInputField extends BaseInputField {
   /** Data type the InputField will collect. */
-  type: "objectfieldmap";
+  type: "objectFieldMap";
   /** Collection type of the InputField */
   collection?: InputFieldCollection;
   /** Default value for this field. */
@@ -227,10 +227,10 @@ export interface ObjectFieldMapInputField extends BaseInputField {
   clean?: InputCleanFunction<NonNullable<this["default"]>>;
 }
 
-/** Defines attributes of a JSONFOrmInputField. */
+/** Defines attributes of a JSONFormInputField. */
 export interface JSONFormInputField extends BaseInputField {
   /** Data type the InputField will collect. */
-  type: "jsonform";
+  type: "jsonForm";
   /** Collection type of the InputField */
   collection?: InputFieldCollection;
   /** Default value for this field. */
