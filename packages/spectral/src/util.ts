@@ -320,6 +320,29 @@ const toDate = (value: unknown): Date => {
 const isUrl = (value: string): boolean => isWebUri(value) !== undefined;
 
 /**
+ * This function checks if value is a valid picklist.
+ *
+ * - `util.types.isPicklist(["value", new String("value")])` will return `true`.
+ *
+ * @param value The variable to test.
+ * @returns This function returns true if `value` is a valid picklist.
+ */
+const isPicklist = (value: unknown): boolean =>
+  Array.isArray(value) && value.every(isString);
+
+/**
+ * This function checks if value is a valid schedule.
+ *
+ * - `util.types.isSchedule({value: "00 00 * * 2,3"})` will return `true`.
+ * - `util.types.isSchedule({value: "00 00 * * 2,3", scheduleType: "week", timeZone: "America/Chicago"})` will return `true`.
+ *
+ * @param value The variable to test.
+ * @returns This function returns true if `value` is a valid schedule.
+ */
+const isSchedule = (value: unknown): boolean =>
+  isObjectWithTruthyKeys(value, ["value"]);
+
+/**
  * This function helps to transform key-value lists to objects.
  * This is useful for transforming inputs that are key-value collections into objects.
  *
@@ -434,6 +457,15 @@ const formatJsonExample = (input: unknown): string =>
   ["```json", JSON.stringify(input, undefined, 2), "```"].join("\n");
 
 /**
+ * This function checks if value is a string.
+ * `util.types.isString("value")` and `util.types.isString(new String("value"))` return true.
+ * @param value The variable to test.
+ * @returns This function returns true or false, depending on if `value` is a string.
+ */
+const isString = (value: unknown): value is string =>
+  typeof value === "string" || value instanceof String;
+
+/**
  * This function converts a `value` to a string.
  * If `value` is undefined or an empty string, an optional `defaultValue` can be returned.
  *
@@ -511,6 +543,7 @@ export default {
     toBufferDataPayload,
     isData,
     toData,
+    isString,
     toString,
     keyValPairListToObject,
     isJSON,
@@ -522,6 +555,8 @@ export default {
     toObjectFieldMap,
     isJSONForm,
     toJSONForm,
+    isPicklist,
+    isSchedule,
   },
   docs: {
     formatJsonExample,
