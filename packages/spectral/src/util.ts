@@ -36,11 +36,11 @@ const isObjectWithTruthyKeys = (value: unknown, keys: string[]): boolean => {
 const isObjectSelection = (value: unknown): value is ObjectSelection => {
   if (Array.isArray(value)) {
     for (const selection of value) {
-      if (isObjectWithTruthyKeys(selection, ["key", "fields"])) {
+      if (isObjectWithTruthyKeys(selection, ["key"])) {
         const { fields } = selection as Record<string, unknown>;
         if (
-          !Array.isArray(fields) ||
-          fields.length === 0 ||
+          Array.isArray(fields) &&
+          fields.length > 0 &&
           !fields.every((field) => isObjectWithTruthyKeys(field, ["key"]))
         ) {
           return false;
