@@ -4,7 +4,7 @@ export type ObjectSelection = {
   key: string;
   label?: string;
   selected?: boolean;
-  fields: {
+  fields?: {
     key: string;
     label?: string;
   }[];
