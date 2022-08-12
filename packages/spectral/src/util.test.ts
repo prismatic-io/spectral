@@ -512,6 +512,16 @@ describe("util", () => {
   });
 
   describe("string", () => {
+    it("detects a string value", () => {
+      expect(util.types.isString("value")).toStrictEqual(true);
+      expect(util.types.isString(new String("value"))).toStrictEqual(true);
+    });
+
+    it("detects a non-string value", () => {
+      expect(util.types.isString(["value"])).toStrictEqual(false);
+      expect(util.types.isString(4)).toStrictEqual(false);
+    });
+
     it("coerces plain text buffer to string", () => {
       fc.assert(
         fc.property(bufferArbitrary, (v) => {
@@ -677,27 +687,27 @@ describe("util", () => {
       expect(util.types.isObjectFieldMap(v2)).toStrictEqual(false);
       expect(util.types.isObjectFieldMap(v3)).toStrictEqual(false);
     });
-  });
 
-  it("coerces valid values", () => {
-    const v = [{ key: "foo", value: { objectKey: "bar", fieldKey: "biz" } }];
-    expect(util.types.toObjectFieldMap(v)).toStrictEqual(v);
-  });
+    it("coerces valid values", () => {
+      const v = [{ key: "foo", value: { objectKey: "bar", fieldKey: "biz" } }];
+      expect(util.types.toObjectFieldMap(v)).toStrictEqual(v);
+    });
 
-  it("throws on invalid values", () => {
-    const v1 = [
-      { missingKey: "foo", value: { objectKey: "bar", fieldKey: "biz" } },
-    ];
-    const v2 = [
-      { key: "foo", value: { missingObjectKey: "bar", fieldKey: "biz" } },
-    ];
-    const v3 = [
-      { key: "foo", value: { objectKey: "bar", missingFieldKey: "biz" } },
-    ];
-    const error = "cannot be coerced to ObjectFieldMap";
-    expect(() => util.types.toObjectFieldMap(v1)).toThrow(error);
-    expect(() => util.types.toObjectFieldMap(v2)).toThrow(error);
-    expect(() => util.types.toObjectFieldMap(v3)).toThrow(error);
+    it("throws on invalid values", () => {
+      const v1 = [
+        { missingKey: "foo", value: { objectKey: "bar", fieldKey: "biz" } },
+      ];
+      const v2 = [
+        { key: "foo", value: { missingObjectKey: "bar", fieldKey: "biz" } },
+      ];
+      const v3 = [
+        { key: "foo", value: { objectKey: "bar", missingFieldKey: "biz" } },
+      ];
+      const error = "cannot be coerced to ObjectFieldMap";
+      expect(() => util.types.toObjectFieldMap(v1)).toThrow(error);
+      expect(() => util.types.toObjectFieldMap(v2)).toThrow(error);
+      expect(() => util.types.toObjectFieldMap(v3)).toThrow(error);
+    });
   });
 
   describe("jsonForm", () => {
@@ -707,27 +717,65 @@ describe("util", () => {
     });
 
     it("detects invalid values", () => {
-      const v1 = { missindSchema: {}, uiSchema: {}, data: {} };
+      const v1 = { missingSchema: {}, uiSchema: {}, data: {} };
       const v2 = { schema: {}, missingUiSchema: {}, data: {} };
       const v3 = { schema: {}, uiSchema: {}, missingData: {} };
-      expect(util.types.isObjectFieldMap(v1)).toStrictEqual(false);
-      expect(util.types.isObjectFieldMap(v2)).toStrictEqual(false);
-      expect(util.types.isObjectFieldMap(v3)).toStrictEqual(false);
+      expect(util.types.isJSONForm(v1)).toStrictEqual(false);
+      expect(util.types.isJSONForm(v2)).toStrictEqual(false);
+      expect(util.types.isJSONForm(v3)).toStrictEqual(false);
+    });
+
+    it("coerces valid values", () => {
+      const v = { schema: {}, uiSchema: {}, data: {} };
+      expect(util.types.toJSONForm(v)).toStrictEqual(v);
+    });
+
+    it("throws on invalid values", () => {
+      const v1 = { missingSchema: {}, uiSchema: {}, data: {} };
+      const v2 = { schema: {}, missingUiSchema: {}, data: {} };
+      const v3 = { schema: {}, uiSchema: {}, missingData: {} };
+      const error = "cannot be coerced to JSONForm";
+      expect(() => util.types.toJSONForm(v1)).toThrow(error);
+      expect(() => util.types.toJSONForm(v2)).toThrow(error);
+      expect(() => util.types.toJSONForm(v3)).toThrow(error);
     });
   });
 
-  it("coerces valid values", () => {
-    const v = { schema: {}, uiSchema: {}, data: {} };
-    expect(util.types.toJSONForm(v)).toStrictEqual(v);
+  describe("picklist", () => {
+    it("detects picklist value", () => {
+      const v1 = ["value", new String("value")];
+      const v2: unknown = [];
+      expect(util.types.isPicklist(v1)).toStrictEqual(true);
+      expect(util.types.isPicklist(v2)).toStrictEqual(true);
+    });
+
+    it("detects non-picklist value", () => {
+      const v1 = "value";
+      const v2 = ["value", 4];
+      expect(util.types.isPicklist(v1)).toStrictEqual(false);
+      expect(util.types.isPicklist(v2)).toStrictEqual(false);
+    });
   });
 
-  it("throws on invalid values", () => {
-    const v1 = { missindSchema: {}, uiSchema: {}, data: {} };
-    const v2 = { schema: {}, missingUiSchema: {}, data: {} };
-    const v3 = { schema: {}, uiSchema: {}, missingData: {} };
-    const error = "cannot be coerced to JSONForm";
-    expect(() => util.types.toJSONForm(v1)).toThrow(error);
-    expect(() => util.types.toJSONForm(v2)).toThrow(error);
-    expect(() => util.types.toJSONForm(v3)).toThrow(error);
+  describe("schedule", () => {
+    it("detects schedule value", () => {
+      const v1 = { value: "00 00 * * 2,3" };
+      const v2 = {
+        value: "00 00 * * 2,3",
+        timeZone: "America/Chicago",
+        scheduleType: "week",
+      };
+      expect(util.types.isSchedule(v1)).toStrictEqual(true);
+      expect(util.types.isSchedule(v2)).toStrictEqual(true);
+    });
+
+    it("detects non-schedule value", () => {
+      const v = {
+        missingValue: "00 00 * * 2,3",
+        timeZone: "America/Chicago",
+        scheduleType: "week",
+      };
+      expect(util.types.isSchedule(v)).toStrictEqual(false);
+    });
   });
 });
