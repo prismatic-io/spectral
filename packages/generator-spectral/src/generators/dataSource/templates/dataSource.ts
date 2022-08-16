@@ -28,7 +28,7 @@ export const <%= dataSource.key %> = dataSource({
     connection: myConnectionField,
     myInput: myInputField,
   },
-  resultFieldType: "string",
+  dataSourceType: "string",
 });
 
 export default { <%= dataSource.key %> };

@@ -1,34 +1,39 @@
 import { ConditionalExpression } from "./conditional-logic";
 
-export type ObjectSelection = {
+export type Element = {
   key: string;
   label?: string;
-  selected?: boolean;
-  fields?: {
-    key: string;
-    label?: string;
-  }[];
+};
+
+export type ObjectSelection = {
+  object: Element;
+  fields?: Element[];
+  defaultSelected?: boolean;
 }[];
 
 export type ObjectFieldMap = {
-  key: string;
-  label?: string;
-  value: {
-    objectKey: string;
-    objectLabel?: string;
-    fieldKey: string;
-    fieldLabel?: string;
-  };
-  defaultValue?: {
-    objectKey: string;
-    fieldKey: string;
-  };
-}[];
+  fields: {
+    field: Element;
+    mappedObject?: Element;
+    mappedField?: Element;
+    defaultObject?: Element;
+    defaultField?: Element;
+  }[];
+  options: {
+    object: Element;
+    fields: Element[];
+  }[];
+};
 
 export type JSONForm = {
   schema: Record<string, unknown>;
   uiSchema: Record<string, unknown>;
   data: unknown;
+};
+
+export type PickList = {
+  options?: string[];
+  selectedValue?: string;
 };
 
 /** InputField type enumeration. */

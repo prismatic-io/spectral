@@ -127,11 +127,11 @@ const fooDataSource = dataSource({
     label: "Foo",
     description: "Foo",
   },
-  inputs: { connectionInput, fooInput },
-  perform: async ({ fooInput }) => {
-    return Promise.resolve({ result: fooInput });
+  inputs: { connectionInput, cleanInput },
+  perform: async ({ cleanInput }) => {
+    return Promise.resolve({ result: cleanInput });
   },
-  resultFieldType: "string",
+  dataSourceType: "number",
 });
 
 const sample = component({
@@ -178,9 +178,9 @@ describe("invoking", () => {
   it("should allow invoking a datasource", async () => {
     const result = await harness.dataSource("fooDataSource", {
       connectionInput: harness.connectionValue(testConnection),
-      fooInput: "hello",
+      cleanInput: "123",
     });
-    expect(result?.result).toBe("hello");
+    expect(result?.result).toBe("123");
   });
 });
 

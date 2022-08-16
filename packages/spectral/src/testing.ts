@@ -25,6 +25,8 @@ import {
   DataSourceDefinition,
   ActionPerformReturn as InvokeActionPerformReturn,
   TriggerResult as InvokeTriggerResult,
+  DataSourceType,
+  DataSourceResult as InvokeDataSourceResult,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -189,11 +191,11 @@ export const invokeTrigger = async <
  */
 export const invokeDataSource = async <
   TInputs extends Inputs,
-  TReturn extends DataSourceResult
+  TDataSourceType extends DataSourceType
 >(
-  { perform }: DataSourceDefinition<TInputs, TReturn>,
+  { perform }: DataSourceDefinition<TInputs, TDataSourceType>,
   params: ActionInputParameters<TInputs>
-): Promise<TReturn> => {
+): Promise<InvokeDataSourceResult<TDataSourceType>> => {
   const result = await perform(params);
 
   return result;

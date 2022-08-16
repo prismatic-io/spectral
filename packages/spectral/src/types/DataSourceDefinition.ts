@@ -2,9 +2,7 @@ import {
   ActionDisplayDefinition,
   DataSourcePerformFunction,
   Inputs,
-  DataSourceResult,
-  DataSourceResultType,
-  DataSourceResultFieldType,
+  DataSourceType,
 } from ".";
 
 /**
@@ -13,14 +11,14 @@ import {
  */
 export interface DataSourceDefinition<
   TInputs extends Inputs,
-  TDataSourceResult extends DataSourceResult<DataSourceResultType>
+  TDataSourceType extends DataSourceType
 > {
   /** Defines how the Data Source is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
-  /** Function to perform when this Data Source is invoked. */
-  perform: DataSourcePerformFunction<TInputs, TDataSourceResult>;
-  /** Field type of the data produced by the data source perform function. */
-  resultFieldType: DataSourceResultFieldType;
+  /** Function to perform when this Data Source is invoked; fetches data from the data source. */
+  perform: DataSourcePerformFunction<TInputs, TDataSourceType>;
+  /** The type of data that this Data Source represents. */
+  dataSourceType: TDataSourceType;
   /** InputFields to present in the Prismatic interface for configuration of this Data Source. */
   inputs: TInputs;
   /** An example of the payload outputted by this Data Source. */
