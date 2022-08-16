@@ -31,11 +31,6 @@ export type JSONForm = {
   data: unknown;
 };
 
-export type PickList = {
-  options?: string[];
-  selectedValue?: string;
-};
-
 /** InputField type enumeration. */
 export type InputFieldType = InputFieldDefinition["type"];
 export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> =
