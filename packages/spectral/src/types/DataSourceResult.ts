@@ -1,38 +1,31 @@
-import { ObjectSelection, ObjectFieldMap, JSONForm } from "./Inputs";
+import { ConnectionDefinition } from "./ConnectionDefinition";
+import { ObjectSelection, ObjectFieldMap, JSONForm, PickList } from "./Inputs";
 
 /** The type of field that is appropriate for rendering the data that is the result of the data source perform function. */
-export type DataSourceResultFieldType =
-  | "string"
-  | "date"
-  | "timestamp"
-  | "picklist"
-  | "schedule"
-  | "code"
-  | "credential"
-  | "boolean"
-  | "number"
-  | "connection"
-  | "objectSelection"
-  | "objectFieldMap"
-  | "jsonForm";
+type DataSourceTypeMap = {
+  string: string;
+  date: string;
+  timestamp: string;
+  picklist: PickList;
+  schedule: { value: string };
+  code: string;
+  credential: unknown; // DEPRECATED
+  boolean: boolean;
+  number: number;
+  connection: ConnectionDefinition;
+  objectSelection: ObjectSelection;
+  objectFieldMap: ObjectFieldMap;
+  jsonForm: JSONForm;
+};
 
-/** The actual data type of the data that is the result of the data source perform function. */
-export type DataSourceResultType =
-  | ObjectSelection
-  | ObjectFieldMap
-  | JSONForm
-  | Buffer
-  | boolean
-  | number
-  | string
-  | Record<string, unknown>
-  | unknown[]
-  | unknown;
+export type DataSourceType = keyof DataSourceTypeMap;
+
+export type DataSourceResultType = DataSourceTypeMap[DataSourceType];
 
 /** Represents the result of a Data Source action. */
-export type DataSourceResult<TDataSourceResultType> = {
+export type DataSourceResult<TDataSourceType extends DataSourceType> = {
   /** The resulting data that is returned from the data source. */
-  result: TDataSourceResultType;
+  result: DataSourceTypeMap[TDataSourceType];
   /** Additional data that may be useful for out-of-band processing at a later time.
    *  NOTE: This is only available when the Data Source is called as part of fetching
    *  contents for a Configuration Wizard Page. */

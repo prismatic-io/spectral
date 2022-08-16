@@ -1,9 +1,10 @@
 import {
-  DataSourceResultType,
-  DataSourceResultFieldType,
   Instance,
   Customer,
+  DataSourceType,
+  DataSourceResultType,
 } from "../types";
+
 interface DisplayDefinition {
   label: string;
   description: string;
@@ -146,7 +147,7 @@ export interface DataSource {
   display: DisplayDefinition & { directions?: string; important?: boolean };
   inputs: Input[];
   perform: DataSourcePerformFunction;
-  resultFieldType: DataSourceResultFieldType;
+  dataSourceType: DataSourceType;
   examplePayload?: unknown;
 }
 

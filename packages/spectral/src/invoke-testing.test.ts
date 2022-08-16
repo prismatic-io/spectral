@@ -51,7 +51,7 @@ const basicDataSource = dataSource({
   display: { label: "Basic Data Source", description: "Basic Data Source" },
   inputs: {},
   perform: async () => Promise.resolve({ result: "Hello" }),
-  resultFieldType: "string",
+  dataSourceType: "string",
 });
 
 describe("createConnection", () => {
