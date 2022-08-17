@@ -77,13 +77,17 @@ const convertTrigger = (
   const convertedInputs = Object.entries(inputs).map(([key, value]) =>
     convertInput(key, value)
   );
+  const inputCleaners = Object.entries(inputs).reduce<InputCleaners>(
+    (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+    {}
+  );
 
   return {
     ...trigger,
     key: triggerKey,
     inputs: convertedInputs,
     perform: createPerform(perform, {
-      inputCleaners: {},
+      inputCleaners,
       errorHandler: hooks?.error,
     }),
   };
@@ -97,13 +101,17 @@ const convertDataSource = (
   const convertedInputs = Object.entries(inputs).map(([key, value]) =>
     convertInput(key, value)
   );
+  const inputCleaners = Object.entries(inputs).reduce<InputCleaners>(
+    (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+    {}
+  );
 
   return {
     ...dataSource,
     key: dataSourceKey,
     inputs: convertedInputs,
     perform: createPerform(perform, {
-      inputCleaners: {},
+      inputCleaners,
       errorHandler: hooks?.error,
     }),
   };
