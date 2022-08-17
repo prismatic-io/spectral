@@ -634,75 +634,51 @@ describe("util", () => {
 
   describe("objectSelection", () => {
     it("detects valid values", () => {
-      const v = [{ key: "foo", fields: [{ key: "bar" }, { key: "biz" }] }];
+      const v = [{ object: "foo" }];
       expect(util.types.isObjectSelection(v)).toStrictEqual(true);
     });
 
     it("detects invalid values", () => {
-      const v1 = [
-        { missingKey: "foo", fields: [{ key: "bar" }, { key: "biz" }] },
-      ];
-      const v2 = [
-        { key: "foo", fields: [{ missingKey: "bar" }, { key: "biz" }] },
-      ];
-      expect(util.types.isObjectSelection(v1)).toStrictEqual(false);
-      expect(util.types.isObjectSelection(v2)).toStrictEqual(false);
+      const v = [{ missingObjectKey: "foo" }];
+      expect(util.types.isObjectSelection(v)).toStrictEqual(false);
     });
 
     it("coerces valid values", () => {
-      const v = [{ key: "foo", fields: [{ key: "bar" }, { key: "biz" }] }];
+      const v = [{ object: "foo" }];
       expect(util.types.toObjectSelection(v)).toStrictEqual(v);
     });
 
     it("throws on invalid values", () => {
-      const v1 = [
-        { missingKey: "foo", fields: [{ key: "bar" }, { key: "biz" }] },
-      ];
-      const v2 = [
-        { key: "foo", fields: [{ missingKey: "bar" }, { key: "biz" }] },
-      ];
+      const v = [{ missingObjectKey: "foo" }];
       const error = "cannot be coerced to ObjectSelection";
-      expect(() => util.types.toObjectSelection(v1)).toThrow(error);
-      expect(() => util.types.toObjectSelection(v2)).toThrow(error);
+      expect(() => util.types.toObjectSelection(v)).toThrow(error);
     });
   });
 
   describe("objectFieldMap", () => {
     it("detects valid values", () => {
-      const v = [{ key: "foo", value: { objectKey: "bar", fieldKey: "biz" } }];
+      const v = { fields: [{ field: { key: "foo" } }] };
       expect(util.types.isObjectFieldMap(v)).toStrictEqual(true);
     });
 
     it("detects invalid values", () => {
-      const v1 = [
-        { missingKey: "foo", value: { objectKey: "bar", fieldKey: "biz" } },
-      ];
-      const v2 = [
-        { key: "foo", value: { missingObjectKey: "bar", fieldKey: "biz" } },
-      ];
-      const v3 = [
-        { key: "foo", value: { objectKey: "bar", missingFieldKey: "biz" } },
-      ];
+      const v1 = { missingFields: [{ field: { key: "foo" } }] };
+      const v2 = { fields: [{ missingField: { key: "foo" } }] };
+      const v3 = { fields: [{ field: { missingKey: "foo" } }] };
       expect(util.types.isObjectFieldMap(v1)).toStrictEqual(false);
       expect(util.types.isObjectFieldMap(v2)).toStrictEqual(false);
       expect(util.types.isObjectFieldMap(v3)).toStrictEqual(false);
     });
 
     it("coerces valid values", () => {
-      const v = [{ key: "foo", value: { objectKey: "bar", fieldKey: "biz" } }];
+      const v = { fields: [{ field: { key: "foo" } }] };
       expect(util.types.toObjectFieldMap(v)).toStrictEqual(v);
     });
 
     it("throws on invalid values", () => {
-      const v1 = [
-        { missingKey: "foo", value: { objectKey: "bar", fieldKey: "biz" } },
-      ];
-      const v2 = [
-        { key: "foo", value: { missingObjectKey: "bar", fieldKey: "biz" } },
-      ];
-      const v3 = [
-        { key: "foo", value: { objectKey: "bar", missingFieldKey: "biz" } },
-      ];
+      const v1 = { missingFields: [{ field: { key: "foo" } }] };
+      const v2 = { fields: [{ missingField: { key: "foo" } }] };
+      const v3 = { fields: [{ field: { missingKey: "foo" } }] };
       const error = "cannot be coerced to ObjectFieldMap";
       expect(() => util.types.toObjectFieldMap(v1)).toThrow(error);
       expect(() => util.types.toObjectFieldMap(v2)).toThrow(error);
