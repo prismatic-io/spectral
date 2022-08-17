@@ -636,22 +636,32 @@ describe("util", () => {
     it("detects valid values", () => {
       const v = [{ object: "foo" }];
       expect(util.types.isObjectSelection(v)).toStrictEqual(true);
+      expect(util.types.isObjectSelection(JSON.stringify(v))).toStrictEqual(
+        true
+      );
     });
 
     it("detects invalid values", () => {
       const v = [{ missingObjectKey: "foo" }];
       expect(util.types.isObjectSelection(v)).toStrictEqual(false);
+      expect(util.types.isObjectSelection(JSON.stringify(v))).toStrictEqual(
+        false
+      );
     });
 
     it("coerces valid values", () => {
       const v = [{ object: "foo" }];
       expect(util.types.toObjectSelection(v)).toStrictEqual(v);
+      expect(util.types.toObjectSelection(JSON.stringify(v))).toStrictEqual(v);
     });
 
     it("throws on invalid values", () => {
       const v = [{ missingObjectKey: "foo" }];
       const error = "cannot be coerced to ObjectSelection";
       expect(() => util.types.toObjectSelection(v)).toThrow(error);
+      expect(() => util.types.toObjectSelection(JSON.stringify(v))).toThrow(
+        error
+      );
     });
   });
 
@@ -659,6 +669,9 @@ describe("util", () => {
     it("detects valid values", () => {
       const v = { fields: [{ field: { key: "foo" } }] };
       expect(util.types.isObjectFieldMap(v)).toStrictEqual(true);
+      expect(util.types.isObjectFieldMap(JSON.stringify(v))).toStrictEqual(
+        true
+      );
     });
 
     it("detects invalid values", () => {
@@ -666,13 +679,23 @@ describe("util", () => {
       const v2 = { fields: [{ missingField: { key: "foo" } }] };
       const v3 = { fields: [{ field: { missingKey: "foo" } }] };
       expect(util.types.isObjectFieldMap(v1)).toStrictEqual(false);
+      expect(util.types.isObjectFieldMap(JSON.stringify(v1))).toStrictEqual(
+        false
+      );
       expect(util.types.isObjectFieldMap(v2)).toStrictEqual(false);
+      expect(util.types.isObjectFieldMap(JSON.stringify(v2))).toStrictEqual(
+        false
+      );
       expect(util.types.isObjectFieldMap(v3)).toStrictEqual(false);
+      expect(util.types.isObjectFieldMap(JSON.stringify(v3))).toStrictEqual(
+        false
+      );
     });
 
     it("coerces valid values", () => {
       const v = { fields: [{ field: { key: "foo" } }] };
       expect(util.types.toObjectFieldMap(v)).toStrictEqual(v);
+      expect(util.types.toObjectFieldMap(JSON.stringify(v))).toStrictEqual(v);
     });
 
     it("throws on invalid values", () => {
@@ -681,8 +704,17 @@ describe("util", () => {
       const v3 = { fields: [{ field: { missingKey: "foo" } }] };
       const error = "cannot be coerced to ObjectFieldMap";
       expect(() => util.types.toObjectFieldMap(v1)).toThrow(error);
+      expect(() => util.types.toObjectFieldMap(JSON.stringify(v1))).toThrow(
+        error
+      );
       expect(() => util.types.toObjectFieldMap(v2)).toThrow(error);
+      expect(() => util.types.toObjectFieldMap(JSON.stringify(v2))).toThrow(
+        error
+      );
       expect(() => util.types.toObjectFieldMap(v3)).toThrow(error);
+      expect(() => util.types.toObjectFieldMap(JSON.stringify(v3))).toThrow(
+        error
+      );
     });
   });
 
@@ -690,6 +722,7 @@ describe("util", () => {
     it("detects valid values", () => {
       const v = { schema: {}, uiSchema: {}, data: {} };
       expect(util.types.isJSONForm(v)).toStrictEqual(true);
+      expect(util.types.isJSONForm(JSON.stringify(v))).toStrictEqual(true);
     });
 
     it("detects invalid values", () => {
@@ -697,13 +730,17 @@ describe("util", () => {
       const v2 = { schema: {}, missingUiSchema: {}, data: {} };
       const v3 = { schema: {}, uiSchema: {}, missingData: {} };
       expect(util.types.isJSONForm(v1)).toStrictEqual(false);
+      expect(util.types.isJSONForm(JSON.stringify(v1))).toStrictEqual(false);
       expect(util.types.isJSONForm(v2)).toStrictEqual(false);
+      expect(util.types.isJSONForm(JSON.stringify(v2))).toStrictEqual(false);
       expect(util.types.isJSONForm(v3)).toStrictEqual(false);
+      expect(util.types.isJSONForm(JSON.stringify(v3))).toStrictEqual(false);
     });
 
     it("coerces valid values", () => {
       const v = { schema: {}, uiSchema: {}, data: {} };
       expect(util.types.toJSONForm(v)).toStrictEqual(v);
+      expect(util.types.toJSONForm(JSON.stringify(v))).toStrictEqual(v);
     });
 
     it("throws on invalid values", () => {
@@ -712,8 +749,11 @@ describe("util", () => {
       const v3 = { schema: {}, uiSchema: {}, missingData: {} };
       const error = "cannot be coerced to JSONForm";
       expect(() => util.types.toJSONForm(v1)).toThrow(error);
+      expect(() => util.types.toJSONForm(JSON.stringify(v1))).toThrow(error);
       expect(() => util.types.toJSONForm(v2)).toThrow(error);
+      expect(() => util.types.toJSONForm(JSON.stringify(v2))).toThrow(error);
       expect(() => util.types.toJSONForm(v3)).toThrow(error);
+      expect(() => util.types.toJSONForm(JSON.stringify(v3))).toThrow(error);
     });
   });
 

@@ -34,6 +34,10 @@ const isObjectWithTruthyKeys = (value: unknown, keys: string[]): boolean => {
  * @returns This function returns true if the type of `value` is an ObjectSelection, or false otherwise.
  */
 const isObjectSelection = (value: unknown): value is ObjectSelection => {
+  if (typeof value === "string" && isJSON(value)) {
+    return isObjectSelection(JSON.parse(value));
+  }
+
   return (
     Array.isArray(value) &&
     value.every((item) => isObjectWithTruthyKeys(item, ["object"]))
@@ -46,11 +50,19 @@ const isObjectSelection = (value: unknown): value is ObjectSelection => {
  * @returns This function returns the the value as an ObjectSelection if possible.
  */
 const toObjectSelection = (value: unknown): ObjectSelection => {
+  if (typeof value === "string" && isJSON(value)) {
+    return toObjectSelection(JSON.parse(value));
+  }
+
   if (isObjectSelection(value)) {
     return value;
   }
 
-  throw new Error(`Value '${value}' cannot be coerced to ObjectSelection.`);
+  throw new Error(
+    `Value '${
+      typeof value === "string" ? value : JSON.stringify(value)
+    }' cannot be coerced to ObjectSelection.`
+  );
 };
 
 /**
@@ -58,6 +70,10 @@ const toObjectSelection = (value: unknown): ObjectSelection => {
  * @returns This function returns true if the type of `value` is an ObjectFieldMap, or false otherwise.
  */
 const isObjectFieldMap = (value: unknown): value is ObjectFieldMap => {
+  if (typeof value === "string" && isJSON(value)) {
+    return isObjectFieldMap(JSON.parse(value));
+  }
+
   if (Boolean(value) && typeof value === "object") {
     const { fields } = value as Record<string, unknown>;
     return (
@@ -81,11 +97,19 @@ const isObjectFieldMap = (value: unknown): value is ObjectFieldMap => {
  * @returns This function returns the the value as an ObjectFieldMap if possible.
  */
 const toObjectFieldMap = (value: unknown): ObjectFieldMap => {
+  if (typeof value === "string" && isJSON(value)) {
+    return toObjectFieldMap(JSON.parse(value));
+  }
+
   if (isObjectFieldMap(value)) {
     return value;
   }
 
-  throw new Error(`Value '${value}' cannot be coerced to ObjectFieldMap.`);
+  throw new Error(
+    `Value '${
+      typeof value === "string" ? value : JSON.stringify(value)
+    }' cannot be coerced to ObjectFieldMap.`
+  );
 };
 
 /**
@@ -93,6 +117,10 @@ const toObjectFieldMap = (value: unknown): ObjectFieldMap => {
  * @returns This function returns true if the type of `value` is a JSONForm, or false otherwise.
  */
 const isJSONForm = (value: unknown): value is JSONForm => {
+  if (typeof value === "string" && isJSON(value)) {
+    return isJSONForm(JSON.parse(value));
+  }
+
   return isObjectWithTruthyKeys(value, ["schema", "uiSchema", "data"]);
 };
 
@@ -102,11 +130,19 @@ const isJSONForm = (value: unknown): value is JSONForm => {
  * @returns This function returns the the value as a JSONForm if possible.
  */
 const toJSONForm = (value: unknown): JSONForm => {
+  if (typeof value === "string" && isJSON(value)) {
+    return toJSONForm(JSON.parse(value));
+  }
+
   if (isJSONForm(value)) {
     return value;
   }
 
-  throw new Error(`Value '${value}' cannot be coerced to JSONForm.`);
+  throw new Error(
+    `Value '${
+      typeof value === "string" ? value : JSON.stringify(value)
+    }' cannot be coerced to JSONForm.`
+  );
 };
 
 /**
