@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/generator-spectral",
-  "version": "2.0.12-pre",
+  "version": "2.0.13-pre",
   "description": "Yeoman generator for scaffolding out Prismatic components",
   "keywords": [
     "prismatic",
@@ -37,7 +37,7 @@
     "generators"
   ],
   "dependencies": {
-    "@prismatic-io/spectral": "7.0.11-pre",
+    "@prismatic-io/spectral": "7.0.12-pre",
     "yeoman-generator": "5.6.1",
     "lodash": "4.17.21",
     "@apidevtools/swagger-parser": "10.1.0",

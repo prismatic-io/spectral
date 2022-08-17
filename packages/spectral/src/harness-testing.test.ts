@@ -122,10 +122,35 @@ const fooTrigger = trigger({
   synchronousResponseSupport: "invalid",
 });
 
+const cleanTrigger = trigger({
+  display: {
+    label: "Clean",
+    description: "Clean",
+  },
+  inputs: { connectionInput, cleanInput },
+  perform: async (context, payload, params) => {
+    return Promise.resolve({ payload, params });
+  },
+  scheduleSupport: "invalid",
+  synchronousResponseSupport: "invalid",
+});
+
 const fooDataSource = dataSource({
   display: {
     label: "Foo",
     description: "Foo",
+  },
+  inputs: { connectionInput, fooInput },
+  perform: async ({ fooInput }) => {
+    return Promise.resolve({ result: `${fooInput}` });
+  },
+  dataSourceType: "string",
+});
+
+const cleanDataSource = dataSource({
+  display: {
+    label: "Clean",
+    description: "clean",
   },
   inputs: { connectionInput, cleanInput },
   perform: async ({ cleanInput }) => {
@@ -141,9 +166,9 @@ const sample = component({
     description: "Sample",
     iconPath: "icon.png",
   },
-  triggers: { fooTrigger },
+  triggers: { fooTrigger, cleanTrigger },
   actions: { fooAction, cleanAction },
-  dataSources: { fooDataSource },
+  dataSources: { fooDataSource, cleanDataSource },
   connections: [testConnection],
 });
 
@@ -178,19 +203,38 @@ describe("invoking", () => {
   it("should allow invoking a datasource", async () => {
     const result = await harness.dataSource("fooDataSource", {
       connectionInput: harness.connectionValue(testConnection),
-      cleanInput: "123",
+      fooInput: "hello",
     });
-    expect(result?.result).toBe("123");
+    expect(result?.result).toBe("hello");
   });
 });
 
 describe("clean inputs", () => {
   const harness = createHarness(sample);
 
-  it("should clean inputs", async () => {
+  it("should clean action inputs", async () => {
     const result = await harness.action("cleanAction", {
       cleanInput: "200",
     });
     expect(result?.data).toMatchObject({ cleanInput: 200 });
+  });
+
+  it("should clean trigger inputs", async () => {
+    const result = await harness.trigger("cleanTrigger", undefined, {
+      connectionInput: harness.connectionValue(testConnection),
+      cleanInput: "200",
+    });
+    expect(result?.payload).toBeDefined();
+    expect(result).toMatchObject({
+      params: { connectionInput: connectionValue, cleanInput: 200 },
+    });
+  });
+
+  it("should clean data source inputs", async () => {
+    const result = await harness.dataSource("cleanDataSource", {
+      connectionInput: harness.connectionValue(testConnection),
+      cleanInput: "200",
+    });
+    expect(result?.result).toBe(200);
   });
 });
