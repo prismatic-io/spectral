@@ -34,26 +34,10 @@ const isObjectWithTruthyKeys = (value: unknown, keys: string[]): boolean => {
  * @returns This function returns true if the type of `value` is an ObjectSelection, or false otherwise.
  */
 const isObjectSelection = (value: unknown): value is ObjectSelection => {
-  if (Array.isArray(value)) {
-    for (const selection of value) {
-      if (isObjectWithTruthyKeys(selection, ["key"])) {
-        const { fields } = selection as Record<string, unknown>;
-        if (
-          Array.isArray(fields) &&
-          fields.length > 0 &&
-          !fields.every((field) => isObjectWithTruthyKeys(field, ["key"]))
-        ) {
-          return false;
-        }
-      } else {
-        return false;
-      }
-    }
-  } else {
-    return false;
-  }
-
-  return true;
+  return (
+    Array.isArray(value) &&
+    value.every((item) => isObjectWithTruthyKeys(item, ["object"]))
+  );
 };
 
 /**
@@ -74,22 +58,21 @@ const toObjectSelection = (value: unknown): ObjectSelection => {
  * @returns This function returns true if the type of `value` is an ObjectFieldMap, or false otherwise.
  */
 const isObjectFieldMap = (value: unknown): value is ObjectFieldMap => {
-  if (Array.isArray(value)) {
-    for (const fieldMap of value) {
-      if (isObjectWithTruthyKeys(fieldMap, ["key", "value"])) {
-        const { value: val } = fieldMap as Record<string, unknown>;
-        if (!isObjectWithTruthyKeys(val, ["objectKey", "fieldKey"])) {
-          return false;
-        }
-      } else {
-        return false;
-      }
-    }
-  } else {
-    return false;
+  if (Boolean(value) && typeof value === "object") {
+    const { fields } = value as Record<string, unknown>;
+    return (
+      Array.isArray(fields) &&
+      fields.every(
+        (item) =>
+          isObjectWithTruthyKeys(item, ["field"]) &&
+          isObjectWithTruthyKeys((item as Record<string, unknown>)?.field, [
+            "key",
+          ])
+      )
+    );
   }
 
-  return true;
+  return false;
 };
 
 /**

@@ -19,7 +19,7 @@ export type ObjectFieldMap = {
     defaultObject?: Element;
     defaultField?: Element;
   }[];
-  options: {
+  options?: {
     object: Element;
     fields: Element[];
   }[];
