@@ -90,6 +90,23 @@ const cleanInput = input({
   clean: (value) => util.types.toNumber(value),
 });
 
+const DEFAULTED_VALUE = 5;
+const defaultedInput = input({
+  label: "Defaulted",
+  type: "string",
+  required: false,
+  default: DEFAULTED_VALUE,
+});
+
+const defaultedCleanInput = input({
+  label: "Defaulted Clean",
+  type: "string",
+  required: false,
+  default: DEFAULTED_VALUE,
+  clean: (value) =>
+    util.types.isInt(value) ? util.types.toInt(value) : DEFAULTED_VALUE,
+});
+
 const fooAction = action({
   display: {
     label: "Foo",
@@ -104,6 +121,17 @@ const fooAction = action({
 const cleanAction = action({
   display: { label: "Clean", description: "Clean" },
   inputs: { cleanInput },
+  perform: async (context, params) => {
+    return Promise.resolve({ data: params });
+  },
+});
+
+const cleanDefaultedAction = action({
+  display: {
+    label: "Clean Defaulted Action",
+    description: "Clean Defaulted Action",
+  },
+  inputs: { defaultedInput, defaultedCleanInput },
   perform: async (context, params) => {
     return Promise.resolve({ data: params });
   },
@@ -167,7 +195,7 @@ const sample = component({
     iconPath: "icon.png",
   },
   triggers: { fooTrigger, cleanTrigger },
-  actions: { fooAction, cleanAction },
+  actions: { fooAction, cleanAction, cleanDefaultedAction },
   dataSources: { fooDataSource, cleanDataSource },
   connections: [testConnection],
 });
@@ -229,12 +257,27 @@ describe("clean inputs", () => {
       params: { connectionInput: connectionValue, cleanInput: 200 },
     });
   });
+});
 
-  it("should clean data source inputs", async () => {
-    const result = await harness.dataSource("cleanDataSource", {
-      connectionInput: harness.connectionValue(testConnection),
-      cleanInput: "200",
+describe("defaulting inputs", () => {
+  const harness = createHarness(sample);
+
+  it("should support defaulted inputs", async () => {
+    const result = await harness.action("cleanDefaultedAction");
+    expect(result?.data).toMatchObject({
+      defaultedInput: DEFAULTED_VALUE.toString(),
+      defaultedCleanInput: DEFAULTED_VALUE,
     });
-    expect(result?.result).toBe(200);
+  });
+
+  it("should support defaulted cleaned inputs", async () => {
+    const expected = 1000;
+    const result = await harness.action("cleanDefaultedAction", {
+      defaultedCleanInput: expected,
+    });
+    expect(result?.data).toMatchObject({
+      defaultedInput: DEFAULTED_VALUE.toString(),
+      defaultedCleanInput: expected,
+    });
   });
 });
