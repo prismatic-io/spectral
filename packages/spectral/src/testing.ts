@@ -15,6 +15,7 @@ import {
   ActionContext,
   ActionPerformReturn,
   DataSourceResult,
+  Input,
 } from "./serverTypes";
 import {
   ConnectionDefinition,
@@ -208,6 +209,24 @@ export class ComponentTestHarness<TComponent extends Component> {
     this.component = component;
   }
 
+  private buildContext(context?: Partial<ActionContext>): ActionContext {
+    return { ...baseContext, ...context };
+  }
+
+  private buildParams(
+    inputs: Input[],
+    params?: Record<string, unknown>
+  ): Record<string, unknown> {
+    const defaults = inputs.reduce<Record<string, string>>(
+      (result, { key, default: defaultValue }) => ({
+        ...result,
+        [key]: `${defaultValue ?? ""}`,
+      }),
+      {}
+    );
+    return { ...defaults, ...params };
+  }
+
   public connectionValue({ key }: ConnectionDefinition): ConnectionValue {
     const { PRISMATIC_CONNECTION_VALUE: value } = process.env;
     if (!value) {
@@ -226,12 +245,11 @@ export class ComponentTestHarness<TComponent extends Component> {
     params?: Record<string, unknown>,
     context?: Partial<ActionContext>
   ): Promise<TriggerResult> {
-    const realizedContext = { ...baseContext, ...context };
     const trigger = this.component.triggers[key];
     return trigger.perform(
-      realizedContext,
+      this.buildContext(context),
       { ...defaultTriggerPayload(), ...payload },
-      { ...params }
+      this.buildParams(trigger.inputs, params)
     );
   }
 
@@ -240,9 +258,11 @@ export class ComponentTestHarness<TComponent extends Component> {
     params?: Record<string, unknown>,
     context?: Partial<ActionContext>
   ): Promise<ActionPerformReturn> {
-    const realizedContext = { ...baseContext, ...context };
     const action = this.component.actions[key];
-    return action.perform(realizedContext, { ...params });
+    return action.perform(
+      this.buildContext(context),
+      this.buildParams(action.inputs, params)
+    );
   }
 
   public async dataSource(
@@ -250,7 +270,7 @@ export class ComponentTestHarness<TComponent extends Component> {
     params?: Record<string, unknown>
   ): Promise<DataSourceResult> {
     const dataSource = this.component.dataSources[key];
-    return dataSource.perform({ ...params });
+    return dataSource.perform(this.buildParams(dataSource.inputs, params));
   }
 }
 
