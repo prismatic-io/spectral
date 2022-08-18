@@ -133,12 +133,19 @@ export interface Trigger {
   isCommonTrigger?: boolean;
 }
 
+export interface DataSourceContext {
+  logger: ActionLogger;
+  customer: Customer;
+  instance: Instance;
+}
+
 export type DataSourceResult = {
   result: DataSourceResultType;
   supplementalData?: { data: unknown; contentType: string };
 };
 
 export type DataSourcePerformFunction = (
+  context: DataSourceContext,
   params: Record<string, unknown>
 ) => Promise<DataSourceResult>;
 

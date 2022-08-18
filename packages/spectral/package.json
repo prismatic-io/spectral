@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "7.0.13-pre",
+  "version": "7.0.14-pre",
   "description": "Utility library for building Prismatic components",
   "keywords": [
     "prismatic"
