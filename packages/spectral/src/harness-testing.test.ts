@@ -169,7 +169,7 @@ const fooDataSource = dataSource({
     description: "Foo",
   },
   inputs: { connectionInput, fooInput },
-  perform: async ({ fooInput }) => {
+  perform: async (context, { fooInput }) => {
     return Promise.resolve({ result: `${fooInput}` });
   },
   dataSourceType: "string",
@@ -181,7 +181,7 @@ const cleanDataSource = dataSource({
     description: "clean",
   },
   inputs: { connectionInput, cleanInput },
-  perform: async ({ cleanInput }) => {
+  perform: async (context, { cleanInput }) => {
     return Promise.resolve({ result: cleanInput });
   },
   dataSourceType: "number",

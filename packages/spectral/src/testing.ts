@@ -16,6 +16,7 @@ import {
   ActionPerformReturn,
   DataSourceResult,
   Input,
+  DataSourceContext,
 } from "./serverTypes";
 import {
   ConnectionDefinition,
@@ -54,7 +55,7 @@ export const loggerMock = (): ActionLogger => ({
   error: spyOn(console, "error") as unknown as ActionLoggerFunction,
 });
 
-const baseContext = {
+const baseActionContext: ActionContext = {
   logger: loggerMock(),
   instanceState: {},
   crossFlowState: {},
@@ -102,7 +103,7 @@ export const invoke = async <
   params: ActionInputParameters<TInputs>,
   context?: Partial<ActionContext>
 ): Promise<InvokeReturn<TReturn>> => {
-  const realizedContext = { ...baseContext, ...context };
+  const realizedContext = { ...baseActionContext, ...context };
   const result = await perform(realizedContext, params);
 
   return {
@@ -165,7 +166,7 @@ export const invokeTrigger = async <
   payload?: TriggerPayload,
   params?: ActionInputParameters<TInputs>
 ): Promise<InvokeReturn<TResult>> => {
-  const realizedContext = { ...baseContext, ...context };
+  const realizedContext = { ...baseActionContext, ...context };
   const realizedPayload = {
     ...defaultTriggerPayload(),
     ...payload,
@@ -185,6 +186,19 @@ export const invokeTrigger = async <
   };
 };
 
+const baseDataSourceContext: DataSourceContext = {
+  logger: loggerMock(),
+  customer: {
+    id: "customerId",
+    name: "Customer 1",
+    externalId: "1234",
+  },
+  instance: {
+    id: "instanceId",
+    name: "Instance 1",
+  },
+};
+
 /**
  * Invokes specified DataSourceDefinition perform function using supplied params.
  * Accepts a generic type matching DataSourceResult as a convenience to avoid extra
@@ -195,9 +209,11 @@ export const invokeDataSource = async <
   TDataSourceType extends DataSourceType
 >(
   { perform }: DataSourceDefinition<TInputs, TDataSourceType>,
-  params: ActionInputParameters<TInputs>
+  params: ActionInputParameters<TInputs>,
+  context?: Partial<DataSourceContext>
 ): Promise<InvokeDataSourceResult<TDataSourceType>> => {
-  const result = await perform(params);
+  const realizedContext = { ...baseDataSourceContext, ...context };
+  const result = await perform(realizedContext, params);
 
   return result;
 };
@@ -209,7 +225,10 @@ export class ComponentTestHarness<TComponent extends Component> {
     this.component = component;
   }
 
-  private buildContext(context?: Partial<ActionContext>): ActionContext {
+  private buildContext<TContext>(
+    baseContext: TContext,
+    context?: Partial<TContext>
+  ): TContext {
     return { ...baseContext, ...context };
   }
 
@@ -247,7 +266,7 @@ export class ComponentTestHarness<TComponent extends Component> {
   ): Promise<TriggerResult> {
     const trigger = this.component.triggers[key];
     return trigger.perform(
-      this.buildContext(context),
+      this.buildContext<ActionContext>(baseActionContext, context),
       { ...defaultTriggerPayload(), ...payload },
       this.buildParams(trigger.inputs, params)
     );
@@ -260,17 +279,21 @@ export class ComponentTestHarness<TComponent extends Component> {
   ): Promise<ActionPerformReturn> {
     const action = this.component.actions[key];
     return action.perform(
-      this.buildContext(context),
+      this.buildContext<ActionContext>(baseActionContext, context),
       this.buildParams(action.inputs, params)
     );
   }
 
   public async dataSource(
     key: string,
-    params?: Record<string, unknown>
+    params?: Record<string, unknown>,
+    context?: Partial<DataSourceContext>
   ): Promise<DataSourceResult> {
     const dataSource = this.component.dataSources[key];
-    return dataSource.perform(this.buildParams(dataSource.inputs, params));
+    return dataSource.perform(
+      this.buildContext<DataSourceContext>(baseDataSourceContext, context),
+      this.buildParams(dataSource.inputs, params)
+    );
   }
 }
 
