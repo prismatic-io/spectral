@@ -112,6 +112,52 @@ export const buildConnections = (
       return [connection];
     }
 
+    if ("clientCredentials" in scheme.flows) {
+      const clientCredsFlow = scheme.flows.clientCredentials;
+      const usesScopes =
+        clientCredsFlow?.scopes &&
+        Object.keys(clientCredsFlow.scopes).length > 0;
+      const connection = stripUndefined<Connection>({
+        orderPriority: 10,
+        key: camelCase(key),
+        label: "OAuth 2.0 Client Credentials",
+        oauth2Type: OAuth2Type.ClientCredentials,
+        inputs: {
+          tokenUrl: stripUndefined<ConnectionInput>({
+            label: "Token URL",
+            type: "string",
+            required: true,
+            shown: !clientCredsFlow?.tokenUrl,
+            default: clientCredsFlow?.tokenUrl,
+            comments: "Token URL",
+          }),
+          scopes: stripUndefined<ConnectionInput>({
+            label: "Scopes",
+            type: "string",
+            required: true,
+            shown: usesScopes,
+            default: usesScopes ? undefined : "",
+            comments: "Space-delimited scopes",
+          }),
+          clientId: {
+            label: "Client ID",
+            type: "string",
+            required: true,
+            shown: true,
+            comments: "Client identifier",
+          },
+          clientSecret: {
+            label: "Client Secret",
+            type: "password",
+            required: true,
+            shown: true,
+            comments: "Client secret",
+          },
+        },
+      });
+      return [connection];
+    }
+
     throw new Error("Did not find supported OAuth 2.0 flow.");
   }
 
