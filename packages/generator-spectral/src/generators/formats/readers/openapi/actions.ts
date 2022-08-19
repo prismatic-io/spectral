@@ -78,9 +78,7 @@ const buildAction = (
     | OpenAPIV3_1.ParameterObject
   )[] = []
 ): Action => {
-  if (!operation.operationId) {
-    throw new Error(`Failed to find operationId for ${path} ${verb}`);
-  }
+  const operationName = camelCase(operation.operationId || `${verb} ${path}`);
 
   const { pathInputs, queryInputs, bodyInputs } = getInputs(
     operation,
@@ -95,10 +93,10 @@ const buildAction = (
   );
 
   const action = stripUndefined<Action>({
-    key: operation.operationId,
+    key: operationName,
     groupTag,
     display: {
-      label: startCase(operation.operationId),
+      label: startCase(operationName),
       description:
         operation.summary ?? operation.description ?? "TODO: Description",
     },
