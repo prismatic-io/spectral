@@ -25,7 +25,14 @@ export const createDescription = (text?: string): string => {
   const strippedText = stripTags(text);
   const [nonEmptyLine] = strippedText.split("\n").filter((t) => t.trim() != "");
   const [fragment] = nonEmptyLine.split(/[.!?]/g);
-  return fragment;
+  return escapeText(fragment);
+};
+
+export const escapeText = (text?: string): string => {
+  if (!text) {
+    return "";
+  }
+  return text.replace(/"/g, '\\"');
 };
 
 export type GeneratedFunction = string | WriterFunction;

@@ -9,7 +9,7 @@ import {
   VariableDeclarationKind,
   VariableDeclarationStructure,
 } from "ts-morph";
-import { Connection, ConnectionInput } from "../utils";
+import { Connection, ConnectionInput, escapeText } from "../utils";
 import path from "path";
 
 const writeInput = (
@@ -41,7 +41,10 @@ const writeInput = (
       `default: "${defaultValue}",`
     )
     .conditionalWriteLine(example !== undefined, `example: "${example}",`)
-    .conditionalWriteLine(comments !== undefined, `comments: "${comments}",`)
+    .conditionalWriteLine(
+      comments !== undefined,
+      `comments: "${escapeText(comments)}",`
+    )
     .writeLine("},");
 
 const buildConnectionDeclaration = ({
@@ -67,7 +70,7 @@ const buildConnectionDeclaration = ({
         .writeLine(`label: "${label}",`)
         .conditionalWriteLine(
           comments !== undefined,
-          `comments: "${comments}",`
+          `comments: "${escapeText(comments)}",`
         )
         .conditionalWriteLine(
           iconPath !== undefined,

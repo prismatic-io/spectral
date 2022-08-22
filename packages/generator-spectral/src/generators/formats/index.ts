@@ -1,4 +1,4 @@
-import path from "path";
+import path, { extname } from "path";
 import { camelCase } from "lodash";
 import Generator from "yeoman-generator";
 import { read } from "./readers/openapi";
@@ -62,6 +62,7 @@ class FormatsGenerator extends Generator {
   async writing() {
     this.renderTemplate("tsconfig.json");
     this.renderTemplate("webpack.config.js");
+    this.renderTemplate("jest.config.js");
     this.renderTemplate(["assets", "icon.png"]);
 
     this.packageJson.merge({
@@ -72,7 +73,7 @@ class FormatsGenerator extends Generator {
       version: "0.0.1",
       scripts: {
         build: "webpack",
-        test: "jest",
+        test: "jest --runInBand",
         lint: "eslint --quiet --ext .ts .",
         "lint-fix": "eslint --quiet --ext .ts --fix .",
         format: "npm run lint-fix && prettier --loglevel error --write .",
@@ -100,6 +101,11 @@ class FormatsGenerator extends Generator {
 
     const result = await read(this.values.openapi);
     await write(this.values.key, this.values.public, result);
+
+    this.fs.copy(
+      this.values.openapi,
+      `${this.values.key}-openapi-spec${extname(this.values.openapi)}`
+    );
 
     if (this.values.icon) {
       this.fs.copy(this.values.icon, path.join("assets", "icon.png"));
