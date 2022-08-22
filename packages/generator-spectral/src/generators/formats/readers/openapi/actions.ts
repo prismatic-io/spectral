@@ -42,8 +42,7 @@ const buildPerformFunction = (
     writer
       .writeLine(`async (context, { connection, ${destructureNames} }) => {`)
       .blankLineIfLastNot()
-      // FIXME: Apparently type inference doesn't work with inlined inputs!?
-      .writeLine("const client = createClient(connection as Connection);")
+      .writeLine("const client = createClient(connection);")
       .write("const {data} = await client.")
       .write(verb)
       .write("(`")

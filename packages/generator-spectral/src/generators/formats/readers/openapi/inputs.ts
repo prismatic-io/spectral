@@ -19,25 +19,39 @@ const keywordReplacements: Record<string, string> = {
 const safeKey = (key: string): string =>
   keywordReplacements[key] ?? camelCase(key);
 
-const toInputType: { [x: string]: { type: InputFieldType; cleanFn: string } } =
-  {
-    string: {
-      type: "string",
-      cleanFn: "toString",
-    },
-    integer: {
-      type: "string",
-      cleanFn: "toNumber",
-    },
-    number: {
-      type: "string",
-      cleanFn: "toNumber",
-    },
-    boolean: {
-      type: "boolean",
-      cleanFn: "toBool",
-    },
+const toInputType: {
+  [x: string]: {
+    type: InputFieldType;
+    cleanFn: string;
+    cleanReturnType: string;
+    coalesceFalsyValues: boolean;
   };
+} = {
+  string: {
+    type: "string",
+    cleanFn: "toString",
+    cleanReturnType: "string | undefined",
+    coalesceFalsyValues: true,
+  },
+  integer: {
+    type: "string",
+    cleanFn: "toNumber",
+    cleanReturnType: "number",
+    coalesceFalsyValues: false,
+  },
+  number: {
+    type: "string",
+    cleanFn: "toNumber",
+    cleanReturnType: "number",
+    coalesceFalsyValues: false,
+  },
+  boolean: {
+    type: "boolean",
+    cleanFn: "toBool",
+    cleanReturnType: "boolean",
+    coalesceFalsyValues: false,
+  },
+};
 
 const getInputModel = (
   schema: OpenAPIV3.SchemaObject | OpenAPIV3_1.SchemaObject
@@ -74,7 +88,9 @@ const buildInput = (
   }
 
   const schemaType = parameter.schema?.type;
-  const { type, cleanFn } = toInputType[schemaType] ?? toInputType["string"];
+  const { type, cleanFn, cleanReturnType, coalesceFalsyValues } =
+    toInputType[schemaType] ?? toInputType["string"];
+  const coalescePart = coalesceFalsyValues ? " || undefined" : "";
 
   const { name: paramKey } = parameter;
   const key = seenKeys.has(safeKey(paramKey))
@@ -94,7 +110,7 @@ const buildInput = (
     default: parameter.schema?.default,
     example: parameter.schema?.example,
     model,
-    clean: `(value) => util.types.${cleanFn}(value) || undefined`,
+    clean: `(value): ${cleanReturnType} => util.types.${cleanFn}(value)${coalescePart}`,
   });
   return input;
 };
@@ -117,8 +133,9 @@ const buildBodyInputs = (
 
   return Object.entries(properties).map<Input>(([propKey, prop]) => {
     const schemaType = prop?.type;
-    const { type, cleanFn } =
+    const { type, cleanFn, cleanReturnType, coalesceFalsyValues } =
       toInputType[schemaType as string] ?? toInputType["string"];
+    const coalescePart = coalesceFalsyValues ? " || undefined" : "";
 
     const model = getInputModel(prop);
 
@@ -137,7 +154,7 @@ const buildBodyInputs = (
       default: prop.default,
       example: prop.example,
       model,
-      clean: `(value) => util.types.${cleanFn}(value) || undefined`,
+      clean: `(value): ${cleanReturnType} => util.types.${cleanFn}(value)${coalescePart}`,
     });
   });
 };

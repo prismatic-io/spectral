@@ -1,6 +1,14 @@
 import path from "path";
 import { Project, ScriptKind, SourceFile } from "ts-morph";
-import { Component, Result, createDescription, Connection } from "../utils";
+import { minBy } from "lodash";
+import {
+  Component,
+  Result,
+  createDescription,
+  Connection,
+  Action,
+  Input,
+} from "../utils";
 import { writeConnections } from "./connections";
 import { writeActions } from "./actions";
 
@@ -54,6 +62,49 @@ const writeComponentIndex = (
         .writeLine("connections,")
         .writeLine("})"),
   });
+
+  return file;
+};
+
+const writeTests = (
+  project: Project,
+  key: string,
+  connections: Connection[],
+  [{ key: actionKey, inputs }]: Action[]
+): SourceFile => {
+  const connection = minBy(connections, ({ orderPriority }) => orderPriority);
+
+  const file = project.createSourceFile(
+    path.join("src", "component.test.ts"),
+    (writer) =>
+      writer
+        .writeLine(`import { testing } from "@prismatic-io/spectral";`)
+        .writeLine(`import { ${connection?.key} } from "./connections";`)
+        .writeLine(`import component from ".";`)
+        .blankLine()
+        .writeLine(`describe("${key}", () => {`)
+        .writeLine("const harness = testing.createHarness(component);")
+        .writeLine(
+          `const connection = harness.connectionValue(${connection?.key});`
+        )
+        .blankLine()
+        .writeLine(`it("should invoke action", async () => {`)
+        .writeLine(`const result = await harness.action("${actionKey}", `)
+        .block(() => {
+          writer.writeLine("connection,");
+          Object.entries(inputs).forEach(([key, input]) => {
+            const value = `${(input as Input).default}` ?? null;
+            writer.conditionalWriteLine(
+              key !== "connection",
+              `${key}: ${value},`
+            );
+          });
+        })
+        .writeLine(");")
+        .writeLine(`expect(result?.data).toBeDefined();`)
+        .writeLine("});")
+        .writeLine("});")
+  );
 
   return file;
 };
@@ -184,6 +235,7 @@ export const write = async (
   writeActions(project, actions);
   writeClient(project, baseUrl, connections);
   writeComponentIndex(project, key, isPublic, component);
+  writeTests(project, key, connections, actions);
 
   if (isPublic) {
     writeDocumentationFiles(project, component, connections);
