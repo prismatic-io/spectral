@@ -31,6 +31,10 @@ export type JSONForm = {
   data: unknown;
 };
 
+export type DynamicObjectSelection = string;
+
+export type DynamicFieldSelection = string;
+
 /** InputField type enumeration. */
 export type InputFieldType = InputFieldDefinition["type"];
 export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> =
@@ -46,6 +50,8 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> =
     objectSelection: undefined,
     objectFieldMap: undefined,
     jsonForm: undefined,
+    dynamicObjectSelection: "",
+    dynamicFieldSelection: "",
   };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -68,7 +74,9 @@ export type InputFieldDefinition =
   | ConnectionInputField
   | ObjectSelectionInputField
   | ObjectFieldMapInputField
-  | JSONFormInputField;
+  | JSONFormInputField
+  | DynamicObjectSelectionInputField
+  | DynamicFieldSelectionInputField;
 
 export type InputCleanFunction<TValue, TResult = TValue> = (
   value: TValue
@@ -235,6 +243,30 @@ export interface JSONFormInputField extends BaseInputField {
   collection?: InputFieldCollection;
   /** Default value for this field. */
   default?: JSONForm;
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+}
+
+/** Defines attributes of a DynamicObjectSelectionInputField */
+export interface DynamicObjectSelectionInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "dynamicObjectSelection";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: unknown;
+  /** Clean function */
+  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+}
+
+/** Defines attributes of a SelectedFieldInputField */
+export interface DynamicFieldSelectionInputField extends BaseInputField {
+  /** Data type the InputField will collect. */
+  type: "dynamicFieldSelection";
+  /** Collection type of the InputField */
+  collection?: InputFieldCollection;
+  /** Default value for this field. */
+  default?: unknown;
   /** Clean function */
   clean?: InputCleanFunction<NonNullable<this["default"]>>;
 }
