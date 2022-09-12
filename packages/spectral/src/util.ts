@@ -16,6 +16,7 @@ import {
   ObjectSelection,
   ObjectFieldMap,
   JSONForm,
+  ConnectionDefinition,
 } from "./types";
 
 const isObjectWithTruthyKeys = (value: unknown, keys: string[]): boolean => {
@@ -500,6 +501,46 @@ const toString = (value: unknown, defaultValue = ""): string =>
   `${value ?? defaultValue}`;
 
 /**
+ * This function checks if value is a valid connection.
+ * @param value The variable to test.
+ * @returns This function returns true or false, depending on if `value` is a valid connection.
+ */
+const isConnection = (value: unknown): value is ConnectionDefinition => {
+  if (typeof value === "string" && isJSON(value)) {
+    return isConnection(JSON.parse(value));
+  }
+
+  if (Boolean(value) && typeof value === "object") {
+    const { inputs } = value as Record<string, unknown>;
+
+    if (isObjectWithTruthyKeys(value, ["key", "label", "oauth2Type"])) {
+      return (
+        isObjectWithTruthyKeys(inputs, [
+          "authorizeUrl",
+          "tokenUrl",
+          "scopes",
+          "clientId",
+          "clientSecret",
+        ]) ||
+        isObjectWithTruthyKeys(inputs, [
+          "tokenUrl",
+          "scopes",
+          "clientId",
+          "clientSecret",
+        ])
+      );
+    }
+
+    return (
+      isObjectWithTruthyKeys(value, ["key", "label"]) &&
+      typeof inputs === "object"
+    );
+  }
+
+  return false;
+};
+
+/**
  * This function returns true if `value` resembles the shape of JSON, and false otherwise.
  *
  * - `isJSON(undefined) will return `false`
@@ -576,6 +617,7 @@ export default {
     toJSONForm,
     isPicklist,
     isSchedule,
+    isConnection,
   },
   docs: {
     formatJsonExample,
