@@ -794,4 +794,67 @@ describe("util", () => {
       expect(util.types.isSchedule(v)).toStrictEqual(false);
     });
   });
+
+  describe("connection", () => {
+    const baseConnection = {
+      key: "connection",
+      label: "My connection",
+    };
+
+    it("detects valid connection", () => {
+      const v1 = {
+        ...baseConnection,
+        oauth2Type: "authorization_code",
+        inputs: {
+          authorizeUrl: "https://example.com",
+          tokenUrl: "https://example.com",
+          scopes: ["scope_one"],
+          clientId: "1234",
+          clientSecret: "asdf",
+        },
+      };
+
+      const v2 = {
+        ...baseConnection,
+        oauth2Type: "authorization_code",
+        inputs: {
+          tokenUrl: "https://example.com",
+          scopes: ["scope_one"],
+          clientId: "1234",
+          clientSecret: "asdf",
+        },
+      };
+      expect(util.types.isConnection(v1)).toStrictEqual(true);
+      expect(util.types.isConnection(v2)).toStrictEqual(true);
+    });
+
+    it("detects invalid connection", () => {
+      const v1 = {
+        ...baseConnection,
+        oauth2Type: "authorization_code",
+        inputs: {
+          authorizeUrl: "https://example.com",
+          tokenUrl: "https://example.com",
+          clientId: "1234",
+          clientSecret: "asdf",
+        },
+      };
+
+      const v2 = {
+        ...baseConnection,
+        oauth2Type: "authorization_code",
+        inputs: {
+          scopes: ["scope_one"],
+          clientId: "1234",
+          clientSecret: "asdf",
+        },
+      };
+
+      const v3 = baseConnection;
+
+      expect(util.types.isConnection(v1)).toStrictEqual(false);
+      expect(util.types.isConnection(v2)).toStrictEqual(false);
+      expect(util.types.isConnection(v3)).toStrictEqual(false);
+    });
+  });
 });
