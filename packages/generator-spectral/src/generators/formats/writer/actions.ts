@@ -28,7 +28,7 @@ const writeInput = (
   }: Input
 ): CodeBlockWriter =>
   writer
-    .writeLine(`${key}: {`)
+    .writeLine(`${key}: input({`)
     .writeLine(`label: "${label}",`)
     .writeLine(`type: "${type}",`)
     .conditionalWriteLine(required !== undefined, `required: ${required},`)
@@ -55,7 +55,7 @@ const writeInput = (
       comments !== undefined,
       () => `comments: "${createDescription(`${comments}`)}",`
     )
-    .writeLine("},");
+    .writeLine("}),");
 
 const buildActionDeclaration = ({
   key: rawKey,
@@ -125,8 +125,7 @@ const writeActionGroup = (
   file.addImportDeclarations([
     {
       moduleSpecifier: "@prismatic-io/spectral",
-      // FIXME: Connection should _not_ be required. See openapi.ts reader for details :(
-      namedImports: ["action", "util", "Connection"],
+      namedImports: ["action", "input", "util"],
     },
     {
       moduleSpecifier: "../client",
