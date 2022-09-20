@@ -518,16 +518,10 @@ const isConnection = (value: unknown): value is ConnectionDefinition => {
         isObjectWithTruthyKeys(inputs, [
           "authorizeUrl",
           "tokenUrl",
-          "scopes",
           "clientId",
           "clientSecret",
         ]) ||
-        isObjectWithTruthyKeys(inputs, [
-          "tokenUrl",
-          "scopes",
-          "clientId",
-          "clientSecret",
-        ])
+        isObjectWithTruthyKeys(inputs, ["tokenUrl", "clientId", "clientSecret"])
       );
     }
 

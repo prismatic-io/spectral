@@ -815,6 +815,16 @@ describe("util", () => {
       };
 
       const v2 = {
+        ...v1,
+        inputs: {
+          authorizeUrl: "https://example.com",
+          tokenUrl: "https://example.com",
+          clientId: "1234",
+          clientSecret: "asdf",
+        },
+      };
+
+      const v3 = {
         ...baseConnection,
         oauth2Type: "authorization_code",
         inputs: {
@@ -826,6 +836,7 @@ describe("util", () => {
       };
       expect(util.types.isConnection(v1)).toStrictEqual(true);
       expect(util.types.isConnection(v2)).toStrictEqual(true);
+      expect(util.types.isConnection(v3)).toStrictEqual(true);
     });
 
     it("detects invalid connection", () => {
@@ -836,7 +847,6 @@ describe("util", () => {
           authorizeUrl: "https://example.com",
           tokenUrl: "https://example.com",
           clientId: "1234",
-          clientSecret: "asdf",
         },
       };
 
