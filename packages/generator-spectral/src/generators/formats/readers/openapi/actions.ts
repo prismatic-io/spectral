@@ -42,8 +42,7 @@ const buildPerformFunction = (
     writer
       .writeLine(`async (context, { connection, ${destructureNames} }) => {`)
       .blankLineIfLastNot()
-      // FIXME: Apparently type inference doesn't work with inlined inputs!?
-      .writeLine("const client = createClient(connection as Connection);")
+      .writeLine("const client = createClient(connection);")
       .write("const {data} = await client.")
       .write(verb)
       .write("(`")
@@ -78,9 +77,7 @@ const buildAction = (
     | OpenAPIV3_1.ParameterObject
   )[] = []
 ): Action => {
-  if (!operation.operationId) {
-    throw new Error(`Failed to find operationId for ${path} ${verb}`);
-  }
+  const operationName = camelCase(operation.operationId || `${verb} ${path}`);
 
   const { pathInputs, queryInputs, bodyInputs } = getInputs(
     operation,
@@ -95,10 +92,10 @@ const buildAction = (
   );
 
   const action = stripUndefined<Action>({
-    key: operation.operationId,
+    key: operationName,
     groupTag,
     display: {
-      label: startCase(operation.operationId),
+      label: startCase(operationName),
       description:
         operation.summary ?? operation.description ?? "TODO: Description",
     },
