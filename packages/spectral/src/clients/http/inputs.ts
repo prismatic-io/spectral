@@ -36,10 +36,8 @@ export const data = input({
   placeholder: "Data to send",
   type: "string",
   required: false,
-  comments:
-    "The HTTP body payload to send to the URL. Must be a string or a reference to output from a previous step.",
+  comments: "The HTTP body payload to send to the URL.",
   example: '{"exampleKey": "Example Data"}',
-  clean: (value) => util.types.toString(value),
 });
 
 export const timeout = input({
