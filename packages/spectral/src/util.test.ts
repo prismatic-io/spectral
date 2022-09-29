@@ -761,15 +761,19 @@ describe("util", () => {
     it("detects picklist value", () => {
       const v1 = ["value", new String("value")];
       const v2: unknown = [];
+      const v3 = [{ key: "foo" }, { key: "foo", label: "Foo" }];
       expect(util.types.isPicklist(v1)).toStrictEqual(true);
       expect(util.types.isPicklist(v2)).toStrictEqual(true);
+      expect(util.types.isPicklist(v3)).toStrictEqual(true);
     });
 
     it("detects non-picklist value", () => {
       const v1 = "value";
       const v2 = ["value", 4];
+      const v3 = [{ missingKey: "foo" }];
       expect(util.types.isPicklist(v1)).toStrictEqual(false);
       expect(util.types.isPicklist(v2)).toStrictEqual(false);
+      expect(util.types.isPicklist(v3)).toStrictEqual(false);
     });
   });
 

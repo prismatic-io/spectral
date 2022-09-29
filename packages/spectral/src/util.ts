@@ -17,6 +17,7 @@ import {
   ObjectFieldMap,
   JSONForm,
   ConnectionDefinition,
+  Element,
 } from "./types";
 
 const isObjectWithTruthyKeys = (value: unknown, keys: string[]): boolean => {
@@ -29,6 +30,15 @@ const isObjectWithTruthyKeys = (value: unknown, keys: string[]): boolean => {
     )
   );
 };
+
+/**
+ * This function checks if value is an Element.
+ * `util.types.isElement({key: "foo"})` and `util.types.isElement({key: "foo", label: "Foo"})` return true.
+ * @param value The variable to test.
+ * @returns This function returns true or false, depending on if `value` is an Element.
+ */
+const isElement = (value: unknown): value is Element =>
+  isObjectWithTruthyKeys(value, ["key"]);
 
 /**
  * @param value The value to test
@@ -82,9 +92,7 @@ const isObjectFieldMap = (value: unknown): value is ObjectFieldMap => {
       fields.every(
         (item) =>
           isObjectWithTruthyKeys(item, ["field"]) &&
-          isObjectWithTruthyKeys((item as Record<string, unknown>)?.field, [
-            "key",
-          ])
+          isElement((item as Record<string, unknown>)?.field)
       )
     );
   }
@@ -348,7 +356,7 @@ const isUrl = (value: string): boolean => isWebUri(value) !== undefined;
  * @returns This function returns true if `value` is a valid picklist.
  */
 const isPicklist = (value: unknown): boolean =>
-  Array.isArray(value) && value.every(isString);
+  Array.isArray(value) && (value.every(isString) || value.every(isElement));
 
 /**
  * This function checks if value is a valid schedule.
@@ -604,5 +612,6 @@ export default {
     isPicklist,
     isSchedule,
     isConnection,
+    isElement,
   },
 };

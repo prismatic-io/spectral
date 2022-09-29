@@ -1,12 +1,12 @@
 import { ConnectionDefinition } from "./ConnectionDefinition";
-import { ObjectSelection, ObjectFieldMap, JSONForm } from "./Inputs";
+import { ObjectSelection, ObjectFieldMap, JSONForm, Element } from "./Inputs";
 
 /** The type of field that is appropriate for rendering the data that is the result of the data source perform function. */
 type DataSourceTypeMap = {
   string: string;
   date: string;
   timestamp: string;
-  picklist: string[];
+  picklist: string[] | Element[];
   schedule: { value: string };
   code: string;
   credential: unknown; // DEPRECATED
