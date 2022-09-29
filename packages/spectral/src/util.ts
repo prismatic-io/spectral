@@ -469,14 +469,6 @@ const isData = (value: unknown): boolean => isBufferDataPayload(value);
 const toData = (value: unknown): DataPayload => toBufferDataPayload(value);
 
 /**
- * This function helps to format JSON examples for documentation.
- * @param input An object to be JSONified.
- * @returns This function returns a code block that can be used for documentation.
- */
-const formatJsonExample = (input: unknown): string =>
-  ["```json", JSON.stringify(input, undefined, 2), "```"].join("\n");
-
-/**
  * This function checks if value is a string.
  * `util.types.isString("value")` and `util.types.isString(new String("value"))` return true.
  * @param value The variable to test.
@@ -612,8 +604,5 @@ export default {
     isPicklist,
     isSchedule,
     isConnection,
-  },
-  docs: {
-    formatJsonExample,
   },
 };
