@@ -871,4 +871,16 @@ describe("util", () => {
       expect(util.types.isConnection(v3)).toStrictEqual(false);
     });
   });
+
+  describe("toObject", () => {
+    it("parses JSON correctly", () => {
+      const value = '{"foo":"bar","baz":123,"buz":false}';
+      const expectedResult = { foo: "bar", baz: 123, buz: false };
+      expect(util.types.toObject(value)).toStrictEqual(expectedResult);
+    });
+    it("objects remain objects", () => {
+      const value = { foo: "bar", baz: 123, buz: false };
+      expect(util.types.toObject(value)).toStrictEqual(value);
+    });
+  });
 });

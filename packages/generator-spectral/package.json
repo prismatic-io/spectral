@@ -37,7 +37,7 @@
     "generators"
   ],
   "dependencies": {
-    "@prismatic-io/spectral": "7.2.0",
+    "@prismatic-io/spectral": "7.2.1",
     "yeoman-generator": "5.6.1",
     "lodash": "4.17.21",
     "@apidevtools/swagger-parser": "10.1.0",
