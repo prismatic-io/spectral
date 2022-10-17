@@ -554,7 +554,8 @@ const isJSON = (value: string): boolean => {
   }
 };
 
-/** This function accepts an arbitrary object/value and safely serializes it (handles cyclic references).
+/**
+ * This function accepts an arbitrary object/value and safely serializes it (handles cyclic references).
  *
  * @param value Arbitrary object/value to serialize.
  * @returns JSON serialized text that can be safely logged.
@@ -567,9 +568,9 @@ const toJSON = (value: unknown): string => {
 /**
  * This function returns a lower cased version of the headers passed to it.
  *
- * - `lowerCaseHeaders({"Content-Type": "Application/JSON"}) will return {"content-type": "Application/JSON"}`
- * - `lowerCaseHeaders({"Cache-Control": "max-age=604800"}) will return {"cache-control": "max-age=604800"}`
- * - `lowerCaseHeaders({"Accept-Language": "en-us"}) will return {"accept-language": "en-us"}`
+ * - `lowerCaseHeaders({"Content-Type": "Application/JSON"})` will return `{"content-type": "Application/JSON"}`
+ * - `lowerCaseHeaders({"Cache-Control": "max-age=604800"})` will return `{"cache-control": "max-age=604800"}`
+ * - `lowerCaseHeaders({"Accept-Language": "en-us"})` will return `{"accept-language": "en-us"}`
  * @param headers The headers to convert to lower case
  * @returns This function returns a header object
  * */
@@ -579,6 +580,23 @@ export const lowerCaseHeaders = (
   Object.entries(headers).reduce((result, [key, val]) => {
     return { ...result, [key.toLowerCase()]: val };
   }, {});
+
+/**
+ * This function parses a JSON string (if JSON) and returns an object, or returns the object.
+ *
+ * - `toObject('{"foo":"bar","baz":123}')` will return object `{foo: "bar", baz: 123}`
+ * - `toObject({foo:"bar",baz:123})` will return object `{foo: "bar", baz: 123}`
+ *
+ * @param value The JSON string or object to convert
+ * @returns This function returns an object, parsing JSON as necessary
+ */
+export const toObject = (value: unknown): object => {
+  if (typeof value === "string" && isJSON(value)) {
+    return JSON.parse(value);
+  } else {
+    return value as object;
+  }
+};
 
 export default {
   types: {
@@ -613,5 +631,6 @@ export default {
     isSchedule,
     isConnection,
     isElement,
+    toObject,
   },
 };
