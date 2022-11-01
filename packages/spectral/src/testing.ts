@@ -60,6 +60,7 @@ const baseActionContext: ActionContext = {
   instanceState: {},
   crossFlowState: {},
   executionState: {},
+  integrationState: {},
   stepId: "mockStepId",
   executionId: "mockExecutionId",
   webhookUrls: {

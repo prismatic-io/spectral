@@ -54,6 +54,7 @@ export interface ActionContext {
   instanceState: Record<string, unknown>;
   crossFlowState: Record<string, unknown>;
   executionState: Record<string, unknown>;
+  integrationState: Record<string, unknown>;
   stepId: string;
   executionId: string;
   webhookUrls: Record<string, string>;
@@ -98,6 +99,7 @@ interface TriggerBaseResult {
   instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
+  integrationState?: Record<string, unknown>;
   failed?: boolean;
   error?: Record<string, unknown>;
 }
@@ -193,6 +195,7 @@ interface ServerPerformDataStructureReturn {
   instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
+  integrationState?: Record<string, unknown>;
   failed?: boolean;
   error?: Record<string, unknown>;
 }
@@ -204,6 +207,7 @@ interface ServerPerformDataReturn {
   instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
+  integrationState?: Record<string, unknown>;
   failed?: boolean;
   error?: Record<string, unknown>;
 }
