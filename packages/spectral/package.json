@@ -42,7 +42,7 @@
     "date-fns": "2.28.0",
     "form-data": "4.0.0",
     "jest-mock": "27.0.3",
-    "soap": "0.43.0",
+    "soap": "0.45.0",
     "uuid": "8.3.2",
     "valid-url": "1.0.9",
     "url-join": "5.0.0",
