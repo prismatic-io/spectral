@@ -36,4 +36,6 @@ export type ComponentDefinition<TPublic extends boolean> = {
       /** Specified the URL for the Component Documentation. */
       documentationUrl: string;
     }
-  : unknown);
+  : {
+      documentationUrl?: string;
+    });
