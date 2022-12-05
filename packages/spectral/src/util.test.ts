@@ -8,6 +8,7 @@ describe("util", () => {
   const uint8ArrayArbitrary = bufferArbitrary.map((b) => new Uint8Array(b));
   const unknowns = (): fc.Arbitrary<unknown> => fc.constantFrom(undefined);
   const emptyStrings = (): fc.Arbitrary<string> => fc.constantFrom("");
+  const nulls = (): fc.Arbitrary<null> => fc.constantFrom(null);
 
   describe("boolean", () => {
     type TruthyValue = true | "true" | "t" | "T" | "yes" | "y" | "Y";
@@ -247,9 +248,25 @@ describe("util", () => {
       );
     });
 
-    it("returns the default value when a value is missing", () => {
+    it("returns the default value when a value is undefined", () => {
       fc.assert(
         fc.property(unknowns(), (v) =>
+          expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)
+        )
+      );
+    });
+
+    it("returns the default value when a value is empty string", () => {
+      fc.assert(
+        fc.property(emptyStrings(), (v) =>
+          expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)
+        )
+      );
+    });
+
+    it("returns the default value when a value is null", () => {
+      fc.assert(
+        fc.property(nulls(), (v) =>
           expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)
         )
       );

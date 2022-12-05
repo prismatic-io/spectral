@@ -1390,6 +1390,23 @@
   dependencies:
     "@octokit/openapi-types" "^11.2.0"
 
+"@prismatic-io/spectral@7.3.2":
+  version "7.3.2"
+  resolved "https://registry.yarnpkg.com/@prismatic-io/spectral/-/spectral-7.3.2.tgz#38c891bc2225f8b33e7a1d0c3b97bcbdc45b94c8"
+  integrity sha512-/aQG4n8iX806S6PHl0fOowYi7jmVvC4yopUqYWiy/0nMwk+2kbqY+SNpoxudR9QzT8X4pcr3GQWmQEcyWVPvTg==
+  dependencies:
+    axios "0.27.2"
+    axios-retry "3.2.5"
+    date-fns "2.28.0"
+    form-data "4.0.0"
+    jest-mock "27.0.3"
+    safe-stable-stringify "2.3.1"
+    serialize-error "8.1.0"
+    soap "0.45.0"
+    url-join "5.0.0"
+    uuid "8.3.2"
+    valid-url "1.0.9"
+
 "@rushstack/eslint-patch@1.1.1":
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/@rushstack/eslint-patch/-/eslint-patch-1.1.1.tgz#782fa5da44c4f38ae9fd38e9184b54e451936118"
