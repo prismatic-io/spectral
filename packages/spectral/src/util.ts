@@ -260,6 +260,7 @@ const isNumber = (value: unknown): boolean => !Number.isNaN(Number(value));
  *
  * - `util.types.toNumber("3.22")` will return the number `3.22`.
  * - `util.types.toNumber("", 5.5)` will return the default value `5.5`, since `value` was an empty string.
+ * - `util.types.toNumber(null, 5.5)` will return the default value `5.5`, since `value` was `null`.
  * - `util.types.toNumber(undefined)` will return `0`, since `value` was undefined and no `defaultValue` was given.
  * - `util.types.toNumber("Hello")` will throw an error, since the string `"Hello"` cannot be coerced into a number.
  * @param value The value to turn into a number.
@@ -267,12 +268,12 @@ const isNumber = (value: unknown): boolean => !Number.isNaN(Number(value));
  * @returns This function returns the numerical version of `value` if possible, or the `defaultValue` if `value` is undefined or an empty string.
  */
 const toNumber = (value: unknown, defaultValue?: number): number => {
-  if (isNumber(value)) {
-    return Number(value);
+  if (typeof value === "undefined" || value === "" || value === null) {
+    return defaultValue || 0;
   }
 
-  if (typeof value === "undefined" || value === "") {
-    return defaultValue || 0;
+  if (isNumber(value)) {
+    return Number(value);
   }
 
   throw new Error(`Value '${value}' cannot be coerced to a number.`);
