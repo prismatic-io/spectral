@@ -113,13 +113,13 @@ class ComponentGenerator extends Generator {
     await this.addDevDependencies("@prismatic-io/eslint-config-spectral");
     await this.addDevDependencies({
       "@types/jest": "26.0.24",
-      "copy-webpack-plugin": "9.0.1",
+      "copy-webpack-plugin": "11.0.0",
       jest: "27.0.6",
       "ts-jest": "27.0.3",
       "ts-loader": "9.2.3",
       typescript: "4.3.5",
-      webpack: "5.43.0",
-      "webpack-cli": "4.7.2",
+      webpack: "5.75.0",
+      "webpack-cli": "5.0.1",
       eslint: "6.8.0",
     });
   }
