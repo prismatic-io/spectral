@@ -39,6 +39,10 @@ export type JSONForm = {
    * and the layout. See https://jsonforms.io/docs/uischema/
    */
   uiSchema: UISchemaElement;
+  /**
+   * Optional default data to use in the inputs of your form
+   */
+  data?: Record<string, unknown>;
 };
 
 export type DynamicObjectSelection = string;
