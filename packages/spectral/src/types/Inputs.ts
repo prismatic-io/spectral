@@ -1,4 +1,5 @@
 import { ConditionalExpression } from "./conditional-logic";
+import { JsonSchema, UISchemaElement } from "@jsonforms/core";
 
 export type Element = {
   key: string;
@@ -26,9 +27,18 @@ export type ObjectFieldMap = {
 };
 
 export type JSONForm = {
-  schema: Record<string, unknown>;
-  uiSchema: Record<string, unknown>;
-  data: unknown;
+  /**
+   * The data/JSON schema defines the underlying data to
+   * be shown in the UI (objects, properties, and their
+   * types). See https://jsonforms.io/docs
+   */
+  schema: JsonSchema;
+  /**
+   * The UI schema defines how this data is rendered as a
+   * form, e.g. the order of controls, their visibility,
+   * and the layout. See https://jsonforms.io/docs/uischema/
+   */
+  uiSchema: UISchemaElement;
 };
 
 export type DynamicObjectSelection = string;
