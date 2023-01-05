@@ -10,17 +10,25 @@ interface DisplayDefinition {
   description: string;
 }
 
-interface ExtraDisplayDefinitionFields {
+type PublicComponentCategory =
+  | "Application Connectors"
+  | "Data Platforms"
+  | "Helpers"
+  | "Logic"
+  | "Triggers";
+
+interface ExtraDisplayDefinitionFields<TPublic extends boolean> {
   /** Path to icon to use for this Component. Path should be relative to the built component source. */
   iconPath: string;
   /** Category of the Component. */
-  category?: string;
+  category?: TPublic extends true ? PublicComponentCategory : string;
 }
 
 /** Component extensions for display properties. */
-export type ComponentDisplayDefinition<T extends boolean> = T extends true
-  ? DisplayDefinition & Required<ExtraDisplayDefinitionFields>
-  : DisplayDefinition & ExtraDisplayDefinitionFields;
+export type ComponentDisplayDefinition<TPublic extends boolean> =
+  TPublic extends true
+    ? DisplayDefinition & Required<ExtraDisplayDefinitionFields<TPublic>>
+    : DisplayDefinition & ExtraDisplayDefinitionFields<TPublic>;
 
 /** Action-specific Display attributes. */
 export interface ActionDisplayDefinition extends DisplayDefinition {
