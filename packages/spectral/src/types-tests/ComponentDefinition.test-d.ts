@@ -15,7 +15,7 @@ const publicDefinition = component({
     label: "Public",
     description: "Public",
     iconPath: "icon.png",
-    category: "a-category",
+    category: "Application Connectors",
   },
   documentationUrl: "https://example.com/docs",
 });
