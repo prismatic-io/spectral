@@ -172,7 +172,7 @@ export const sendRawRequest = async (
       ...authorizationHeaders,
     },
     params: util.types.keyValPairListToObject(values.queryParams),
-    data: payload,
+    data: payload || undefined,
   });
 };
 
