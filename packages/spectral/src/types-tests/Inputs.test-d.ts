@@ -22,7 +22,9 @@ const connectionInput = input({
   type: "connection",
   clean: (value) => value,
 });
-expectType<InputCleanFunction<Connection, Connection>>(connectionInput.clean);
+expectType<InputCleanFunction<Connection | null | undefined>>(
+  connectionInput.clean
+);
 
 const listCollectionInput = input({
   label: "List Collection",
@@ -38,7 +40,7 @@ const conditionalInput = input({
   collection: "valuelist",
   clean: (value) => value,
 });
-expectType<InputCleanFunction<ConditionalExpression, ConditionalExpression>>(
+expectType<InputCleanFunction<ConditionalExpression | null | undefined>>(
   conditionalInput.clean
 );
 
