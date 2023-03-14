@@ -119,7 +119,7 @@ export interface StringInputField extends BaseInputField {
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 export interface DataInputField extends BaseInputField {
@@ -132,7 +132,7 @@ export interface DataInputField extends BaseInputField {
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 export interface TextInputField extends BaseInputField {
@@ -145,7 +145,7 @@ export interface TextInputField extends BaseInputField {
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 export interface PasswordInputField extends BaseInputField {
@@ -158,7 +158,7 @@ export interface PasswordInputField extends BaseInputField {
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 export interface BooleanInputField extends BaseInputField {
@@ -171,7 +171,7 @@ export interface BooleanInputField extends BaseInputField {
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 /** Defines attributes of a CodeInputField. */
@@ -187,7 +187,7 @@ export interface CodeInputField extends BaseInputField {
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 /** Defines attributes of a ConditionalInputField. */
@@ -199,7 +199,7 @@ export interface ConditionalInputField extends BaseInputField {
   /** Default value for this field. */
   default?: ConditionalExpression;
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"] | null>;
 }
 
 /** Defines attributes of a ConnectionInputField. */
@@ -211,7 +211,7 @@ export interface ConnectionInputField extends BaseInputField {
   /** Default value for this field. */
   default?: Connection;
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"] | null>;
 }
 
 export interface Connection {
@@ -234,7 +234,7 @@ export interface ObjectSelectionInputField extends BaseInputField {
   /** Default value for this field. */
   default?: ObjectSelection;
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 /** Defines attributes of an ObjectFieldMapInputField. */
@@ -246,7 +246,7 @@ export interface ObjectFieldMapInputField extends BaseInputField {
   /** Default value for this field. */
   default?: ObjectFieldMap;
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 /** Defines attributes of a JSONFormInputField. */
@@ -258,7 +258,7 @@ export interface JSONFormInputField extends BaseInputField {
   /** Default value for this field. */
   default?: JSONForm;
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 /** Defines attributes of a DynamicObjectSelectionInputField */
@@ -270,7 +270,7 @@ export interface DynamicObjectSelectionInputField extends BaseInputField {
   /** Default value for this field. */
   default?: unknown;
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 /** Defines attributes of a SelectedFieldInputField */
@@ -282,7 +282,7 @@ export interface DynamicFieldSelectionInputField extends BaseInputField {
   /** Default value for this field. */
   default?: unknown;
   /** Clean function */
-  clean?: InputCleanFunction<NonNullable<this["default"]>>;
+  clean?: InputCleanFunction<this["default"]>;
 }
 
 /** Defines a single Choice option for a InputField. */
