@@ -5,6 +5,7 @@ import {
   ActionLogger,
   Instance,
   Customer,
+  User,
 } from ".";
 
 /** Definition of the function to perform when an Action is invoked. */
@@ -43,4 +44,6 @@ export interface ActionContext {
   customer: Customer;
   /** Contains attributes of the Instance that is being executed. */
   instance: Instance;
+  /** Contains attributes of the User for whom a User Level Configuration is being used. */
+  user: User;
 }

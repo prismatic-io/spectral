@@ -3,6 +3,7 @@ import {
   Customer,
   DataSourceType,
   DataSourceResultType,
+  User,
 } from "../types";
 
 interface DisplayDefinition {
@@ -12,6 +13,7 @@ interface DisplayDefinition {
 
 export { Instance } from "../types";
 export { Customer } from "../types";
+export { User } from "../types";
 
 export interface Component {
   key: string;
@@ -62,6 +64,7 @@ export interface ActionContext {
   invokeUrl: string;
   customer: Customer;
   instance: Instance;
+  user: User;
 }
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";
@@ -84,6 +87,7 @@ export interface TriggerPayload {
   executionId: string;
   customer: Customer;
   instance: Instance;
+  user: User;
 }
 
 interface HttpResponse {
