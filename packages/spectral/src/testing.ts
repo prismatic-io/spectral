@@ -83,6 +83,7 @@ const baseActionContext: ActionContext = {
   },
   user: {
     id: "userId",
+    email: "user@example.com",
     name: "User 1",
     externalId: "1234",
   },
@@ -157,6 +158,7 @@ export const defaultTriggerPayload = (): TriggerPayload => {
     },
     user: {
       id: "userId",
+      email: "user@example.com",
       name: "User 1",
       externalId: "1234",
     },
