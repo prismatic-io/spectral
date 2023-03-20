@@ -24,4 +24,5 @@ export * from "./DataSourcePerformFunction";
 export * from "./DataSourceResult";
 export * from "./Instance";
 export * from "./Customer";
+export * from "./User";
 export * as serverTypes from "../serverTypes";
