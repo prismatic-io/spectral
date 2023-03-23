@@ -12,10 +12,10 @@
     "docs": "turbo run docs"
   },
   "devDependencies": {
-    "turbo": "^1.2.11"
+    "turbo": "^1.8.5"
   },
   "resolutions": {
-    "**/eslint-plugin-import/tsconfig-paths/json5": "2.2.1",
+    "**/eslint-plugin-import/tsconfig-paths/json5": "2.2.3",
     "**/find-versions/semver-regex": "3.1.4",
     "**/typedoc/marked": "4.0.10",
     "**/yo/meow/trim-newlines": "3.0.1",
