@@ -118,7 +118,7 @@ class ComponentGenerator extends Generator {
       "ts-jest": "27.0.3",
       "ts-loader": "9.2.3",
       typescript: "4.3.5",
-      webpack: "5.75.0",
+      webpack: "5.76.3",
       "webpack-cli": "5.0.1",
       eslint: "6.8.0",
     });
