@@ -401,7 +401,7 @@ const keyValPairListToObject = <TValue = unknown>(
  * @param value The value to test
  * @returns This function returns true if `value` is a DataPayload object, and false otherwise.
  */
-const isBufferDataPayload = (value: unknown): boolean => {
+const isBufferDataPayload = (value: unknown): value is DataPayload => {
   return value instanceof Object && "data" in value;
 };
 
@@ -419,7 +419,7 @@ const isBufferDataPayload = (value: unknown): boolean => {
  */
 const toBufferDataPayload = (value: unknown): DataPayload => {
   if (isBufferDataPayload(value)) {
-    return value as DataPayload;
+    return value;
   }
 
   if (typeof value === "string") {
