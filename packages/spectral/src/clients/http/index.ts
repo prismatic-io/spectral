@@ -42,7 +42,9 @@ const toFormData = (
   const form = new FormData();
   (formData || []).map(({ key, value }) => form.append(key, value));
   (fileData || []).map(({ key, value }) =>
-    form.append(key, value, { filename: key })
+    form.append(key, util.types.toBufferDataPayload(value).data, {
+      filename: key,
+    })
   );
   return form;
 };
