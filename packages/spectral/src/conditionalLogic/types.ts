@@ -13,6 +13,7 @@ export enum UnaryOperator {
   doesNotExist = "doesNotExist",
   exists = "exists",
   isEmpty = "isEmpty",
+  isNotEmpty = "isNotEmpty",
 }
 
 export const UnaryOperatorPhrase = {
@@ -21,6 +22,7 @@ export const UnaryOperatorPhrase = {
   [UnaryOperator.doesNotExist]: "does not exist",
   [UnaryOperator.exists]: "exists",
   [UnaryOperator.isEmpty]: "is empty",
+  [UnaryOperator.isNotEmpty]: "is not empty",
 };
 
 export enum BinaryOperator {

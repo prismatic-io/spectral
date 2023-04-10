@@ -177,6 +177,14 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
             return leftTerm.length === 0;
           }
           throw new Error("Please provide an array or string");
+        case UnaryOperator.isNotEmpty:
+          if (Array.isArray(left)) {
+            return left.length > 0;
+          }
+          if (typeof leftTerm === "string") {
+            return leftTerm.length > 0;
+          }
+          throw new Error("Please provide an array or string");
         default:
           throw new Error(`Invalid operator: '${operator}'`);
       }
