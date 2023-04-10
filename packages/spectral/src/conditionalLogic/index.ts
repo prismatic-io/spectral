@@ -6,7 +6,7 @@ import {
   UnaryOperator,
   BinaryOperator,
 } from "./types";
-import dayjs from "dayjs";
+import { isBefore, isAfter, parse, parseISO, isValid } from "date-fns";
 import _ from "lodash";
 
 export type ValidationResult = [boolean] | [boolean, string];
@@ -68,36 +68,40 @@ export const contains = (container: unknown, containee: unknown): boolean => {
       return container.includes(containee);
     }
     // Object attribute check (set membership).
-    return Object.prototype.hasOwnProperty.call(container, containee);
+    return Object.prototype.hasOwnProperty.call(container, `${containee}`);
   }
 
   throw new Error("Invalid arguments set to 'contains'.");
 };
 
-const parseDateTimeValue = (
-  value: string | number | Date,
-  parsingOptions: string[]
-) => {
-  const parsed = dayjs(value, parsingOptions);
-  if (!parsed.isValid()) {
-    throw new Error("Unable to parse argument");
+export const parseDate = (value: unknown): Date => {
+  if (value instanceof Date && isValid(value)) {
+    return value;
   }
-  return parsed;
-};
 
-export const parseDateTime = (value: unknown) => {
-  let options: string[] = ["YYYY", "YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ssZ[Z]"];
   if (typeof value === "number") {
-    options = ["x", "X"];
-    return parseDateTimeValue(value, options);
-  } else if (value instanceof Date || typeof value === "string") {
-    return parseDateTimeValue(value, options);
-  } else {
-    throw new Error("Invalid argument type");
+    return new Date(value);
   }
+
+  if (typeof value === "string") {
+    const dateFormats = ["yyyy", "yyyy-MM-dd"];
+    for (const format of dateFormats) {
+      const parsed = parse(value, format, 0);
+      if (isValid(parsed)) {
+        return parsed;
+      }
+    }
+
+    const isoParsed = parseISO(value);
+    if (isValid(isoParsed)) {
+      return isoParsed;
+    }
+  }
+
+  throw new Error("Invalid argument type");
 };
 
-const isEqual = (left, right) =>
+const isEqual = (left: unknown, right: unknown): boolean =>
   left == right ||
   _.isEqualWith(left, right, (objectA, objectB) => {
     if (typeof objectA === "object" || typeof objectB === "object") {
@@ -193,8 +197,8 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
         BinaryOperator.dateTimeSame,
       ]
     ) {
-      left = parseDateTime(leftTerm);
-      right = parseDateTime(rightTerm);
+      left = parseDate(leftTerm);
+      right = parseDate(rightTerm);
     } else {
       left = parseValue(leftTerm);
       right = parseValue(rightTerm);
@@ -224,19 +228,19 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
         case BinaryOperator.doesNotExactlyMatch:
           return !(left === right || _.isEqual(left, right));
         case BinaryOperator.startsWith:
-          return right.toString().startsWith(left.toString());
+          return `${right}`.startsWith(`${left}`);
         case BinaryOperator.doesNotStartWith:
-          return !right.toString().startsWith(left.toString());
+          return !`${right}`.startsWith(`${left}`);
         case BinaryOperator.endsWith:
-          return right.toString().endsWith(left.toString());
+          return `${right}`.endsWith(`${left}`);
         case BinaryOperator.doesNotEndWith:
-          return !right.toString().endsWith(left.toString());
+          return !`${right}`.endsWith(`${left}`);
         case BinaryOperator.dateTimeAfter:
-          return dayjs(left).isAfter(dayjs(right));
+          return isAfter(left, right);
         case BinaryOperator.dateTimeBefore:
-          return dayjs(left).isBefore(dayjs(right));
+          return isBefore(left, right);
         case BinaryOperator.dateTimeSame:
-          return dayjs(left).isSame(dayjs(right));
+          return left == right;
         default:
           throw new Error(`Invalid operator: '${operator}'`);
       }

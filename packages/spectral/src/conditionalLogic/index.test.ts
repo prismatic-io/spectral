@@ -7,9 +7,9 @@ import {
   UnaryOperator,
   TermOperatorPhrase,
 } from "./types";
-import dayjs from "dayjs";
+import { isBefore, isAfter } from "date-fns";
 
-import { evaluate, contains } from "./index";
+import { evaluate, contains, parseDate } from "./index";
 
 // Look for leading and trailing braces, square brackets, or quotes.
 const jsonLikeRegex = new RegExp(/^[[{"].*[\]}"]$/);
@@ -200,7 +200,7 @@ describe("evaluate", () => {
         ),
       fc
         .tuple(fc.date(), fc.date())
-        .filter(([left, right]) => dayjs(left).isAfter(dayjs(right)))
+        .filter(([left, right]) => isAfter(left, right))
         .map(
           ([left, right]): ConditionalExpression => [
             BinaryOperator.dateTimeAfter,
@@ -210,7 +210,7 @@ describe("evaluate", () => {
         ),
       fc
         .tuple(fc.date(), fc.date())
-        .filter(([left, right]) => dayjs(left).isBefore(dayjs(right)))
+        .filter(([left, right]) => isBefore(left, right))
         .map(
           ([left, right]): ConditionalExpression => [
             BinaryOperator.dateTimeBefore,
@@ -350,6 +350,31 @@ describe("evaluate", () => {
       expect(
         contains({ key: { foo: null, bar: null } }, { foo: null, bar: null })
       ).toStrictEqual(false);
+    });
+  });
+
+  describe("parseDate", () => {
+    test.each([
+      // String formats
+      { value: "2018", expected: new Date(2018, 0) },
+      { value: "2018-3-6", expected: new Date(2018, 2, 6) },
+      { value: "2018-03-06", expected: new Date(2018, 2, 6) },
+      {
+        value: "2018-03-06T12:36:36",
+        expected: new Date(2018, 2, 6, 12, 36, 36, 0),
+      },
+      {
+        value: "2018-03-06T12:36:36Z",
+        expected: new Date("2018-03-06T12:36:36Z"),
+      },
+      // Unix timestamp formats
+      { value: 1318781876, expected: new Date("1970-01-16T06:19:41.876Z") }, // seconds
+      { value: 1318781876406, expected: new Date("2011-10-16T16:17:56.406Z") }, // milliseconds
+      // Arbitrary numbers
+      { value: 1, expected: new Date("1970-01-01T00:00:00.001Z") },
+    ])("parses types into dates", ({ value, expected }) => {
+      const result = parseDate(value);
+      expect(result).toStrictEqual(expected);
     });
   });
 });
