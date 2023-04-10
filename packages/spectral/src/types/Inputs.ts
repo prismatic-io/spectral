@@ -195,7 +195,7 @@ export interface ConditionalInputField extends BaseInputField {
   /** Data type the InputField will collect. */
   type: "conditional";
   /** Collection type of the InputField */
-  collection: Extract<InputFieldCollection, "valuelist">;
+  collection: InputFieldCollection;
   /** Default value for this field. */
   default?: ConditionalExpression;
   /** Clean function */
