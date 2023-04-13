@@ -153,6 +153,18 @@ export const fileData = input({
   example: `[{key: "example.txt", value: "My File Contents"}]`,
 });
 
+export const fileDataFileNames = input({
+  label: "File Data File Names",
+  placeholder: "The file name to apply to a file",
+  type: "string",
+  collection: "keyvaluelist",
+  required: false,
+  comments:
+    "File names to apply to the file data inputs. Keys must match the file data keys above.",
+  clean: (values: any) =>
+    values ? util.types.keyValPairListToObject<string>(values) : undefined,
+});
+
 export const debugRequest = input({
   label: "Debug Request",
   type: "boolean",
@@ -167,6 +179,7 @@ export const inputs = {
   data,
   formData,
   fileData,
+  fileDataFileNames,
   queryParams,
   headers,
   responseType,

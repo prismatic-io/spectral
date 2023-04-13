@@ -37,13 +37,14 @@ const toAuthorizationHeaders = (
 
 const toFormData = (
   formData: KeyValuePair<unknown>[],
-  fileData: KeyValuePair<unknown>[]
+  fileData: KeyValuePair<unknown>[],
+  fileDataFileNames: Record<string, string> = {}
 ): FormData => {
   const form = new FormData();
   (formData || []).map(({ key, value }) => form.append(key, value));
   (fileData || []).map(({ key, value }) =>
     form.append(key, util.types.toBufferDataPayload(value).data, {
-      filename: key,
+      filename: fileDataFileNames?.[key] || key,
     })
   );
   return form;
@@ -149,7 +150,7 @@ export const sendRawRequest = async (
 
   const payload =
     !isEmpty(values.formData) || !isEmpty(values.fileData)
-      ? toFormData(values.formData, values.fileData)
+      ? toFormData(values.formData, values.fileData, values.fileDataFileNames)
       : values.data;
 
   const client = createClient({
