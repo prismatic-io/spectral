@@ -5,6 +5,11 @@ export enum OAuth2Type {
   AuthorizationCode = "authorization_code",
 }
 
+export enum OAuth2PkceMethod {
+  Plain = "plain",
+  S256 = "S256",
+}
+
 interface BaseConnectionDefinition {
   key: string;
   label: string;
@@ -22,6 +27,8 @@ export interface DefaultConnectionDefinition extends BaseConnectionDefinition {
 interface OAuth2AuthorizationCodeConnectionDefinition
   extends BaseConnectionDefinition {
   oauth2Type: OAuth2Type.AuthorizationCode;
+  /** The PKCE method (S256 or plain) that this OAuth 2.0 connection uses (if any) */
+  oauth2PkceMethod?: OAuth2PkceMethod;
   inputs: {
     authorizeUrl: ConnectionInput;
     tokenUrl: ConnectionInput;
