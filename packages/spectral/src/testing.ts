@@ -212,6 +212,12 @@ const baseDataSourceContext: DataSourceContext = {
     id: "instanceId",
     name: "Instance 1",
   },
+  user: {
+    id: "userId",
+    email: "example@email.com",
+    externalId: "1234",
+    name: "Example",
+  },
 };
 
 /**
