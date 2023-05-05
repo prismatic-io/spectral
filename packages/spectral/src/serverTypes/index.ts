@@ -143,6 +143,7 @@ export interface DataSourceContext {
   logger: ActionLogger;
   customer: Customer;
   instance: Instance;
+  user: User;
 }
 
 export type DataSourceResult = {
