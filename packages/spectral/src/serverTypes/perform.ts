@@ -43,13 +43,7 @@ export const createPerform = (
         cleanParams(params, inputCleaners)
       );
     } catch (error) {
-      if (!errorHandler) {
-        throw error;
-      }
-
-      const handled = errorHandler(error);
-      const serialized = util.types.toJSON(serializeError(handled));
-      throw new Error(serialized);
+      throw errorHandler ? errorHandler(error) : error;
     }
   };
 };
