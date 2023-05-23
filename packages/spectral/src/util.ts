@@ -8,6 +8,7 @@
 import parseISODate from "date-fns/parseISO";
 import dateIsValid from "date-fns/isValid";
 import dateIsDate from "date-fns/isDate";
+import fromUnixTime from "date-fns/fromUnixTime";
 import { configure } from "safe-stable-stringify";
 import { isWebUri } from "valid-url";
 import {
@@ -312,11 +313,12 @@ const toBigInt = (value: unknown): BigInt => {
 const isDate = (value: unknown): value is Date => dateIsDate(value);
 
 /**
- * This function parses an ISO date if possible, or throws an error if the value provided
+ * This function parses an ISO date or UNIX epoch timestamp if possible, or throws an error if the value provided
  * cannot be coerced into a Date object.
  *
  * - `util.types.toDate(new Date('1995-12-17T03:24:00'))` will return `Date('1995-12-17T09:24:00.000Z')` since a `Date` object was passed in.
  * - `util.types.toDate('2021-03-20')` will return `Date('2021-03-20T05:00:00.000Z')` since a valid ISO date was passed in.
+ * - `util.types.toDate(1616198400) will return `Date('2021-03-20T00:00:00.000Z')` since a UNIX epoch timestamp was passed in.
  * - `parseISODate('2021-03-20-05')` will throw an error since `value` was not a valid ISO date.
  * @param value The value to turn into a date.
  * @returns The date equivalent of `value`.
@@ -324,6 +326,10 @@ const isDate = (value: unknown): value is Date => dateIsDate(value);
 const toDate = (value: unknown): Date => {
   if (isDate(value)) {
     return value;
+  }
+
+  if (value && isNumber(value)) {
+    return fromUnixTime(toNumber(value));
   }
 
   if (typeof value === "string") {
