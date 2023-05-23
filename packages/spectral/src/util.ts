@@ -328,7 +328,7 @@ const toDate = (value: unknown): Date => {
     return value;
   }
 
-  if (value && isNumber(value)) {
+  if (isNumber(value) && toNumber(value)) {
     return fromUnixTime(toNumber(value));
   }
 
