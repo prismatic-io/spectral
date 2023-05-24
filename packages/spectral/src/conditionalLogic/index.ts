@@ -6,8 +6,16 @@ import {
   UnaryOperator,
   BinaryOperator,
 } from "./types";
-import { isBefore, isAfter, parse, parseISO, isValid } from "date-fns";
+import {
+  isBefore,
+  isAfter,
+  parse,
+  parseISO,
+  isValid,
+  isEqual as isDateEqual,
+} from "date-fns";
 import _ from "lodash";
+import util from "../util";
 
 export type ValidationResult = [boolean] | [boolean, string];
 
@@ -244,11 +252,11 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
         case BinaryOperator.doesNotEndWith:
           return !`${right}`.endsWith(`${left}`);
         case BinaryOperator.dateTimeAfter:
-          return isAfter(left, right);
+          return isAfter(util.types.toDate(left), util.types.toDate(right));
         case BinaryOperator.dateTimeBefore:
-          return isBefore(left, right);
+          return isBefore(util.types.toDate(left), util.types.toDate(right));
         case BinaryOperator.dateTimeSame:
-          return left == right;
+          return isDateEqual(util.types.toDate(left), util.types.toDate(right));
         default:
           throw new Error(`Invalid operator: '${operator}'`);
       }

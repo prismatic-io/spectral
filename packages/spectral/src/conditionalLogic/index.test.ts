@@ -16,6 +16,35 @@ const jsonLikeRegex = new RegExp(/^[[{"].*[\]}"]$/);
 
 const isJsonLike = (value: string): boolean => jsonLikeRegex.test(value.trim());
 
+type DateLike = string | number | Date;
+
+// Handle string and number datetime values
+const pastDates = (): fc.Arbitrary<DateLike> =>
+  fc.constantFrom(
+    "2021-03-20",
+    "2021-03-20T12:50:30.105Z",
+    1631568050,
+    "1631568051",
+    new Date("2021-03-20T12:50:30.105Z")
+  );
+
+const futureDates = (): fc.Arbitrary<DateLike> =>
+  fc.constantFrom(
+    "2030-03-20",
+    "2030-03-20T12:50:30.105Z",
+    1905784188,
+    "1905784189",
+    new Date("2030-03-20T12:50:30.105Z")
+  );
+
+const equivalentDates = (): fc.Arbitrary<DateLike> =>
+  fc.constantFrom(
+    "2021-03-20T00:00:00.000Z",
+    "1616198400",
+    1616198400,
+    new Date("2021-03-20T00:00:00.000Z")
+  );
+
 describe("evaluate", () => {
   const nonIntegerString = fc
     .string()
@@ -143,6 +172,7 @@ describe("evaluate", () => {
             right,
           ]
         ),
+      // startsWith
       fc
         .tuple(nonIntegerString, nonIntegerString)
         .filter(([left, right]) => right.startsWith(left))
@@ -153,6 +183,7 @@ describe("evaluate", () => {
             right,
           ]
         ),
+      // doesNotStartWith
       fc
         .tuple(nonIntegerString, nonIntegerString)
         .filter(([left, right]) => !right.startsWith(left))
@@ -163,6 +194,7 @@ describe("evaluate", () => {
             right,
           ]
         ),
+      // endsWith
       fc
         .tuple(nonIntegerString, nonIntegerString)
         .filter(([left, right]) => right.endsWith(left))
@@ -173,6 +205,7 @@ describe("evaluate", () => {
             right,
           ]
         ),
+      // doesNotEndWith
       fc
         .tuple(nonIntegerString, nonIntegerString)
         .filter(([left, right]) => !right.endsWith(left))
@@ -183,21 +216,25 @@ describe("evaluate", () => {
             right,
           ]
         ),
+      // isTrue
       nonIntegerString
         .filter((left) => Boolean(left) === true)
         .filter(
           (left) => !["f", "false", "n", "no"].includes(left.toLowerCase())
         )
         .map((left): ConditionalExpression => [UnaryOperator.isTrue, left]),
+      // isFalse
       fc
         .falsy()
         .filter((left) => Boolean(left) === false)
         .map((left): ConditionalExpression => [UnaryOperator.isFalse, left]),
+      // doesNotExist
       fc
         .falsy()
         .map(
           (left): ConditionalExpression => [UnaryOperator.doesNotExist, left]
         ),
+      // dateTimeAfter
       fc
         .tuple(fc.date(), fc.date())
         .filter(([left, right]) => isAfter(left, right))
@@ -209,6 +246,16 @@ describe("evaluate", () => {
           ]
         ),
       fc
+        .tuple(futureDates(), pastDates())
+        .map(
+          ([left, right]): ConditionalExpression => [
+            BinaryOperator.dateTimeAfter,
+            left,
+            right,
+          ]
+        ),
+      // dateTimeBefore
+      fc
         .tuple(fc.date(), fc.date())
         .filter(([left, right]) => isBefore(left, right))
         .map(
@@ -219,12 +266,31 @@ describe("evaluate", () => {
           ]
         ),
       fc
+        .tuple(pastDates(), futureDates())
+        .map(
+          ([left, right]): ConditionalExpression => [
+            BinaryOperator.dateTimeBefore,
+            left,
+            right,
+          ]
+        ),
+      // dateTimeSame
+      fc
         .date()
         .map(
           (left): ConditionalExpression => [
             BinaryOperator.dateTimeSame,
             left,
             left,
+          ]
+        ),
+      fc
+        .tuple(equivalentDates(), equivalentDates())
+        .map(
+          ([left, right]): ConditionalExpression => [
+            BinaryOperator.dateTimeSame,
+            left,
+            right,
           ]
         )
     );
