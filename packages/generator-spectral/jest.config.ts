@@ -1,4 +1,3 @@
-import path from "path";
 import { defaults } from "jest-config";
 import type { Config } from "@jest/types";
 
@@ -7,8 +6,9 @@ const config: Config.InitialOptions = {
   testEnvironment: "node",
   testPathIgnorePatterns: [
     ...defaults.testPathIgnorePatterns,
+    "tmp",
     "templates",
-    ".*\.test\.js"
+    ".*.test.js",
   ],
 };
 
