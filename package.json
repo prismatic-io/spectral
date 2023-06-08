@@ -9,7 +9,8 @@
     "tsd": "turbo run tsd",
     "check": "turbo run check",
     "lint": "turbo run lint",
-    "docs": "turbo run docs"
+    "docs": "turbo run docs",
+    "all": "turbo run all"
   },
   "devDependencies": {
     "turbo": "^1.8.5"

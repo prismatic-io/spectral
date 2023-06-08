@@ -1,9 +1,9 @@
 import { OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
 import { camelCase, isEmpty, startCase } from "lodash";
-import { toWords } from "number-to-words";
 import { getInputs } from "./inputs";
 import { Action, Input, stripUndefined } from "../../utils";
 import { WriterFunction } from "ts-morph";
+import { toGroupTag, toOperationName } from "./util";
 
 const buildPerformFunction = (
   pathTemplate: string,
@@ -61,13 +61,6 @@ const buildPerformFunction = (
       .writeLine("}");
 };
 
-/** Convert path to grouping tag. */
-const toGroupTag = (path: string): string =>
-  camelCase(path === "/" ? "root" : path.split("/")[1]).replace(
-    /^(\d+)/,
-    (_, match) => toWords(match)
-  );
-
 const buildAction = (
   path: string,
   verb: string,
@@ -77,7 +70,9 @@ const buildAction = (
     | OpenAPIV3_1.ParameterObject
   )[] = []
 ): Action => {
-  const operationName = camelCase(operation.operationId || `${verb} ${path}`);
+  const operationName = toOperationName(
+    operation.operationId || `${verb} ${path}`
+  );
 
   const { pathInputs, queryInputs, bodyInputs } = getInputs(
     operation,

@@ -25,6 +25,10 @@
     },
     "docs": {
       "outputs": ["docs/**"]
+    },
+    "all": {
+      "dependsOn": ["check", "lint", "build", "test", "tsd"],
+      "outputs": []
     }
   }
 }
