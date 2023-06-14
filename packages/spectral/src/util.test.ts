@@ -397,6 +397,26 @@ describe("util", () => {
       );
     });
 
+    it("detects buffer data payload missing optional content type", () => {
+      const payloadTypes = fc.record({ data: bufferArbitrary });
+      fc.assert(
+        fc.property(payloadTypes, (v) => {
+          expect(util.types.isBufferDataPayload(v)).toStrictEqual(true);
+        })
+      );
+    });
+
+    it("does not detect non-buffers as buffer data payloads", () => {
+      const payloadTypes = fc.record({
+        data: fc.oneof(fc.string(), fc.object()),
+      });
+      fc.assert(
+        fc.property(payloadTypes, (v) => {
+          expect(util.types.isBufferDataPayload(v)).toStrictEqual(false);
+        })
+      );
+    });
+
     it("coerces string to plain text buffer", () => {
       fc.assert(
         fc.property(fc.string(), (v) => {
