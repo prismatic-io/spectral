@@ -402,14 +402,13 @@ const keyValPairListToObject = <TValue = unknown>(
 
 /**
  * This function tests if the object provided is a Prismatic `DataPayload` object.
- * A `DataPayload` object is an object with a `data` attribute, and optional `contentType` attribute.
+ * A `DataPayload` object is an object with a `data` attribute that is a Buffer, and optional `contentType` attribute.
  *
  * @param value The value to test
  * @returns This function returns true if `value` is a DataPayload object, and false otherwise.
  */
-const isBufferDataPayload = (value: unknown): value is DataPayload => {
-  return value instanceof Object && "data" in value;
-};
+const isBufferDataPayload = (value: unknown): value is DataPayload =>
+  value instanceof Object && "data" in value && Buffer.isBuffer(value["data"]);
 
 /**
  * Many libraries for third-party API that handle binary files expect `Buffer` objects.
