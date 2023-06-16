@@ -182,8 +182,24 @@ export interface CodeInputField extends BaseInputField {
   collection?: InputFieldCollection;
   /** Default value for this field. */
   default?: unknown;
-  /** Code language of this field. */
-  language?: string;
+  /** Code language for syntax highlighting. For no syntax highlighting, choose "plaintext" */
+  language:
+    | "css"
+    | "graphql"
+    | "handlebars"
+    | "hcl"
+    | "html"
+    | "javascript"
+    | "json"
+    | "liquid"
+    | "markdown"
+    | "mysql"
+    | "pgsql"
+    | "plaintext"
+    | "sql"
+    | "typescript"
+    | "xml"
+    | "yaml";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
   /** Clean function */
