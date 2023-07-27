@@ -17,6 +17,6 @@ const publicDefinition = component({
     iconPath: "icon.png",
     category: "Application Connectors",
   },
-  documentationUrl: "https://example.com/docs",
+  documentationUrl: "https://prismatic.io/docs/components/public-definition/",
 });
 expectAssignable<Component>(publicDefinition);
