@@ -27,8 +27,8 @@ import { convertComponent } from "./serverTypes/convert";
  * @param definition A ComponentDefinition type object, including display information, unique key, and a set of actions the component implements.
  * @returns This function returns a component object that has the shape the Prismatic API expects.
  */
-export const component = <T extends boolean>(
-  definition: ComponentDefinition<T>
+export const component = <TPublic extends boolean, TKey extends string>(
+  definition: ComponentDefinition<TPublic, TKey>
 ): ReturnType<typeof convertComponent> => convertComponent(definition);
 
 /**

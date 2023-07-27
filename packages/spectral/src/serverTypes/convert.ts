@@ -131,14 +131,14 @@ const convertConnection = ({
   };
 };
 
-export const convertComponent = <TPublic extends boolean>({
+export const convertComponent = <TPublic extends boolean, TKey extends string>({
   connections = [],
   actions = {},
   triggers = {},
   dataSources = {},
   hooks,
   ...definition
-}: ComponentDefinition<TPublic>): ServerComponent => {
+}: ComponentDefinition<TPublic, TKey>): ServerComponent => {
   const convertedActions = Object.entries(actions).reduce(
     (result, [actionKey, action]) => ({
       ...result,

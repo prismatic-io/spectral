@@ -14,9 +14,12 @@ export interface ComponentHooks {
 }
 
 /** Defines attributes of a Component. */
-export type ComponentDefinition<TPublic extends boolean> = {
+export type ComponentDefinition<
+  TPublic extends boolean,
+  TKey extends string
+> = {
   /** Specifies unique key for this Component. */
-  key: string;
+  key: TKey;
   /** Specifies if this Component is available for all Organizations or only your own @default false */
   public?: TPublic;
   /** Defines how the Component is displayed in the Prismatic interface. */
@@ -34,7 +37,7 @@ export type ComponentDefinition<TPublic extends boolean> = {
 } & (TPublic extends true
   ? {
       /** Specified the URL for the Component Documentation. */
-      documentationUrl: string;
+      documentationUrl: `https://prismatic.io/docs/components/${TKey}/`;
     }
   : {
       documentationUrl?: string;
