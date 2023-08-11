@@ -295,28 +295,69 @@ describe("evaluate", () => {
         )
     );
 
-    const andExpressions = fc
-      .tuple(simpleTrueExpression, simpleTrueExpression)
+    const simpleFalseExpression = fc
+      .tuple(fc.integer(), fc.integer())
+      .filter(([left, right]) => left != right)
       .map(
-        ([left, right]): BooleanExpression => [BooleanOperator.and, left, right]
+        ([left, right]): ConditionalExpression => [
+          BinaryOperator.equal,
+          left.toString(),
+          right.toString(),
+        ]
       );
 
-    const orExpressions = fc
-      .tuple(simpleTrueExpression, simpleTrueExpression)
+    const andTrueExpressions = fc
+      .tuple(simpleTrueExpression, simpleTrueExpression, simpleTrueExpression)
       .map(
-        ([left, right]): BooleanExpression => [BooleanOperator.or, left, right]
+        (predicates): BooleanExpression => [BooleanOperator.and, ...predicates]
+      );
+
+    const andFalseExpressions = fc
+      .tuple(simpleTrueExpression, simpleTrueExpression, simpleFalseExpression)
+      .map(
+        (predicates): BooleanExpression => [BooleanOperator.and, ...predicates]
+      );
+
+    const orTrueExpressions = fc
+      .tuple(simpleFalseExpression, simpleFalseExpression, simpleTrueExpression)
+      .map(
+        (predicates): BooleanExpression => [BooleanOperator.or, ...predicates]
+      );
+
+    const orFalseExpressions = fc
+      .tuple(
+        simpleFalseExpression,
+        simpleFalseExpression,
+        simpleFalseExpression
+      )
+      .map(
+        (predicates): BooleanExpression => [BooleanOperator.or, ...predicates]
       );
 
     const trueExpressions = fc.oneof(
       simpleTrueExpression,
-      andExpressions,
-      orExpressions
+      andTrueExpressions,
+      orTrueExpressions
+    );
+
+    const falseExpressions = fc.oneof(
+      simpleFalseExpression,
+      andFalseExpressions,
+      orFalseExpressions
     );
 
     it("should evaluate expressions", () => {
       fc.assert(
         fc.property(trueExpressions, (expression) =>
           expect(evaluate(expression)).toStrictEqual(true)
+        )
+      );
+    });
+
+    it("should evaluate false expressions", () => {
+      fc.assert(
+        fc.property(falseExpressions, (expression) =>
+          expect(evaluate(expression)).toStrictEqual(false)
         )
       );
     });
