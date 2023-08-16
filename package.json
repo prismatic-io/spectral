@@ -13,7 +13,7 @@
     "all": "turbo run all"
   },
   "devDependencies": {
-    "turbo": "^1.8.5"
+    "turbo": "^1.10.12"
   },
   "resolutions": {
     "**/eslint-plugin-import/tsconfig-paths/json5": "2.2.3",

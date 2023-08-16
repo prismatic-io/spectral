@@ -133,16 +133,18 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
 
   if (operator in BooleanOperator) {
     const predicates = expression.slice(1) as ConditionalExpression[];
-    const results = predicates.map(evaluate);
 
     switch (operator) {
       case BooleanOperator.and:
-        return results.reduce((previous, current) => previous && current, true);
+        for (const predicate of predicates) {
+          if (!evaluate(predicate)) return false;
+        }
+        return true;
       case BooleanOperator.or:
-        return results.reduce(
-          (previous, current) => previous || current,
-          false
-        );
+        for (const predicate of predicates) {
+          if (evaluate(predicate)) return true;
+        }
+        return false;
       default:
         throw new Error(`Invalid operator: '${operator}'`);
     }
