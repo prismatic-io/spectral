@@ -99,7 +99,8 @@ export const maxRetries = input({
   placeholder: "Max Retries",
   type: "string",
   required: false,
-  comments: "The maximum number of retries to attempt.",
+  comments:
+    "The maximum number of retries to attempt. Specify 0 for no retries.",
   default: "0",
   clean: (value) => util.types.toNumber(value),
 });
@@ -109,7 +110,8 @@ export const retryDelayMS = input({
   placeholder: "Retry Delay",
   type: "string",
   required: false,
-  comments: "The delay in milliseconds between retries.",
+  comments:
+    "The delay in milliseconds between retries. This is used when 'Use Exponential Backoff' is disabled.",
   default: "0",
   clean: (value) => util.types.toNumber(value, 0),
 });
@@ -120,7 +122,7 @@ export const useExponentialBackoff = input({
   default: "false",
   required: false,
   comments:
-    "Specifies whether to use a pre-defined exponential backoff strategy for retries.",
+    "Specifies whether to use a pre-defined exponential backoff strategy for retries. When enabled, 'Retry Delay (ms)' is ignored.",
   clean: (value) => util.types.toBool(value),
 });
 
@@ -129,7 +131,8 @@ export const retryAllErrors = input({
   type: "boolean",
   default: "false",
   required: false,
-  comments: "If true, retries on all erroneous responses regardless of type.",
+  comments:
+    "If true, retries on all erroneous responses regardless of type. This is helpful when retrying after HTTP 429 or other 3xx or 4xx errors. Otherwise, only retries on HTTP 5xx and network errors.",
   clean: (value) => util.types.toBool(value),
 });
 
