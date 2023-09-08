@@ -14,6 +14,7 @@ export * from "./ActionInputParameters";
 export * from "./ActionLogger";
 export * from "./ActionPerformFunction";
 export * from "./conditional-logic";
+export * from "./TriggerEventFunction";
 export * from "./TriggerResult";
 export * from "./TriggerPerformFunction";
 export * from "./TriggerDefinition";
