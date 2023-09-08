@@ -123,6 +123,18 @@ export type TriggerPerformFunction = (
   params: Record<string, unknown>
 ) => Promise<TriggerResult>;
 
+export interface TriggerEventFunctionContext {
+  logger: ActionLogger;
+  customer: Customer;
+  instance: Instance;
+  user: User;
+}
+
+export type TriggerEventFunction = (
+  context: TriggerEventFunctionContext,
+  params: Record<string, unknown>
+) => Promise<void>;
+
 export interface Trigger {
   key: string;
   display: DisplayDefinition & { directions?: string; important?: boolean };
@@ -133,6 +145,8 @@ export interface Trigger {
   staticBranchNames?: string[];
   dynamicBranchInput?: string;
   perform: TriggerPerformFunction;
+  onInstanceDeploy?: TriggerEventFunction;
+  onInstanceDelete?: TriggerEventFunction;
   scheduleSupport: TriggerOptionChoice;
   synchronousResponseSupport: TriggerOptionChoice;
   examplePayload?: unknown;

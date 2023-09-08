@@ -71,7 +71,13 @@ const convertAction = (
 
 const convertTrigger = (
   triggerKey: string,
-  { inputs = {}, perform, ...trigger }: TriggerDefinition<Inputs, boolean, any>,
+  {
+    inputs = {},
+    perform,
+    onInstanceDeploy,
+    onInstanceDelete,
+    ...trigger
+  }: TriggerDefinition<Inputs, boolean, any>,
   hooks?: ComponentHooks
 ): ServerTrigger => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) =>
@@ -82,7 +88,7 @@ const convertTrigger = (
     {}
   );
 
-  return {
+  const result: ServerTrigger = {
     ...trigger,
     key: triggerKey,
     inputs: convertedInputs,
@@ -91,6 +97,22 @@ const convertTrigger = (
       errorHandler: hooks?.error,
     }),
   };
+
+  if (onInstanceDeploy) {
+    result.onInstanceDeploy = createPerform(onInstanceDeploy, {
+      inputCleaners,
+      errorHandler: hooks?.error,
+    });
+  }
+
+  if (onInstanceDelete) {
+    result.onInstanceDelete = createPerform(onInstanceDelete, {
+      inputCleaners,
+      errorHandler: hooks?.error,
+    });
+  }
+
+  return result;
 };
 
 const convertDataSource = (
