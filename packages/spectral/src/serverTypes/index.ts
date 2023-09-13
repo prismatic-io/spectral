@@ -4,6 +4,7 @@ import {
   DataSourceType,
   DataSourceResultType,
   User,
+  TriggerEventFunctionReturn,
 } from "../types";
 
 interface DisplayDefinition {
@@ -126,7 +127,7 @@ export type TriggerPerformFunction = (
 export type TriggerEventFunction = (
   context: ActionContext,
   params: Record<string, unknown>
-) => Promise<void>;
+) => Promise<void | TriggerEventFunctionReturn>;
 
 export interface Trigger {
   key: string;
