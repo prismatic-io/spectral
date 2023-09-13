@@ -123,15 +123,8 @@ export type TriggerPerformFunction = (
   params: Record<string, unknown>
 ) => Promise<TriggerResult>;
 
-export interface TriggerEventFunctionContext {
-  logger: ActionLogger;
-  customer: Customer;
-  instance: Instance;
-  user: User;
-}
-
 export type TriggerEventFunction = (
-  context: TriggerEventFunctionContext,
+  context: ActionContext,
   params: Record<string, unknown>
 ) => Promise<void>;
 
