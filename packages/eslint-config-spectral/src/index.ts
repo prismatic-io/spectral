@@ -1,20 +1,17 @@
-require("@rushstack/eslint-patch/modern-module-resolution");
-
 module.exports = {
   parser: "@typescript-eslint/parser",
   env: {
     node: true,
   },
   parserOptions: {
-    project: ["./tsconfig.json"],
+    project: true,
     sourceType: "module",
   },
   plugins: ["@typescript-eslint", "import", "prettier"],
   extends: [
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:@typescript-eslint/eslint-recommended",
-    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    'plugin:@typescript-eslint/recommended-type-checked',
+    'plugin:@typescript-eslint/stylistic-type-checked',
     "plugin:import/recommended",
     "plugin:import/typescript",
     "plugin:prettier/recommended",
