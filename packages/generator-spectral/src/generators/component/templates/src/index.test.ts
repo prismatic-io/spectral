@@ -19,7 +19,7 @@ describe("test my action", () => {
       }),
       myInput: "some input",
     });
-    expect(result.data).toBe("Hello, some input");
+    expect(result.data).toBe("Hello, some input using connection myConnection");
   });
 });
 
@@ -42,6 +42,6 @@ describe("test my data source", () => {
       }),
       myInput: "some input",
     });
-    expect(result).toBe("Hello, some input");
+    expect(result).toBe("Hello, some input using connection myConnection");
   });
 });

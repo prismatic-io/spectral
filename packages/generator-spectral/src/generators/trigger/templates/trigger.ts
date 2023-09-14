@@ -6,6 +6,7 @@ export const <%= trigger.key %> = trigger({
     description: "<%= trigger.description %>",
   },
   perform: async (context, payload, params) => {
+    console.log("<%= trigger.label %> params", params);
     return Promise.resolve({
       payload,
     });
