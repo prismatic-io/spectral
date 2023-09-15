@@ -1,4 +1,4 @@
-import { Instance, Customer, User } from ".";
+import { Instance, Customer, User, Integration, Flow } from ".";
 
 /** Represents a Trigger Payload, which is data passed into a Trigger to invoke an Integration execution. */
 export interface TriggerPayload {
@@ -35,4 +35,8 @@ export interface TriggerPayload {
   instance: Instance;
   /** Contains attributes of the User for whom a User Level Configuration is being used. */
   user: User;
+  /** Contains attributes of the Integration that is being executed. */
+  integration: Integration;
+  /** Contains attributes of the Flow that is being executed. */
+  flow: Flow;
 }

@@ -5,6 +5,8 @@ import {
   DataSourceResultType,
   User,
   TriggerEventFunctionReturn,
+  Integration,
+  Flow,
 } from "../types";
 
 interface DisplayDefinition {
@@ -15,6 +17,8 @@ interface DisplayDefinition {
 export { Instance } from "../types";
 export { Customer } from "../types";
 export { User } from "../types";
+export { Integration } from "../types";
+export { Flow } from "../types";
 
 export interface Component {
   key: string;
@@ -66,6 +70,8 @@ export interface ActionContext {
   customer: Customer;
   instance: Instance;
   user: User;
+  integration: Integration;
+  flow: Flow;
 }
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";
@@ -89,6 +95,8 @@ export interface TriggerPayload {
   customer: Customer;
   instance: Instance;
   user: User;
+  integration: Integration;
+  flow: Flow;
 }
 
 interface HttpResponse {

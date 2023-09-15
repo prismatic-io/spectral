@@ -6,6 +6,8 @@ import {
   Instance,
   Customer,
   User,
+  Integration,
+  Flow,
 } from ".";
 
 /** Definition of the function to perform when an Action is invoked. */
@@ -46,4 +48,8 @@ export interface ActionContext {
   instance: Instance;
   /** Contains attributes of the User for whom a User Level Configuration is being used. */
   user: User;
+  /** Contains attributes of the Integration that is being executed. */
+  integration: Integration;
+  /** Contains attributes of the Flow that is being executed. */
+  flow: Flow;
 }
