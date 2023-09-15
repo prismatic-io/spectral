@@ -87,6 +87,15 @@ const baseActionContext: ActionContext = {
     name: "User 1",
     externalId: "1234",
   },
+  integration: {
+    id: "integrationId",
+    name: "Integration 1",
+    versionSequenceId: "1234",
+  },
+  flow: {
+    id: "flowId",
+    name: "Flow 1",
+  },
 };
 
 /**
@@ -161,6 +170,15 @@ export const defaultTriggerPayload = (): TriggerPayload => {
       email: "user@example.com",
       name: "User 1",
       externalId: "1234",
+    },
+    integration: {
+      id: "integrationId",
+      name: "Integration 1",
+      versionSequenceId: "1234",
+    },
+    flow: {
+      id: "flowId",
+      name: "Flow 1",
     },
   };
 };

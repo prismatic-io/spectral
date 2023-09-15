@@ -26,4 +26,6 @@ export * from "./DataSourceResult";
 export * from "./Instance";
 export * from "./Customer";
 export * from "./User";
+export * from "./Integration";
+export * from "./Flow";
 export * as serverTypes from "../serverTypes";
