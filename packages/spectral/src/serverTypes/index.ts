@@ -150,9 +150,9 @@ export interface Trigger {
   dynamicBranchInput?: string;
   perform: TriggerPerformFunction;
   onInstanceDeploy?: TriggerEventFunction;
-  hasOnInstanceDeploy: boolean;
+  hasOnInstanceDeploy?: boolean;
   onInstanceDelete?: TriggerEventFunction;
-  hasOnInstanceDelete: boolean;
+  hasOnInstanceDelete?: boolean;
   scheduleSupport: TriggerOptionChoice;
   synchronousResponseSupport: TriggerOptionChoice;
   examplePayload?: unknown;
