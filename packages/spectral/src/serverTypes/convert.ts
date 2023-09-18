@@ -96,8 +96,6 @@ const convertTrigger = (
       inputCleaners,
       errorHandler: hooks?.error,
     }),
-    hasOnInstanceDeploy: !!onInstanceDeploy,
-    hasOnInstanceDelete: !!onInstanceDelete,
   };
 
   if (onInstanceDeploy) {
@@ -105,6 +103,7 @@ const convertTrigger = (
       inputCleaners,
       errorHandler: hooks?.error,
     });
+    result.hasOnInstanceDeploy = true;
   }
 
   if (onInstanceDelete) {
@@ -112,6 +111,7 @@ const convertTrigger = (
       inputCleaners,
       errorHandler: hooks?.error,
     });
+    result.hasOnInstanceDelete = true;
   }
 
   return result;
