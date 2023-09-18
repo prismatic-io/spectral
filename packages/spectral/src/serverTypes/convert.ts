@@ -96,6 +96,8 @@ const convertTrigger = (
       inputCleaners,
       errorHandler: hooks?.error,
     }),
+    hasOnInstanceDeploy: !!onInstanceDeploy,
+    hasOnInstanceDelete: !!onInstanceDelete,
   };
 
   if (onInstanceDeploy) {
