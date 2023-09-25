@@ -42,6 +42,10 @@ class FormatsGenerator extends Generator {
   }
 
   async initializing() {
+    if (!this.options.name) {
+      throw new Error("Name of component must be specified.");
+    }
+
     if (!this.options.openapi) {
       throw new Error("Path to OpenAPI specification must be specified.");
     }
@@ -76,7 +80,7 @@ class FormatsGenerator extends Generator {
         test: "jest --runInBand",
         lint: "eslint --quiet --ext .ts .",
         "lint-fix": "eslint --quiet --ext .ts --fix .",
-        format: "npm run lint-fix && prettier --loglevel error --write .",
+        format: "npm run lint-fix && prettier --log-level error --write .",
       },
       eslintConfig: {
         root: true,
@@ -85,7 +89,10 @@ class FormatsGenerator extends Generator {
     });
 
     await this.addDependencies("@prismatic-io/spectral");
-    await this.addDevDependencies("@prismatic-io/eslint-config-spectral");
+    await this.addDevDependencies([
+      "eslint",
+      "@prismatic-io/eslint-config-spectral",
+    ]);
     await this.addDevDependencies({
       "@types/jest": "25.2.3",
       "copy-webpack-plugin": "10.2.4",
@@ -95,8 +102,7 @@ class FormatsGenerator extends Generator {
       typescript: "4.6.3",
       webpack: "5.72.0",
       "webpack-cli": "4.9.2",
-      eslint: "6.8.0",
-      prettier: "2.0.5",
+      prettier: "3.0.3",
     });
 
     const result = await read(this.values.openapi);
