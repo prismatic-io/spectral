@@ -29,6 +29,7 @@ import {
   TriggerResult as InvokeTriggerResult,
   DataSourceType,
   DataSourceResult as InvokeDataSourceResult,
+  TriggerEventFunctionReturn,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -307,6 +308,36 @@ export class ComponentTestHarness<TComponent extends Component> {
     return trigger.perform(
       this.buildContext<ActionContext>(baseActionContext, context),
       { ...defaultTriggerPayload(), ...payload },
+      this.buildParams(trigger.inputs, params)
+    );
+  }
+
+  public async triggerOnInstanceDeploy(
+    key: string,
+    params?: Record<string, unknown>,
+    context?: Partial<ActionContext>
+  ): Promise<void | TriggerEventFunctionReturn> {
+    const trigger = this.component.triggers[key];
+    if (!trigger.onInstanceDeploy) {
+      throw new Error("Trigger does not support onInstanceDeploy");
+    }
+    return trigger.onInstanceDeploy(
+      this.buildContext<ActionContext>(baseActionContext, context),
+      this.buildParams(trigger.inputs, params)
+    );
+  }
+
+  public async triggerOnInstanceDelete(
+    key: string,
+    params?: Record<string, unknown>,
+    context?: Partial<ActionContext>
+  ): Promise<void | TriggerEventFunctionReturn> {
+    const trigger = this.component.triggers[key];
+    if (!trigger.onInstanceDelete) {
+      throw new Error("Trigger does not support onInstanceDelete");
+    }
+    return trigger.onInstanceDelete(
+      this.buildContext<ActionContext>(baseActionContext, context),
       this.buildParams(trigger.inputs, params)
     );
   }
