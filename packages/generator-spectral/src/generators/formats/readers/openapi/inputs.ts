@@ -131,32 +131,34 @@ const buildBodyInputs = (
   const requiredKeys = new Set(schema.required ?? []);
   const properties = getProperties(schema);
 
-  return Object.entries(properties).map<Input>(([propKey, prop]) => {
-    const schemaType = prop?.type;
-    const { type, cleanFn, cleanReturnType, coalesceFalsyValues } =
-      toInputType[schemaType as string] ?? toInputType["string"];
-    const coalescePart = coalesceFalsyValues ? " || undefined" : "";
+  return Object.entries(properties)
+    .filter(([_propKey, prop]) => !prop.readOnly) // Don't create inputs for readonly properties
+    .map<Input>(([propKey, prop]) => {
+      const schemaType = prop?.type;
+      const { type, cleanFn, cleanReturnType, coalesceFalsyValues } =
+        toInputType[schemaType as string] ?? toInputType["string"];
+      const coalescePart = coalesceFalsyValues ? " || undefined" : "";
 
-    const model = getInputModel(prop);
+      const model = getInputModel(prop);
 
-    const key = seenKeys.has(safeKey(propKey))
-      ? safeKey(`other ${propKey}`)
-      : safeKey(propKey);
-    seenKeys.add(key);
+      const key = seenKeys.has(safeKey(propKey))
+        ? safeKey(`other ${propKey}`)
+        : safeKey(propKey);
+      seenKeys.add(key);
 
-    return stripUndefined<Input>({
-      upstreamKey: propKey,
-      key,
-      label: startCase(propKey),
-      type,
-      required: requiredKeys.has(propKey),
-      comments: prop.description,
-      default: prop.default,
-      example: prop.example,
-      model,
-      clean: `(value): ${cleanReturnType} => util.types.${cleanFn}(value)${coalescePart}`,
+      return stripUndefined<Input>({
+        upstreamKey: propKey,
+        key,
+        label: startCase(propKey),
+        type,
+        required: requiredKeys.has(propKey),
+        comments: prop.description,
+        default: prop.default,
+        example: prop.example,
+        model,
+        clean: `(value): ${cleanReturnType} => util.types.${cleanFn}(value)${coalescePart}`,
+      });
     });
-  });
 };
 
 export const getInputs = (
