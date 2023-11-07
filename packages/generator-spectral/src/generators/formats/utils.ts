@@ -6,8 +6,33 @@ import {
   ConnectionInput as ConnectionInputDefinition,
   InputFieldChoice,
 } from "@prismatic-io/spectral";
+import { camelCase } from "lodash";
 import stripTags from "striptags";
 import { WriterFunction } from "ts-morph";
+import { toWords } from "number-to-words";
+
+const keywordReplacements: Record<string, string> = {
+  default: "defaultValue",
+  public: "isPublic",
+  protected: "isProtected",
+  private: "isPrivate",
+  interface: "anInterface",
+  context: "ctx",
+  data: "aData",
+  case: "aCase",
+};
+
+/** Convert key to a "safe key" or "clean identifier". Specifically avoiding Javascript/Typescript keywords
+ * and invalid syntax (such as hyphenated identifiers or leading numbers).
+ */
+export const cleanIdentifier = (key: string): string =>
+  keywordReplacements[key] ??
+  camelCase(
+    key.replace(
+      /^([0-9])(.+)?$/,
+      (_, num, rest = "") => `${toWords(num)}${rest}`
+    )
+  );
 
 export const stripUndefined = <T extends Record<string, any>>(data: T): T =>
   Object.entries(data ?? {}).reduce<T>((result, [key, value]) => {
@@ -28,11 +53,11 @@ export const createDescription = (text?: string): string => {
   return escapeText(fragment);
 };
 
-export const escapeText = (text?: string): string => {
+export const escapeText = (text?: unknown): string => {
   if (!text) {
     return "";
   }
-  return text.replace(/"/g, '\\"');
+  return `${text}`.replace(/"/g, '\\"');
 };
 
 export type GeneratedFunction = string | WriterFunction;

@@ -9,7 +9,12 @@ import {
   VariableDeclarationKind,
   VariableDeclarationStructure,
 } from "ts-morph";
-import { Connection, ConnectionInput, escapeText } from "../utils";
+import {
+  Connection,
+  ConnectionInput,
+  cleanIdentifier,
+  escapeText,
+} from "../utils";
 import path from "path";
 
 const writeInput = (
@@ -125,6 +130,10 @@ export const writeConnections = (
     moduleSpecifier: "@prismatic-io/spectral",
     namedImports,
   });
+
+  for (const connection of connections) {
+    connection.key = cleanIdentifier(connection.key);
+  }
 
   const sortedConnectionKeys = sortBy(
     connections,
