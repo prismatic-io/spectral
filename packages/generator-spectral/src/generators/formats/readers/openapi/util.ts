@@ -7,11 +7,3 @@ export const toGroupTag = (path: string): string =>
     /^(\d+)/,
     (_, match) => toWords(match)
   );
-
-export const toOperationName = (operationName: string): string =>
-  camelCase(
-    operationName.replace(
-      /^([0-9])(.+)$/,
-      (_, num, rest) => `${toWords(num)}${rest}`
-    )
-  );

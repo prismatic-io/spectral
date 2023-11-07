@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/generator-spectral",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "description": "Yeoman generator for scaffolding out Prismatic components",
   "keywords": [
     "prismatic",
@@ -43,7 +43,7 @@
     "@apidevtools/swagger-parser": "10.1.0",
     "openapi-types": "11.0.1",
     "striptags": "3.2.0",
-    "ts-morph": "15.0.0",
+    "ts-morph": "20.0.0",
     "number-to-words": "1.2.4"
   },
   "devDependencies": {

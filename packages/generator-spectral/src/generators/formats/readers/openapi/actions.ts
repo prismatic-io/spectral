@@ -1,9 +1,9 @@
 import { OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
 import { camelCase, isEmpty, startCase } from "lodash";
 import { getInputs } from "./inputs";
-import { Action, Input, stripUndefined } from "../../utils";
+import { Action, Input, cleanIdentifier, stripUndefined } from "../../utils";
 import { WriterFunction } from "ts-morph";
-import { toGroupTag, toOperationName } from "./util";
+import { toGroupTag } from "./util";
 
 const buildPerformFunction = (
   pathTemplate: string,
@@ -70,7 +70,7 @@ const buildAction = (
     | OpenAPIV3_1.ParameterObject
   )[] = []
 ): Action => {
-  const operationName = toOperationName(
+  const operationName = cleanIdentifier(
     operation.operationId || `${verb} ${path}`
   );
 

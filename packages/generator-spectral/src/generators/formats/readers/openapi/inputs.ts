@@ -1,23 +1,9 @@
 import { OpenAPI, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
-import { camelCase, startCase, merge } from "lodash";
-import { Input, stripUndefined } from "../../utils";
+import { startCase, merge } from "lodash";
+import { Input, cleanIdentifier, stripUndefined } from "../../utils";
 import { InputFieldChoice, InputFieldType } from "@prismatic-io/spectral";
 
-const keywordReplacements: Record<string, string> = {
-  default: "defaultValue",
-  public: "isPublic",
-  protected: "isProtected",
-  private: "isPrivate",
-  interface: "anInterface",
-  context: "ctx",
-  data: "aData",
-};
-
-/** Convert key to a "safe key". Specifically avoiding Javascript/Typescript keywords
- * and invalid syntax (such as hyphenated identifiers).
- */
-const safeKey = (key: string): string =>
-  keywordReplacements[key] ?? camelCase(key);
+type ParameterObject = OpenAPIV3.ParameterObject | OpenAPIV3_1.ParameterObject;
 
 const toInputType: {
   [x: string]: {
@@ -93,9 +79,9 @@ const buildInput = (
   const coalescePart = coalesceFalsyValues ? " || undefined" : "";
 
   const { name: paramKey } = parameter;
-  const key = seenKeys.has(safeKey(paramKey))
-    ? safeKey(`other ${paramKey}`)
-    : safeKey(paramKey);
+  const key = seenKeys.has(cleanIdentifier(paramKey))
+    ? cleanIdentifier(`other ${paramKey}`)
+    : cleanIdentifier(paramKey);
   seenKeys.add(key);
 
   const model = getInputModel(parameter.schema);
@@ -141,9 +127,9 @@ const buildBodyInputs = (
 
       const model = getInputModel(prop);
 
-      const key = seenKeys.has(safeKey(propKey))
-        ? safeKey(`other ${propKey}`)
-        : safeKey(propKey);
+      const key = seenKeys.has(cleanIdentifier(propKey))
+        ? cleanIdentifier(`other ${propKey}`)
+        : cleanIdentifier(propKey);
       seenKeys.add(key);
 
       return stripUndefined<Input>({
@@ -163,10 +149,7 @@ const buildBodyInputs = (
 
 export const getInputs = (
   operation: OpenAPIV3.OperationObject | OpenAPIV3_1.OperationObject,
-  sharedParameters: (
-    | OpenAPIV3.ParameterObject
-    | OpenAPIV3_1.ParameterObject
-  )[] = []
+  sharedParameters: ParameterObject[] = []
 ): {
   pathInputs: Input[];
   queryInputs: Input[];
@@ -183,14 +166,27 @@ export const getInputs = (
   const seenKeys = new Set<string>(["connection"]);
 
   // Merge in Path Item level parameters with the specific parameters to this Operation.
-  const parameters = [...sharedParameters, ...(operation.parameters ?? [])];
+  // Some specs have the same input defined at path and at operation level. Dedupe them.
+  const parameters = Object.values<ParameterObject>(
+    [...sharedParameters, ...(operation.parameters ?? [])].reduce(
+      (result, p) => {
+        // Refs are unsupported.
+        if ("$ref" in p) {
+          return result;
+        }
+
+        return { ...result, [p.name]: p };
+      },
+      {}
+    )
+  );
 
   const pathInputs = (parameters ?? [])
-    .filter((p) => !("$ref" in p) && p.in === "path")
+    .filter((p) => p.in === "path")
     .map((p) => buildInput(p, seenKeys));
 
   const queryInputs = (parameters ?? [])
-    .filter((p) => !("$ref" in p) && p.in === "query")
+    .filter((p) => p.in === "query")
     .map((p) => buildInput(p, seenKeys));
 
   const requestBodySchema =
