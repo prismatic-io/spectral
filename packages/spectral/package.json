@@ -38,7 +38,7 @@
   ],
   "dependencies": {
     "@jsonforms/core": "3.0.0",
-    "axios": "0.27.2",
+    "axios": "1.6.0",
     "axios-retry": "3.2.5",
     "date-fns": "2.30.0",
     "form-data": "4.0.0",
