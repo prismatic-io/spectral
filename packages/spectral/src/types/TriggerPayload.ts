@@ -39,4 +39,6 @@ export interface TriggerPayload {
   integration: Integration;
   /** Contains attributes of the Flow that is being executed. */
   flow: Flow;
+  /** The time in UTC that execution started. */
+  startedAt: string;
 }

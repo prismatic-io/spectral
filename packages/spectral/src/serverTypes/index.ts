@@ -97,6 +97,7 @@ export interface TriggerPayload {
   user: User;
   integration: Integration;
   flow: Flow;
+  startedAt: string;
 }
 
 interface HttpResponse {
