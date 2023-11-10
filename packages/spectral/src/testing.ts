@@ -181,6 +181,7 @@ export const defaultTriggerPayload = (): TriggerPayload => {
       id: "flowId",
       name: "Flow 1",
     },
+    startedAt: new Date().toISOString(),
   };
 };
 
