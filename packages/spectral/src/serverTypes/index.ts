@@ -72,6 +72,7 @@ export interface ActionContext {
   user: User;
   integration: Integration;
   flow: Flow;
+  startedAt: string;
 }
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";
