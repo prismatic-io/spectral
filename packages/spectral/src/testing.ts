@@ -97,6 +97,7 @@ const baseActionContext: ActionContext = {
     id: "flowId",
     name: "Flow 1",
   },
+  startedAt: new Date().toISOString(),
 };
 
 /**
