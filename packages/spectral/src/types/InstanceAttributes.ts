@@ -1,5 +1,5 @@
 /** Contains attributes of the Instance that is being executed. */
-export interface Instance {
+export interface InstanceAttributes {
   id: string;
   name: string;
 }

@@ -1,12 +1,13 @@
 import {
-  Instance,
-  Customer,
+  InstanceAttributes,
+  CustomerAttributes,
   DataSourceType,
   DataSourceResultType,
-  User,
+  UserAttributes,
   TriggerEventFunctionReturn,
-  Integration,
-  Flow,
+  IntegrationAttributes,
+  FlowAttributes,
+  ConfigVarResultCollection,
 } from "../types";
 
 interface DisplayDefinition {
@@ -14,11 +15,11 @@ interface DisplayDefinition {
   description: string;
 }
 
-export { Instance } from "../types";
-export { Customer } from "../types";
-export { User } from "../types";
-export { Integration } from "../types";
-export { Flow } from "../types";
+export { InstanceAttributes } from "../types";
+export { CustomerAttributes } from "../types";
+export { UserAttributes } from "../types";
+export { IntegrationAttributes } from "../types";
+export { FlowAttributes } from "../types";
 
 export interface Component {
   key: string;
@@ -29,6 +30,7 @@ export interface Component {
   triggers: Record<string, Trigger>;
   dataSources: Record<string, DataSource>;
   connections: Connection[];
+  codeNativeIntegrationYAML?: string;
 }
 
 export interface Action {
@@ -56,7 +58,10 @@ export interface ActionLogger {
   error: ActionLoggerFunction;
 }
 
-export interface ActionContext {
+export type ActionContext<
+  TConfigVars extends ConfigVarResultCollection,
+  THasConfigVars extends boolean = false
+> = {
   logger: ActionLogger;
   instanceState: Record<string, unknown>;
   crossFlowState: Record<string, unknown>;
@@ -67,13 +72,15 @@ export interface ActionContext {
   webhookUrls: Record<string, string>;
   webhookApiKeys: Record<string, string[]>;
   invokeUrl: string;
-  customer: Customer;
-  instance: Instance;
-  user: User;
-  integration: Integration;
-  flow: Flow;
+  customer: CustomerAttributes;
+  instance: InstanceAttributes;
+  user: UserAttributes;
+  integration: IntegrationAttributes;
+  flow: FlowAttributes;
   startedAt: string;
-}
+} & (THasConfigVars extends true
+  ? { configVars: TConfigVars }
+  : Record<string, never>);
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";
 
@@ -93,11 +100,11 @@ export interface TriggerPayload {
   webhookApiKeys: Record<string, string[]>;
   invokeUrl: string;
   executionId: string;
-  customer: Customer;
-  instance: Instance;
-  user: User;
-  integration: Integration;
-  flow: Flow;
+  customer: CustomerAttributes;
+  instance: InstanceAttributes;
+  user: UserAttributes;
+  integration: IntegrationAttributes;
+  flow: FlowAttributes;
   startedAt: string;
 }
 
@@ -129,7 +136,7 @@ export type TriggerResult =
   | undefined;
 
 export type TriggerPerformFunction = (
-  context: ActionContext,
+  context: ActionContext<any>,
   payload: TriggerPayload,
   params: Record<string, unknown>
 ) => Promise<TriggerResult>;
@@ -137,7 +144,7 @@ export type TriggerPerformFunction = (
 export type TriggerEventFunctionResult = TriggerEventFunctionReturn | void;
 
 export type TriggerEventFunction = (
-  context: ActionContext,
+  context: ActionContext<any>,
   params: Record<string, unknown>
 ) => Promise<TriggerEventFunctionResult>;
 
@@ -163,9 +170,9 @@ export interface Trigger {
 
 export interface DataSourceContext {
   logger: ActionLogger;
-  customer: Customer;
-  instance: Instance;
-  user: User;
+  customer: CustomerAttributes;
+  instance: InstanceAttributes;
+  user: UserAttributes;
 }
 
 export type DataSourceResult = {
@@ -256,7 +263,7 @@ export type ActionPerformReturn =
   | undefined; // Allow an action to return nothing to reduce component implementation boilerplate
 
 export type ActionPerformFunction = (
-  context: ActionContext,
+  context: ActionContext<any>,
   params: Record<string, unknown>
 ) => Promise<ActionPerformReturn>;
 

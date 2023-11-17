@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "7.10.0",
+  "version": "8.0.0",
   "description": "Utility library for building Prismatic components",
   "keywords": [
     "prismatic"
@@ -47,7 +47,8 @@
     "serialize-error": "8.1.0",
     "url-join": "5.0.0",
     "uuid": "8.3.2",
-    "valid-url": "1.0.9"
+    "valid-url": "1.0.9",
+    "yaml": "2.3.4"
   },
   "devDependencies": {
     "@types/jest": "27.4.1",

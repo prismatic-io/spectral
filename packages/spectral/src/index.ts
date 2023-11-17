@@ -16,8 +16,77 @@ import {
   TriggerResult,
   DataSourceDefinition,
   DataSourceType,
+  IntegrationDefinition,
+  Flow,
+  ConfigPage,
+  StandardConfigVar,
+  ConnectionConfigVar,
+  ConfigVar,
+  ConfigVarResultCollection,
+  ConfigVarCollection,
+  TriggerPayload,
 } from "./types";
-import { convertComponent } from "./serverTypes/convert";
+import { convertComponent, convertIntegration } from "./serverTypes/convert";
+
+/**
+ * This function creates a Integration object that can be
+ * imported into the Prismatic API. For information on using
+ * this function to write code native integrations, see
+ * https://prismatic.io/docs/code-native-integrations/.
+ * @param definition An IntegrationDefinition type object.
+ * @returns This function returns an integration object that has the shape the Prismatic API expects.
+ */
+export const integration = <
+  TConfigVar extends Record<string, ConfigVar> = Record<string, ConfigVar>
+>(
+  definition: IntegrationDefinition<TConfigVar>
+): ReturnType<typeof convertIntegration> =>
+  convertIntegration(definition as IntegrationDefinition<any>);
+
+/**
+ * For information on writing Code Native Integrations, see
+ * https://prismatic.io/docs/code-native-integrations/#adding-flows.
+ * @param definition A Flow type object.
+ * @returns This function returns a flow object that has the shape the Prismatic API expects.
+ */
+export const flow = <
+  TConfigVars extends ConfigVarCollection = ConfigVarCollection,
+  TTriggerPayload extends TriggerPayload = TriggerPayload,
+  T extends Flow<TConfigVars, TTriggerPayload> = Flow<
+    TConfigVars,
+    TTriggerPayload
+  >
+>(
+  definition: T
+): T => definition;
+
+/**
+ * For information on writing Code Native Integrations, see
+ * https://prismatic.io/docs/code-native-integrations/#adding-config-pages.
+ * @param definition A Config Page type object.
+ * @returns This function returns a config page object that has the shape the Prismatic API expects.
+ */
+export const configPage = <T extends ConfigPage>(definition: T): T =>
+  definition;
+
+/**
+ * For information on writing Code Native Integrations, see
+ * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
+ * @param definition A Config Var type object.
+ * @returns This function returns a standard config var object that has the shape the Prismatic API expects.
+ */
+export const configVar = <T extends StandardConfigVar>(definition: T): T =>
+  definition;
+
+/**
+ * For information on writing Code Native Integrations, see
+ * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
+ * @param definition A Connection Config Var type object.
+ * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
+ */
+export const connectionConfigVar = <T extends ConnectionConfigVar>(
+  definition: T
+): T => definition;
 
 /**
  * This function creates a component object that can be
@@ -42,11 +111,13 @@ export const component = <TPublic extends boolean, TKey extends string>(
  */
 export const action = <
   TInputs extends Inputs,
+  TConfigVar extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
   TReturn extends ActionPerformReturn<TAllowsBranching, unknown>
 >(
-  definition: ActionDefinition<TInputs, TAllowsBranching, TReturn>
-): ActionDefinition<TInputs, TAllowsBranching, TReturn> => definition;
+  definition: ActionDefinition<TInputs, TConfigVar, TAllowsBranching, TReturn>
+): ActionDefinition<TInputs, TConfigVar, TAllowsBranching, TReturn> =>
+  definition;
 
 /**
  * This function creates a trigger object that can be referenced
@@ -59,11 +130,13 @@ export const action = <
  */
 export const trigger = <
   TInputs extends Inputs,
+  TConfigVar extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
-  TResult extends TriggerResult<TAllowsBranching>
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>
 >(
-  definition: TriggerDefinition<TInputs, TAllowsBranching, TResult>
-): TriggerDefinition<TInputs, TAllowsBranching, TResult> => definition;
+  definition: TriggerDefinition<TInputs, TConfigVar, TAllowsBranching, TResult>
+): TriggerDefinition<TInputs, TConfigVar, TAllowsBranching, TResult> =>
+  definition;
 
 /**
  * This function creates a data source object that can be referenced
