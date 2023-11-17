@@ -3,11 +3,11 @@ import {
   ActionPerformReturn,
   ActionInputParameters,
   ActionLogger,
-  Instance,
-  Customer,
-  User,
-  Integration,
-  Flow,
+  InstanceAttributes,
+  CustomerAttributes,
+  UserAttributes,
+  IntegrationAttributes,
+  FlowAttributes,
 } from ".";
 
 /** Definition of the function to perform when an Action is invoked. */
@@ -43,15 +43,15 @@ export interface ActionContext {
   /** The URL used to invoke the current execution */
   invokeUrl: string;
   /** Contains attributes of the Customer for whom an Instance is being executed. */
-  customer: Customer;
+  customer: CustomerAttributes;
   /** Contains attributes of the Instance that is being executed. */
-  instance: Instance;
+  instance: InstanceAttributes;
   /** Contains attributes of the User for whom a User Level Configuration is being used. */
-  user: User;
+  user: UserAttributes;
   /** Contains attributes of the Integration that is being executed. */
-  integration: Integration;
+  integration: IntegrationAttributes;
   /** Contains attributes of the Flow that is being executed. */
-  flow: Flow;
+  flow: FlowAttributes;
   /** The time in UTC that execution started. */
   startedAt: string;
 }

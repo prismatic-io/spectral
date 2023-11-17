@@ -1,12 +1,12 @@
 import {
-  Instance,
-  Customer,
+  InstanceAttributes,
+  CustomerAttributes,
   DataSourceType,
   DataSourceResultType,
-  User,
+  UserAttributes,
   TriggerEventFunctionReturn,
-  Integration,
-  Flow,
+  IntegrationAttributes,
+  FlowAttributes,
 } from "../types";
 
 interface DisplayDefinition {
@@ -14,11 +14,16 @@ interface DisplayDefinition {
   description: string;
 }
 
-export { Instance } from "../types";
-export { Customer } from "../types";
-export { User } from "../types";
-export { Integration } from "../types";
-export { Flow } from "../types";
+export { InstanceAttributes } from "../types";
+export { CustomerAttributes } from "../types";
+export { UserAttributes } from "../types";
+export { IntegrationAttributes } from "../types";
+export { FlowAttributes } from "../types";
+
+export interface Integration {
+  yaml: string;
+  component: Component;
+}
 
 export interface Component {
   key: string;
@@ -67,11 +72,11 @@ export interface ActionContext {
   webhookUrls: Record<string, string>;
   webhookApiKeys: Record<string, string[]>;
   invokeUrl: string;
-  customer: Customer;
-  instance: Instance;
-  user: User;
-  integration: Integration;
-  flow: Flow;
+  customer: CustomerAttributes;
+  instance: InstanceAttributes;
+  user: UserAttributes;
+  integration: IntegrationAttributes;
+  flow: FlowAttributes;
   startedAt: string;
 }
 
@@ -93,11 +98,11 @@ export interface TriggerPayload {
   webhookApiKeys: Record<string, string[]>;
   invokeUrl: string;
   executionId: string;
-  customer: Customer;
-  instance: Instance;
-  user: User;
-  integration: Integration;
-  flow: Flow;
+  customer: CustomerAttributes;
+  instance: InstanceAttributes;
+  user: UserAttributes;
+  integration: IntegrationAttributes;
+  flow: FlowAttributes;
   startedAt: string;
 }
 
@@ -163,9 +168,9 @@ export interface Trigger {
 
 export interface DataSourceContext {
   logger: ActionLogger;
-  customer: Customer;
-  instance: Instance;
-  user: User;
+  customer: CustomerAttributes;
+  instance: InstanceAttributes;
+  user: UserAttributes;
 }
 
 export type DataSourceResult = {
