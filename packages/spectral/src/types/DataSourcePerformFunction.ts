@@ -4,17 +4,17 @@ import {
   DataSourceType,
   ActionInputParameters,
   ActionLogger,
-  Customer,
-  Instance,
-  User,
+  CustomerAttributes,
+  InstanceAttributes,
+  UserAttributes,
 } from ".";
 
 /** Context provided to perform method containing helpers and contextual data */
 export interface DataSourceContext {
   logger: ActionLogger;
-  customer: Customer;
-  instance: Instance;
-  user: User;
+  customer: CustomerAttributes;
+  instance: InstanceAttributes;
+  user: UserAttributes;
 }
 
 /** Definition of the function to perform when a Data Source is invoked. */

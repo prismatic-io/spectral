@@ -16,8 +16,21 @@ import {
   TriggerResult,
   DataSourceDefinition,
   DataSourceType,
+  IntegrationDefinition,
 } from "./types";
-import { convertComponent } from "./serverTypes/convert";
+import { convertComponent, convertIntegration } from "./serverTypes/convert";
+
+/**
+ * This function creates a Integration object that can be
+ * imported into the Prismatic API. For information on using
+ * this function to write code native integrations, see
+ * https://prismatic.io/docs/code-native-integrations/.
+ * @param definition An IntegrationDefinition type object.
+ * @returns This function returns an integration object that has the shape the Prismatic API expects.
+ */
+export const integration = (
+  definition: IntegrationDefinition
+): ReturnType<typeof convertIntegration> => convertIntegration(definition);
 
 /**
  * This function creates a component object that can be
