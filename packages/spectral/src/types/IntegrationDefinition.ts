@@ -15,6 +15,8 @@ export type IntegrationDefinition = {
   name: string;
   /** Optional description for this Integration. */
   description?: string;
+  /** Optional path to icon to use for this Integration. Path should be relative to the built Integration source. */
+  iconPath?: string;
   /** Optional category for this Integration. */
   category?: string;
   /** Optional documentation for this Integration. */

@@ -24,7 +24,6 @@ import {
   Trigger as ServerTrigger,
   Input as ServerInput,
   DataSource as ServerDataSource,
-  Integration as ServerIntegration,
 } from ".";
 import { InputCleaners, createPerform } from "./perform";
 
@@ -207,15 +206,18 @@ export const convertComponent = <TPublic extends boolean, TKey extends string>({
 
 export const convertIntegration = (
   definition: IntegrationDefinition
-): ServerIntegration => {
+): ServerComponent => {
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
   // inline as part of the integration definition.
   const referenceKey = uuid();
 
   return {
-    yaml: codeNativeIntegrationYaml(definition, referenceKey),
-    component: codeNativeIntegrationComponent(definition, referenceKey),
+    ...codeNativeIntegrationComponent(definition, referenceKey),
+    codeNativeIntegrationYAML: codeNativeIntegrationYaml(
+      definition,
+      referenceKey
+    ),
   };
 };
 
@@ -412,7 +414,7 @@ const flowFunctionKey = (flowName: string, functionName: string): string => {
  *  Code Native integration. */
 const codeNativeIntegrationComponent = (
   {
-    name,
+    iconPath,
     description,
     flows = [],
     dataSources = {},
@@ -462,7 +464,7 @@ const codeNativeIntegrationComponent = (
 
   return {
     key: referenceKey,
-    display: { label: name, description: description || "" },
+    display: { label: referenceKey, iconPath, description: description || "" },
     connections: connections.map(convertConnection),
     actions: convertedActions,
     triggers: convertedTriggers,
