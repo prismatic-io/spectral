@@ -20,11 +20,6 @@ export { UserAttributes } from "../types";
 export { IntegrationAttributes } from "../types";
 export { FlowAttributes } from "../types";
 
-export interface Integration {
-  yaml: string;
-  component: Component;
-}
-
 export interface Component {
   key: string;
   public?: boolean;
@@ -34,6 +29,7 @@ export interface Component {
   triggers: Record<string, Trigger>;
   dataSources: Record<string, DataSource>;
   connections: Connection[];
+  codeNativeIntegrationYAML?: string;
 }
 
 export interface Action {
