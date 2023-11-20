@@ -243,6 +243,7 @@ const codeNativeIntegrationYaml = (
   // the integration as a Code Native Integration.
   const result = {
     definitionVersion: DEFINITION_VERSION,
+    isCodeNative: true,
     name,
     description,
     category,
