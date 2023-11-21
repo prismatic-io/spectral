@@ -414,6 +414,7 @@ const flowFunctionKey = (flowName: string, functionName: string): string => {
  *  Code Native integration. */
 const codeNativeIntegrationComponent = (
   {
+    name,
     iconPath,
     description,
     flows = [],
@@ -464,7 +465,11 @@ const codeNativeIntegrationComponent = (
 
   return {
     key: referenceKey,
-    display: { label: referenceKey, iconPath, description: description || "" },
+    display: {
+      label: referenceKey,
+      iconPath,
+      description: description || name,
+    },
     connections: connections.map(convertConnection),
     actions: convertedActions,
     triggers: convertedTriggers,
