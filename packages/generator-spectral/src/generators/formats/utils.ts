@@ -95,7 +95,7 @@ export type Connection = ConnectionDefinition & {
   orderPriority: number;
 };
 
-export type Component = Pick<ComponentDefinition<false>, "display">;
+export type Component = Pick<ComponentDefinition<false, "">, "display">;
 
 export interface Result {
   baseUrl: string;
