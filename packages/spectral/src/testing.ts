@@ -92,6 +92,7 @@ const baseActionContext: ActionContext = {
     id: "integrationId",
     name: "Integration 1",
     versionSequenceId: "1234",
+    externalVersion: "1.0.0",
   },
   flow: {
     id: "flowId",
@@ -177,6 +178,7 @@ export const defaultTriggerPayload = (): TriggerPayload => {
       id: "integrationId",
       name: "Integration 1",
       versionSequenceId: "1234",
+      externalVersion: "1.0.0",
     },
     flow: {
       id: "flowId",
