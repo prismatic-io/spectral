@@ -3,4 +3,5 @@ export interface IntegrationAttributes {
   id: string;
   name: string;
   versionSequenceId: string;
+  externalVersion: string;
 }
