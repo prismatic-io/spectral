@@ -227,6 +227,8 @@ const codeNativeIntegrationYaml = (
     description,
     category,
     documentation,
+    version,
+    labels,
     configVars,
     endpointType,
     preprocessFlowName,
@@ -250,6 +252,8 @@ const codeNativeIntegrationYaml = (
     description,
     category,
     documentation,
+    version,
+    labels,
     requiredConfigVars: configVars?.map((configVar) =>
       convertConfigVar(configVar, referenceKey)
     ),
