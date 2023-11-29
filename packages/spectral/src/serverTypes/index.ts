@@ -59,6 +59,7 @@ export interface ActionLogger {
 
 export interface ActionContext {
   logger: ActionLogger;
+  configVars?: Record<string, unknown>;
   instanceState: Record<string, unknown>;
   crossFlowState: Record<string, unknown>;
   executionState: Record<string, unknown>;

@@ -25,19 +25,13 @@ export type IntegrationDefinition = {
   version?: string;
   /** Optional labels for this Integration. */
   labels?: string[];
-  /** Optional endpoint type used by Instances of this Integration. @default EndpointType.FlowSpecific. */
+  /** Optional endpoint type used by Instances of this Integration.
+   *  A Preprocess Flow Config must be specified when using anything other than 'Flow Specific'.
+   *  @default EndpointType.FlowSpecific. */
   endpointType?: EndpointType;
-  /** Optional name of the Flow to use as a Preprocess Flow for 'Instance Specific' or 'Shared Instance' endpoint types. */
-  preprocessFlowName?: string;
-  /** Optional name of the field in the data payload returned by the Preprocess Flow to use for an External Customer Id,
-   *  or by the data payload returned by the Trigger if there is no Preprocess Flow specified. */
-  externalCustomerIdField?: string;
-  /** Optional name of the field in the data payload returned by the Preprocess Flow to use for an External Customer User Id,
-   *  or by the data payload returned by the Trigger if there is no Preprocess Flow specified. */
-  externalCustomerUserIdField?: string;
-  /** Optional name of the field in the data payload returned by the Preprocess Flow to use for a Flow Name,
-   *  or by the data payload returned by the Trigger if there is no Preprocess Flow specified. */
-  flowNameField?: string;
+  /** Optional Preprocess Flow configuration for when the Trigger payload contains the flow routing attributes.
+   *  Cannot specify this if a Preprocess Flow is also configured. */
+  triggerPreprocessFlowConfig?: PreprocessFlowConfig;
   /** Flows for this Integration. */
   flows: Flow[];
   /** Config Vars used on this Integration. */
@@ -56,6 +50,8 @@ export type Flow = {
   name: string;
   /** Optional description for this Flow. */
   description?: string;
+  /** Optional Preprocess Flow configuration for when the result of this Flow contains the flow routing attributes. Only one Flow per Integration may define this. */
+  preprocessFlowConfig?: PreprocessFlowConfig;
   /** Optional value that specifies whether this Flow is synchronous. @default false */
   isSynchronous?: boolean;
   /** Optional Retry Configuration for this Flow. */
@@ -77,20 +73,20 @@ export type Flow = {
 
 /** Defines attributes of a Data Source that is defined as part of a Code Native Integration. */
 export type CodeNativeDataSource = Pick<
-  DataSourceDefinition<Inputs, DataSourceType>, // TODO: Are these values correct?
+  DataSourceDefinition<Inputs, DataSourceType>,
   "display" | "perform" | "dataSourceType" | "detailDataSource"
 >;
 
 /** Defines attributes of a Trigger that is defined as part of a Code Native Integration. */
 export type CodeNativeTrigger = Pick<
-  TriggerDefinition<Inputs, false, TriggerResult<false>>, // TODO: Are these values correct?
-  "perform" | "onInstanceDeploy" | "onInstanceDelete"
+  TriggerDefinition<Inputs, false, TriggerResult<false>>,
+  "display" | "perform" | "onInstanceDeploy" | "onInstanceDelete"
 >;
 
 /** Defines attributes of an CodeNativeAction, which is the main function that will be executed for a Flow of a Code Native Integration. */
 export type CodeNativeAction = Pick<
-  ActionDefinition<Inputs, false, ActionPerformReturn<false, unknown>>, // TODO: Are these values correct?
-  "perform"
+  ActionDefinition<Inputs, false, ActionPerformReturn<false, unknown>>,
+  "display" | "perform"
 > & {
   /** Optional error handling configuration. */
   errorConfig?: StepErrorConfig;
@@ -225,6 +221,16 @@ export type ConfigPageElement = {
   type: ConfigPageElementType;
   /** Specifies the value of this Element. */
   value: string;
+};
+
+/** Defines attributes of a Preprocess Flow Configuration used by a Flow of an Integration. */
+export type PreprocessFlowConfig = {
+  /** Name of the field in the data payload returned by the Preprocess Flow to use for a Flow Name. */
+  flowNameField: string;
+  /** Optional name of the field in the data payload returned by the Preprocess Flow to use for an External Customer Id. */
+  externalCustomerIdField?: string;
+  /** Optional name of the field in the data payload returned by the Preprocess Flow to use for an External Customer User Id. */
+  externalCustomerUserIdField?: string;
 };
 
 /** Defines attributes of a Retry Configuration used by a Flow of an Integration. */

@@ -14,6 +14,10 @@ export const basicDefinition = integration({
       name: "Flow 1",
       description: "This is a basic flow",
       trigger: {
+        display: {
+          label: "Trigger",
+          description: "My trigger",
+        },
         perform: async (context, payload, params) => {
           console.log(`Trigger context: ${JSON.stringify(context)}`);
           console.log(`Trigger payload: ${JSON.stringify(payload)}`);
@@ -24,6 +28,10 @@ export const basicDefinition = integration({
         },
       },
       action: {
+        display: {
+          label: "Action",
+          description: "My action",
+        },
         perform: async (context, params) => {
           console.log(`Action context: ${JSON.stringify(context)}`);
           console.log(`Action params: ${JSON.stringify(params)}`);

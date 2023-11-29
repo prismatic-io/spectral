@@ -16,6 +16,7 @@ import {
   ConfigVar,
   Flow,
   ScheduleType,
+  EndpointType,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -231,16 +232,41 @@ const codeNativeIntegrationYaml = (
     labels,
     configVars,
     endpointType,
-    preprocessFlowName,
-    externalCustomerIdField,
-    externalCustomerUserIdField,
-    flowNameField,
+    triggerPreprocessFlowConfig,
     flows,
     configPages,
   }: IntegrationDefinition,
   referenceKey: string
 ): string => {
   const DEFINITION_VERSION = 7;
+
+  // Find the preprocess flow config on the flow, if one exists.
+  const preprocessFlows = flows.filter((flow) => flow.preprocessFlowConfig);
+
+  // Do some validation of preprocess flow configs.
+  if (preprocessFlows.length > 1) {
+    throw new Error("Only one flow may define a Preprocess Flow Config.");
+  }
+  if (preprocessFlows.length && triggerPreprocessFlowConfig) {
+    throw new Error(
+      "Integration must not define both a Trigger Preprocess Flow Config and a Preprocess Flow."
+    );
+  }
+
+  const hasPreprocessFlow = preprocessFlows.length > 0;
+  const preprocessFlowConfig = hasPreprocessFlow
+    ? preprocessFlows[0].preprocessFlowConfig
+    : triggerPreprocessFlowConfig;
+  if (
+    [EndpointType.InstanceSpecific, EndpointType.SharedInstance].includes(
+      endpointType || EndpointType.FlowSpecific
+    ) &&
+    !preprocessFlowConfig
+  ) {
+    throw new Error(
+      "Integration with specified EndpointType must define either a Trigger Preprocess Flow Config or a Preprocess Flow."
+    );
+  }
 
   // Transform the IntegrationDefinition into the structure that is appropriate
   // for generating YAML, which will then be used by the Prismatic API to import
@@ -258,16 +284,19 @@ const codeNativeIntegrationYaml = (
       convertConfigVar(configVar, referenceKey)
     ),
     endpointType,
-    preprocessFlowName,
+    preprocessFlowName: hasPreprocessFlow ? preprocessFlows[0].name : undefined,
     externalCustomerIdField: fieldNameToReferenceInput(
-      "action",
-      externalCustomerIdField
+      hasPreprocessFlow ? "action" : "payload",
+      preprocessFlowConfig?.externalCustomerIdField
     ),
     externalCustomerUserIdField: fieldNameToReferenceInput(
-      "action",
-      externalCustomerUserIdField
+      hasPreprocessFlow ? "action" : "payload",
+      preprocessFlowConfig?.externalCustomerUserIdField
     ),
-    flowNameField: fieldNameToReferenceInput("payload", flowNameField),
+    flowNameField: fieldNameToReferenceInput(
+      hasPreprocessFlow ? "action" : "payload",
+      preprocessFlowConfig?.flowNameField
+    ),
     flows: flows.map((flow) => convertFlow(flow, referenceKey)),
     configPages,
   };
@@ -285,6 +314,7 @@ const convertFlow = (
   };
   delete result.trigger;
   delete result.action;
+  delete result.preprocessFlowConfig;
 
   const triggerStep: Record<string, unknown> = {
     name: "trigger",

@@ -17,6 +17,8 @@ import {
   DataSourceDefinition,
   DataSourceType,
   IntegrationDefinition,
+  Flow,
+  ConfigPage,
 } from "./types";
 import { convertComponent, convertIntegration } from "./serverTypes/convert";
 
@@ -31,6 +33,23 @@ import { convertComponent, convertIntegration } from "./serverTypes/convert";
 export const integration = (
   definition: IntegrationDefinition
 ): ReturnType<typeof convertIntegration> => convertIntegration(definition);
+
+/**
+ * For information on writing Code Native Integrations, see
+ * https://prismatic.io/docs/code-native-integrations/#adding-flows.
+ * @param definition A Flow type object.
+ * @returns This function returns a flow object that has the shape the Prismatic API expects.
+ */
+export const flow = <T extends Flow>(definition: T): T => definition;
+
+/**
+ * For information on writing Code Native Integrations, see
+ * https://prismatic.io/docs/code-native-integrations/#adding-config-pages.
+ * @param definition A Config Page type object.
+ * @returns This function returns a config page object that has the shape the Prismatic API expects.
+ */
+export const configPage = <T extends ConfigPage>(definition: T): T =>
+  definition;
 
 /**
  * This function creates a component object that can be
