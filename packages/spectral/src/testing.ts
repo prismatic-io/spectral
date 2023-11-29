@@ -30,6 +30,7 @@ import {
   DataSourceType,
   DataSourceResult as InvokeDataSourceResult,
   TriggerEventFunctionReturn,
+  Flow,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -260,6 +261,41 @@ export const invokeDataSource = async <
   const result = await perform(realizedContext, params);
 
   return result;
+};
+
+/**
+ * Invokes specified Flow of a Code Native Integration using supplied params.
+ * Runs the Trigger and then the Action function and returns the result of the Action.
+ */
+export const invokeFlow = async (
+  { trigger, action }: Flow,
+  context?: Partial<ActionContext>,
+  payload?: TriggerPayload
+): Promise<InvokeReturn<InvokeActionPerformReturn<false, unknown>>> => {
+  const realizedContext = { ...baseActionContext, ...context };
+  const realizedPayload = {
+    ...defaultTriggerPayload(),
+    ...payload,
+  };
+
+  const params: Record<string, unknown> = {};
+
+  if (typeof trigger === "object" && "perform" in trigger) {
+    const triggerResult = await trigger.perform(
+      realizedContext,
+      realizedPayload,
+      params
+    );
+
+    params.trigger = triggerResult;
+  }
+
+  const result = await action.perform(realizedContext, params);
+
+  return {
+    result,
+    loggerMock: realizedContext.logger,
+  };
 };
 
 export class ComponentTestHarness<TComponent extends Component> {
