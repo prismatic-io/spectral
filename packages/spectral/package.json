@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "7.8.4",
+  "version": "7.9.0",
   "description": "Utility library for building Prismatic components",
   "keywords": [
     "prismatic"
@@ -38,14 +38,13 @@
   ],
   "dependencies": {
     "@jsonforms/core": "3.0.0",
-    "axios": "0.27.2",
-    "axios-retry": "3.2.5",
+    "axios": "1.6.2",
+    "axios-retry": "3.9.1",
     "date-fns": "2.30.0",
     "form-data": "4.0.0",
     "jest-mock": "27.0.3",
     "safe-stable-stringify": "2.3.1",
     "serialize-error": "8.1.0",
-    "soap": "1.0.0",
     "url-join": "5.0.0",
     "uuid": "8.3.2",
     "valid-url": "1.0.9"
