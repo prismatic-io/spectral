@@ -312,20 +312,25 @@ const convertFlow = (
   const result: Record<string, unknown> = {
     ...flow,
   };
+  delete result.onTrigger;
   delete result.trigger;
-  delete result.action;
+  delete result.onInstanceDeploy;
+  delete result.onInstanceDelete;
+  delete result.onExecution;
   delete result.preprocessFlowConfig;
+  delete result.errorConfig;
 
   const triggerStep: Record<string, unknown> = {
-    name: "trigger",
+    name: `${flow.name} - onTrigger`,
+    description:
+      "The function that will be executed by the flow to return an HTTP response.",
     isTrigger: true,
-    errorConfig:
-      "errorConfig" in flow.trigger ? flow.trigger.errorConfig : undefined,
+    errorConfig: "errorConfig" in flow ? { ...flow.errorConfig } : undefined,
   };
 
-  if ("perform" in flow.trigger) {
+  if ("onTrigger" in flow) {
     triggerStep.action = {
-      key: flowFunctionKey(flow.name, "trigger"),
+      key: flowFunctionKey(flow.name, "onTrigger"),
       component: { key: referenceKey, version: "LATEST", isPublic: false },
     };
   } else {
@@ -333,11 +338,10 @@ const convertFlow = (
       key: flow.trigger.key,
       component: flow.trigger.component,
     };
-  }
 
-  if ("inputs" in flow.trigger) {
-    triggerStep.inputs = flow.trigger.inputs;
-    delete result.inputs;
+    if ("inputs" in flow.trigger) {
+      triggerStep.inputs = flow.trigger.inputs;
+    }
   }
 
   if ("schedule" in flow && typeof flow.schedule === "object") {
@@ -360,12 +364,12 @@ const convertFlow = (
 
   const actionStep: Record<string, unknown> = {
     action: {
-      key: flowFunctionKey(flow.name, "action"),
+      key: flowFunctionKey(flow.name, "onExecution"),
       component: { key: referenceKey, version: "LATEST", isPublic: false },
     },
-    name: "action",
-    errorConfig:
-      "errorConfig" in flow.action ? flow.action.errorConfig : undefined,
+    name: `${flow.name} - onExecution`,
+    description: "The function that will be executed by the flow.",
+    errorConfig: "errorConfig" in flow ? { ...flow.errorConfig } : undefined,
   };
 
   result.steps = [triggerStep, actionStep];
@@ -457,34 +461,47 @@ const codeNativeIntegrationComponent = (
   }: IntegrationDefinition,
   referenceKey: string
 ): ServerComponent => {
-  const convertedActions = flows.reduce((result, { name, action }) => {
-    const actionKey = flowFunctionKey(name, "action");
+  const convertedActions = flows.reduce((result, { name, onExecution }) => {
+    const actionKey = flowFunctionKey(name, "onExecution");
     return {
       ...result,
       [actionKey]: convertAction(actionKey, {
-        ...action,
-        display: { label: "action", description: "" },
+        display: {
+          label: `${name} - onExecution`,
+          description: "The function that will be executed by the flow.",
+        },
+        perform: onExecution,
         inputs: {},
       }),
     };
   }, {});
 
-  const convertedTriggers = flows.reduce((result, { name, trigger }) => {
-    // Filter out TriggerReferences.
-    if (typeof trigger !== "object" || !("perform" in trigger)) return result;
+  const convertedTriggers = flows
+    .filter((flow) => typeof flow === "object" && "onTrigger" in flow)
+    .reduce((result, flow) => {
+      // Filter out TriggerReferences.
+      if ("trigger" in flow) return result;
 
-    const triggerKey = flowFunctionKey(name, "trigger");
-    return {
-      ...result,
-      [triggerKey]: convertTrigger(triggerKey, {
-        ...trigger,
-        display: { label: "trigger", description: "" },
-        inputs: {},
-        scheduleSupport: "valid",
-        synchronousResponseSupport: "valid",
-      }),
-    };
-  }, {});
+      const { name, onTrigger, onInstanceDeploy, onInstanceDelete } = flow;
+
+      const triggerKey = flowFunctionKey(name, "onTrigger");
+      return {
+        ...result,
+        [triggerKey]: convertTrigger(triggerKey, {
+          display: {
+            label: `${name} - onTrigger`,
+            description:
+              "The function that will be executed by the flow to return an HTTP response.",
+          },
+          perform: onTrigger,
+          onInstanceDeploy: onInstanceDeploy,
+          onInstanceDelete: onInstanceDelete,
+          inputs: {},
+          scheduleSupport: "valid",
+          synchronousResponseSupport: "valid",
+        }),
+      };
+    }, {});
 
   const convertedDataSources = Object.entries(dataSources).reduce(
     (result, [dataSourceKey, dataSource]) => ({

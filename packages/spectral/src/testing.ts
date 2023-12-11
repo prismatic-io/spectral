@@ -268,7 +268,7 @@ export const invokeDataSource = async <
  * Runs the Trigger and then the Action function and returns the result of the Action.
  */
 export const invokeFlow = async (
-  { trigger, action }: Flow,
+  flow: Flow,
   context?: Partial<ActionContext>,
   payload?: TriggerPayload
 ): Promise<InvokeReturn<InvokeActionPerformReturn<false, unknown>>> => {
@@ -280,8 +280,8 @@ export const invokeFlow = async (
 
   const params: Record<string, unknown> = {};
 
-  if (typeof trigger === "object" && "perform" in trigger) {
-    const triggerResult = await trigger.perform(
+  if ("onTrigger" in flow) {
+    const triggerResult = await flow.onTrigger(
       realizedContext,
       realizedPayload,
       params
@@ -290,7 +290,7 @@ export const invokeFlow = async (
     params.trigger = triggerResult;
   }
 
-  const result = await action.perform(realizedContext, params);
+  const result = await flow.onExecution(realizedContext, params);
 
   return {
     result,

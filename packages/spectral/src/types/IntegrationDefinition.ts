@@ -1,9 +1,10 @@
 import {
   DataSourceDefinition,
   ConnectionDefinition,
-  ActionDefinition,
+  ActionPerformFunction,
   ActionPerformReturn,
-  TriggerDefinition,
+  TriggerEventFunction,
+  TriggerPerformFunction,
   Inputs,
   TriggerResult,
   DataSourceType,
@@ -44,8 +45,8 @@ export type IntegrationDefinition = {
   connections?: ConnectionDefinition[];
 };
 
-/** Defines attributes of a Flow of a Code-Native Integration. */
-export type Flow = {
+/** Defines common attributes of a Flow of a Code-Native Integration. */
+type BaseFlow = {
   /** The unique name for this Flow. */
   name: string;
   /** Optional description for this Flow. */
@@ -62,35 +63,40 @@ export type Flow = {
   organizationApiKeys?: string[];
   /** Optional schedule configuration that defines the frequency with which this Flow will be automatically executed. */
   schedule?: FlowSchedule;
-  /** Specifies the trigger for this Flow. */
-  trigger: (CodeNativeTrigger | TriggerReference) & {
-    /** Optional error handling configuration. */
-    errorConfig?: StepErrorConfig;
-  };
-  /** Specifies the main function for this Flow. */
-  action: CodeNativeAction;
+  /** Optional error handling configuration. */
+  errorConfig?: StepErrorConfig;
+  /** Specifies the main function for this Flow */
+  onExecution: ActionPerformFunction<
+    Inputs,
+    false,
+    ActionPerformReturn<false, unknown>
+  >;
 };
+
+/** Defines attributes of a Flow that will have custom Trigger logic. */
+type CustomTriggerFlow = BaseFlow & {
+  /** Specifies the trigger function for this Flow, which returns a payload and optional HTTP response. */
+  onTrigger: TriggerPerformFunction<Inputs, false, TriggerResult<false>>;
+  /** Specifies the function to execute when an Instance of this Integration is deployed. */
+  onInstanceDeploy?: TriggerEventFunction<Inputs>;
+  /** Specifies the function to execute when an Instance of an Integration is deleted. */
+  onInstanceDelete?: TriggerEventFunction<Inputs>;
+};
+
+/** Defines attributes of a Flow that will use a Trigger from an existing Component. */
+type PrebuiltTriggerFlow = BaseFlow & {
+  /** Specifies the prebuilt Trigger that will run when this Flow executes. */
+  trigger: TriggerReference;
+};
+
+/** Defines attributes of a Flow of a Code-Native Integration. */
+export type Flow = CustomTriggerFlow | PrebuiltTriggerFlow;
 
 /** Defines attributes of a Data Source that is defined as part of a Code Native Integration. */
 export type CodeNativeDataSource = Pick<
   DataSourceDefinition<Inputs, DataSourceType>,
   "display" | "perform" | "dataSourceType" | "detailDataSource"
 >;
-
-/** Defines attributes of a Trigger that is defined as part of a Code Native Integration. */
-export type CodeNativeTrigger = Pick<
-  TriggerDefinition<Inputs, false, TriggerResult<false>>,
-  "display" | "perform" | "onInstanceDeploy" | "onInstanceDelete"
->;
-
-/** Defines attributes of an CodeNativeAction, which is the main function that will be executed for a Flow of a Code Native Integration. */
-export type CodeNativeAction = Pick<
-  ActionDefinition<Inputs, false, ActionPerformReturn<false, unknown>>,
-  "display" | "perform"
-> & {
-  /** Optional error handling configuration. */
-  errorConfig?: StepErrorConfig;
-};
 
 /** Defines attributes of a reference to an existing Trigger. */
 export type TriggerReference = {
@@ -170,10 +176,10 @@ type StandardConfigVar = BaseConfigVar & {
 /** Defines attributes of a Config Var that represents a Connection. */
 type ConnectionConfigVar = BaseConfigVar & {
   dataType: "connection";
-  /** Optional value to specify the Data Source where the Config Var sources
-   *  its values. If it's a string then it's expected to be the key of a
-   *  Connection defined in the Code Native Integration. Otherwise it is
-   *  expected to be a reference to an existing Connection. */
+  /** Specifies the connection for the Config Var.
+   *  If it's a string then it's expected to be the key of a Connection defined
+   *  in the Code Native Integration. Otherwise it is expected to be a
+   *  reference to an existing Connection. */
   connection: string | ConnectionReference;
 };
 
