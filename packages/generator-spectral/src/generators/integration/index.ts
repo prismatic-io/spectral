@@ -2,10 +2,17 @@ import path from "path";
 import Generator from "yeoman-generator";
 import { camelCase, merge } from "lodash";
 
+const connectionTypes = {
+  basic: "Basic Connection",
+  oauth: "OAuth 2.0",
+};
+type ConnectionType = keyof typeof connectionTypes;
+
 class IntegrationGenerator extends Generator {
   answers!: {
     name: string;
     description: string;
+    connectionType: ConnectionType;
   };
 
   constructor(
@@ -32,7 +39,7 @@ class IntegrationGenerator extends Generator {
     });
   }
 
-  connectionLabel = "Connection 1";
+  configVarLabel = "Connection 1";
   flowName = "Flow 1";
 
   initializing() {
@@ -40,12 +47,6 @@ class IntegrationGenerator extends Generator {
       destinationPath: path.join("src", "flows.ts"),
       name: this.flowName,
       description: "This is the first Flow",
-    });
-    this.composeWith(require.resolve("../connection"), {
-      destinationPath: path.join("src", "connections.ts"),
-      label: this.connectionLabel,
-      comments: "This is a connection",
-      connectionType: this.options.connectionType,
     });
   }
 
@@ -63,16 +64,32 @@ class IntegrationGenerator extends Generator {
         message: "Description of Integration",
         when: () => !Boolean(this.options.description),
       },
+      {
+        type: "list",
+        name: "connectionType",
+        message: "Type of Connection",
+        choices: Object.entries(connectionTypes).map(([key, label]) => ({
+          name: label,
+          value: key,
+        })),
+        when: () =>
+          !Boolean(this.options.connectionType) ||
+          !Object.keys(connectionTypes).includes(this.options.connectionType),
+      },
     ]);
 
     merge(this.answers, this.options);
   }
 
   async writing() {
-    const { name, description } = this.answers;
+    const { name, description, connectionType } = this.answers;
     const context = {
       integration: { name, description, key: camelCase(name) },
-      connection: { key: camelCase(this.connectionLabel) },
+      configVar: {
+        key: camelCase(this.configVarLabel),
+        label: this.configVarLabel,
+        connectionType,
+      },
       flow: { name: this.flowName },
     };
 
@@ -90,6 +107,12 @@ class IntegrationGenerator extends Generator {
       (f) => ({ source: f, destination: f })
     );
     this.renderTemplates(templates, context);
+
+    this.renderTemplate(
+      `${connectionType}.ts`,
+      ["src", "configVars.ts"],
+      context
+    );
 
     this.packageJson.merge({
       scripts: {

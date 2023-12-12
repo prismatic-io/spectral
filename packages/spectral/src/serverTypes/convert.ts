@@ -312,20 +312,25 @@ const convertFlow = (
   const result: Record<string, unknown> = {
     ...flow,
   };
+  delete result.onTrigger;
   delete result.trigger;
-  delete result.action;
+  delete result.onInstanceDeploy;
+  delete result.onInstanceDelete;
+  delete result.onExecution;
   delete result.preprocessFlowConfig;
+  delete result.errorConfig;
 
   const triggerStep: Record<string, unknown> = {
-    name: "trigger",
+    name: `${flow.name} - onTrigger`,
+    description:
+      "The function that will be executed by the flow to return an HTTP response.",
     isTrigger: true,
-    errorConfig:
-      "errorConfig" in flow.trigger ? flow.trigger.errorConfig : undefined,
+    errorConfig: "errorConfig" in flow ? { ...flow.errorConfig } : undefined,
   };
 
-  if ("perform" in flow.trigger) {
+  if ("onTrigger" in flow) {
     triggerStep.action = {
-      key: flowFunctionKey(flow.name, "trigger"),
+      key: flowFunctionKey(flow.name, "onTrigger"),
       component: { key: referenceKey, version: "LATEST", isPublic: false },
     };
   } else {
@@ -333,11 +338,10 @@ const convertFlow = (
       key: flow.trigger.key,
       component: flow.trigger.component,
     };
-  }
 
-  if ("inputs" in flow.trigger) {
-    triggerStep.inputs = flow.trigger.inputs;
-    delete result.inputs;
+    if ("inputs" in flow.trigger) {
+      triggerStep.inputs = flow.trigger.inputs;
+    }
   }
 
   if ("schedule" in flow && typeof flow.schedule === "object") {
@@ -360,12 +364,12 @@ const convertFlow = (
 
   const actionStep: Record<string, unknown> = {
     action: {
-      key: flowFunctionKey(flow.name, "action"),
+      key: flowFunctionKey(flow.name, "onExecution"),
       component: { key: referenceKey, version: "LATEST", isPublic: false },
     },
-    name: "action",
-    errorConfig:
-      "errorConfig" in flow.action ? flow.action.errorConfig : undefined,
+    name: `${flow.name} - onExecution`,
+    description: "The function that will be executed by the flow.",
+    errorConfig: "errorConfig" in flow ? { ...flow.errorConfig } : undefined,
   };
 
   result.steps = [triggerStep, actionStep];
@@ -378,30 +382,76 @@ const convertConfigVar = (
   configVar: ConfigVar,
   referenceKey: string
 ): Record<string, unknown> => {
-  const result: Record<string, unknown> & { meta: Record<string, unknown> } = {
-    ...configVar,
-    meta: {},
-  };
+  // This is unfortunate but we need to strip out some fields that are not
+  // relevant to config vars.
+  const fields = [
+    "key",
+    "description",
+    "orgOnly",
+    "inputs",
+    "defaultValue",
+    "dataType",
+    "pickList",
+    "scheduleType",
+    "timeZone",
+    "codeLanguage",
+    "collectionType",
+    "dataSource",
+  ];
+  const result = Object.entries(configVar).reduce<
+    Record<string, unknown> & { meta: Record<string, unknown> }
+  >(
+    (result, [key, value]) => {
+      if (!fields.includes(key)) {
+        return result;
+      }
+      return { ...result, [key]: value };
+    },
+    { meta: {} }
+  );
 
   // Handle some non-standard fields.
-  if ("visibleToOrgDeployer" in result) {
-    result.meta.visibleToOrgDeployer = result.visibleToOrgDeployer;
-    delete result.visibleToOrgDeployer;
+  if ("visibleToOrgDeployer" in configVar) {
+    result.meta.visibleToOrgDeployer = configVar.visibleToOrgDeployer;
+  }
+  if ("visibleToCustomerDeployer" in configVar) {
+    result.meta.visibleToCustomerDeployer = configVar.visibleToCustomerDeployer;
   }
 
-  if ("visibleToCustomerDeployer" in result) {
-    result.meta.visibleToCustomerDeployer = result.visibleToCustomerDeployer;
-    delete result.visibleToCustomerDeployer;
+  // Handle connections.
+  if ("label" in configVar || "component" in configVar) {
+    result.dataType = "connection";
+    if ("component" in configVar) {
+      // This is a reference to another Component's connection.
+      result.connection = {
+        key: configVar.key,
+        component: configVar.component,
+      };
+    } else {
+      // This refers to a connection we are creating.
+      result.connection = {
+        key: configVar.key,
+        component: { key: referenceKey, version: "LATEST", isPublic: false },
+      };
+      result.description = configVar.label;
+
+      // Convert connection inputs to the inputs expected in the YAML.
+      // FIXME: This is just a placeholder for now.
+      result.inputs = Object.keys(configVar.inputs).reduce((result, key) => {
+        return {
+          ...result,
+          [key]: {
+            type: SimpleInputValueType.Value,
+            value: "",
+          },
+        };
+      }, {});
+    }
   }
 
-  if ("connection" in result && typeof result.connection === "string") {
-    result.connection = {
-      key: result.connection,
-      component: { key: referenceKey, version: "LATEST", isPublic: false },
-    };
-  }
-
+  // Handle data source references.
   if ("dataSource" in result && typeof result.dataSource === "string") {
+    // This is a reference to a data source we are creating.
     result.dataSource = {
       key: result.dataSource,
       component: { key: referenceKey, version: "LATEST", isPublic: false },
@@ -453,32 +503,43 @@ const codeNativeIntegrationComponent = (
     description,
     flows = [],
     dataSources = {},
-    connections = [],
+    configVars = [],
   }: IntegrationDefinition,
   referenceKey: string
 ): ServerComponent => {
-  const convertedActions = flows.reduce((result, { name, action }) => {
-    const actionKey = flowFunctionKey(name, "action");
+  const convertedActions = flows.reduce((result, { name, onExecution }) => {
+    const actionKey = flowFunctionKey(name, "onExecution");
     return {
       ...result,
       [actionKey]: convertAction(actionKey, {
-        ...action,
-        display: { label: "action", description: "" },
+        display: {
+          label: `${name} - onExecution`,
+          description: "The function that will be executed by the flow.",
+        },
+        perform: onExecution,
         inputs: {},
       }),
     };
   }, {});
 
-  const convertedTriggers = flows.reduce((result, { name, trigger }) => {
+  const convertedTriggers = flows.reduce((result, flow) => {
     // Filter out TriggerReferences.
-    if (typeof trigger !== "object" || !("perform" in trigger)) return result;
+    if ("trigger" in flow) return result;
 
-    const triggerKey = flowFunctionKey(name, "trigger");
+    const { name, onTrigger, onInstanceDeploy, onInstanceDelete } = flow;
+
+    const triggerKey = flowFunctionKey(name, "onTrigger");
     return {
       ...result,
       [triggerKey]: convertTrigger(triggerKey, {
-        ...trigger,
-        display: { label: "trigger", description: "" },
+        display: {
+          label: `${name} - onTrigger`,
+          description:
+            "The function that will be executed by the flow to return an HTTP response.",
+        },
+        perform: onTrigger,
+        onInstanceDeploy: onInstanceDeploy,
+        onInstanceDelete: onInstanceDelete,
         inputs: {},
         scheduleSupport: "valid",
         synchronousResponseSupport: "valid",
@@ -497,6 +558,27 @@ const codeNativeIntegrationComponent = (
     {}
   );
 
+  const convertedConnections = configVars.reduce<ServerConnection[]>(
+    (result, configVar) => {
+      if (!("label" in configVar)) {
+        return result;
+      }
+
+      // Remove a few fields that are not relevant to connections.
+      const {
+        /* eslint-disable @typescript-eslint/no-unused-vars */
+        orgOnly,
+        visibleToOrgDeployer,
+        visibleToCustomerDeployer,
+        /* eslint-enable @typescript-eslint/no-unused-vars */
+        ...connection
+      } = configVar;
+
+      return [...result, convertConnection(connection)];
+    },
+    []
+  );
+
   return {
     key: referenceKey,
     display: {
@@ -504,7 +586,7 @@ const codeNativeIntegrationComponent = (
       iconPath,
       description: description || name,
     },
-    connections: connections.map(convertConnection),
+    connections: convertedConnections,
     actions: convertedActions,
     triggers: convertedTriggers,
     dataSources: convertedDataSources,

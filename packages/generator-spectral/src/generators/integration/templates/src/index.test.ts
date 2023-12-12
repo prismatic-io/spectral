@@ -1,5 +1,5 @@
 import { flow1 } from "./flows";
-import { connection1 } from "./connections";
+import { connection1 } from "./configVars";
 import {
   invokeFlow,
   createConnection,

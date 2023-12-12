@@ -1662,11 +1662,11 @@
     eslint-plugin-prettier "5.0.0"
 
 "@prismatic-io/generator-spectral@file:/Users/justinhipple/src/spectral/packages/generator-spectral":
-  version "3.0.0-preview1"
+  version "3.0.0-preview2"
   resolved "file:packages/generator-spectral"
   dependencies:
     "@apidevtools/swagger-parser" "10.1.0"
-    "@prismatic-io/spectral" "8.0.0-preview7"
+    "@prismatic-io/spectral" "8.0.0-preview8"
     lodash "4.17.21"
     number-to-words "1.2.4"
     openapi-types "11.0.1"
@@ -1674,8 +1674,8 @@
     ts-morph "20.0.0"
     yeoman-generator "5.6.1"
 
-"@prismatic-io/spectral@8.0.0-preview7", "@prismatic-io/spectral@file:/Users/justinhipple/src/spectral/packages/spectral":
-  version "8.0.0-preview7"
+"@prismatic-io/spectral@8.0.0-preview8", "@prismatic-io/spectral@file:/Users/justinhipple/src/spectral/packages/spectral":
+  version "8.0.0-preview8"
   resolved "file:packages/spectral"
   dependencies:
     "@jsonforms/core" "3.0.0"
