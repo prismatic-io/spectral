@@ -4,20 +4,14 @@ import {
   ConfigPageElementType,
 } from "@prismatic-io/spectral";
 import flows from "./flows";
-import connections from "./connections";
+import configVars from "./configVars";
 
 export default integration({
   name: "<%= integration.name %>",
   description: "<%= integration.description %>",
   iconPath: "icon.png",
   flows,
-  configVars: [
-    {
-      key: "<%= connection.key %>",
-      dataType: "connection",
-      connection: "<%= connection.key %>",
-    },
-  ],
+  configVars,
   configPages: [
     configPage({
       name: "Config Page 1",
@@ -25,10 +19,9 @@ export default integration({
       elements: [
         {
           type: ConfigPageElementType.ConfigVar,
-          value: "<%= connection.key %>",
+          value: "<%= configVar.key %>",
         },
       ],
     }),
   ],
-  connections,
 });

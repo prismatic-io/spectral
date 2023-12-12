@@ -41,8 +41,6 @@ export type IntegrationDefinition = {
   configPages?: ConfigPage[];
   /** Specifies any Data Sources that are defined as part of this Integration. */
   dataSources?: Record<string, CodeNativeDataSource>;
-  /** Specifies any Connections that are defined as part of this Integration. */
-  connections?: ConnectionDefinition[];
 };
 
 /** Defines common attributes of a Flow of a Code-Native Integration. */
@@ -116,14 +114,6 @@ export type DataSourceReference = {
   key: string;
 };
 
-/** Defines attributes of a reference to an existing Connection. */
-export type ConnectionReference = {
-  /** Attributes of the referenced Component. */
-  component: ComponentReference;
-  /** The unique key that identifies the Connection within the Component. */
-  key: string;
-};
-
 /** Defines attributes of a reference to a member of an existing Component. */
 export type ComponentReference = {
   /** The unique key that identifies the Component. */
@@ -151,7 +141,7 @@ type BaseConfigVar = {
 };
 
 /** Defines attributes of a standard Config Var. */
-type StandardConfigVar = BaseConfigVar & {
+export type StandardConfigVar = BaseConfigVar & {
   /** Optional default value for the Config Var. */
   defaultValue?: string;
   /** The data type of the Config Var. */
@@ -174,17 +164,21 @@ type StandardConfigVar = BaseConfigVar & {
 };
 
 /** Defines attributes of a Config Var that represents a Connection. */
-type ConnectionConfigVar = BaseConfigVar & {
-  dataType: "connection";
-  /** Specifies the connection for the Config Var.
-   *  If it's a string then it's expected to be the key of a Connection defined
-   *  in the Code Native Integration. Otherwise it is expected to be a
-   *  reference to an existing Connection. */
-  connection: string | ConnectionReference;
+export type ConnectionConfigVar = Omit<
+  BaseConfigVar,
+  "description" | "inputs"
+> &
+  ConnectionDefinition;
+
+export type ConnectionRefConfigVar = BaseConfigVar & {
+  /** Attributes of the referenced Component. */
+  component: ComponentReference;
 };
 
-/** Defines attributes of a Config Var whose value is configured as part of deploying an Instance of an Integration. */
-export type ConfigVar = StandardConfigVar | ConnectionConfigVar;
+export type ConfigVar =
+  | StandardConfigVar
+  | ConnectionConfigVar
+  | ConnectionRefConfigVar;
 
 /** Defines attributes of a Config Wizard Page used when deploying an Instance of an Integration. */
 export type ConfigPage = {

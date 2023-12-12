@@ -382,30 +382,76 @@ const convertConfigVar = (
   configVar: ConfigVar,
   referenceKey: string
 ): Record<string, unknown> => {
-  const result: Record<string, unknown> & { meta: Record<string, unknown> } = {
-    ...configVar,
-    meta: {},
-  };
+  // This is unfortunate but we need to strip out some fields that are not
+  // relevant to config vars.
+  const fields = [
+    "key",
+    "description",
+    "orgOnly",
+    "inputs",
+    "defaultValue",
+    "dataType",
+    "pickList",
+    "scheduleType",
+    "timeZone",
+    "codeLanguage",
+    "collectionType",
+    "dataSource",
+  ];
+  const result = Object.entries(configVar).reduce<
+    Record<string, unknown> & { meta: Record<string, unknown> }
+  >(
+    (result, [key, value]) => {
+      if (!fields.includes(key)) {
+        return result;
+      }
+      return { ...result, [key]: value };
+    },
+    { meta: {} }
+  );
 
   // Handle some non-standard fields.
-  if ("visibleToOrgDeployer" in result) {
-    result.meta.visibleToOrgDeployer = result.visibleToOrgDeployer;
-    delete result.visibleToOrgDeployer;
+  if ("visibleToOrgDeployer" in configVar) {
+    result.meta.visibleToOrgDeployer = configVar.visibleToOrgDeployer;
+  }
+  if ("visibleToCustomerDeployer" in configVar) {
+    result.meta.visibleToCustomerDeployer = configVar.visibleToCustomerDeployer;
   }
 
-  if ("visibleToCustomerDeployer" in result) {
-    result.meta.visibleToCustomerDeployer = result.visibleToCustomerDeployer;
-    delete result.visibleToCustomerDeployer;
+  // Handle connections.
+  if ("label" in configVar || "component" in configVar) {
+    result.dataType = "connection";
+    if ("component" in configVar) {
+      // This is a reference to another Component's connection.
+      result.connection = {
+        key: configVar.key,
+        component: configVar.component,
+      };
+    } else {
+      // This refers to a connection we are creating.
+      result.connection = {
+        key: configVar.key,
+        component: { key: referenceKey, version: "LATEST", isPublic: false },
+      };
+      result.description = configVar.label;
+
+      // Convert connection inputs to the inputs expected in the YAML.
+      // FIXME: This is just a placeholder for now.
+      result.inputs = Object.keys(configVar.inputs).reduce((result, key) => {
+        return {
+          ...result,
+          [key]: {
+            type: SimpleInputValueType.Value,
+            value: "",
+          },
+        };
+      }, {});
+    }
   }
 
-  if ("connection" in result && typeof result.connection === "string") {
-    result.connection = {
-      key: result.connection,
-      component: { key: referenceKey, version: "LATEST", isPublic: false },
-    };
-  }
-
+  // Handle data source references.
   if ("dataSource" in result && typeof result.dataSource === "string") {
+    // This is a reference to a data source we are creating.
     result.dataSource = {
       key: result.dataSource,
       component: { key: referenceKey, version: "LATEST", isPublic: false },
@@ -457,7 +503,7 @@ const codeNativeIntegrationComponent = (
     description,
     flows = [],
     dataSources = {},
-    connections = [],
+    configVars = [],
   }: IntegrationDefinition,
   referenceKey: string
 ): ServerComponent => {
@@ -476,32 +522,30 @@ const codeNativeIntegrationComponent = (
     };
   }, {});
 
-  const convertedTriggers = flows
-    .filter((flow) => typeof flow === "object" && "onTrigger" in flow)
-    .reduce((result, flow) => {
-      // Filter out TriggerReferences.
-      if ("trigger" in flow) return result;
+  const convertedTriggers = flows.reduce((result, flow) => {
+    // Filter out TriggerReferences.
+    if ("trigger" in flow) return result;
 
-      const { name, onTrigger, onInstanceDeploy, onInstanceDelete } = flow;
+    const { name, onTrigger, onInstanceDeploy, onInstanceDelete } = flow;
 
-      const triggerKey = flowFunctionKey(name, "onTrigger");
-      return {
-        ...result,
-        [triggerKey]: convertTrigger(triggerKey, {
-          display: {
-            label: `${name} - onTrigger`,
-            description:
-              "The function that will be executed by the flow to return an HTTP response.",
-          },
-          perform: onTrigger,
-          onInstanceDeploy: onInstanceDeploy,
-          onInstanceDelete: onInstanceDelete,
-          inputs: {},
-          scheduleSupport: "valid",
-          synchronousResponseSupport: "valid",
-        }),
-      };
-    }, {});
+    const triggerKey = flowFunctionKey(name, "onTrigger");
+    return {
+      ...result,
+      [triggerKey]: convertTrigger(triggerKey, {
+        display: {
+          label: `${name} - onTrigger`,
+          description:
+            "The function that will be executed by the flow to return an HTTP response.",
+        },
+        perform: onTrigger,
+        onInstanceDeploy: onInstanceDeploy,
+        onInstanceDelete: onInstanceDelete,
+        inputs: {},
+        scheduleSupport: "valid",
+        synchronousResponseSupport: "valid",
+      }),
+    };
+  }, {});
 
   const convertedDataSources = Object.entries(dataSources).reduce(
     (result, [dataSourceKey, dataSource]) => ({
@@ -514,6 +558,27 @@ const codeNativeIntegrationComponent = (
     {}
   );
 
+  const convertedConnections = configVars.reduce<ServerConnection[]>(
+    (result, configVar) => {
+      if (!("label" in configVar)) {
+        return result;
+      }
+
+      // Remove a few fields that are not relevant to connections.
+      const {
+        /* eslint-disable @typescript-eslint/no-unused-vars */
+        orgOnly,
+        visibleToOrgDeployer,
+        visibleToCustomerDeployer,
+        /* eslint-enable @typescript-eslint/no-unused-vars */
+        ...connection
+      } = configVar;
+
+      return [...result, convertConnection(connection)];
+    },
+    []
+  );
+
   return {
     key: referenceKey,
     display: {
@@ -521,7 +586,7 @@ const codeNativeIntegrationComponent = (
       iconPath,
       description: description || name,
     },
-    connections: connections.map(convertConnection),
+    connections: convertedConnections,
     actions: convertedActions,
     triggers: convertedTriggers,
     dataSources: convertedDataSources,

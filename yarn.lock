@@ -1662,7 +1662,7 @@
     eslint-plugin-prettier "5.0.0"
 
 "@prismatic-io/generator-spectral@file:/Users/justinhipple/src/spectral/packages/generator-spectral":
-  version "3.0.0-preview1"
+  version "3.0.0-preview2"
   resolved "file:packages/generator-spectral"
   dependencies:
     "@apidevtools/swagger-parser" "10.1.0"
