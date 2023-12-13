@@ -95,16 +95,15 @@ const defaultedInput = input({
   label: "Defaulted",
   type: "string",
   required: false,
-  default: DEFAULTED_VALUE,
+  default: DEFAULTED_VALUE.toString(),
 });
 
 const defaultedCleanInput = input({
   label: "Defaulted Clean",
   type: "string",
   required: false,
-  default: DEFAULTED_VALUE,
-  clean: (value) =>
-    util.types.isInt(value) ? util.types.toInt(value) : DEFAULTED_VALUE,
+  default: DEFAULTED_VALUE.toString(),
+  clean: (value) => (util.types.isInt(value) ? value : DEFAULTED_VALUE),
 });
 
 const fooAction = action({
