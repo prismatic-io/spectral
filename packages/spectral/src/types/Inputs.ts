@@ -109,102 +109,110 @@ interface BaseInputField {
   required?: boolean;
 }
 
-export interface StringInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
-  type: "string";
+type CollectionOptions<T> =
+  | SingleValue<T>
+  | ValueListCollection<T>
+  | KeyValueListCollection<T>;
+
+interface SingleValue<T> {
   /** Collection type of the InputField */
-  collection?: InputFieldCollection;
+  collection?: undefined;
   /** Default value for this field. */
-  default?: unknown;
-  /** Dictates possible choices for the input. */
-  model?: InputFieldChoice[];
-  /** Clean function */
-  clean?: InputCleanFunction<this["default"]>;
+  default?: T;
 }
 
-export interface DataInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
-  type: "data";
+interface ValueListCollection<T> {
   /** Collection type of the InputField */
-  collection?: InputFieldCollection;
+  collection: "valuelist";
   /** Default value for this field. */
-  default?: unknown;
-  /** Dictates possible choices for the input. */
-  model?: InputFieldChoice[];
-  /** Clean function */
-  clean?: InputCleanFunction<this["default"]>;
+  default?: T[];
 }
 
-export interface TextInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
-  type: "text";
+interface KeyValueListCollection<T> {
   /** Collection type of the InputField */
-  collection?: InputFieldCollection;
+  collection: "keyvaluelist";
   /** Default value for this field. */
-  default?: unknown;
-  /** Dictates possible choices for the input. */
-  model?: InputFieldChoice[];
-  /** Clean function */
-  clean?: InputCleanFunction<this["default"]>;
+  default?: { key: string; value: T }[];
 }
 
-export interface PasswordInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
-  type: "password";
-  /** Collection type of the InputField */
-  collection?: InputFieldCollection;
-  /** Default value for this field. */
-  default?: unknown;
-  /** Dictates possible choices for the input. */
-  model?: InputFieldChoice[];
-  /** Clean function */
-  clean?: InputCleanFunction<this["default"]>;
-}
+export type StringInputField = BaseInputField &
+  CollectionOptions<string> & {
+    /** Data type the InputField will collect. */
+    type: "string";
+    /** Dictates possible choices for the input. */
+    model?: InputFieldChoice[];
+    /** Clean function */
+    clean?: InputCleanFunction<unknown>;
+  };
 
-export interface BooleanInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
-  type: "boolean";
-  /** Collection type of the InputField */
-  collection?: InputFieldCollection;
-  /** Default value for this field. */
-  default?: unknown;
-  /** Dictates possible choices for the input. */
-  model?: InputFieldChoice[];
-  /** Clean function */
-  clean?: InputCleanFunction<this["default"]>;
-}
+export type DataInputField = BaseInputField &
+  CollectionOptions<string> & {
+    /** Data type the InputField will collect. */
+    type: "data";
+    /** Dictates possible choices for the input. */
+    model?: InputFieldChoice[];
+    /** Clean function */
+    clean?: InputCleanFunction<unknown>;
+  };
+
+export type TextInputField = BaseInputField &
+  CollectionOptions<string> & {
+    /** Data type the InputField will collect. */
+    type: "text";
+    /** Dictates possible choices for the input. */
+    model?: InputFieldChoice[];
+    /** Clean function */
+    clean?: InputCleanFunction<unknown>;
+  };
+
+export type PasswordInputField = BaseInputField &
+  CollectionOptions<string> & {
+    /** Data type the InputField will collect. */
+    type: "password";
+    /** Dictates possible choices for the input. */
+    model?: InputFieldChoice[];
+    /** Clean function */
+    clean?: InputCleanFunction<unknown>;
+  };
+
+export type BooleanInputField = BaseInputField &
+  CollectionOptions<string> & {
+    /** Data type the InputField will collect. */
+    type: "boolean";
+    /** Dictates possible choices for the input. */
+    model?: InputFieldChoice[];
+    /** Clean function */
+    clean?: InputCleanFunction<unknown>;
+  };
 
 /** Defines attributes of a CodeInputField. */
-export interface CodeInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
-  type: "code";
-  /** Collection type of the InputField */
-  collection?: InputFieldCollection;
-  /** Default value for this field. */
-  default?: unknown;
-  /** Code language for syntax highlighting. For no syntax highlighting, choose "plaintext" */
-  language:
-    | "css"
-    | "graphql"
-    | "handlebars"
-    | "hcl"
-    | "html"
-    | "javascript"
-    | "json"
-    | "liquid"
-    | "markdown"
-    | "mysql"
-    | "pgsql"
-    | "plaintext"
-    | "sql"
-    | "typescript"
-    | "xml"
-    | "yaml";
-  /** Dictates possible choices for the input. */
-  model?: InputFieldChoice[];
-  /** Clean function */
-  clean?: InputCleanFunction<this["default"]>;
-}
+export type CodeInputField = BaseInputField &
+  CollectionOptions<string> & {
+    /** Data type the InputField will collect. */
+    type: "code";
+    /** Code language for syntax highlighting. For no syntax highlighting, choose "plaintext" */
+    language:
+      | "css"
+      | "graphql"
+      | "handlebars"
+      | "hcl"
+      | "html"
+      | "javascript"
+      | "json"
+      | "liquid"
+      | "markdown"
+      | "mysql"
+      | "pgsql"
+      | "plaintext"
+      | "sql"
+      | "typescript"
+      | "xml"
+      | "yaml";
+    /** Dictates possible choices for the input. */
+    model?: InputFieldChoice[];
+    /** Clean function */
+    clean?: InputCleanFunction<unknown>;
+  };
 
 /** Defines attributes of a ConditionalInputField. */
 export interface ConditionalInputField extends BaseInputField {
