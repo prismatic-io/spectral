@@ -11,7 +11,7 @@ import {
 } from ".";
 
 /** Defines attributes of a Code-Native Integration. */
-export type IntegrationDefinition = {
+export type IntegrationDefinition<TConfigVars extends ConfigVar = ConfigVar> = {
   /** The unique name for this Integration. */
   name: string;
   /** Optional description for this Integration. */
@@ -36,9 +36,9 @@ export type IntegrationDefinition = {
   /** Flows for this Integration. */
   flows: Flow[];
   /** Config Vars used on this Integration. */
-  configVars?: ConfigVar[];
+  configVars?: TConfigVars[];
   /** Config Wizard Pages for this Integration. */
-  configPages?: ConfigPage[];
+  configPages?: ConfigPage<TConfigVars>[];
   /** Specifies any Data Sources that are defined as part of this Integration. */
   dataSources?: Record<string, CodeNativeDataSource>;
 };
@@ -181,7 +181,7 @@ export type ConfigVar =
   | ConnectionRefConfigVar;
 
 /** Defines attributes of a Config Wizard Page used when deploying an Instance of an Integration. */
-export type ConfigPage = {
+export type ConfigPage<TConfigVars extends ConfigVar = ConfigVar> = {
   /** The unique name for this Config Page. */
   name: string;
   /** Specifies an optional tagline for this Config Page. */
@@ -190,7 +190,7 @@ export type ConfigPage = {
    *  part of User Level Configuration. @default false */
   userLevelConfigured?: boolean;
   /** Elements included on this Config Page. */
-  elements: ConfigPageElement[];
+  elements: ConfigPageElement<TConfigVars>[];
 };
 
 /** Defines attributes of Inputs for Connections, Actions, Triggers,
@@ -216,11 +216,55 @@ export type ComplexInputValueType = (
 )[];
 
 /** Defines attributes of an Element that appears on a Config Wizard Page. */
-export type ConfigPageElement = {
-  /** Specifies what type of data is represented by this Element. */
-  type: ConfigPageElementType;
-  /** Specifies the value of this Element. */
+export type ConfigPageElement<TConfigVars extends ConfigVar = ConfigVar> =
+  | HTMLConfigPageElement
+  | JSONFormConfigPageElement
+  | ConfigVarPageElement<TConfigVars>;
+
+type HTMLConfigPageElement = {
+  type: ConfigPageElementType.HTML;
   value: string;
+};
+type JSONFormConfigPageElement = {
+  type: ConfigPageElementType.JSONForm;
+  value: string;
+};
+
+type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (
+  x: infer R
+) => any
+  ? R
+  : never;
+
+type StringLiteral<T> = T extends string
+  ? string extends T
+    ? never
+    : T
+  : never;
+
+type ConfigVarMapping<TConfigVars extends ConfigVar> = UnionToIntersection<
+  TConfigVars extends infer TConfigVar
+    ? TConfigVar extends TConfigVars
+      ? StringLiteral<TConfigVar["key"]> extends infer TStringKey
+        ? TStringKey extends string
+          ? { [K in TStringKey]: TConfigVar }
+          : never
+        : never
+      : never
+    : never
+>;
+
+const configVar = { key: "hello" as const, dataType: ConfigVarDataType.String };
+const nextConfigVar = {
+  key: "hello there" as const,
+  dataType: ConfigVarDataType.String,
+};
+
+type Mapping = ConfigVarMapping<typeof configVar | typeof nextConfigVar>;
+
+type ConfigVarPageElement<TConfigVars extends ConfigVar = ConfigVar> = {
+  type: ConfigPageElementType.ConfigVar;
+  value: ConfigVarMapping<TConfigVars>;
 };
 
 /** Defines attributes of a Preprocess Flow Configuration used by a Flow of an Integration. */

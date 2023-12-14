@@ -22,6 +22,9 @@ import {
   StandardConfigVar,
   ConnectionConfigVar,
   ConnectionRefConfigVar,
+  ConfigVar,
+  ConfigVarDataType,
+  ConfigPageElementType,
 } from "./types";
 import { convertComponent, convertIntegration } from "./serverTypes/convert";
 
@@ -33,8 +36,8 @@ import { convertComponent, convertIntegration } from "./serverTypes/convert";
  * @param definition An IntegrationDefinition type object.
  * @returns This function returns an integration object that has the shape the Prismatic API expects.
  */
-export const integration = (
-  definition: IntegrationDefinition
+export const integration = <TConfigVar extends ConfigVar = ConfigVar>(
+  definition: IntegrationDefinition<TConfigVar>
 ): ReturnType<typeof convertIntegration> => convertIntegration(definition);
 
 /**
@@ -179,3 +182,33 @@ export { default as util } from "./util";
 export * from "./types";
 export { default as testing } from "./testing";
 export * from "./errors";
+
+const first: ConfigVar = configVar({
+  key: "my key" as const,
+  dataType: ConfigVarDataType.String,
+});
+
+const second: ConfigVar = configVar({
+  key: "my other key" as const,
+  dataType: ConfigVarDataType.String,
+});
+
+const myIntegration = integration({
+  name: "My integration",
+  debug: {
+    configVarKeys: ["my key", "other"],
+  },
+  flows: [],
+  configVars: [first, second],
+  configPages: [
+    {
+      name: "page",
+      elements: [
+        {
+          type: ConfigPageElementType.ConfigVar,
+          value: "my key",
+        },
+      ],
+    },
+  ],
+});
