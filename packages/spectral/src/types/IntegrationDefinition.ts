@@ -43,8 +43,8 @@ export type IntegrationDefinition = {
   dataSources?: Record<string, CodeNativeDataSource>;
 };
 
-/** Defines common attributes of a Flow of a Code-Native Integration. */
-type BaseFlow = {
+/** Defines attributes of a Flow of a Code-Native Integration. */
+export type Flow = {
   /** The unique name for this Flow. */
   name: string;
   /** Optional description for this Flow. */
@@ -63,6 +63,12 @@ type BaseFlow = {
   schedule?: FlowSchedule;
   /** Optional error handling configuration. */
   errorConfig?: StepErrorConfig;
+  /** Specifies the trigger function for this Flow, which returns a payload and optional HTTP response. */
+  onTrigger: TriggerPerformFunction<Inputs, false, TriggerResult<false>>;
+  /** Specifies the function to execute when an Instance of this Integration is deployed. */
+  onInstanceDeploy?: TriggerEventFunction<Inputs>;
+  /** Specifies the function to execute when an Instance of an Integration is deleted. */
+  onInstanceDelete?: TriggerEventFunction<Inputs>;
   /** Specifies the main function for this Flow */
   onExecution: ActionPerformFunction<
     Inputs,
@@ -71,58 +77,11 @@ type BaseFlow = {
   >;
 };
 
-/** Defines attributes of a Flow that will have custom Trigger logic. */
-type CustomTriggerFlow = BaseFlow & {
-  /** Specifies the trigger function for this Flow, which returns a payload and optional HTTP response. */
-  onTrigger: TriggerPerformFunction<Inputs, false, TriggerResult<false>>;
-  /** Specifies the function to execute when an Instance of this Integration is deployed. */
-  onInstanceDeploy?: TriggerEventFunction<Inputs>;
-  /** Specifies the function to execute when an Instance of an Integration is deleted. */
-  onInstanceDelete?: TriggerEventFunction<Inputs>;
-};
-
-/** Defines attributes of a Flow that will use a Trigger from an existing Component. */
-type PrebuiltTriggerFlow = BaseFlow & {
-  /** Specifies the prebuilt Trigger that will run when this Flow executes. */
-  trigger: TriggerReference;
-};
-
-/** Defines attributes of a Flow of a Code-Native Integration. */
-export type Flow = CustomTriggerFlow | PrebuiltTriggerFlow;
-
 /** Defines attributes of a Data Source that is defined as part of a Code Native Integration. */
 export type CodeNativeDataSource = Pick<
   DataSourceDefinition<Inputs, DataSourceType>,
   "display" | "perform" | "dataSourceType" | "detailDataSource"
 >;
-
-/** Defines attributes of a reference to an existing Trigger. */
-export type TriggerReference = {
-  /** Attributes of the referenced Component. */
-  component: ComponentReference;
-  /** The unique key that identifies the Trigger within the Component. */
-  key: string;
-  /** Optional input values for this Trigger. */
-  inputs?: InputValues;
-};
-
-/** Defines attributes of a reference to an existing Data Source. */
-export type DataSourceReference = {
-  /** Attributes of the referenced Component. */
-  component: ComponentReference;
-  /** The unique key that identifies the Data Source within the Component. */
-  key: string;
-};
-
-/** Defines attributes of a reference to a member of an existing Component. */
-export type ComponentReference = {
-  /** The unique key that identifies the Component. */
-  key: string;
-  /** The version of the Component. */
-  version: number | "LATEST";
-  /** Specifies whether the Component is in the public library or a private Component. */
-  isPublic: boolean;
-};
 
 /** Common attribute shared by all types of Config Vars. */
 type BaseConfigVar = {
@@ -156,11 +115,9 @@ export type StandardConfigVar = BaseConfigVar & {
   codeLanguage?: CodeLanguageType;
   /** Optional value to specify the type of collection if the Config Var is multi-value. */
   collectionType?: CollectionType;
-  /** Optional value to specify the Data Source where the Config Var sources
-   *  its values. If it's a string then it's expected to be the key of a
-   *  CodeNativeDataSource defined in the Code Native Integration. Otherwise it
-   *  is expected to be a reference to an existing Data Source. */
-  dataSource?: string | DataSourceReference;
+  /** Optional value to specify the key of a Data Source defined in this CNI
+   *  where the Config Var sources its values. */
+  dataSource?: string;
 };
 
 /** Defines attributes of a Config Var that represents a Connection. */
@@ -170,15 +127,7 @@ export type ConnectionConfigVar = Omit<
 > &
   ConnectionDefinition;
 
-export type ConnectionRefConfigVar = BaseConfigVar & {
-  /** Attributes of the referenced Component. */
-  component: ComponentReference;
-};
-
-export type ConfigVar =
-  | StandardConfigVar
-  | ConnectionConfigVar
-  | ConnectionRefConfigVar;
+export type ConfigVar = StandardConfigVar | ConnectionConfigVar;
 
 /** Defines attributes of a Config Wizard Page used when deploying an Instance of an Integration. */
 export type ConfigPage = {
