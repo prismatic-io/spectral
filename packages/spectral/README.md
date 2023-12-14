@@ -1,6 +1,6 @@
 # @prismatic-io/spectral
 
-This repository contains code for Prismatic's TypeScript library, `spectral`, which is used to build custom Prismatic components.
+This repository contains code for Prismatic's TypeScript library, `spectral`, which is used to build custom Prismatic components
 
 ## Using Spectral
 
