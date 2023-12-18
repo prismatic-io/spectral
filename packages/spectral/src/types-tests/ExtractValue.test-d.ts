@@ -1,5 +1,6 @@
 import { expectType } from "tsd";
-import { ExtractValue, KeyValuePair } from "../types/ActionInputParameters";
+import { ExtractValue } from "../types/ActionInputParameters";
+import { KeyValuePair } from "../types/Inputs";
 
 const scalar: ExtractValue<boolean, undefined> = Boolean();
 expectType<boolean>(scalar);
