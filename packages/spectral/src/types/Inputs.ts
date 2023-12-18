@@ -1,6 +1,20 @@
 import { ConditionalExpression } from "./conditional-logic";
 import { JsonSchema, UISchemaElement } from "@jsonforms/core";
 
+/**
+ * KeyValuePair input parameter type.
+ * This allows users to input multiple keys / values as an input.
+ * To see an example of how this can be used, see the `tagging` input
+ * of the `putObject` action of the AWS S3 component:
+ * https://github.com/prismatic-io/examples/blob/main/components/aws-s3/src/actions.ts
+ */
+export interface KeyValuePair<V = unknown> {
+  /** Key of the KeyValuePair */
+  key: string;
+  /** Value of the KeyValuePair */
+  value: V;
+}
+
 export type Element = {
   key: string;
   label?: string;
@@ -132,7 +146,7 @@ interface KeyValueListCollection<T> {
   /** Collection type of the InputField */
   collection: "keyvaluelist";
   /** Default value for this field. */
-  default?: { key: string; value: T }[];
+  default?: KeyValuePair<T>[];
 }
 
 export type StringInputField = BaseInputField &
