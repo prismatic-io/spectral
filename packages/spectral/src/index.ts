@@ -21,7 +21,6 @@ import {
   ConfigPage,
   StandardConfigVar,
   ConnectionConfigVar,
-  ConnectionRefConfigVar,
 } from "./types";
 import { convertComponent, convertIntegration } from "./serverTypes/convert";
 
@@ -70,16 +69,6 @@ export const configVar = <T extends StandardConfigVar>(definition: T): T =>
  * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
  */
 export const connectionConfigVar = <T extends ConnectionConfigVar>(
-  definition: T
-): T => definition;
-
-/**
- * For information on writing Code Native Integrations, see
- * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
- * @param definition A Connection Reference Config Var type object.
- * @returns This function returns a connection reference config var object that has the shape the Prismatic API expects.
- */
-export const connectionRefConfigVar = <T extends ConnectionRefConfigVar>(
   definition: T
 ): T => definition;
 

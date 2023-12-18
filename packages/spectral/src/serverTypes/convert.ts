@@ -286,15 +286,15 @@ const codeNativeIntegrationYaml = (
     endpointType,
     preprocessFlowName: hasPreprocessFlow ? preprocessFlows[0].name : undefined,
     externalCustomerIdField: fieldNameToReferenceInput(
-      hasPreprocessFlow ? "action" : "payload",
+      hasPreprocessFlow ? "onExecution" : "payload",
       preprocessFlowConfig?.externalCustomerIdField
     ),
     externalCustomerUserIdField: fieldNameToReferenceInput(
-      hasPreprocessFlow ? "action" : "payload",
+      hasPreprocessFlow ? "onExecution" : "payload",
       preprocessFlowConfig?.externalCustomerUserIdField
     ),
     flowNameField: fieldNameToReferenceInput(
-      hasPreprocessFlow ? "action" : "payload",
+      hasPreprocessFlow ? "onExecution" : "payload",
       preprocessFlowConfig?.flowNameField
     ),
     flows: flows.map((flow) => convertFlow(flow, referenceKey)),
@@ -321,28 +321,16 @@ const convertFlow = (
   delete result.errorConfig;
 
   const triggerStep: Record<string, unknown> = {
-    name: `${flow.name} - onTrigger`,
+    name: "onTrigger",
     description:
       "The function that will be executed by the flow to return an HTTP response.",
     isTrigger: true,
     errorConfig: "errorConfig" in flow ? { ...flow.errorConfig } : undefined,
-  };
-
-  if ("onTrigger" in flow) {
-    triggerStep.action = {
+    action: {
       key: flowFunctionKey(flow.name, "onTrigger"),
       component: { key: referenceKey, version: "LATEST", isPublic: false },
-    };
-  } else {
-    triggerStep.action = {
-      key: flow.trigger.key,
-      component: flow.trigger.component,
-    };
-
-    if ("inputs" in flow.trigger) {
-      triggerStep.inputs = flow.trigger.inputs;
-    }
-  }
+    },
+  };
 
   if ("schedule" in flow && typeof flow.schedule === "object") {
     triggerStep.schedule = {
@@ -367,7 +355,7 @@ const convertFlow = (
       key: flowFunctionKey(flow.name, "onExecution"),
       component: { key: referenceKey, version: "LATEST", isPublic: false },
     },
-    name: `${flow.name} - onExecution`,
+    name: "onExecution",
     description: "The function that will be executed by the flow.",
     errorConfig: "errorConfig" in flow ? { ...flow.errorConfig } : undefined,
   };
@@ -419,38 +407,34 @@ const convertConfigVar = (
   }
 
   // Handle connections.
-  if ("label" in configVar || "component" in configVar) {
+  if ("label" in configVar) {
     result.dataType = "connection";
-    if ("component" in configVar) {
-      // This is a reference to another Component's connection.
-      result.connection = {
-        key: configVar.key,
-        component: configVar.component,
-      };
-    } else {
-      // This refers to a connection we are creating.
-      result.connection = {
-        key: configVar.key,
-        component: { key: referenceKey, version: "LATEST", isPublic: false },
-      };
-      result.description = configVar.label;
+    // This refers to a connection we are creating.
+    result.connection = {
+      key: configVar.key,
+      component: { key: referenceKey, version: "LATEST", isPublic: false },
+    };
+    result.description = configVar.label;
 
-      // Convert connection inputs to the inputs expected in the YAML.
-      // FIXME: This is just a placeholder for now.
-      result.inputs = Object.keys(configVar.inputs).reduce((result, key) => {
+    // Convert connection inputs to the inputs expected in the YAML.
+    // FIXME: This is just a placeholder for now.
+    // TODO: It seems like using the default value as the value is probably correct?
+    result.inputs = Object.entries(configVar.inputs).reduce(
+      (result, [key, input]) => {
         return {
           ...result,
           [key]: {
             type: SimpleInputValueType.Value,
-            value: "",
+            value: input.default ?? "",
           },
         };
-      }, {});
-    }
+      },
+      {}
+    );
   }
 
   // Handle data source references.
-  if ("dataSource" in result && typeof result.dataSource === "string") {
+  if ("dataSource" in result) {
     // This is a reference to a data source we are creating.
     result.dataSource = {
       key: result.dataSource,
@@ -478,7 +462,10 @@ const fieldNameToReferenceInput = (
 /** Actions and Triggers will be scoped to their flow by combining the flow
  *  name and the function name. This is to ensure that the keys are unique
  *  on the resulting object, which will be turned into a Component. */
-const flowFunctionKey = (flowName: string, functionName: string): string => {
+const flowFunctionKey = (
+  flowName: string,
+  functionName: "onExecution" | "onTrigger"
+): string => {
   const flowKey = flowName
     .replace(/[^0-9a-zA-Z]+/g, " ")
     .trim()
@@ -490,7 +477,6 @@ const flowFunctionKey = (flowName: string, functionName: string): string => {
     )
     .join("");
 
-  // functionName is only going to be either 'action' or 'trigger'.
   return `${flowKey}_${functionName}`;
 };
 
