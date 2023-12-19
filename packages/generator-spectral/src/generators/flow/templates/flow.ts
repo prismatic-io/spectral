@@ -1,7 +1,8 @@
-import { flow, Connection } from "@prismatic-io/spectral";
+import { flow } from "@prismatic-io/spectral";
 import { createClient } from "./client";
+import type { ConfigVars } from "./configVars";
 
-export const <%= flow.key %> = flow({
+export const <%= flow.key %> = flow<ConfigVars>({
   name: "<%= flow.name %>",
   description: "<%= flow.description %>",
   onTrigger: async (context, payload, params) => {
@@ -25,7 +26,7 @@ export const <%= flow.key %> = flow({
     logger.info(`Action context: ${JSON.stringify(context)}`);
     logger.info(`Action params: ${JSON.stringify(params)}`);
 
-    const client = createClient(configVars.connection1 as Connection);
+    const client = createClient(configVars.connection1);
     return {
       data: await client.call("<%= flow.name %>"),
     };

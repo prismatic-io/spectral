@@ -4,6 +4,8 @@ import {
   TriggerEventFunction,
   Inputs,
   TriggerResult,
+  ConfigVarResultCollection,
+  TriggerPayload,
 } from ".";
 
 const optionChoices = ["invalid", "valid", "required"] as const;
@@ -18,17 +20,24 @@ export const TriggerOptionChoices: TriggerOptionChoice[] = [...optionChoices];
  */
 export interface TriggerDefinition<
   TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
-  TResult extends TriggerResult<TAllowsBranching>
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>
 > {
   /** Defines how the Trigger is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
   /** Function to perform when this Trigger is invoked. */
-  perform: TriggerPerformFunction<TInputs, TAllowsBranching, TResult>;
+  perform: TriggerPerformFunction<
+    TInputs,
+    TConfigVars,
+    false,
+    TAllowsBranching,
+    TResult
+  >;
   /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deployed. */
-  onInstanceDeploy?: TriggerEventFunction<TInputs>;
+  onInstanceDeploy?: TriggerEventFunction<TInputs, TConfigVars, false>;
   /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deleted. */
-  onInstanceDelete?: TriggerEventFunction<TInputs>;
+  onInstanceDelete?: TriggerEventFunction<TInputs, TConfigVars, false>;
   /** InputFields to present in the Prismatic interface for configuration of this Trigger. */
   inputs: TInputs;
   /** Specifies whether this Trigger supports executing the Integration on a recurring schedule. */

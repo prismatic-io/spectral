@@ -31,6 +31,9 @@ import {
   DataSourceResult as InvokeDataSourceResult,
   TriggerEventFunctionReturn,
   Flow,
+  ConfigVarResultCollection,
+  ConfigVarCollection,
+  ConfigVarDefinitionsToResults,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -59,47 +62,55 @@ export const loggerMock = (): ActionLogger => ({
   error: spyOn(console, "error") as unknown as ActionLoggerFunction,
 });
 
-const baseActionContext: ActionContext = {
-  logger: loggerMock(),
-  instanceState: {},
-  crossFlowState: {},
-  executionState: {},
-  integrationState: {},
-  stepId: "mockStepId",
-  executionId: "mockExecutionId",
-  webhookUrls: {
-    "Flow 1": "https://example.com",
-  },
-  webhookApiKeys: {
-    "Flow 1": ["example-123", "example-456"],
-  },
-  invokeUrl: "https://example.com",
-  customer: {
-    id: "customerId",
-    name: "Customer 1",
-    externalId: "1234",
-  },
-  instance: {
-    id: "instanceId",
-    name: "Instance 1",
-  },
-  user: {
-    id: "userId",
-    email: "user@example.com",
-    name: "User 1",
-    externalId: "1234",
-  },
-  integration: {
-    id: "integrationId",
-    name: "Integration 1",
-    versionSequenceId: "1234",
-    externalVersion: "1.0.0",
-  },
-  flow: {
-    id: "flowId",
-    name: "Flow 1",
-  },
-  startedAt: new Date().toISOString(),
+const createActionContext = <
+  THasConfigVars extends boolean,
+  TConfigVars extends ConfigVarResultCollection
+>(
+  context?: Partial<ActionContext<TConfigVars, THasConfigVars>>
+): ActionContext<TConfigVars, THasConfigVars> => {
+  return {
+    logger: loggerMock(),
+    instanceState: {},
+    crossFlowState: {},
+    executionState: {},
+    integrationState: {},
+    stepId: "mockStepId",
+    executionId: "mockExecutionId",
+    webhookUrls: {
+      "Flow 1": "https://example.com",
+    },
+    webhookApiKeys: {
+      "Flow 1": ["example-123", "example-456"],
+    },
+    invokeUrl: "https://example.com",
+    customer: {
+      id: "customerId",
+      name: "Customer 1",
+      externalId: "1234",
+    },
+    instance: {
+      id: "instanceId",
+      name: "Instance 1",
+    },
+    user: {
+      id: "userId",
+      email: "user@example.com",
+      name: "User 1",
+      externalId: "1234",
+    },
+    integration: {
+      id: "integrationId",
+      name: "Integration 1",
+      versionSequenceId: "1234",
+      externalVersion: "1.0.0",
+    },
+    flow: {
+      id: "flowId",
+      name: "Flow 1",
+    },
+    startedAt: new Date().toISOString(),
+    ...context,
+  } as unknown as ActionContext<TConfigVars, THasConfigVars>;
 };
 
 /**
@@ -118,14 +129,17 @@ interface InvokeReturn<ReturnData> {
  */
 export const invoke = async <
   TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
   TReturn extends InvokeActionPerformReturn<TAllowsBranching, unknown>
 >(
-  { perform }: ActionDefinition<TInputs, TAllowsBranching, TReturn>,
+  {
+    perform,
+  }: ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>,
   params: ActionInputParameters<TInputs>,
-  context?: Partial<ActionContext>
+  context?: Partial<ActionContext<TConfigVars>>
 ): Promise<InvokeReturn<TReturn>> => {
-  const realizedContext = { ...baseActionContext, ...context };
+  const realizedContext = createActionContext(context);
   const result = await perform(realizedContext, params);
 
   return {
@@ -197,20 +211,19 @@ export const defaultTriggerPayload = (): TriggerPayload => {
  */
 export const invokeTrigger = async <
   TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
-  TResult extends InvokeTriggerResult<TAllowsBranching>
+  TResult extends InvokeTriggerResult<TAllowsBranching, TriggerPayload>
 >(
-  { perform }: TriggerDefinition<TInputs, TAllowsBranching, TResult>,
-  context?: Partial<ActionContext>,
+  {
+    perform,
+  }: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult>,
+  context?: Partial<ActionContext<TConfigVars>>,
   payload?: TriggerPayload,
   params?: ActionInputParameters<TInputs>
 ): Promise<InvokeReturn<TResult>> => {
-  const realizedContext = { ...baseActionContext, ...context };
-  const realizedPayload = {
-    ...defaultTriggerPayload(),
-    ...payload,
-  };
-
+  const realizedContext = createActionContext(context);
+  const realizedPayload = { ...defaultTriggerPayload(), ...payload };
   const realizedParams = params || ({} as ActionInputParameters<TInputs>);
 
   const result = await perform(
@@ -267,18 +280,22 @@ export const invokeDataSource = async <
  * Invokes specified Flow of a Code Native Integration using supplied params.
  * Runs the Trigger and then the Action function and returns the result of the Action.
  */
-export const invokeFlow = async (
-  flow: Flow,
-  context?: Partial<ActionContext>,
+export const invokeFlow = async <TConfigVars extends ConfigVarCollection>(
+  flow: Flow<TConfigVars>,
+  context?: Partial<
+    ActionContext<ConfigVarDefinitionsToResults<TConfigVars>, true>
+  >,
   payload?: TriggerPayload
 ): Promise<InvokeReturn<InvokeActionPerformReturn<false, unknown>>> => {
-  const realizedContext = { ...baseActionContext, ...context };
-  const realizedPayload = {
-    ...defaultTriggerPayload(),
-    ...payload,
-  };
+  const realizedContext = createActionContext<
+    true,
+    ConfigVarDefinitionsToResults<TConfigVars>
+  >(context);
+  const realizedPayload = { ...defaultTriggerPayload(), ...payload };
 
-  const params: Record<string, unknown> = {};
+  const params: Record<"onTrigger", { results: any }> = {
+    onTrigger: { results: null },
+  };
 
   if ("onTrigger" in flow) {
     const triggerResult = await flow.onTrigger(
@@ -287,7 +304,7 @@ export const invokeFlow = async (
       params
     );
 
-    params.trigger = triggerResult;
+    params.onTrigger = { results: triggerResult?.payload };
   }
 
   const result = await flow.onExecution(realizedContext, params);
@@ -338,58 +355,62 @@ export class ComponentTestHarness<TComponent extends Component> {
     return result;
   }
 
-  public async trigger(
+  public async trigger<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     payload?: TriggerPayload,
     params?: Record<string, unknown>,
-    context?: Partial<ActionContext>
+    context?: Partial<ActionContext<TConfigVars>>
   ): Promise<TriggerResult> {
     const trigger = this.component.triggers[key];
     return trigger.perform(
-      this.buildContext<ActionContext>(baseActionContext, context),
+      createActionContext(context),
       { ...defaultTriggerPayload(), ...payload },
       this.buildParams(trigger.inputs, params)
     );
   }
 
-  public async triggerOnInstanceDeploy(
+  public async triggerOnInstanceDeploy<
+    TConfigVars extends ConfigVarResultCollection
+  >(
     key: string,
     params?: Record<string, unknown>,
-    context?: Partial<ActionContext>
+    context?: Partial<ActionContext<TConfigVars>>
   ): Promise<void | TriggerEventFunctionReturn> {
     const trigger = this.component.triggers[key];
     if (!trigger.onInstanceDeploy) {
       throw new Error("Trigger does not support onInstanceDeploy");
     }
     return trigger.onInstanceDeploy(
-      this.buildContext<ActionContext>(baseActionContext, context),
+      createActionContext(context),
       this.buildParams(trigger.inputs, params)
     );
   }
 
-  public async triggerOnInstanceDelete(
+  public async triggerOnInstanceDelete<
+    TConfigVars extends ConfigVarResultCollection
+  >(
     key: string,
     params?: Record<string, unknown>,
-    context?: Partial<ActionContext>
+    context?: Partial<ActionContext<TConfigVars>>
   ): Promise<void | TriggerEventFunctionReturn> {
     const trigger = this.component.triggers[key];
     if (!trigger.onInstanceDelete) {
       throw new Error("Trigger does not support onInstanceDelete");
     }
     return trigger.onInstanceDelete(
-      this.buildContext<ActionContext>(baseActionContext, context),
+      createActionContext(context),
       this.buildParams(trigger.inputs, params)
     );
   }
 
-  public async action(
+  public async action<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     params?: Record<string, unknown>,
-    context?: Partial<ActionContext>
+    context?: Partial<ActionContext<TConfigVars>>
   ): Promise<ActionPerformReturn> {
     const action = this.component.actions[key];
     return action.perform(
-      this.buildContext<ActionContext>(baseActionContext, context),
+      createActionContext(context),
       this.buildParams(action.inputs, params)
     );
   }

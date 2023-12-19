@@ -311,3 +311,9 @@ export interface InputFieldChoice {
 
 /** InputField collection enumeration */
 export type InputFieldCollection = "valuelist" | "keyvaluelist";
+
+/** Config variable result collection */
+export type ConfigVarResultCollection = Record<
+  string,
+  string | Connection | JSONForm | ObjectSelection
+>;

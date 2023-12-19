@@ -4,7 +4,7 @@ import {
   ConfigPageElementType,
 } from "@prismatic-io/spectral";
 import flows from "./flows";
-import configVars from "./configVars";
+import { configVars } from "./configVars";
 
 export default integration({
   name: "<%= integration.name %>",
@@ -19,7 +19,7 @@ export default integration({
       elements: [
         {
           type: ConfigPageElementType.ConfigVar,
-          value: "<%= configVar.key %>",
+          value: "<%= configVar.key %>" as const,
         },
       ],
     }),

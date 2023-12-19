@@ -25,9 +25,9 @@ export type ComponentDefinition<
   /** Defines how the Component is displayed in the Prismatic interface. */
   display: ComponentDisplayDefinition<TPublic>;
   /** Specifies the supported Actions of this Component. */
-  actions?: Record<string, ActionDefinition<any, boolean, any>>;
+  actions?: Record<string, ActionDefinition<any, any, boolean, any>>;
   /** Specifies the supported Triggers of this Component. */
-  triggers?: Record<string, TriggerDefinition<any, boolean, any>>;
+  triggers?: Record<string, TriggerDefinition<any, any, boolean, any>>;
   /** Specifies the supported Data Sources of this Component. */
   dataSources?: Record<string, DataSourceDefinition<any, any>>;
   /** Specifies the supported Connections of this Component. */

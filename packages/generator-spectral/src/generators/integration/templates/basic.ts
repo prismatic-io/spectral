@@ -21,4 +21,5 @@ export const <%= configVar.key %> = connectionConfigVar({
   },
 });
 
-export default [<%= configVar.key %>];
+export const configVars = { <%= configVar.key %> };
+export type ConfigVars = typeof configVars;
