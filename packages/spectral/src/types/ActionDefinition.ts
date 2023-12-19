@@ -2,6 +2,7 @@ import {
   ActionDisplayDefinition,
   ActionPerformFunction,
   ActionPerformReturn,
+  ConfigVarResultCollection,
   Inputs,
 } from ".";
 
@@ -10,14 +11,24 @@ import {
  * define a component action.
  */
 export interface ActionDefinition<
-  TInputs extends Inputs,
-  TAllowsBranching extends boolean,
-  TReturn extends ActionPerformReturn<TAllowsBranching, unknown>
+  TInputs extends Inputs = Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TAllowsBranching extends boolean = boolean,
+  TReturn extends ActionPerformReturn<
+    TAllowsBranching,
+    unknown
+  > = ActionPerformReturn<TAllowsBranching, unknown>
 > {
   /** Defines how the Action is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
   /** Function to perform when this Action is invoked. */
-  perform: ActionPerformFunction<TInputs, TAllowsBranching, TReturn>;
+  perform: ActionPerformFunction<
+    TInputs,
+    TConfigVars,
+    false,
+    TAllowsBranching,
+    TReturn
+  >;
   /** InputFields to present in the Prismatic interface for configuration of this Action. */
   inputs: TInputs;
   /** Optional attribute that specifies whether an Action will terminate execution.*/

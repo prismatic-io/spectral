@@ -1,5 +1,5 @@
 import { flow1 } from "./flows";
-import { connection1 } from "./configVars";
+import { configVars } from "./configVars";
 import {
   invokeFlow,
   createConnection,
@@ -9,7 +9,7 @@ describe("test my flow", () => {
   test("verify the return value of my flow", async () => {
     const { result } = await invokeFlow(flow1, {
       configVars: {
-        connection1: createConnection(connection1, {
+        connection1: createConnection(configVars.connection1, {
           username: process.env.MY_APP_USERNAME, // A username saved as an environment variable
           password: process.env.MY_APP_PASSWORD, // A password saved as an environment variable
         }),

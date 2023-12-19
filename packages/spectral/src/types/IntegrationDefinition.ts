@@ -8,10 +8,27 @@ import {
   Inputs,
   TriggerResult,
   DataSourceType,
+  Connection as ConnectionResult,
+  TriggerPayload,
 } from ".";
 
+export type ConfigVarCollection = Record<string, ConfigVar>;
+
+export type ConfigVarDefinitionsToResults<
+  TConfigVars extends ConfigVarCollection
+> = {
+  [Key in keyof TConfigVars]: TConfigVars[Key]["inputs"] extends Record<
+    string,
+    any
+  >
+    ? ConnectionResult
+    : string;
+};
+
 /** Defines attributes of a Code-Native Integration. */
-export type IntegrationDefinition = {
+export type IntegrationDefinition<
+  TConfigVars extends ConfigVarCollection = ConfigVarCollection
+> = {
   /** The unique name for this Integration. */
   name: string;
   /** Optional description for this Integration. */
@@ -34,17 +51,20 @@ export type IntegrationDefinition = {
    *  Cannot specify this if a Preprocess Flow is also configured. */
   triggerPreprocessFlowConfig?: PreprocessFlowConfig;
   /** Flows for this Integration. */
-  flows: Flow[];
+  flows: Flow<TConfigVars>[];
   /** Config Vars used on this Integration. */
-  configVars?: ConfigVar[];
+  configVars?: TConfigVars;
   /** Config Wizard Pages for this Integration. */
-  configPages?: ConfigPage[];
+  configPages?: ConfigPage<TConfigVars>[];
   /** Specifies any Data Sources that are defined as part of this Integration. */
   dataSources?: Record<string, CodeNativeDataSource>;
 };
 
 /** Defines attributes of a Flow of a Code-Native Integration. */
-export type Flow = {
+export interface Flow<
+  TConfigVars extends ConfigVarCollection = ConfigVarCollection,
+  TTriggerPayload extends TriggerPayload = TriggerPayload
+> {
   /** The unique name for this Flow. */
   name: string;
   /** Optional description for this Flow. */
@@ -64,18 +84,40 @@ export type Flow = {
   /** Optional error handling configuration. */
   errorConfig?: StepErrorConfig;
   /** Specifies the trigger function for this Flow, which returns a payload and optional HTTP response. */
-  onTrigger: TriggerPerformFunction<Inputs, false, TriggerResult<false>>;
+  onTrigger: TriggerPerformFunction<
+    Inputs,
+    ConfigVarDefinitionsToResults<TConfigVars>,
+    true,
+    false,
+    TriggerResult<false, TTriggerPayload>
+  >;
   /** Specifies the function to execute when an Instance of this Integration is deployed. */
-  onInstanceDeploy?: TriggerEventFunction<Inputs>;
+  onInstanceDeploy?: TriggerEventFunction<
+    Inputs,
+    ConfigVarDefinitionsToResults<TConfigVars>,
+    true
+  >;
   /** Specifies the function to execute when an Instance of an Integration is deleted. */
-  onInstanceDelete?: TriggerEventFunction<Inputs>;
+  onInstanceDelete?: TriggerEventFunction<
+    Inputs,
+    ConfigVarDefinitionsToResults<TConfigVars>,
+    true
+  >;
   /** Specifies the main function for this Flow */
   onExecution: ActionPerformFunction<
-    Inputs,
+    {
+      onTrigger: {
+        type: "data";
+        label: string;
+        clean: (value: unknown) => { results: TTriggerPayload };
+      };
+    },
+    ConfigVarDefinitionsToResults<TConfigVars>,
+    true,
     false,
     ActionPerformReturn<false, unknown>
   >;
-};
+}
 
 /** Defines attributes of a Data Source that is defined as part of a Code Native Integration. */
 export type CodeNativeDataSource = Pick<
@@ -130,7 +172,9 @@ export type ConnectionConfigVar = Omit<
 export type ConfigVar = StandardConfigVar | ConnectionConfigVar;
 
 /** Defines attributes of a Config Wizard Page used when deploying an Instance of an Integration. */
-export type ConfigPage = {
+export type ConfigPage<
+  TConfigVars extends ConfigVarCollection = ConfigVarCollection
+> = {
   /** The unique name for this Config Page. */
   name: string;
   /** Specifies an optional tagline for this Config Page. */
@@ -139,7 +183,7 @@ export type ConfigPage = {
    *  part of User Level Configuration. @default false */
   userLevelConfigured?: boolean;
   /** Elements included on this Config Page. */
-  elements: ConfigPageElement[];
+  elements: ConfigPageElement<TConfigVars>[];
 };
 
 /** Defines attributes of Inputs for Connections, Actions, Triggers,
@@ -165,11 +209,26 @@ export type ComplexInputValueType = (
 )[];
 
 /** Defines attributes of an Element that appears on a Config Wizard Page. */
-export type ConfigPageElement = {
-  /** Specifies what type of data is represented by this Element. */
-  type: ConfigPageElementType;
-  /** Specifies the value of this Element. */
+export type ConfigPageElement<
+  TConfigVars extends ConfigVarCollection = ConfigVarCollection
+> =
+  | HTMLConfigPageElement
+  | JSONFormConfigPageElement
+  | ConfigVarPageElement<TConfigVars>;
+
+type HTMLConfigPageElement = {
+  type: ConfigPageElementType.HTML;
   value: string;
+};
+type JSONFormConfigPageElement = {
+  type: ConfigPageElementType.JSONForm;
+  value: string;
+};
+type ConfigVarPageElement<
+  TConfigVars extends ConfigVarCollection = ConfigVarCollection
+> = {
+  type: ConfigPageElementType.ConfigVar;
+  value: keyof TConfigVars;
 };
 
 /** Defines attributes of a Preprocess Flow Configuration used by a Flow of an Integration. */

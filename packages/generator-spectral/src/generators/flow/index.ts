@@ -1,4 +1,3 @@
-import path from "path";
 import Generator from "yeoman-generator";
 import { camelCase, merge } from "lodash";
 

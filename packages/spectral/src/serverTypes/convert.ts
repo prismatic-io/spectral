@@ -56,7 +56,11 @@ const convertInput = (
 
 const convertAction = (
   actionKey: string,
-  { inputs = {}, perform, ...action }: ActionDefinition<Inputs, boolean, any>,
+  {
+    inputs = {},
+    perform,
+    ...action
+  }: ActionDefinition<Inputs, any, boolean, any>,
   hooks?: ComponentHooks
 ): ServerAction => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) =>
@@ -86,7 +90,7 @@ const convertTrigger = (
     onInstanceDeploy,
     onInstanceDelete,
     ...trigger
-  }: TriggerDefinition<Inputs, boolean, any>,
+  }: TriggerDefinition<Inputs, any, boolean, any>,
   hooks?: ComponentHooks
 ): ServerTrigger => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) =>
@@ -280,8 +284,9 @@ const codeNativeIntegrationYaml = (
     documentation,
     version,
     labels,
-    requiredConfigVars: configVars?.map((configVar) =>
-      convertConfigVar(configVar, referenceKey)
+    requiredConfigVars: Object.entries(configVars || {}).map(
+      ([key, configVar]) =>
+        convertConfigVar({ ...configVar, key }, referenceKey)
     ),
     endpointType,
     preprocessFlowName: hasPreprocessFlow ? preprocessFlows[0].name : undefined,
@@ -321,7 +326,7 @@ const convertFlow = (
   delete result.errorConfig;
 
   const triggerStep: Record<string, unknown> = {
-    name: "onTrigger",
+    name: "On Trigger",
     description:
       "The function that will be executed by the flow to return an HTTP response.",
     isTrigger: true,
@@ -355,7 +360,7 @@ const convertFlow = (
       key: flowFunctionKey(flow.name, "onExecution"),
       component: { key: referenceKey, version: "LATEST", isPublic: false },
     },
-    name: "onExecution",
+    name: "On Execution",
     description: "The function that will be executed by the flow.",
     errorConfig: "errorConfig" in flow ? { ...flow.errorConfig } : undefined,
   };
@@ -489,7 +494,7 @@ const codeNativeIntegrationComponent = (
     description,
     flows = [],
     dataSources = {},
-    configVars = [],
+    configVars = {},
   }: IntegrationDefinition,
   referenceKey: string
 ): ServerComponent => {
@@ -502,7 +507,7 @@ const codeNativeIntegrationComponent = (
           label: `${name} - onExecution`,
           description: "The function that will be executed by the flow.",
         },
-        perform: onExecution,
+        perform: onExecution as any,
         inputs: {},
       }),
     };
@@ -523,9 +528,9 @@ const codeNativeIntegrationComponent = (
           description:
             "The function that will be executed by the flow to return an HTTP response.",
         },
-        perform: onTrigger,
-        onInstanceDeploy: onInstanceDeploy,
-        onInstanceDelete: onInstanceDelete,
+        perform: onTrigger as any,
+        onInstanceDeploy: onInstanceDeploy as any,
+        onInstanceDelete: onInstanceDelete as any,
         inputs: {},
         scheduleSupport: "valid",
         synchronousResponseSupport: "valid",
@@ -544,26 +549,25 @@ const codeNativeIntegrationComponent = (
     {}
   );
 
-  const convertedConnections = configVars.reduce<ServerConnection[]>(
-    (result, configVar) => {
-      if (!("label" in configVar)) {
-        return result;
-      }
+  const convertedConnections = Object.entries(configVars).reduce<
+    ServerConnection[]
+  >((result, [key, configVar]) => {
+    if (!("label" in configVar)) {
+      return result;
+    }
 
-      // Remove a few fields that are not relevant to connections.
-      const {
-        /* eslint-disable @typescript-eslint/no-unused-vars */
-        orgOnly,
-        visibleToOrgDeployer,
-        visibleToCustomerDeployer,
-        /* eslint-enable @typescript-eslint/no-unused-vars */
-        ...connection
-      } = configVar;
+    // Remove a few fields that are not relevant to connections.
+    const {
+      /* eslint-disable @typescript-eslint/no-unused-vars */
+      orgOnly,
+      visibleToOrgDeployer,
+      visibleToCustomerDeployer,
+      /* eslint-enable @typescript-eslint/no-unused-vars */
+      ...connection
+    } = configVar;
 
-      return [...result, convertConnection(connection)];
-    },
-    []
-  );
+    return [...result, convertConnection({ ...connection, key })];
+  }, []);
 
   return {
     key: referenceKey,

@@ -1,5 +1,6 @@
 import {
   Inputs,
+  ConfigVarResultCollection,
   ActionPerformReturn,
   ActionInputParameters,
   ActionLogger,
@@ -13,19 +14,22 @@ import {
 /** Definition of the function to perform when an Action is invoked. */
 export type ActionPerformFunction<
   TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  THasConfigVars extends boolean,
   TAllowsBranching extends boolean | undefined,
   TReturn extends ActionPerformReturn<TAllowsBranching, unknown>
 > = (
-  context: ActionContext,
+  context: ActionContext<TConfigVars, THasConfigVars>,
   params: ActionInputParameters<TInputs>
 ) => Promise<TReturn>;
 
 /** Context provided to perform method containing helpers and contextual data */
-export interface ActionContext {
+export type ActionContext<
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  THasConfigVars extends boolean = false
+> = {
   /** Logger for permanent logging; console calls are also captured */
   logger: ActionLogger;
-  /** Code Components and Code Native Integration Actions will have access to all Config Vars, otherwise this will be undefined. */
-  configVars?: Record<string, unknown>;
   /** A a flow-specific key/value store that may be used to store small amounts of data that is persisted between Instance executions */
   instanceState: Record<string, unknown>;
   /** A key/value store that is shared between flows on an Instance that may be used to store small amounts of data that is persisted between Instance executions */
@@ -56,4 +60,9 @@ export interface ActionContext {
   flow: FlowAttributes;
   /** The time in UTC that execution started. */
   startedAt: string;
-}
+} & (THasConfigVars extends true
+  ? {
+      /** Key/value collection of config variables of the integration. */
+      configVars: TConfigVars;
+    }
+  : Record<string, never>);
