@@ -1,6 +1,7 @@
 import path from "path";
 import Generator from "yeoman-generator";
 import { camelCase, merge } from "lodash";
+import { v4 as uuid4 } from "uuid";
 
 const connectionTypes = {
   basic: "Basic Connection",
@@ -87,6 +88,7 @@ class IntegrationGenerator extends Generator {
       integration: { name, description, key: camelCase(name) },
       configVar: {
         key: camelCase(this.configVarLabel),
+        stableKey: uuid4(),
         label: this.configVarLabel,
         connectionType,
       },

@@ -67,6 +67,8 @@ export interface Flow<
 > {
   /** The unique name for this Flow. */
   name: string;
+  /** A unique, unchanging value that is used to maintain identity for the Flow even if the name changes. */
+  stableKey: string;
   /** Optional description for this Flow. */
   description?: string;
   /** Optional Preprocess Flow configuration for when the result of this Flow contains the flow routing attributes. Only one Flow per Integration may define this. */
@@ -129,6 +131,8 @@ export type CodeNativeDataSource = Pick<
 type BaseConfigVar = {
   /** The unique key for this Config Var. */
   key: string;
+  /** A unique, unchanging value that is used to maintain identity for the Config Var even if the key changes. */
+  stableKey: string;
   /** Optional description for this Config Var. */
   description?: string;
   /** Optional value that specifies whether this Config Var is only configurable by Organization users. @default false  */

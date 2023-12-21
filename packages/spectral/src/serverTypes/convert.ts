@@ -327,6 +327,7 @@ const convertFlow = (
 
   const triggerStep: Record<string, unknown> = {
     name: "On Trigger",
+    stableKey: `${flow.stableKey}-onTrigger`,
     description:
       "The function that will be executed by the flow to return an HTTP response.",
     isTrigger: true,
@@ -361,6 +362,7 @@ const convertFlow = (
       component: { key: referenceKey, version: "LATEST", isPublic: false },
     },
     name: "On Execution",
+    stableKey: `${flow.stableKey}-onExecution`,
     description: "The function that will be executed by the flow.",
     errorConfig: "errorConfig" in flow ? { ...flow.errorConfig } : undefined,
   };
@@ -379,6 +381,7 @@ const convertConfigVar = (
   // relevant to config vars.
   const fields = [
     "key",
+    "stableKey",
     "description",
     "orgOnly",
     "inputs",
@@ -562,6 +565,7 @@ const codeNativeIntegrationComponent = (
       orgOnly,
       visibleToOrgDeployer,
       visibleToCustomerDeployer,
+      stableKey,
       /* eslint-enable @typescript-eslint/no-unused-vars */
       ...connection
     } = configVar;

@@ -4,6 +4,7 @@ import type { ConfigVars } from "./configVars";
 
 export const <%= flow.key %> = flow<ConfigVars>({
   name: "<%= flow.name %>",
+  stableKey: "<%= flow.stableKey %>",
   description: "<%= flow.description %>",
   onTrigger: async (context, payload, params) => {
     const { logger } = context;

@@ -1,5 +1,6 @@
 import Generator from "yeoman-generator";
 import { camelCase, merge } from "lodash";
+import { v4 as uuid4 } from "uuid";
 
 class FlowGenerator extends Generator {
   answers!: {
@@ -49,7 +50,7 @@ class FlowGenerator extends Generator {
     const { name, description } = this.answers;
     const key = camelCase(name);
     const context = {
-      flow: { name, key, description },
+      flow: { name, key, description, stableKey: uuid4() },
     };
 
     const destination = this.options.destinationPath || `${key}.ts`;

@@ -5,6 +5,7 @@ import {
 
 export const <%= configVar.key %> = connectionConfigVar({
   key: "<%= configVar.key %>",
+  stableKey: "<%= configVar.stableKey %>",
   label: "<%= configVar.label %>",
   oauth2Type: OAuth2Type.AuthorizationCode,
   inputs: {

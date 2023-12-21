@@ -2,6 +2,7 @@ import { connectionConfigVar } from "@prismatic-io/spectral";
 
 export const <%= configVar.key %> = connectionConfigVar({
   key: "<%= configVar.key %>",
+  stableKey: "<%= configVar.stableKey %>",
   label: "<%= configVar.label %>",
   inputs: {
     username: {

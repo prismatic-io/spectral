@@ -12,6 +12,7 @@ export const basicDefinition = integration({
   flows: [
     {
       name: "Flow 1",
+      stableKey: "flow1",
       description: "This is a basic flow",
       onTrigger: async (context, payload, params) => {
         console.log(`Trigger context: ${JSON.stringify(context)}`);
