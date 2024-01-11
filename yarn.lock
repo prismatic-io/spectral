@@ -1513,6 +1513,23 @@
     picocolors "^1.0.0"
     tslib "^2.6.0"
 
+"@prismatic-io/spectral@7.9.0":
+  version "7.9.0"
+  resolved "https://registry.yarnpkg.com/@prismatic-io/spectral/-/spectral-7.9.0.tgz#ddee4408aad00d3a76bd3b744de41e1eed22e288"
+  integrity sha512-hGYtSWQvQPVA5Xm5A1wbvNIZEoOd888Qy/puZjJ4R1L2M81r7lspGBj863PfX5tY2bnSr4Bvy42J/LCbm3lF4g==
+  dependencies:
+    "@jsonforms/core" "3.0.0"
+    axios "1.6.2"
+    axios-retry "3.9.1"
+    date-fns "2.30.0"
+    form-data "4.0.0"
+    jest-mock "27.0.3"
+    safe-stable-stringify "2.3.1"
+    serialize-error "8.1.0"
+    url-join "5.0.0"
+    uuid "8.3.2"
+    valid-url "1.0.9"
+
 "@sinclair/typebox@^0.23.3":
   version "0.23.5"
   resolved "https://registry.npmjs.org/@sinclair/typebox/-/typebox-0.23.5.tgz"
@@ -4433,9 +4450,9 @@ flatted@^3.1.0:
   integrity sha512-zAoAQiudy+r5SvnSw3KJy5os/oRJYHzrzja/tBDqrZtNhUw8bt6y8OBzMWcjWr+8liV8Eb6yOhw8WZ7VFZ5ZzA==
 
 follow-redirects@^1.15.0:
-  version "1.15.3"
-  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.3.tgz#fe2f3ef2690afce7e82ed0b44db08165b207123a"
-  integrity sha512-1VzOtuEM8pC9SFU1E+8KfTjZyMztRsgEfwQl44z8A25uy13jSzTj6dyK2Df52iV0vgHCfBwLhDWevLn95w5v6Q==
+  version "1.15.4"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.4.tgz#cdc7d308bf6493126b17ea2191ea0ccf3e535adf"
+  integrity sha512-Cr4D/5wlrb0z9dgERpUL3LrmPKVDsETIJhaCMeDfuFYcqa5bldGV6wBsAN6X/vxlXQtFBMrXdXxdL8CbDTGniw==
 
 for-each@^0.3.3:
   version "0.3.3"
