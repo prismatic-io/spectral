@@ -4,15 +4,18 @@ import {
   ActionInputParameters,
   ActionContext,
   TriggerPayload,
+  ConfigVarResultCollection,
 } from ".";
 
 /** Definition of the function to perform when a Trigger is invoked. */
 export type TriggerPerformFunction<
-  T extends Inputs,
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  THasConfigVars extends boolean,
   TAllowsBranching extends boolean | undefined,
-  TResult extends TriggerResult<TAllowsBranching>
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>
 > = (
-  context: ActionContext,
+  context: ActionContext<TConfigVars, THasConfigVars>,
   payload: TriggerPayload,
-  params: ActionInputParameters<T>
+  params: ActionInputParameters<TInputs>
 ) => Promise<TResult>;
