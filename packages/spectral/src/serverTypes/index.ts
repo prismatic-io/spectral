@@ -58,15 +58,13 @@ export interface ActionLogger {
   error: ActionLoggerFunction;
 }
 
-export type ActionContext<
-  TConfigVars extends ConfigVarResultCollection,
-  THasConfigVars extends boolean = false
-> = {
+export type ActionContext<TConfigVars extends ConfigVarResultCollection> = {
   logger: ActionLogger;
   instanceState: Record<string, unknown>;
   crossFlowState: Record<string, unknown>;
   executionState: Record<string, unknown>;
   integrationState: Record<string, unknown>;
+  configVars: TConfigVars;
   stepId: string;
   executionId: string;
   webhookUrls: Record<string, string>;
@@ -78,9 +76,7 @@ export type ActionContext<
   integration: IntegrationAttributes;
   flow: FlowAttributes;
   startedAt: string;
-} & (THasConfigVars extends true
-  ? { configVars: TConfigVars }
-  : Record<string, never>);
+};
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";
 
@@ -168,8 +164,11 @@ export interface Trigger {
   isCommonTrigger?: boolean;
 }
 
-export interface DataSourceContext {
+export interface DataSourceContext<
+  TConfigVars extends ConfigVarResultCollection
+> {
   logger: ActionLogger;
+  configVars: TConfigVars;
   customer: CustomerAttributes;
   instance: InstanceAttributes;
   user: UserAttributes;
@@ -181,7 +180,7 @@ export type DataSourceResult = {
 };
 
 export type DataSourcePerformFunction = (
-  context: DataSourceContext,
+  context: DataSourceContext<any>,
   params: Record<string, unknown>
 ) => Promise<DataSourceResult>;
 

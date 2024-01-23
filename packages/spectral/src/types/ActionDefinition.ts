@@ -25,7 +25,6 @@ export interface ActionDefinition<
   perform: ActionPerformFunction<
     TInputs,
     TConfigVars,
-    false,
     TAllowsBranching,
     TReturn
   >;

@@ -112,7 +112,7 @@ class IntegrationGenerator extends Generator {
 
     this.renderTemplate(
       `${connectionType}.ts`,
-      ["src", "configVars.ts"],
+      ["src", "configPages.ts"],
       context
     );
 

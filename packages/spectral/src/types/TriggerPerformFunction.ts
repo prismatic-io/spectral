@@ -11,11 +11,10 @@ import {
 export type TriggerPerformFunction<
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  THasConfigVars extends boolean,
   TAllowsBranching extends boolean | undefined,
   TResult extends TriggerResult<TAllowsBranching, TriggerPayload>
 > = (
-  context: ActionContext<TConfigVars, THasConfigVars>,
+  context: ActionContext<TConfigVars>,
   payload: TriggerPayload,
   params: ActionInputParameters<TInputs>
 ) => Promise<TResult>;

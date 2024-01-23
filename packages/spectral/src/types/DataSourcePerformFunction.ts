@@ -3,25 +3,23 @@ import {
   DataSourceResult,
   DataSourceType,
   ActionInputParameters,
-  ActionLogger,
-  CustomerAttributes,
-  InstanceAttributes,
-  UserAttributes,
+  ConfigVarResultCollection,
+  ActionContext,
 } from ".";
 
 /** Context provided to perform method containing helpers and contextual data */
-export interface DataSourceContext {
-  logger: ActionLogger;
-  customer: CustomerAttributes;
-  instance: InstanceAttributes;
-  user: UserAttributes;
-}
+export type DataSourceContext<TConfigVars extends ConfigVarResultCollection> =
+  Pick<
+    ActionContext<TConfigVars>,
+    "logger" | "customer" | "instance" | "user" | "configVars"
+  >;
 
 /** Definition of the function to perform when a Data Source is invoked. */
 export type DataSourcePerformFunction<
   TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
   TDataSourceType extends DataSourceType
 > = (
-  context: DataSourceContext,
+  context: DataSourceContext<TConfigVars>,
   params: ActionInputParameters<TInputs>
 ) => Promise<DataSourceResult<TDataSourceType>>;

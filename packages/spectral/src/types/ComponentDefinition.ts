@@ -29,7 +29,7 @@ export type ComponentDefinition<
   /** Specifies the supported Triggers of this Component. */
   triggers?: Record<string, TriggerDefinition<any, any, boolean, any>>;
   /** Specifies the supported Data Sources of this Component. */
-  dataSources?: Record<string, DataSourceDefinition<any, any>>;
+  dataSources?: Record<string, DataSourceDefinition<any, any, any>>;
   /** Specifies the supported Connections of this Component. */
   connections?: ConnectionDefinition[];
   /** Hooks */

@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "Utility library for building Prismatic components",
   "keywords": [
     "prismatic"
@@ -43,6 +43,7 @@
     "date-fns": "2.30.0",
     "form-data": "4.0.0",
     "jest-mock": "27.0.3",
+    "lodash": "4.17.21",
     "safe-stable-stringify": "2.3.1",
     "serialize-error": "8.1.0",
     "url-join": "5.0.0",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "@types/jest": "27.4.1",
+    "@types/lodash": "4.14.202",
     "@types/node": "14.14.35",
     "@types/sax": "1.2.4",
     "@types/url-join": "4.0.1",

@@ -8,27 +8,47 @@ import {
   Inputs,
   TriggerResult,
   DataSourceType,
-  Connection as ConnectionResult,
   TriggerPayload,
+  Connection,
+  JSONForm,
+  ObjectFieldMap,
+  ObjectSelection,
+  ConfigVarResultCollection,
 } from ".";
+import { Prettify, UnionToIntersection, ValueOf } from "./utils";
 
-export type ConfigVarCollection = Record<string, ConfigVar>;
-
-export type ConfigVarDefinitionsToResults<
-  TConfigVars extends ConfigVarCollection
-> = {
-  [Key in keyof TConfigVars]: TConfigVars[Key]["inputs"] extends Record<
-    string,
-    any
-  >
-    ? ConnectionResult
+type ToDataSourceRuntimeType<TType extends DataSourceType> =
+  TType extends "jsonForm"
+    ? JSONForm
+    : TType extends "objectSelection"
+    ? ObjectSelection
+    : TType extends "objectFieldMap"
+    ? ObjectFieldMap
     : string;
-};
+
+export type ElementToRuntimeType<TElement extends ConfigPageElement> =
+  TElement extends ConnectionConfigVar
+    ? Connection
+    : TElement extends DataSourceConfigVar
+    ? ToDataSourceRuntimeType<TElement["dataSourceType"]>
+    : TElement extends StandardConfigVar
+    ? string
+    : never;
+
+type GetElements<TConfigPages extends ConfigPages> =
+  TConfigPages extends ConfigPages
+    ? UnionToIntersection<ValueOf<TConfigPages>["elements"]>
+    : never;
+
+export type ExtractConfigVars<
+  TConfigPages extends ConfigPages,
+  TElements extends ConfigPage["elements"] = GetElements<TConfigPages>
+> = Prettify<{
+  [Key in keyof TElements]: ElementToRuntimeType<TElements[Key]>;
+}>;
 
 /** Defines attributes of a Code-Native Integration. */
-export type IntegrationDefinition<
-  TConfigVars extends ConfigVarCollection = ConfigVarCollection
-> = {
+export type IntegrationDefinition<TConfigPages extends ConfigPages> = {
   /** The unique name for this Integration. */
   name: string;
   /** Optional description for this Integration. */
@@ -51,18 +71,14 @@ export type IntegrationDefinition<
    *  Cannot specify this if a Preprocess Flow is also configured. */
   triggerPreprocessFlowConfig?: PreprocessFlowConfig;
   /** Flows for this Integration. */
-  flows: Flow<TConfigVars>[];
-  /** Config Vars used on this Integration. */
-  configVars?: TConfigVars;
+  flows: Flow<TConfigPages>[];
   /** Config Wizard Pages for this Integration. */
-  configPages?: ConfigPage<TConfigVars>[];
-  /** Specifies any Data Sources that are defined as part of this Integration. */
-  dataSources?: Record<string, CodeNativeDataSource>;
+  configPages?: TConfigPages;
 };
 
 /** Defines attributes of a Flow of a Code-Native Integration. */
 export interface Flow<
-  TConfigVars extends ConfigVarCollection = ConfigVarCollection,
+  TConfigPages extends ConfigPages,
   TTriggerPayload extends TriggerPayload = TriggerPayload
 > {
   /** The unique name for this Flow. */
@@ -88,22 +104,19 @@ export interface Flow<
   /** Specifies the trigger function for this Flow, which returns a payload and optional HTTP response. */
   onTrigger: TriggerPerformFunction<
     Inputs,
-    ConfigVarDefinitionsToResults<TConfigVars>,
-    true,
+    ExtractConfigVars<TConfigPages>,
     false,
     TriggerResult<false, TTriggerPayload>
   >;
   /** Specifies the function to execute when an Instance of this Integration is deployed. */
   onInstanceDeploy?: TriggerEventFunction<
     Inputs,
-    ConfigVarDefinitionsToResults<TConfigVars>,
-    true
+    ExtractConfigVars<TConfigPages>
   >;
   /** Specifies the function to execute when an Instance of an Integration is deleted. */
   onInstanceDelete?: TriggerEventFunction<
     Inputs,
-    ConfigVarDefinitionsToResults<TConfigVars>,
-    true
+    ExtractConfigVars<TConfigPages>
   >;
   /** Specifies the main function for this Flow */
   onExecution: ActionPerformFunction<
@@ -114,31 +127,20 @@ export interface Flow<
         clean: (value: unknown) => { results: TTriggerPayload };
       };
     },
-    ConfigVarDefinitionsToResults<TConfigVars>,
-    true,
+    ExtractConfigVars<TConfigPages>,
     false,
     ActionPerformReturn<false, unknown>
   >;
 }
 
-/** Defines attributes of a Data Source that is defined as part of a Code Native Integration. */
-export type CodeNativeDataSource = Pick<
-  DataSourceDefinition<Inputs, DataSourceType>,
-  "display" | "perform" | "dataSourceType" | "detailDataSource"
->;
-
 /** Common attribute shared by all types of Config Vars. */
 type BaseConfigVar = {
-  /** The unique key for this Config Var. */
-  key: string;
   /** A unique, unchanging value that is used to maintain identity for the Config Var even if the key changes. */
   stableKey: string;
   /** Optional description for this Config Var. */
   description?: string;
   /** Optional value that specifies whether this Config Var is only configurable by Organization users. @default false  */
   orgOnly?: boolean;
-  /** Optional input values for this Config Var. */
-  inputs?: InputValues;
   /** Optional value that specifies whether this Config Var is visible to an Organization deployer. @default true */
   visibleToOrgDeployer?: boolean;
   /** Optional value that specifies whether this Config Var is visible to a Customer deployer. @default true */
@@ -147,10 +149,10 @@ type BaseConfigVar = {
 
 /** Defines attributes of a standard Config Var. */
 export type StandardConfigVar = BaseConfigVar & {
-  /** Optional default value for the Config Var. */
-  defaultValue?: string;
   /** The data type of the Config Var. */
   dataType: ConfigVarDataType;
+  /** Optional default value for the Config Var. */
+  defaultValue?: string;
   /** Optional list of picklist values if the Config Var is a multi-choice selection value. */
   pickList?: string[];
   /** Optional schedule type that defines the cadence of the schedule. */
@@ -161,78 +163,42 @@ export type StandardConfigVar = BaseConfigVar & {
   codeLanguage?: CodeLanguageType;
   /** Optional value to specify the type of collection if the Config Var is multi-value. */
   collectionType?: CollectionType;
-  /** Optional value to specify the key of a Data Source defined in this CNI
-   *  where the Config Var sources its values. */
-  dataSource?: string;
 };
+
+/** Defines attributes of a data source Config Var. */
+export type DataSourceConfigVar = BaseConfigVar &
+  Omit<
+    DataSourceDefinition<Inputs, ConfigVarResultCollection, DataSourceType>,
+    "display" | "inputs" | "examplePayload"
+  >;
 
 /** Defines attributes of a Config Var that represents a Connection. */
-export type ConnectionConfigVar = Omit<
-  BaseConfigVar,
-  "description" | "inputs"
-> &
-  ConnectionDefinition;
+export type ConnectionConfigVar = BaseConfigVar &
+  Omit<ConnectionDefinition, "label" | "comments" | "key">;
 
-export type ConfigVar = StandardConfigVar | ConnectionConfigVar;
+export type ConfigVar =
+  | StandardConfigVar
+  | DataSourceConfigVar
+  | ConnectionConfigVar;
+
+export const isDataSourceConfigVar = (
+  cv: ConfigVar
+): cv is DataSourceConfigVar => "dataSourceType" in cv;
+
+export const isConnectionConfigVar = (
+  cv: ConfigVar
+): cv is ConnectionConfigVar => "inputs" in cv;
+
+export type ConfigPageElement = string | ConfigVar;
+
+export type ConfigPages = Record<string, ConfigPage>;
 
 /** Defines attributes of a Config Wizard Page used when deploying an Instance of an Integration. */
-export type ConfigPage<
-  TConfigVars extends ConfigVarCollection = ConfigVarCollection
-> = {
-  /** The unique name for this Config Page. */
-  name: string;
+export type ConfigPage = {
+  /** Elements included on this Config Page. */
+  elements: Record<string, ConfigPageElement>;
   /** Specifies an optional tagline for this Config Page. */
   tagline?: string;
-  /** Optional value that specifies whether this Config Page is configured as
-   *  part of User Level Configuration. @default false */
-  userLevelConfigured?: boolean;
-  /** Elements included on this Config Page. */
-  elements: ConfigPageElement<TConfigVars>[];
-};
-
-/** Defines attributes of Inputs for Connections, Actions, Triggers,
- *  Data Sources, and Config Vars. */
-export type InputValues = Record<string, InputValue>;
-export type InputValue = SimpleInputValue | ComplexInputValue;
-export type SimpleInputValue = {
-  name?: string;
-  type: SimpleInputValueType;
-  value: string;
-  meta?: Record<string, unknown>;
-};
-export type ComplexInputValue = {
-  name?: string;
-  type: "complex";
-  value: ComplexInputValueType;
-  meta?: Record<string, unknown>;
-};
-export type ComplexInputValueType = (
-  | string
-  | InputValue
-  | ComplexInputValueType
-)[];
-
-/** Defines attributes of an Element that appears on a Config Wizard Page. */
-export type ConfigPageElement<
-  TConfigVars extends ConfigVarCollection = ConfigVarCollection
-> =
-  | HTMLConfigPageElement
-  | JSONFormConfigPageElement
-  | ConfigVarPageElement<TConfigVars>;
-
-type HTMLConfigPageElement = {
-  type: ConfigPageElementType.HTML;
-  value: string;
-};
-type JSONFormConfigPageElement = {
-  type: ConfigPageElementType.JSONForm;
-  value: string;
-};
-type ConfigVarPageElement<
-  TConfigVars extends ConfigVarCollection = ConfigVarCollection
-> = {
-  type: ConfigPageElementType.ConfigVar;
-  value: keyof TConfigVars;
 };
 
 /** Defines attributes of a Preprocess Flow Configuration used by a Flow of an Integration. */
@@ -286,14 +252,6 @@ export type FlowSchedule =
       timeZone?: string;
     };
 
-/** Choices of Simple Input Value Types that may be used by Simple Input Values. */
-export enum SimpleInputValueType {
-  Value = "value",
-  Reference = "reference",
-  ConfigVar = "configVar",
-  Template = "template",
-}
-
 /** Choices of Endpoint Types that may be used by Instances of an Integration. */
 export enum EndpointType {
   FlowSpecific = "flow_specific",
@@ -307,13 +265,6 @@ export enum EndpointSecurityType {
   CustomerOptional = "customer_optional",
   CustomerRequired = "customer_required",
   Organization = "organization",
-}
-
-/** Choices of Config Page Element Types that may be used for Elements on a Config Wizard Page. */
-export enum ConfigPageElementType {
-  ConfigVar = "configVar",
-  HTML = "htmlElement",
-  JSONForm = "jsonForm",
 }
 
 /** Choices of Step Error Handlers that define the behavior when a step error occurs. */
@@ -343,9 +294,6 @@ export enum ConfigVarDataType {
   Code = "code",
   Boolean = "boolean",
   Number = "number",
-  ObjectSelection = "objectSelection",
-  ObjectFieldMap = "objectFieldMap",
-  JSONForm = "jsonForm",
 }
 
 /** Choices of programming languages that may be used for Config Var code values. */
