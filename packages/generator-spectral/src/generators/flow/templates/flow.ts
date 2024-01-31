@@ -1,8 +1,8 @@
 import { flow } from "@prismatic-io/spectral";
 import { createClient } from "./client";
-import type { ConfigVars } from "./configVars";
+import type { ConfigPages } from "./configPages";
 
-export const <%= flow.key %> = flow<ConfigVars>({
+export const <%= flow.key %> = flow<ConfigPages>({
   name: "<%= flow.name %>",
   stableKey: "<%= flow.stableKey %>",
   description: "<%= flow.description %>",

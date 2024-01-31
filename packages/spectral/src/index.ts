@@ -21,12 +21,13 @@ import {
   ConfigPage,
   StandardConfigVar,
   ConnectionConfigVar,
-  ConfigVar,
   ConfigVarResultCollection,
-  ConfigVarCollection,
   TriggerPayload,
+  DataSourceConfigVar,
+  ConfigPages,
 } from "./types";
-import { convertComponent, convertIntegration } from "./serverTypes/convert";
+import { convertComponent } from "./serverTypes/convert";
+import { convertIntegration } from "./serverTypes/convertIntegration";
 
 /**
  * This function creates a Integration object that can be
@@ -36,10 +37,8 @@ import { convertComponent, convertIntegration } from "./serverTypes/convert";
  * @param definition An IntegrationDefinition type object.
  * @returns This function returns an integration object that has the shape the Prismatic API expects.
  */
-export const integration = <
-  TConfigVar extends Record<string, ConfigVar> = Record<string, ConfigVar>
->(
-  definition: IntegrationDefinition<TConfigVar>
+export const integration = <TConfigPages extends ConfigPages = ConfigPages>(
+  definition: IntegrationDefinition<TConfigPages>
 ): ReturnType<typeof convertIntegration> =>
   convertIntegration(definition as IntegrationDefinition<any>);
 
@@ -50,10 +49,10 @@ export const integration = <
  * @returns This function returns a flow object that has the shape the Prismatic API expects.
  */
 export const flow = <
-  TConfigVars extends ConfigVarCollection = ConfigVarCollection,
+  TConfigPages extends ConfigPages = ConfigPages,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
-  T extends Flow<TConfigVars, TTriggerPayload> = Flow<
-    TConfigVars,
+  T extends Flow<TConfigPages, TTriggerPayload> = Flow<
+    TConfigPages,
     TTriggerPayload
   >
 >(
@@ -77,6 +76,16 @@ export const configPage = <T extends ConfigPage>(definition: T): T =>
  */
 export const configVar = <T extends StandardConfigVar>(definition: T): T =>
   definition;
+
+/**
+ * For information on writing Code Native Integrations, see
+ * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
+ * @param definition A Data Source Config Var type object.
+ * @returns This function returns a data source config var object that has the shape the Prismatic API expects.
+ */
+export const dataSourceConfigVar = <T extends DataSourceConfigVar>(
+  definition: T
+): T => definition;
 
 /**
  * For information on writing Code Native Integrations, see
@@ -149,10 +158,11 @@ export const trigger = <
  */
 export const dataSource = <
   TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
   TDataSourceType extends DataSourceType
 >(
-  definition: DataSourceDefinition<TInputs, TDataSourceType>
-): DataSourceDefinition<TInputs, TDataSourceType> => definition;
+  definition: DataSourceDefinition<TInputs, TConfigVars, TDataSourceType>
+): DataSourceDefinition<TInputs, TConfigVars, TDataSourceType> => definition;
 
 /**
  * For information and examples on how to write inputs

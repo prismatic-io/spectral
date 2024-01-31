@@ -19,9 +19,8 @@ export type TriggerEventFunctionReturn = {
 /** Definition of the function to execute when a Trigger Event occurs. */
 export type TriggerEventFunction<
   TInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection,
-  THasConfigVars extends boolean
+  TConfigVars extends ConfigVarResultCollection
 > = (
-  context: ActionContext<TConfigVars, THasConfigVars>,
+  context: ActionContext<TConfigVars>,
   params: ActionInputParameters<TInputs>
 ) => Promise<void | TriggerEventFunctionReturn>;

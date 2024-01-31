@@ -32,8 +32,8 @@ import {
   TriggerEventFunctionReturn,
   Flow,
   ConfigVarResultCollection,
-  ConfigVarCollection,
-  ConfigVarDefinitionsToResults,
+  ConfigPages,
+  ExtractConfigVars,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -62,18 +62,16 @@ export const loggerMock = (): ActionLogger => ({
   error: spyOn(console, "error") as unknown as ActionLoggerFunction,
 });
 
-const createActionContext = <
-  THasConfigVars extends boolean,
-  TConfigVars extends ConfigVarResultCollection
->(
-  context?: Partial<ActionContext<TConfigVars, THasConfigVars>>
-): ActionContext<TConfigVars, THasConfigVars> => {
+const createActionContext = <TConfigVars extends ConfigVarResultCollection>(
+  context?: Partial<ActionContext<TConfigVars>>
+): ActionContext<TConfigVars> => {
   return {
     logger: loggerMock(),
     instanceState: {},
     crossFlowState: {},
     executionState: {},
     integrationState: {},
+    configVars: {} as unknown as TConfigVars,
     stepId: "mockStepId",
     executionId: "mockExecutionId",
     webhookUrls: {
@@ -110,7 +108,32 @@ const createActionContext = <
     },
     startedAt: new Date().toISOString(),
     ...context,
-  } as unknown as ActionContext<TConfigVars, THasConfigVars>;
+  };
+};
+
+const createDataSourceContext = <TConfigVars extends ConfigVarResultCollection>(
+  context?: Partial<DataSourceContext<TConfigVars>>
+): DataSourceContext<TConfigVars> => {
+  return {
+    logger: loggerMock(),
+    configVars: {} as unknown as TConfigVars,
+    customer: {
+      id: "customerId",
+      name: "Customer 1",
+      externalId: "1234",
+    },
+    instance: {
+      id: "instanceId",
+      name: "Instance 1",
+    },
+    user: {
+      id: "userId",
+      email: "example@email.com",
+      externalId: "1234",
+      name: "Example",
+    },
+    ...context,
+  };
 };
 
 /**
@@ -238,25 +261,6 @@ export const invokeTrigger = async <
   };
 };
 
-const baseDataSourceContext: DataSourceContext = {
-  logger: loggerMock(),
-  customer: {
-    id: "customerId",
-    name: "Customer 1",
-    externalId: "1234",
-  },
-  instance: {
-    id: "instanceId",
-    name: "Instance 1",
-  },
-  user: {
-    id: "userId",
-    email: "example@email.com",
-    externalId: "1234",
-    name: "Example",
-  },
-};
-
 /**
  * Invokes specified DataSourceDefinition perform function using supplied params.
  * Accepts a generic type matching DataSourceResult as a convenience to avoid extra
@@ -264,33 +268,73 @@ const baseDataSourceContext: DataSourceContext = {
  */
 export const invokeDataSource = async <
   TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
   TDataSourceType extends DataSourceType
 >(
-  { perform }: DataSourceDefinition<TInputs, TDataSourceType>,
+  { perform }: DataSourceDefinition<TInputs, TConfigVars, TDataSourceType>,
   params: ActionInputParameters<TInputs>,
-  context?: Partial<DataSourceContext>
+  context?: Partial<DataSourceContext<TConfigVars>>
 ): Promise<InvokeDataSourceResult<TDataSourceType>> => {
-  const realizedContext = { ...baseDataSourceContext, ...context };
+  const realizedContext = createDataSourceContext(context);
   const result = await perform(realizedContext, params);
 
   return result;
+};
+
+type TestConnectionValue = Pick<
+  ConnectionValue,
+  "fields" | "context" | "token"
+>;
+
+type TestConfigVarValues = Record<string, string | TestConnectionValue>;
+
+type ToTestValues<TConfigVars extends ConfigVarResultCollection> = {
+  [K in keyof TConfigVars]: TConfigVars[K] extends ConnectionDefinition
+    ? TestConnectionValue
+    : string;
+};
+const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
+  values: TConfigVarValues
+): ConfigVarResultCollection => {
+  return Object.entries(values).reduce((result, [key, value]) => {
+    // Connection
+    if (typeof value === "object" && "fields" in value) {
+      return {
+        ...result,
+        [key]: {
+          ...value,
+          key,
+          configVarKey: "",
+        },
+      };
+    }
+
+    return {
+      ...result,
+      [key]: value,
+    };
+  }, {});
 };
 
 /**
  * Invokes specified Flow of a Code Native Integration using supplied params.
  * Runs the Trigger and then the Action function and returns the result of the Action.
  */
-export const invokeFlow = async <TConfigVars extends ConfigVarCollection>(
-  flow: Flow<TConfigVars>,
-  context?: Partial<
-    ActionContext<ConfigVarDefinitionsToResults<TConfigVars>, true>
-  >,
+export const invokeFlow = async <
+  TConfigPages extends ConfigPages,
+  TConfigVars extends ConfigVarResultCollection = ExtractConfigVars<TConfigPages>,
+  TConfigVarValues extends TestConfigVarValues = ToTestValues<TConfigVars>
+>(
+  flow: Flow<TConfigPages>,
+  configVars: TConfigVarValues,
+  context?: Partial<ActionContext<TConfigVars>>,
   payload?: TriggerPayload
 ): Promise<InvokeReturn<InvokeActionPerformReturn<false, unknown>>> => {
-  const realizedContext = createActionContext<
-    true,
-    ConfigVarDefinitionsToResults<TConfigVars>
-  >(context);
+  const realizedConfigVars = createConfigVars(configVars);
+  const realizedContext = createActionContext({
+    ...context,
+    configVars: realizedConfigVars,
+  });
   const realizedPayload = { ...defaultTriggerPayload(), ...payload };
 
   const params: Record<"onTrigger", { results: any }> = {
@@ -299,7 +343,7 @@ export const invokeFlow = async <TConfigVars extends ConfigVarCollection>(
 
   if ("onTrigger" in flow) {
     const triggerResult = await flow.onTrigger(
-      realizedContext,
+      realizedContext as any,
       realizedPayload,
       params
     );
@@ -307,7 +351,7 @@ export const invokeFlow = async <TConfigVars extends ConfigVarCollection>(
     params.onTrigger = { results: triggerResult?.payload };
   }
 
-  const result = await flow.onExecution(realizedContext, params);
+  const result = await flow.onExecution(realizedContext as any, params);
 
   return {
     result,
@@ -320,13 +364,6 @@ export class ComponentTestHarness<TComponent extends Component> {
 
   constructor(component: TComponent) {
     this.component = component;
-  }
-
-  private buildContext<TContext>(
-    baseContext: TContext,
-    context?: Partial<TContext>
-  ): TContext {
-    return { ...baseContext, ...context };
   }
 
   private buildParams(
@@ -415,14 +452,14 @@ export class ComponentTestHarness<TComponent extends Component> {
     );
   }
 
-  public async dataSource(
+  public async dataSource<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     params?: Record<string, unknown>,
-    context?: Partial<DataSourceContext>
+    context?: Partial<DataSourceContext<TConfigVars>>
   ): Promise<DataSourceResult> {
     const dataSource = this.component.dataSources[key];
     return dataSource.perform(
-      this.buildContext<DataSourceContext>(baseDataSourceContext, context),
+      createDataSourceContext(context),
       this.buildParams(dataSource.inputs, params)
     );
   }

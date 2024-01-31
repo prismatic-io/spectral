@@ -16,7 +16,6 @@ expectAssignable<
     Inputs,
     ConfigVarResultCollection,
     boolean,
-    boolean,
     ActionPerformDataReturn<unknown>
   >
 >(definition.perform);

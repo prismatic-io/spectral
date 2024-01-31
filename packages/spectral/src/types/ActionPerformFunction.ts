@@ -15,19 +15,15 @@ import {
 export type ActionPerformFunction<
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  THasConfigVars extends boolean,
   TAllowsBranching extends boolean | undefined,
   TReturn extends ActionPerformReturn<TAllowsBranching, unknown>
 > = (
-  context: ActionContext<TConfigVars, THasConfigVars>,
+  context: ActionContext<TConfigVars>,
   params: ActionInputParameters<TInputs>
 ) => Promise<TReturn>;
 
 /** Context provided to perform method containing helpers and contextual data */
-export type ActionContext<
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
-  THasConfigVars extends boolean = false
-> = {
+export type ActionContext<TConfigVars extends ConfigVarResultCollection> = {
   /** Logger for permanent logging; console calls are also captured */
   logger: ActionLogger;
   /** A a flow-specific key/value store that may be used to store small amounts of data that is persisted between Instance executions */
@@ -38,6 +34,8 @@ export type ActionContext<
   executionState: Record<string, unknown>;
   /** A key/value store that is shared between all flows of an Instance for any version of an Integration that may be used to store small amounts of data that is persisted between Instance executions */
   integrationState: Record<string, unknown>;
+  /** Key/value collection of config variables of the integration. */
+  configVars: TConfigVars;
   /** A unique id that corresponds to the step on the Integration */
   stepId: string;
   /** A unique id that corresponds to the specific execution of the Integration */
@@ -60,9 +58,4 @@ export type ActionContext<
   flow: FlowAttributes;
   /** The time in UTC that execution started. */
   startedAt: string;
-} & (THasConfigVars extends true
-  ? {
-      /** Key/value collection of config variables of the integration. */
-      configVars: TConfigVars;
-    }
-  : Record<string, never>);
+};

@@ -1,10 +1,4 @@
-import {
-  ObjectSelection,
-  ObjectFieldMap,
-  JSONForm,
-  Element,
-  Connection,
-} from "./Inputs";
+import { ObjectSelection, ObjectFieldMap, JSONForm, Element } from "./Inputs";
 
 /** The type of field that is appropriate for rendering the data that is the result of the data source perform function. */
 type DataSourceTypeMap = {
@@ -14,10 +8,8 @@ type DataSourceTypeMap = {
   picklist: string[] | Element[];
   schedule: { value: string };
   code: string;
-  credential: unknown; // DEPRECATED
   boolean: boolean;
   number: number;
-  connection: Connection;
   objectSelection: ObjectSelection;
   objectFieldMap: ObjectFieldMap;
   jsonForm: JSONForm;
