@@ -58,7 +58,9 @@ export interface ActionLogger {
   error: ActionLoggerFunction;
 }
 
-export type ActionContext<TConfigVars extends ConfigVarResultCollection> = {
+export type ActionContext<
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection
+> = {
   logger: ActionLogger;
   instanceState: Record<string, unknown>;
   crossFlowState: Record<string, unknown>;
@@ -132,7 +134,7 @@ export type TriggerResult =
   | undefined;
 
 export type TriggerPerformFunction = (
-  context: ActionContext<any>,
+  context: ActionContext,
   payload: TriggerPayload,
   params: Record<string, unknown>
 ) => Promise<TriggerResult>;
@@ -140,7 +142,7 @@ export type TriggerPerformFunction = (
 export type TriggerEventFunctionResult = TriggerEventFunctionReturn | void;
 
 export type TriggerEventFunction = (
-  context: ActionContext<any>,
+  context: ActionContext,
   params: Record<string, unknown>
 ) => Promise<TriggerEventFunctionResult>;
 
@@ -165,7 +167,7 @@ export interface Trigger {
 }
 
 export interface DataSourceContext<
-  TConfigVars extends ConfigVarResultCollection
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection
 > {
   logger: ActionLogger;
   configVars: TConfigVars;
@@ -180,7 +182,7 @@ export type DataSourceResult = {
 };
 
 export type DataSourcePerformFunction = (
-  context: DataSourceContext<any>,
+  context: DataSourceContext,
   params: Record<string, unknown>
 ) => Promise<DataSourceResult>;
 
@@ -262,7 +264,7 @@ export type ActionPerformReturn =
   | undefined; // Allow an action to return nothing to reduce component implementation boilerplate
 
 export type ActionPerformFunction = (
-  context: ActionContext<any>,
+  context: ActionContext,
   params: Record<string, unknown>
 ) => Promise<ActionPerformReturn>;
 

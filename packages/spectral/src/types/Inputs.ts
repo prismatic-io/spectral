@@ -40,6 +40,12 @@ export type ObjectFieldMap = {
   }[];
 };
 
+export type Schedule = {
+  value: string;
+  schedule_type: string;
+  time_zone: string;
+};
+
 export type JSONForm = {
   /**
    * The data/JSON schema defines the underlying data to
@@ -337,5 +343,5 @@ export type InputFieldCollection = "valuelist" | "keyvaluelist";
 /** Config variable result collection */
 export type ConfigVarResultCollection = Record<
   string,
-  string | Connection | JSONForm | ObjectSelection | ObjectFieldMap
+  string | Schedule | Connection | JSONForm | ObjectSelection | ObjectFieldMap
 >;
