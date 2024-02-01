@@ -53,15 +53,23 @@ export const convertIntegration = (
   };
 };
 
-const convertConfigPages = (pages: ConfigPages): ServerConfigPage[] => {
-  return Object.entries(pages).map(([name, { tagline, elements }]) => ({
-    name,
-    tagline,
-    elements: Object.keys(elements).map((key) => ({
-      type: "configVar",
-      value: key,
-    })),
-  }));
+const convertConfigPages = (
+  pages: ConfigPages
+): ServerConfigPage[] | undefined => {
+  if (!pages || !Object.keys(pages).length) {
+    return;
+  }
+
+  return Object.entries(pages).map<ServerConfigPage>(
+    ([name, { tagline, elements }]) => ({
+      name,
+      tagline,
+      elements: Object.keys(elements).map((key) => ({
+        type: "configVar",
+        value: key,
+      })),
+    })
+  );
 };
 
 const codeNativeIntegrationYaml = (
@@ -343,8 +351,10 @@ const codeNativeIntegrationComponent = (
               "The function that will be executed by the flow to return an HTTP response.",
           },
           perform: onTrigger,
-          onInstanceDeploy: onInstanceDeploy,
-          onInstanceDelete: onInstanceDelete,
+          onInstanceDeploy,
+          hasOnInstanceDeploy: !!onInstanceDeploy,
+          onInstanceDelete,
+          hasOnInstanceDelete: !!onInstanceDelete,
           inputs: [],
           scheduleSupport: "valid",
           synchronousResponseSupport: "valid",

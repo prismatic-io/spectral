@@ -14,6 +14,7 @@ import {
   ObjectFieldMap,
   ObjectSelection,
   ConfigVarResultCollection,
+  Schedule,
 } from ".";
 import { Prettify, UnionToIntersection, ValueOf } from "./utils";
 
@@ -26,13 +27,16 @@ type ToDataSourceRuntimeType<TType extends DataSourceType> =
     ? ObjectFieldMap
     : string;
 
+type ToRuntimeType<TType extends ConfigVarDataType> =
+  TType extends ConfigVarDataType.Schedule ? Schedule : string;
+
 export type ElementToRuntimeType<TElement extends ConfigPageElement> =
   TElement extends ConnectionConfigVar
     ? Connection
     : TElement extends DataSourceConfigVar
     ? ToDataSourceRuntimeType<TElement["dataSourceType"]>
     : TElement extends StandardConfigVar
-    ? string
+    ? ToRuntimeType<TElement["dataType"]>
     : never;
 
 type GetElements<TConfigPages extends ConfigPages> =
