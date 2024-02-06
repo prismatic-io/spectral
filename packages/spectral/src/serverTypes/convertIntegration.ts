@@ -371,13 +371,14 @@ const codeNativeIntegrationComponent = (
       return result;
     }
 
+    const camelKey = camelCase(key);
     const dataSource = pick(configVar, ["perform", "dataSourceType"]);
 
     return {
       ...result,
-      [key]: {
+      [camelKey]: {
         ...dataSource,
-        key: camelCase(key),
+        key: camelKey,
         display: {
           label: key,
           description: key,
