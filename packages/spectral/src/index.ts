@@ -25,6 +25,7 @@ import {
   TriggerPayload,
   DataSourceConfigVar,
   ConfigPages,
+  OnPremiseConnectionDefinition,
 } from "./types";
 import { convertComponent } from "./serverTypes/convert";
 import { convertIntegration } from "./serverTypes/convertIntegration";
@@ -181,6 +182,16 @@ export const input = <T extends InputFieldDefinition>(definition: T): T =>
  * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
  */
 export const connection = <T extends DefaultConnectionDefinition>(
+  definition: T
+): T => definition;
+
+/**
+ * For information on writing custom component connections using on-premise resources, see
+ * https://prismatic.io/docs/custom-components/writing-custom-components/#adding-connections.
+ * @param definition An OnPremiseConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
+ * @returns This function validates the shape of the `definition` object provided and returns the same connection object.
+ */
+export const onPremiseConnection = <T extends OnPremiseConnectionDefinition>(
   definition: T
 ): T => definition;
 

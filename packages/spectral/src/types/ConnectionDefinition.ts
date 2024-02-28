@@ -24,6 +24,17 @@ export interface DefaultConnectionDefinition extends BaseConnectionDefinition {
   };
 }
 
+type OnPremiseConnectionInput = ConnectionInput & { onPremiseControlled: true };
+
+export interface OnPremiseConnectionDefinition
+  extends BaseConnectionDefinition {
+  inputs: {
+    host: OnPremiseConnectionInput;
+    port: OnPremiseConnectionInput;
+    [key: string]: ConnectionInput;
+  };
+}
+
 interface OAuth2AuthorizationCodeConnectionDefinition
   extends BaseConnectionDefinition {
   oauth2Type: OAuth2Type.AuthorizationCode;
@@ -57,5 +68,5 @@ export type OAuth2ConnectionDefinition =
 
 export type ConnectionDefinition =
   | DefaultConnectionDefinition
-  | OAuth2AuthorizationCodeConnectionDefinition
-  | OAuth2ClientCredentialConnectionDefinition;
+  | OnPremiseConnectionDefinition
+  | OAuth2ConnectionDefinition;
