@@ -1,7 +1,7 @@
-import { expectAssignable } from "tsd";
-import { connection, KeyValuePair } from "..";
+import { expectAssignable, expectNotAssignable } from "tsd";
+import { onPremiseConnection, OnPremiseConnectionDefinition } from "..";
 
-const onPremiseConnectionDef = connection({
+const valid = onPremiseConnection({
   key: "basic",
   label: "Basic Connection",
   inputs: {
@@ -11,6 +11,7 @@ const onPremiseConnectionDef = connection({
       type: "string",
       required: true,
       shown: true,
+      onPremiseControlled: true,
       example: "192.168.0.1",
     },
     port: {
@@ -19,6 +20,7 @@ const onPremiseConnectionDef = connection({
       type: "string",
       required: true,
       shown: true,
+      onPremiseControlled: true,
       default: "1433",
     },
     username: {
@@ -36,28 +38,27 @@ const onPremiseConnectionDef = connection({
       shown: true,
     },
   },
-  onPremiseConfig: {
-    replacesInputs: ["host", "port"],
-    transform: (opc, inputConfig) => {
-      return {
-        ...inputConfig,
-        host: opc.host,
-        port: opc.port,
-      };
+});
+expectAssignable<OnPremiseConnectionDefinition>(valid);
+
+const invalid = {
+  key: "basic",
+  label: "Basic Connection",
+  inputs: {
+    username: {
+      label: "Username",
+      placeholder: "Username",
+      type: "string",
+      required: false,
+      shown: true,
+    },
+    password: {
+      label: "Password",
+      placeholder: "Password",
+      type: "password",
+      required: false,
+      shown: true,
     },
   },
-});
-type ExpectedInputValueType =
-  | string
-  | string[]
-  | KeyValuePair<string>[]
-  | undefined;
-type ExpectedConfigType = { [key: string]: ExpectedInputValueType };
-type ExpectedOnPrem = { host: string; port: string };
-type ExpectedFunc = (
-  opc: ExpectedOnPrem,
-  inp: ExpectedConfigType
-) => ExpectedConfigType;
-expectAssignable<ExpectedFunc | undefined>(
-  onPremiseConnectionDef.onPremiseConfig?.transform
-);
+};
+expectNotAssignable<OnPremiseConnectionDefinition>(invalid);

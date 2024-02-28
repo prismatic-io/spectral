@@ -206,7 +206,7 @@ export interface Connection {
   comments?: string;
   oauth2Type?: OAuth2Type;
   iconPath?: string;
-  inputs: (Input & { shown?: boolean })[];
+  inputs: (Input & { shown?: boolean; onPremiseControlled?: boolean })[];
 }
 
 export interface ConnectionValue {

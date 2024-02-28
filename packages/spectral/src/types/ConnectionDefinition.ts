@@ -18,26 +18,19 @@ interface BaseConnectionDefinition {
   oauth2Type?: OAuth2Type;
 }
 
-interface OnPremiseConnectionInfo {
-  host: string;
-  port: string;
-}
-
-type ConnectionValues<T extends Record<string, ConnectionInput>> = {
-  [Key in keyof T]: T[Key]["default"];
-};
-
-interface OnPremiseConfig<T extends Record<string, ConnectionInput>> {
-  replacesInputs: (keyof T)[];
-  transform: (
-    opa: OnPremiseConnectionInfo,
-    inConfig: ConnectionValues<T>
-  ) => ConnectionValues<T>;
-}
-
 export interface DefaultConnectionDefinition extends BaseConnectionDefinition {
-  onPremiseConfig?: OnPremiseConfig<this["inputs"]>;
   inputs: {
+    [key: string]: ConnectionInput;
+  };
+}
+
+type OnPremiseConnectionInput = ConnectionInput & { onPremiseControlled: true };
+
+export interface OnPremiseConnectionDefinition
+  extends BaseConnectionDefinition {
+  inputs: {
+    host: OnPremiseConnectionInput;
+    port: OnPremiseConnectionInput;
     [key: string]: ConnectionInput;
   };
 }
@@ -75,5 +68,5 @@ export type OAuth2ConnectionDefinition =
 
 export type ConnectionDefinition =
   | DefaultConnectionDefinition
-  | OAuth2AuthorizationCodeConnectionDefinition
-  | OAuth2ClientCredentialConnectionDefinition;
+  | OnPremiseConnectionDefinition
+  | OAuth2ConnectionDefinition;

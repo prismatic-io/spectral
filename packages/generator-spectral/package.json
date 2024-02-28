@@ -40,7 +40,7 @@
   ],
   "dependencies": {
     "@apidevtools/swagger-parser": "10.1.0",
-    "@prismatic-io/spectral": "8.0.3",
+    "@prismatic-io/spectral": "8.0.4",
     "lodash": "4.17.21",
     "number-to-words": "1.2.4",
     "openapi-types": "11.0.1",
