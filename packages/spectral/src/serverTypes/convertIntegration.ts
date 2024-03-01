@@ -234,13 +234,15 @@ const convertConfigVar = (
       },
       inputs: Object.entries(configVar.inputs).reduce(
         (result, [key, input]) => {
-          if (!input.shown || !input.default) {
+          if (input.shown === false) {
             return result;
           }
 
+          const value = input.default ?? input.collection ? [] : "";
+
           return {
             ...result,
-            [key]: { type: "value", value: input.default },
+            [key]: { type: "value", value },
           };
         },
         {}
