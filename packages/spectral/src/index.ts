@@ -40,8 +40,16 @@ import { convertIntegration } from "./serverTypes/convertIntegration";
  */
 export const integration = <TConfigPages extends ConfigPages = ConfigPages>(
   definition: IntegrationDefinition<TConfigPages>
-): ReturnType<typeof convertIntegration> =>
-  convertIntegration(definition as IntegrationDefinition<any>);
+): ReturnType<typeof convertIntegration> => {
+  const integrationDefinition = convertIntegration(
+    definition as IntegrationDefinition<any>
+  );
+
+  if (process.env?.DEBUG === "true") {
+    console.info(integrationDefinition.codeNativeIntegrationYAML);
+  }
+  return integrationDefinition;
+};
 
 /**
  * For information on writing Code Native Integrations, see

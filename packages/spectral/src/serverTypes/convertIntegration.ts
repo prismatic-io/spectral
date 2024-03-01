@@ -238,7 +238,11 @@ const convertConfigVar = (
             return result;
           }
 
-          const value = input.default ?? input.collection ? [] : "";
+          const value = input.default
+            ? input.default
+            : input.collection
+            ? []
+            : "";
 
           return {
             ...result,
