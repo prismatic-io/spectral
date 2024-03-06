@@ -94,10 +94,10 @@ class FormatsGenerator extends Generator {
       "@prismatic-io/eslint-config-spectral",
     ]);
     await this.addDevDependencies({
-      "@types/jest": "25.2.3",
-      "copy-webpack-plugin": "10.2.4",
-      jest: "26.6.3",
-      "ts-jest": "26.4.0",
+      "@types/jest": "29.5.11",
+      "copy-webpack-plugin": "11.0.0",
+      jest: "29.7.0",
+      "ts-jest": "29.1.1",
       "ts-loader": "9.3.0",
       typescript: "4.6.3",
       webpack: "5.72.0",
