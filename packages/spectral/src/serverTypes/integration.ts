@@ -1,9 +1,12 @@
 export const DefinitionVersion = 7;
 
 export interface ComponentReference {
+  component: {
+    key: string;
+    version: number | "LATEST";
+    isPublic: boolean;
+  };
   key: string;
-  version: number | "LATEST";
-  isPublic: boolean;
 }
 
 export type Input =
@@ -26,10 +29,7 @@ export interface ConnectionRequiredConfigVariable {
   description?: string;
   orgOnly?: boolean;
   dataType: "connection";
-  connection: {
-    component: ComponentReference;
-    key: string;
-  };
+  connection: ComponentReference;
   inputs?: Record<string, Input>;
   meta?: Record<string, unknown>;
 }
@@ -57,10 +57,7 @@ export interface DefaultRequiredConfigVariable {
   description?: string;
   orgOnly?: boolean;
   collectionType?: "valuelist" | "keyvaluelist";
-  dataSource?: {
-    component: ComponentReference;
-    key: string;
-  };
+  dataSource?: ComponentReference;
   inputs?: Record<string, Input>;
   meta?: Record<string, unknown>;
 }

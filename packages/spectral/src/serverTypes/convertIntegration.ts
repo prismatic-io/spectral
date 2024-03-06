@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import YAML from "yaml";
 import { v4 as uuid } from "uuid";
 import { assign, camelCase, pick } from "lodash";
@@ -5,11 +6,16 @@ import {
   IntegrationDefinition,
   ConfigVar,
   Flow,
-  ScheduleType,
   EndpointType,
   ConfigPages,
-  isDataSourceConfigVar,
-  isConnectionConfigVar,
+  isDataSourceDefinitionConfigVar,
+  isConnectionDefinitionConfigVar,
+  isScheduleConfigVar,
+  ComponentSelector,
+  isConnectionReferenceConfigVar,
+  ComponentReference,
+  isComponentReference,
+  isDataSourceReferenceConfigVar,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -26,17 +32,18 @@ import {
   DefaultRequiredConfigVariable as ServerDefaultRequiredConfigVariable,
   Input as ServerInput,
   ConfigPage as ServerConfigPage,
+  ComponentReference as ServerComponentReference,
 } from "./integration";
 
 export const convertIntegration = (
-  definition: IntegrationDefinition<ConfigPages>
+  definition: IntegrationDefinition<ConfigPages<any>, ComponentSelector<any>>
 ): ServerComponent => {
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
   // inline as part of the integration definition.
   const referenceKey = uuid();
 
-  const configVars: Record<string, ConfigVar> = Object.assign(
+  const configVars: Record<string, ConfigVar<any>> = Object.assign(
     {},
     ...Object.values(definition.configPages ?? {}).map(
       ({ elements }) => elements
@@ -54,7 +61,7 @@ export const convertIntegration = (
 };
 
 const convertConfigPages = (
-  pages: ConfigPages
+  pages: ConfigPages<any>
 ): ServerConfigPage[] | undefined => {
   if (!pages || !Object.keys(pages).length) {
     return;
@@ -84,9 +91,9 @@ const codeNativeIntegrationYaml = (
     triggerPreprocessFlowConfig,
     flows,
     configPages,
-  }: IntegrationDefinition<ConfigPages>,
+  }: IntegrationDefinition<ConfigPages<any>, ComponentSelector<any>>,
   referenceKey: string,
-  configVars: Record<string, ConfigVar>
+  configVars: Record<string, ConfigVar<any>>
 ): string => {
   // Find the preprocess flow config on the flow, if one exists.
   const preprocessFlows = flows.filter((flow) => flow.preprocessFlowConfig);
@@ -105,10 +112,12 @@ const codeNativeIntegrationYaml = (
   const preprocessFlowConfig = hasPreprocessFlow
     ? preprocessFlows[0].preprocessFlowConfig
     : triggerPreprocessFlowConfig;
+  const nonPreprocessFlowTypes: EndpointType[] = [
+    "instance_specific",
+    "shared_instance",
+  ];
   if (
-    [EndpointType.InstanceSpecific, EndpointType.SharedInstance].includes(
-      endpointType || EndpointType.FlowSpecific
-    ) &&
+    nonPreprocessFlowTypes.includes(endpointType || "flow_specific") &&
     !preprocessFlowConfig
   ) {
     throw new Error(
@@ -152,9 +161,49 @@ const codeNativeIntegrationYaml = (
   return YAML.stringify(result);
 };
 
+const convertComponentReference = <TValue>({
+  key,
+  component: componentRef,
+  values,
+}: ComponentReference<TValue, ConfigPages<any>>): {
+  ref: ServerComponentReference;
+  inputs: Record<string, ServerInput>;
+} => {
+  const component =
+    typeof componentRef === "string"
+      ? {
+          key: componentRef,
+          version: "LATEST" as const,
+          isPublic: true,
+        }
+      : {
+          key: componentRef.key,
+          version: "LATEST" as const,
+          isPublic: componentRef.isPublic,
+        };
+
+  const inputs = Object.entries(values ?? {}).reduce((result, [key, value]) => {
+    if ("value" in value) {
+      return { ...result, [key]: { type: "value", value: value.value } };
+    }
+    if ("configVar" in value) {
+      return {
+        ...result,
+        [key]: { type: "configVar", value: value.configVar },
+      };
+    }
+    return result;
+  }, {});
+
+  return {
+    ref: { key, component },
+    inputs,
+  };
+};
+
 /** Converts a Flow into the structure necessary for YAML generation. */
 const convertFlow = (
-  flow: Flow<any>,
+  flow: Flow<ConfigPages<any>, any>,
   referenceKey: string
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {
@@ -175,22 +224,38 @@ const convertFlow = (
       "The function that will be executed by the flow to return an HTTP response.",
     isTrigger: true,
     errorConfig: "errorConfig" in flow ? { ...flow.errorConfig } : undefined,
-    action: {
-      key: flowFunctionKey(flow.name, "onTrigger"),
-      component: { key: referenceKey, version: "LATEST", isPublic: false },
-    },
   };
 
+  if (typeof flow.onTrigger === "function") {
+    triggerStep.action = {
+      key: flowFunctionKey(flow.name, "onTrigger"),
+      component: {
+        key: referenceKey,
+        version: "LATEST",
+        isPublic: false,
+      },
+    };
+  } else if (isComponentReference(flow.onTrigger)) {
+    const { ref, inputs } = convertComponentReference(flow.onTrigger);
+    triggerStep.action = ref;
+    triggerStep.inputs = inputs;
+  } else {
+    const hasSchedule = "schedule" in flow && typeof flow.schedule === "object";
+    const key = hasSchedule ? "schedule" : "webhook";
+    triggerStep.action = {
+      key,
+      component: { key: `${key}-triggers`, version: "LATEST", isPublic: true },
+    };
+  }
+
   if ("schedule" in flow && typeof flow.schedule === "object") {
+    const { schedule } = flow;
     triggerStep.schedule = {
-      type: "cronExpression" in flow.schedule ? "value" : "configVar",
-      value:
-        "cronExpression" in flow.schedule
-          ? flow.schedule.cronExpression
-          : flow.schedule.configVarKey,
+      type: "configVar" in schedule ? "configVar" : "value",
+      value: "configVar" in schedule ? schedule.configVar : schedule.value,
       meta: {
-        scheduleType: ScheduleType.Custom,
-        timeZone: flow.schedule.timeZone,
+        scheduleType: "custom",
+        timeZone: schedule.timezone ?? "",
       },
     };
     delete result.schedule;
@@ -215,7 +280,7 @@ const convertFlow = (
 /** Converts a Config Var into the structure necessary for YAML generation. */
 const convertConfigVar = (
   key: string,
-  configVar: ConfigVar,
+  configVar: ConfigVar<any>,
   referenceKey: string
 ): ServerRequiredConfigVariable => {
   const meta = pick(configVar, [
@@ -223,7 +288,7 @@ const convertConfigVar = (
     "visibleToOrgDeployer",
   ]);
 
-  if (isConnectionConfigVar(configVar)) {
+  if (isConnectionDefinitionConfigVar(configVar)) {
     return {
       ...pick(configVar, ["stableKey", "description", "orgOnly"]),
       key,
@@ -255,6 +320,17 @@ const convertConfigVar = (
     };
   }
 
+  if (isConnectionReferenceConfigVar(configVar)) {
+    const { ref, inputs } = convertComponentReference(configVar.connection);
+    return {
+      ...pick(configVar, ["stableKey", "description", "orgOnly"]),
+      key,
+      dataType: "connection",
+      connection: ref,
+      inputs,
+    };
+  }
+
   const result = assign(
     { meta, key },
     pick(configVar, [
@@ -264,20 +340,29 @@ const convertConfigVar = (
       "defaultValue",
       "dataType",
       "pickList",
-      "scheduleType",
       "timeZone",
       "codeLanguage",
       "collectionType",
     ])
   ) as ServerDefaultRequiredConfigVariable;
 
-  // Handle data sources.
-  if (isDataSourceConfigVar(configVar)) {
+  if (isScheduleConfigVar(configVar)) {
+    result.scheduleType = "custom";
+  }
+
+  if (isDataSourceDefinitionConfigVar(configVar)) {
     result.dataType = configVar.dataSourceType;
     result.dataSource = {
       key: camelCase(key),
       component: { key: referenceKey, version: "LATEST", isPublic: false },
     };
+  }
+
+  if (isDataSourceReferenceConfigVar(configVar)) {
+    const { ref, inputs } = convertComponentReference(configVar.dataSource);
+    result.dataType = configVar.dataSourceType;
+    result.dataSource = ref;
+    result.inputs = inputs;
   }
 
   return result;
@@ -321,9 +406,9 @@ const codeNativeIntegrationComponent = (
     iconPath,
     description,
     flows = [],
-  }: IntegrationDefinition<ConfigPages>,
+  }: IntegrationDefinition<ConfigPages<any>, ComponentSelector<any>>,
   referenceKey: string,
-  configVars: Record<string, ConfigVar>
+  configVars: Record<string, ConfigVar<any>>
 ): ServerComponent => {
   const convertedActions = flows.reduce<Record<string, ServerAction>>(
     (result, { name, onExecution }) => {
@@ -346,6 +431,10 @@ const codeNativeIntegrationComponent = (
 
   const convertedTriggers = flows.reduce<Record<string, ServerTrigger>>(
     (result, { name, onTrigger, onInstanceDeploy, onInstanceDelete }) => {
+      if (typeof onTrigger !== "function") {
+        return result;
+      }
+
       const key = flowFunctionKey(name, "onTrigger");
       return {
         ...result,
@@ -373,7 +462,7 @@ const codeNativeIntegrationComponent = (
   const convertedDataSources = Object.entries(configVars).reduce<
     Record<string, ServerDataSource>
   >((result, [key, configVar]) => {
-    if (!isDataSourceConfigVar(configVar)) {
+    if (!isDataSourceDefinitionConfigVar(configVar)) {
       return result;
     }
 
@@ -397,7 +486,7 @@ const codeNativeIntegrationComponent = (
   const convertedConnections = Object.entries(configVars).reduce<
     ServerConnection[]
   >((result, [key, configVar]) => {
-    if (!isConnectionConfigVar(configVar)) {
+    if (!isConnectionDefinitionConfigVar(configVar)) {
       return result;
     }
 

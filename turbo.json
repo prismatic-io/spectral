@@ -14,7 +14,7 @@
       "outputs": []
     },
     "tsd": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["build"],
       "outputs": []
     },
     "check": {

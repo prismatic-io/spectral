@@ -628,7 +628,7 @@ export const toObject = (value: unknown): object => {
 const cleanObject = (
   obj: Record<string, unknown>,
   predicate?: (v: any) => boolean
-) => {
+): Record<string, unknown> => {
   const defaultPredicate = (v: any) =>
     v === undefined || v === null || v === "";
   return omitBy(obj, predicate || defaultPredicate);

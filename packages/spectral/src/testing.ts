@@ -34,6 +34,7 @@ import {
   ConfigVarResultCollection,
   ConfigPages,
   ExtractConfigVars,
+  ComponentSelector,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -47,6 +48,23 @@ export const createConnection = <T extends ConnectionDefinition>(
   fields: values,
   token: tokenValues,
 });
+
+export const defaultConnectionValueEnvironmentVariable =
+  "PRISMATIC_CONNECTION_VALUE";
+
+export const connectionValue = (
+  envVarKey = defaultConnectionValueEnvironmentVariable
+): ConnectionValue => {
+  const value = process.env[envVarKey];
+  if (!value) {
+    throw new Error("Unable to find connection value.");
+  }
+  const result: ConnectionValue = {
+    ...JSON.parse(value),
+    key: "",
+  };
+  return result;
+};
 
 /**
  * Pre-built mock of ActionLogger. Suitable for asserting logs are created as expected.
@@ -294,9 +312,9 @@ type ToTestValues<TConfigVars extends ConfigVarResultCollection> = {
     : string;
 };
 const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
-  values: TConfigVarValues
+  values?: TConfigVarValues
 ): ConfigVarResultCollection => {
-  return Object.entries(values).reduce((result, [key, value]) => {
+  return Object.entries(values ?? {}).reduce((result, [key, value]) => {
     // Connection
     if (typeof value === "object" && "fields" in value) {
       return {
@@ -321,14 +339,20 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
  * Runs the Trigger and then the Action function and returns the result of the Action.
  */
 export const invokeFlow = async <
-  TConfigPages extends ConfigPages,
+  TConfigPages extends ConfigPages<any>,
   TConfigVars extends ConfigVarResultCollection = ExtractConfigVars<TConfigPages>,
   TConfigVarValues extends TestConfigVarValues = ToTestValues<TConfigVars>
 >(
-  flow: Flow<TConfigPages>,
-  configVars: TConfigVarValues,
-  context?: Partial<ActionContext<TConfigVars>>,
-  payload?: TriggerPayload
+  flow: Flow<TConfigPages, ComponentSelector<any>>,
+  {
+    configVars,
+    context,
+    payload,
+  }: {
+    configVars?: TConfigVarValues;
+    context?: Partial<ActionContext<TConfigVars>>;
+    payload?: Partial<TriggerPayload>;
+  } = {}
 ): Promise<InvokeReturn<InvokeActionPerformReturn<false, unknown>>> => {
   const realizedConfigVars = createConfigVars(configVars);
   const realizedContext = createActionContext({
@@ -338,10 +362,10 @@ export const invokeFlow = async <
   const realizedPayload = { ...defaultTriggerPayload(), ...payload };
 
   const params: Record<"onTrigger", { results: any }> = {
-    onTrigger: { results: null },
+    onTrigger: { results: realizedPayload },
   };
 
-  if ("onTrigger" in flow) {
+  if ("onTrigger" in flow && typeof flow.onTrigger === "function") {
     const triggerResult = await flow.onTrigger(
       realizedContext as any,
       realizedPayload,
@@ -351,7 +375,10 @@ export const invokeFlow = async <
     params.onTrigger = { results: triggerResult?.payload };
   }
 
-  const result = await flow.onExecution(realizedContext as any, params);
+  const result = await flow.onExecution(
+    realizedContext as ActionContext<any>,
+    params
+  );
 
   return {
     result,

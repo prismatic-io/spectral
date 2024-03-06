@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "8.0.7",
+  "version": "8.1.0",
   "description": "Utility library for building Prismatic components",
   "keywords": [
     "prismatic"
@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@types/jest": "29.5.12",
-    "@types/lodash": "4.14.202",
+    "@types/lodash": "4.17.0",
     "@types/node": "14.14.35",
     "@types/sax": "1.2.4",
     "@types/url-join": "4.0.1",
@@ -70,7 +70,7 @@
     "jest": "29.7.0",
     "prettier": "2.6.2",
     "ts-jest": "29.1.2",
-    "tsd": "0.20.0",
+    "tsd": "0.31.0",
     "typedoc": "0.17.7",
     "typedoc-plugin-markdown": "2.4.2",
     "typedoc-plugin-remove-references": "0.0.5",
