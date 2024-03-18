@@ -118,10 +118,10 @@ export const createClient = ({
           {
             type: "request",
             baseURL,
+            url,
             headers,
             method,
             timeout,
-            url,
             data:
               dataSize > 1024 * 10 || Buffer.isBuffer(data)
                 ? `<data (${dataSize} bytes)>`
