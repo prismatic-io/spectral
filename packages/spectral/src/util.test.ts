@@ -645,6 +645,41 @@ describe("util", () => {
       );
     });
 
+    it("serialize JSON with default options", () => {
+      const payload = { foo: "bar", baz: "buz" };
+      expect(util.types.toJSON(payload)).toStrictEqual(
+        `{\n  "baz": "buz",\n  "foo": "bar"\n}`
+      );
+    });
+
+    it("serialize JSON with pretty print and retain key order", () => {
+      const payload = { foo: "bar", baz: "buz" };
+      expect(util.types.toJSON(payload, true, true)).toStrictEqual(
+        `{\n  "foo": "bar",\n  "baz": "buz"\n}`
+      );
+    });
+
+    it("serialize JSON without pretty print and retain key order", () => {
+      const payload = { foo: "bar", baz: "buz" };
+      expect(util.types.toJSON(payload, false, true)).toStrictEqual(
+        '{"foo":"bar","baz":"buz"}'
+      );
+    });
+
+    it("serialize JSON with pretty print and don't retain key order", () => {
+      const payload = { foo: "bar", baz: "buz" };
+      expect(util.types.toJSON(payload, true, false)).toStrictEqual(
+        `{\n  "baz": "buz",\n  "foo": "bar"\n}`
+      );
+    });
+
+    it("serialize JSON without pretty print and don't retain key order", () => {
+      const payload = { foo: "bar", baz: "buz" };
+      expect(util.types.toJSON(payload, false, false)).toStrictEqual(
+        '{"baz":"buz","foo":"bar"}'
+      );
+    });
+
     it("removes functions", () => {
       const value = {
         foo: () => {

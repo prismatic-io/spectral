@@ -564,11 +564,20 @@ const isJSON = (value: string): boolean => {
  * This function accepts an arbitrary object/value and safely serializes it (handles cyclic references).
  *
  * @param value Arbitrary object/value to serialize.
+ * @param prettyPrint When true, convert to pretty printed JSON with 2 spaces and newlines. When false, JSON is compact.
+ * @param retainKeyOrder When true, the order of keys in the JSON output will be the same as the order in the input object.
  * @returns JSON serialized text that can be safely logged.
  */
-const toJSON = (value: unknown): string => {
-  const stringify = configure({ circularValue: undefined });
-  return stringify(value, null, 2);
+const toJSON = (
+  value: unknown,
+  prettyPrint = true,
+  retainKeyOrder = false
+): string => {
+  const stringify = configure({
+    circularValue: undefined,
+    deterministic: !retainKeyOrder,
+  });
+  return prettyPrint ? stringify(value, null, 2) : stringify(value);
 };
 
 /**
