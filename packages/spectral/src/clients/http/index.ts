@@ -3,6 +3,8 @@ import axios, { AxiosResponse } from "axios";
 import { AxiosInstance, AxiosRequestConfig } from "axios";
 import axiosRetry, { IAxiosRetryConfig, exponentialDelay } from "axios-retry";
 import FormData from "form-data";
+import objectSizeof from "object-sizeof";
+
 import { action } from "../..";
 import { ActionInputParameters, Connection, KeyValuePair } from "../../types";
 import util from "../../util";
@@ -109,11 +111,47 @@ export const createClient = ({
 
   if (debug) {
     client.interceptors.request.use((request) => {
-      console.log(util.types.toJSON(request));
+      const { baseURL, headers, method, timeout, url, data } = request;
+      const dataSize = objectSizeof(data);
+      console.log(
+        util.types.toJSON(
+          {
+            type: "request",
+            baseURL,
+            headers,
+            method,
+            timeout,
+            url,
+            data:
+              dataSize > 1024 * 10 || Buffer.isBuffer(data)
+                ? `data <${dataSize} bytes>`
+                : data,
+          },
+          true,
+          true
+        )
+      );
       return request;
     });
     client.interceptors.response.use((response) => {
-      console.log(util.types.toJSON(response));
+      const { headers, status, statusText, data } = response;
+      const dataSize = objectSizeof(data);
+      console.log(
+        util.types.toJSON(
+          {
+            type: "response",
+            headers,
+            status,
+            statusText,
+            data:
+              dataSize > 1024 * 10 || Buffer.isBuffer(data)
+                ? `data <${dataSize} bytes>`
+                : data,
+          },
+          true,
+          true
+        )
+      );
       return response;
     });
   }
