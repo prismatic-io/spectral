@@ -124,7 +124,7 @@ export const createClient = ({
             url,
             data:
               dataSize > 1024 * 10 || Buffer.isBuffer(data)
-                ? `data <${dataSize} bytes>`
+                ? `<data (${dataSize} bytes)>`
                 : data,
           },
           true,
@@ -145,7 +145,7 @@ export const createClient = ({
             statusText,
             data:
               dataSize > 1024 * 10 || Buffer.isBuffer(data)
-                ? `data <${dataSize} bytes>`
+                ? `<data (${dataSize} bytes)>`
                 : data,
           },
           true,
