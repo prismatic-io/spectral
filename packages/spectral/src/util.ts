@@ -9,6 +9,7 @@ import parseISODate from "date-fns/parseISO";
 import dateIsValid from "date-fns/isValid";
 import dateIsDate from "date-fns/isDate";
 import fromUnixTime from "date-fns/fromUnixTime";
+import { omitBy } from "lodash";
 import { configure } from "safe-stable-stringify";
 import { isWebUri } from "valid-url";
 import {
@@ -613,6 +614,26 @@ export const toObject = (value: unknown): object => {
   }
 };
 
+/**
+ * This function removes any properties of an object that match a certain predicate.
+ * By default properties with values of undefined, null and "" are removed.
+ *
+ * - `cleanObject({foo: undefined, bar: "abc", baz: null, buz: ""})` will return `{bar: "abc"}`
+ * - `cleanObject({foo: 1, bar: 2, baz: 3}, v => v % 2 === 0)` will filter even number values, returning `{foo: 1, baz: 3}`
+ *
+ * @param obj A key-value object to remove properties from
+ * @param predicate A function that returns true for properties to remove. Defaults to removing properties with undefined, null and "" values.
+ * @returns An object with certain properties removed
+ */
+const cleanObject = (
+  obj: Record<string, unknown>,
+  predicate?: (v: any) => boolean
+) => {
+  const defaultPredicate = (v: any) =>
+    v === undefined || v === null || v === "";
+  return omitBy(obj, predicate || defaultPredicate);
+};
+
 export default {
   types: {
     isBool,
@@ -647,5 +668,6 @@ export default {
     isConnection,
     isElement,
     toObject,
+    cleanObject,
   },
 };
