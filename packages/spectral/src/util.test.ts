@@ -955,4 +955,26 @@ describe("util", () => {
       expect(util.types.toObject(value)).toStrictEqual(value);
     });
   });
+
+  describe("cleanObject", () => {
+    it('removes undefined, null and "" by default', () => {
+      const input = {
+        foo: "bar",
+        bar: undefined,
+        baz: null,
+        buz: false,
+        biz: "",
+      };
+      const expectedResult = { foo: "bar", buz: false };
+      expect(util.types.cleanObject(input)).toStrictEqual(expectedResult);
+    });
+
+    it("allows for custom predicates to be defined", () => {
+      const input = { foo: 1, bar: 2, baz: 3 };
+      const predicate = (v: number) => v % 2 === 0;
+      const expectedResult = { foo: 1, baz: 3 };
+      const result = util.types.cleanObject(input, predicate);
+      expect(result).toStrictEqual(expectedResult);
+    });
+  });
 });
