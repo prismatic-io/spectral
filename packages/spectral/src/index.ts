@@ -26,6 +26,8 @@ import {
   DataSourceConfigVar,
   ConfigPages,
   OnPremiseConnectionDefinition,
+  ScheduleConfigVar,
+  ComponentSelector,
 } from "./types";
 import { convertComponent } from "./serverTypes/convert";
 import { convertIntegration } from "./serverTypes/convertIntegration";
@@ -38,12 +40,12 @@ import { convertIntegration } from "./serverTypes/convertIntegration";
  * @param definition An IntegrationDefinition type object.
  * @returns This function returns an integration object that has the shape the Prismatic API expects.
  */
-export const integration = <TConfigPages extends ConfigPages = ConfigPages>(
-  definition: IntegrationDefinition<TConfigPages>
+export const integration = <
+  T extends IntegrationDefinition<any, any> = IntegrationDefinition<any, any>
+>(
+  definition: T
 ): ReturnType<typeof convertIntegration> => {
-  const integrationDefinition = convertIntegration(
-    definition as IntegrationDefinition<any>
-  );
+  const integrationDefinition = convertIntegration(definition);
 
   if (process.env?.DEBUG === "true") {
     console.info(integrationDefinition.codeNativeIntegrationYAML);
@@ -58,10 +60,12 @@ export const integration = <TConfigPages extends ConfigPages = ConfigPages>(
  * @returns This function returns a flow object that has the shape the Prismatic API expects.
  */
 export const flow = <
-  TConfigPages extends ConfigPages = ConfigPages,
+  TConfigPages extends ConfigPages<any> = ConfigPages<any>,
+  TComponents extends ComponentSelector<any> = ComponentSelector<any>,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
-  T extends Flow<TConfigPages, TTriggerPayload> = Flow<
+  T extends Flow<TConfigPages, TComponents, TTriggerPayload> = Flow<
     TConfigPages,
+    TComponents,
     TTriggerPayload
   >
 >(
@@ -74,8 +78,20 @@ export const flow = <
  * @param definition A Config Page type object.
  * @returns This function returns a config page object that has the shape the Prismatic API expects.
  */
-export const configPage = <T extends ConfigPage>(definition: T): T =>
-  definition;
+export const configPage = <T extends ConfigPage<any> = ConfigPage<any>>(
+  definition: T
+): T => definition;
+
+/**
+ * @returns Helper utility to create component references.
+ */
+export const reference = <TComponents extends ComponentSelector<any>>(): {
+  connection: <T extends ConnectionConfigVar<TComponents>>(definition: T) => T;
+  dataSource: <T extends DataSourceConfigVar<TComponents>>(definition: T) => T;
+} => ({
+  connection: (definition) => definition,
+  dataSource: (definition) => definition,
+});
 
 /**
  * For information on writing Code Native Integrations, see
@@ -83,8 +99,9 @@ export const configPage = <T extends ConfigPage>(definition: T): T =>
  * @param definition A Config Var type object.
  * @returns This function returns a standard config var object that has the shape the Prismatic API expects.
  */
-export const configVar = <T extends StandardConfigVar>(definition: T): T =>
-  definition;
+export const configVar = <T extends StandardConfigVar | ScheduleConfigVar>(
+  definition: T
+): T => definition;
 
 /**
  * For information on writing Code Native Integrations, see
@@ -92,7 +109,9 @@ export const configVar = <T extends StandardConfigVar>(definition: T): T =>
  * @param definition A Data Source Config Var type object.
  * @returns This function returns a data source config var object that has the shape the Prismatic API expects.
  */
-export const dataSourceConfigVar = <T extends DataSourceConfigVar>(
+export const dataSourceConfigVar = <
+  T extends DataSourceConfigVar<any> = DataSourceConfigVar<any>
+>(
   definition: T
 ): T => definition;
 
@@ -102,7 +121,9 @@ export const dataSourceConfigVar = <T extends DataSourceConfigVar>(
  * @param definition A Connection Config Var type object.
  * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
  */
-export const connectionConfigVar = <T extends ConnectionConfigVar>(
+export const connectionConfigVar = <
+  T extends ConnectionConfigVar<any> = ConnectionConfigVar<any>
+>(
   definition: T
 ): T => definition;
 

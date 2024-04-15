@@ -1660,10 +1660,10 @@
   resolved "https://registry.npmjs.org/@tsconfig/node16/-/node16-1.0.2.tgz"
   integrity sha512-eZxlbI8GZscaGS7kkc/trHTT5xgrjH3/1n2JDwusC9iahPKWMRvRjJSAN5mCXviuTGQ/lHnhvv8Q1YTpnfz9gA==
 
-"@tsd/typescript@~4.6.3":
-  version "4.6.3"
-  resolved "https://registry.npmjs.org/@tsd/typescript/-/typescript-4.6.3.tgz"
-  integrity sha512-WjipklCf6qWQL4Hkw+FSwOXMA5JqKv04ro/c1aviYSzLJFdcFMrR/FHjOGBIEAIq7pb8Bw74wd+G45dWfC/Jnw==
+"@tsd/typescript@~5.4.3":
+  version "5.4.4"
+  resolved "https://registry.yarnpkg.com/@tsd/typescript/-/typescript-5.4.4.tgz#241a482bdeacc7718e28673e81a7f8d7fc2ecf41"
+  integrity sha512-sqE6Rz9UNHBuCtuREo/PwsuUaegP1KDSfxMd+9K1qPpt7XO8BmkIImUp7zAqyvwXWUHs+sj6osEkkpyE0tFgfA==
 
 "@types/babel__core@^7.1.14":
   version "7.1.14"
@@ -1833,10 +1833,10 @@
   resolved "https://registry.npmjs.org/@types/lodash/-/lodash-4.14.182.tgz"
   integrity sha512-/THyiqyQAP9AfARo4pF+aCGcyiQ94tX/Is2I7HofNRqoYLgN1PBoOWu2/zTA5zMxzP5EFutMtWtGAFRKUe961Q==
 
-"@types/lodash@4.14.202":
-  version "4.14.202"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.202.tgz#f09dbd2fb082d507178b2f2a5c7e74bd72ff98f8"
-  integrity sha512-OvlIYQK9tNneDlS0VN54LLd5uiPCBOp7gS5Z0f1mjoJYBrtStzgmJBxONW3U6OZqdtNzZPmn9BS/7WI7BFFcFQ==
+"@types/lodash@4.17.0":
+  version "4.17.0"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.17.0.tgz#d774355e41f372d5350a4d0714abb48194a489c3"
+  integrity sha512-t7dhREVv6dbNj0q17X12j7yDG4bD/DHYX7o5/DbDxobP0HnGPgpRz2Ej77aL7TZT3DSw13fqUTj8J4mMnqa7WA==
 
 "@types/mem-fs-editor@*":
   version "7.0.1"
@@ -5792,7 +5792,7 @@ jest-diff@^28.1.0:
     jest-get-type "^28.0.2"
     pretty-format "^28.1.0"
 
-jest-diff@^29.7.0:
+jest-diff@^29.0.3, jest-diff@^29.7.0:
   version "29.7.0"
   resolved "https://registry.yarnpkg.com/jest-diff/-/jest-diff-29.7.0.tgz#017934a66ebb7ecf6f205e84699be10afd70458a"
   integrity sha512-LMIgiIrhigmPrs03JHpxUh2yISK3vLFPkAodPeo0+BuF7wA2FoQbkEg1u8gBYBThncu7e1oEDUfIXVuTqLRUjw==
@@ -9014,14 +9014,15 @@ tsconfig-paths@^3.14.2:
     minimist "^1.2.6"
     strip-bom "^3.0.0"
 
-tsd@0.20.0:
-  version "0.20.0"
-  resolved "https://registry.npmjs.org/tsd/-/tsd-0.20.0.tgz"
-  integrity sha512-iba/JlyT3qtnA9t8VrX2Fipu3L31U48oRIf1PNs+lIwQ7n63GTkt9eQlB5bLtfb7nYfy9t8oZzs+K4QEoEIS8Q==
+tsd@0.31.0:
+  version "0.31.0"
+  resolved "https://registry.yarnpkg.com/tsd/-/tsd-0.31.0.tgz#8fe1e19f2116c5208732ab10e1b435b4b0e06559"
+  integrity sha512-yjBiQ5n8OMv/IZOuhDjBy0ZLCoJ7rky/RxRh5W4sJ0oNNCU/kf6s3puPAkGNi59PptDdkcpUm+RsKSdjR2YbNg==
   dependencies:
-    "@tsd/typescript" "~4.6.3"
+    "@tsd/typescript" "~5.4.3"
     eslint-formatter-pretty "^4.1.0"
     globby "^11.0.1"
+    jest-diff "^29.0.3"
     meow "^9.0.0"
     path-exists "^4.0.0"
     read-pkg-up "^7.0.0"

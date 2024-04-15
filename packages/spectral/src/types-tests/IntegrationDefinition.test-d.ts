@@ -2,7 +2,7 @@ import { expectAssignable } from "tsd";
 import { Component } from "../serverTypes";
 import { integration } from "..";
 
-export const basicDefinition = integration({
+const basicDefinition = integration({
   name: "Basic Code Native Integration",
   description: "This is a basic Code Native Integration",
   category: "Basic",

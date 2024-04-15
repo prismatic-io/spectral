@@ -18,7 +18,7 @@ import {
 } from ".";
 import { Prettify, UnionToIntersection, ValueOf } from "./utils";
 
-type ToDataSourceRuntimeType<TType extends DataSourceType> =
+export type ToDataSourceRuntimeType<TType extends DataSourceType> =
   TType extends "jsonForm"
     ? JSONForm
     : TType extends "objectSelection"
@@ -27,32 +27,36 @@ type ToDataSourceRuntimeType<TType extends DataSourceType> =
     ? ObjectFieldMap
     : string;
 
-type ToRuntimeType<TType extends ConfigVarDataType> =
-  TType extends ConfigVarDataType.Schedule ? Schedule : string;
-
-export type ElementToRuntimeType<TElement extends ConfigPageElement> =
-  TElement extends ConnectionConfigVar
+export type ElementToRuntimeType<TElement extends ConfigPageElement<any>> =
+  TElement extends ConnectionConfigVar<any>
     ? Connection
-    : TElement extends DataSourceConfigVar
+    : TElement extends DataSourceConfigVar<any>
     ? ToDataSourceRuntimeType<TElement["dataSourceType"]>
+    : TElement extends ScheduleConfigVar
+    ? Schedule
     : TElement extends StandardConfigVar
-    ? ToRuntimeType<TElement["dataType"]>
+    ? string
     : never;
 
-type GetElements<TConfigPages extends ConfigPages> =
-  TConfigPages extends ConfigPages
+export type GetElements<TConfigPages extends ConfigPages<any>> =
+  TConfigPages extends ConfigPages<any>
     ? UnionToIntersection<ValueOf<TConfigPages>["elements"]>
     : never;
 
 export type ExtractConfigVars<
-  TConfigPages extends ConfigPages,
-  TElements extends ConfigPage["elements"] = GetElements<TConfigPages>
+  TConfigPages extends ConfigPages<any>,
+  TElements extends ConfigPage<any>["elements"] = GetElements<TConfigPages>
 > = Prettify<{
-  [Key in keyof TElements]: ElementToRuntimeType<TElements[Key]>;
+  [Key in keyof TElements as Key extends string
+    ? Key
+    : never]: ElementToRuntimeType<TElements[Key]>;
 }>;
 
 /** Defines attributes of a Code-Native Integration. */
-export type IntegrationDefinition<TConfigPages extends ConfigPages> = {
+export type IntegrationDefinition<
+  TConfigPages extends ConfigPages<TComponents>,
+  TComponents extends ComponentSelector<any>
+> = {
   /** The unique name for this Integration. */
   name: string;
   /** Optional description for this Integration. */
@@ -75,14 +79,15 @@ export type IntegrationDefinition<TConfigPages extends ConfigPages> = {
    *  Cannot specify this if a Preprocess Flow is also configured. */
   triggerPreprocessFlowConfig?: PreprocessFlowConfig;
   /** Flows for this Integration. */
-  flows: Flow<TConfigPages>[];
+  flows: Flow<TConfigPages, TComponents>[];
   /** Config Wizard Pages for this Integration. */
   configPages?: TConfigPages;
 };
 
 /** Defines attributes of a Flow of a Code-Native Integration. */
 export interface Flow<
-  TConfigPages extends ConfigPages,
+  TConfigPages extends ConfigPages<TComponents>,
+  TComponents extends ComponentSelector<any>,
   TTriggerPayload extends TriggerPayload = TriggerPayload
 > {
   /** The unique name for this Flow. */
@@ -102,16 +107,18 @@ export interface Flow<
   /** Optional list of API key(s) to use for the endpoint of this Flow when the endpoint security type is EndpointSecurityType.Organization. */
   organizationApiKeys?: string[];
   /** Optional schedule configuration that defines the frequency with which this Flow will be automatically executed. */
-  schedule?: FlowSchedule;
+  schedule?: ValueReference<string, TConfigPages> & { timezone?: string };
   /** Optional error handling configuration. */
   errorConfig?: StepErrorConfig;
   /** Specifies the trigger function for this Flow, which returns a payload and optional HTTP response. */
-  onTrigger: TriggerPerformFunction<
-    Inputs,
-    ExtractConfigVars<TConfigPages>,
-    false,
-    TriggerResult<false, TTriggerPayload>
-  >;
+  onTrigger?:
+    | ToComponentReferences<"trigger", TComponents, TConfigPages>
+    | TriggerPerformFunction<
+        Inputs,
+        ExtractConfigVars<TConfigPages>,
+        false,
+        TriggerResult<false, TTriggerPayload>
+      >;
   /** Specifies the function to execute when an Instance of this Integration is deployed. */
   onInstanceDeploy?: TriggerEventFunction<
     Inputs,
@@ -154,53 +161,104 @@ type BaseConfigVar = {
 /** Defines attributes of a standard Config Var. */
 export type StandardConfigVar = BaseConfigVar & {
   /** The data type of the Config Var. */
-  dataType: ConfigVarDataType;
+  dataType: Exclude<ConfigVarDataType, "schedule">;
   /** Optional default value for the Config Var. */
   defaultValue?: string;
   /** Optional list of picklist values if the Config Var is a multi-choice selection value. */
   pickList?: string[];
-  /** Optional schedule type that defines the cadence of the schedule. */
-  scheduleType?: ScheduleType;
-  /** Optional value to use as a timezone if the Config Var is a schedule value. */
-  timeZone?: string;
   /** Optional value to specify the type of language if the Config Var is a code value. */
   codeLanguage?: CodeLanguageType;
   /** Optional value to specify the type of collection if the Config Var is multi-value. */
   collectionType?: CollectionType;
 };
 
-/** Defines attributes of a data source Config Var. */
-export type DataSourceConfigVar = BaseConfigVar &
+export type ScheduleConfigVar = BaseConfigVar & {
+  /** The data type of the Config Var. */
+  dataType: "schedule";
+  /** Optional default value for the Config Var. */
+  defaultValue?: string;
+  /** Optional timezone for the schedule. */
+  timeZone?: string;
+};
+
+type DataSourceDefinitionConfigVar = BaseConfigVar &
   Omit<
     DataSourceDefinition<Inputs, ConfigVarResultCollection, DataSourceType>,
     "display" | "inputs" | "examplePayload"
   >;
+type DataSourceReferenceConfigVar<TComponents extends ComponentSelector<any>> =
+  BaseConfigVar & {
+    dataSourceType: DataSourceType;
+    dataSource: ToComponentReferences<
+      "dataSource",
+      TComponents,
+      ConfigPages<TComponents>
+    >;
+  };
+
+/** Defines attributes of a data source Config Var. */
+export type DataSourceConfigVar<TComponents extends ComponentSelector<any>> =
+  | DataSourceDefinitionConfigVar
+  | DataSourceReferenceConfigVar<TComponents>;
+
+type ConnectionDefinitionConfigVar = BaseConfigVar &
+  Omit<ConnectionDefinition, "label" | "comments" | "key">;
+type ConnectionReferenceConfigVar<TComponents extends ComponentSelector<any>> =
+  BaseConfigVar & {
+    connection: ToComponentReferences<"connection", TComponents>;
+  };
 
 /** Defines attributes of a Config Var that represents a Connection. */
-export type ConnectionConfigVar = BaseConfigVar &
-  Omit<ConnectionDefinition, "label" | "comments" | "key">;
+export type ConnectionConfigVar<TComponents extends ComponentSelector<any>> =
+  | ConnectionDefinitionConfigVar
+  | ConnectionReferenceConfigVar<TComponents>;
 
-export type ConfigVar =
+export type ConfigVar<TComponents extends ComponentSelector<any>> =
   | StandardConfigVar
-  | DataSourceConfigVar
-  | ConnectionConfigVar;
+  | ScheduleConfigVar
+  | DataSourceConfigVar<TComponents>
+  | ConnectionConfigVar<TComponents>;
 
-export const isDataSourceConfigVar = (
-  cv: ConfigVar
-): cv is DataSourceConfigVar => "dataSourceType" in cv;
+export const isScheduleConfigVar = (
+  cv: ConfigVar<any>
+): cv is ScheduleConfigVar => "dataType" in cv && cv.dataType === "schedule";
 
-export const isConnectionConfigVar = (
-  cv: ConfigVar
-): cv is ConnectionConfigVar => "inputs" in cv;
+export const isDataSourceDefinitionConfigVar = (
+  cv: ConfigVar<any>
+): cv is DataSourceDefinitionConfigVar =>
+  "dataSourceType" in cv && "perform" in cv && typeof cv.perform === "function";
 
-export type ConfigPageElement = string | ConfigVar;
+export const isDataSourceReferenceConfigVar = <
+  TComponents extends ComponentSelector<any>
+>(
+  cv: ConfigVar<TComponents>
+): cv is DataSourceReferenceConfigVar<TComponents> =>
+  "dataSource" in cv && isComponentReference(cv.dataSource);
 
-export type ConfigPages = Record<string, ConfigPage>;
+export const isConnectionDefinitionConfigVar = (
+  cv: ConfigVar<any>
+): cv is ConnectionDefinitionConfigVar => "inputs" in cv;
+
+export const isConnectionReferenceConfigVar = <
+  TComponents extends ComponentSelector<any>
+>(
+  cv: ConfigVar<TComponents>
+): cv is ConnectionReferenceConfigVar<TComponents> =>
+  "connection" in cv && isComponentReference(cv.connection);
+
+export type ConfigPageElement<TComponents extends ComponentSelector<any>> =
+  | string
+  | ConfigVar<TComponents>;
+
+export type ConfigPages<TComponents extends ComponentSelector<any>> = Record<
+  string,
+  ConfigPage<TComponents>
+>;
 
 /** Defines attributes of a Config Wizard Page used when deploying an Instance of an Integration. */
-export type ConfigPage = {
+export type ConfigPage<TComponents extends ComponentSelector<any>> = {
   /** Elements included on this Config Page. */
-  elements: Record<string, ConfigPageElement>;
+  elements: Record<string, ConfigPageElement<TComponents>>;
   /** Specifies an optional tagline for this Config Page. */
   tagline?: string;
 };
@@ -241,74 +299,88 @@ export type StepErrorConfig = {
   ignoreFinalError?: boolean;
 };
 
-/** Defines attributes of a Schedule that controls how often a Flow is automatically executed. */
-export type FlowSchedule =
-  | {
-      /** The cron expression to use for defining an execution schedule. */
-      cronExpression: string;
-      /** Specifies an optional value to use as the timezone. */
-      timeZone?: string;
-    }
-  | {
-      /** The key of the Config Var whose value will define the execution schedule. */
-      configVarKey: string;
-      /** Specifies an optional value to use as the timezone. */
-      timeZone?: string;
-    };
-
 /** Choices of Endpoint Types that may be used by Instances of an Integration. */
-export enum EndpointType {
-  FlowSpecific = "flow_specific",
-  InstanceSpecific = "instance_specific",
-  SharedInstance = "shared_instance",
-}
+export type EndpointType =
+  | "flow_specific"
+  | "instance_specific"
+  | "shared_instance";
 
 /** Choices of Endpoint Security Types that may be used by endpoints of a Flow. */
-export enum EndpointSecurityType {
-  Unsecured = "unsecured",
-  CustomerOptional = "customer_optional",
-  CustomerRequired = "customer_required",
-  Organization = "organization",
-}
+export type EndpointSecurityType =
+  | "unsecured"
+  | "customer_optional"
+  | "customer_required"
+  | "organization";
 
 /** Choices of Step Error Handlers that define the behavior when a step error occurs. */
-export enum StepErrorHandlerType {
-  Fail = "fail",
-  Ignore = "ignore",
-  Retry = "retry",
-}
-
-/** Choices for Schedules that add context for the cadence of a given schedule. */
-export enum ScheduleType {
-  None = "none",
-  Custom = "custom",
-  Minute = "minute",
-  Hour = "hour",
-  Day = "day",
-  Week = "week",
-}
+export type StepErrorHandlerType = "fail" | "ignore" | "retry";
 
 /** Supported data types for Config Vars. */
-export enum ConfigVarDataType {
-  String = "string",
-  Date = "date",
-  Timestamp = "timestamp",
-  Picklist = "picklist",
-  Schedule = "schedule",
-  Code = "code",
-  Boolean = "boolean",
-  Number = "number",
-}
+export type ConfigVarDataType =
+  | "string"
+  | "date"
+  | "timestamp"
+  | "picklist"
+  | "schedule"
+  | "code"
+  | "boolean"
+  | "number";
 
 /** Choices of programming languages that may be used for Config Var code values. */
-export enum CodeLanguageType {
-  JSON = "json",
-  XML = "xml",
-  HTML = "html",
-}
+export type CodeLanguageType = "json" | "xml" | "html";
 
 /** Choices of collection types for multi-value Config Vars. */
-export enum CollectionType {
-  ValueList = "valuelist",
-  KeyValueList = "keyvaluelist",
+export type CollectionType = "valuelist" | "keyvaluelist";
+
+/** Choices of component reference types. */
+export type ComponentSelectorType = "trigger" | "connection" | "dataSource";
+
+export type ValueReference<
+  TValueType,
+  TConfigPages extends ConfigPages<any>,
+  TConfigVarKeys = keyof ExtractConfigVars<TConfigPages>
+> =
+  | { value: TValueType }
+  | (TConfigPages extends ConfigPages<any>
+      ? { configVar: TConfigVarKeys }
+      : never);
+
+export interface ComponentSelector<TValueType> {
+  type: ComponentSelectorType;
+  component: string | { key: string; isPublic: boolean };
+  key: string;
+  values?: { [key: string]: TValueType };
 }
+
+export type ToComponentReferences<
+  TReferenceType extends ComponentSelectorType,
+  TComponents extends ComponentSelector<any>,
+  TConfigPages extends ConfigPages<TComponents> = never
+> = TComponents extends ComponentSelector<infer TValueType>
+  ? TComponents["type"] extends TReferenceType
+    ? {
+        component: TComponents["component"];
+        key: TComponents["key"];
+        values: {
+          [K in keyof TComponents["values"]]: ValueReference<
+            TValueType,
+            TConfigPages
+          >;
+        };
+      }
+    : never
+  : never;
+
+export interface ComponentReference<
+  TValueType,
+  TConfigPages extends ConfigPages<any>
+> {
+  component: string | { key: string; isPublic: boolean };
+  key: string;
+  values?: { [key: string]: ValueReference<TValueType, TConfigPages> };
+}
+
+export const isComponentReference = (
+  ref: unknown
+): ref is ComponentReference<any, ConfigPages<any>> =>
+  typeof ref === "object" && ref !== null && "key" in ref && "component" in ref;
