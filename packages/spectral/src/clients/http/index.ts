@@ -170,6 +170,8 @@ export const handleErrors = (error: unknown): unknown => {
     return {
       message,
       data: response?.data,
+      status: response?.status,
+      headers: response?.headers,
     };
   }
   return error;
