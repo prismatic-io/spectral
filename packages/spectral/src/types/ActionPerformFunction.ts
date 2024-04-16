@@ -23,7 +23,9 @@ export type ActionPerformFunction<
 ) => Promise<TReturn>;
 
 /** Context provided to perform method containing helpers and contextual data */
-export type ActionContext<TConfigVars extends ConfigVarResultCollection> = {
+export type ActionContext<
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection
+> = {
   /** Logger for permanent logging; console calls are also captured */
   logger: ActionLogger;
   /** A a flow-specific key/value store that may be used to store small amounts of data that is persisted between Instance executions */
