@@ -8,11 +8,12 @@ import {
 } from ".";
 
 /** Context provided to perform method containing helpers and contextual data */
-export type DataSourceContext<TConfigVars extends ConfigVarResultCollection> =
-  Pick<
-    ActionContext<TConfigVars>,
-    "logger" | "customer" | "instance" | "user" | "configVars"
-  >;
+export type DataSourceContext<
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection
+> = Pick<
+  ActionContext<TConfigVars>,
+  "logger" | "customer" | "instance" | "user" | "configVars"
+>;
 
 /** Definition of the function to perform when a Data Source is invoked. */
 export type DataSourcePerformFunction<
