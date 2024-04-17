@@ -227,6 +227,7 @@ interface ServerPerformDataStructureReturn {
     | unknown;
   contentType?: string;
   statusCode?: number;
+  headers?: Record<string, string>;
   instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
@@ -239,6 +240,7 @@ interface ServerPerformDataReturn {
   data: Buffer | string | unknown;
   contentType: string;
   statusCode?: number;
+  headers?: Record<string, string>;
   instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;

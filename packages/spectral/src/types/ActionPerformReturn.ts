@@ -6,6 +6,8 @@ export interface ActionPerformDataReturn<ReturnData> {
   contentType?: string;
   /** The HTTP Status code that will be used if this terminates a synchronous invocation  */
   statusCode?: number;
+  /** The HTTP headers that will be sent back if this terminates a synchronous invocation */
+  headers?: Record<string, string>;
   /** An optional object, the keys and values of which will be persisted in the flow-specific instanceState and available for subsequent actions and executions */
   instanceState?: Record<string, unknown>;
   /** An optional object, the keys and values of which will be persisted in the crossFlowState and available in any flow for subsequent actions and executions */
