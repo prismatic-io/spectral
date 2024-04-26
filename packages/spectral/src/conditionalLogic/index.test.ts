@@ -387,6 +387,32 @@ describe("evaluate", () => {
     });
   });
 
+  test("evaluate BinaryOperator.in with array of numbers and value that is a number", () => {
+    expect(evaluate([BinaryOperator.in, 2, [1, 2, 3]])).toStrictEqual(true);
+  });
+
+  test("evaluate BinaryOperator.in with array of numbers and value that is a stringified number", () => {
+    expect(evaluate([BinaryOperator.in, "2", [1, 2, 3]])).toStrictEqual(true);
+  });
+
+  test("evaluate BinaryOperator.in with array of stringified numbers and value that is a stringified number", () => {
+    expect(evaluate([BinaryOperator.in, "2", ["1", "2", "3"]])).toStrictEqual(
+      true
+    );
+  });
+
+  test("evaluate BinaryOperator.in with array of numbers including zero and value that is a stringified false", () => {
+    expect(evaluate([BinaryOperator.in, "false", [0, 1, 2]])).toStrictEqual(
+      false
+    );
+  });
+
+  test("evaluate BinaryOperator.in with array of numbers including zero and value that is a false", () => {
+    expect(evaluate([BinaryOperator.in, false, [0, 1, 2]])).toStrictEqual(
+      false
+    );
+  });
+
   // TODO: Add more coverage for false evaluations.
   // describe("false expressions", () => {});
 
