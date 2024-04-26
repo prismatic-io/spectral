@@ -73,7 +73,10 @@ export const contains = (container: unknown, containee: unknown): boolean => {
   if (typeof container === "object" && container !== null) {
     if (Array.isArray(container)) {
       // Array member check.
-      return container.includes(containee);
+      return (
+        container.includes(containee) ||
+        container.includes(parseValue(containee))
+      );
     }
     // Object attribute check (set membership).
     return Object.prototype.hasOwnProperty.call(container, `${containee}`);
@@ -238,9 +241,9 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
         case BinaryOperator.lessThanOrEqual:
           return left <= right;
         case BinaryOperator.in:
-          return contains(right, left);
+          return contains(right, leftTerm);
         case BinaryOperator.notIn:
-          return !contains(right, left);
+          return !contains(right, leftTerm);
         case BinaryOperator.exactlyMatches:
           return left === right || _.isEqual(left, right);
         case BinaryOperator.doesNotExactlyMatch:
