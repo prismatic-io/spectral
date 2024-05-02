@@ -62,7 +62,7 @@ export type JSONForm = {
   /**
    * Optional default data to use in the inputs of your form
    */
-  data?: Record<string, unknown>;
+  data?: Record<string, unknown> | unknown[];
 };
 
 export type DynamicObjectSelection = string;
