@@ -205,7 +205,9 @@ type ConnectionDefinitionConfigVar = BaseConfigVar &
   Omit<ConnectionDefinition, "label" | "comments" | "key">;
 type ConnectionReferenceConfigVar<TComponents extends ComponentSelector<any>> =
   BaseConfigVar & {
-    connection: ToComponentReferences<"connection", TComponents>;
+    connection: ToComponentReferences<"connection", TComponents> & {
+      template?: string;
+    };
   };
 
 /** Defines attributes of a Config Var that represents a Connection. */
@@ -378,6 +380,7 @@ export interface ComponentReference<
   component: string | { key: string; isPublic: boolean };
   key: string;
   values?: { [key: string]: ValueReference<TValueType, TConfigPages> };
+  template?: string;
 }
 
 export const isComponentReference = (
