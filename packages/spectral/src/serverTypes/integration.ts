@@ -7,6 +7,7 @@ export interface ComponentReference {
     isPublic: boolean;
   };
   key: string;
+  template?: string;
 }
 
 export type Input =

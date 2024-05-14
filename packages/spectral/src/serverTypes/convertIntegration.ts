@@ -326,7 +326,7 @@ const convertConfigVar = (
       ...pick(configVar, ["stableKey", "description", "orgOnly"]),
       key,
       dataType: "connection",
-      connection: ref,
+      connection: { ...ref, template: configVar.connection.template },
       inputs,
     };
   }
