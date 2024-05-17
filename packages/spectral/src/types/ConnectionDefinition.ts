@@ -1,4 +1,4 @@
-import { ConnectionInput } from ".";
+import { ConnectionInput, OnPremConnectionInput } from ".";
 
 export enum OAuth2Type {
   ClientCredentials = "client_credentials",
@@ -24,13 +24,10 @@ export interface DefaultConnectionDefinition extends BaseConnectionDefinition {
   };
 }
 
-type OnPremiseConnectionInput = ConnectionInput & { onPremiseControlled: true };
-
-export interface OnPremiseConnectionDefinition
-  extends BaseConnectionDefinition {
+export interface OnPremConnectionDefinition extends BaseConnectionDefinition {
   inputs: {
-    host: OnPremiseConnectionInput;
-    port: OnPremiseConnectionInput;
+    host: OnPremConnectionInput;
+    port: OnPremConnectionInput;
     [key: string]: ConnectionInput;
   };
 }
@@ -68,5 +65,5 @@ export type OAuth2ConnectionDefinition =
 
 export type ConnectionDefinition =
   | DefaultConnectionDefinition
-  | OnPremiseConnectionDefinition
+  | OnPremConnectionDefinition
   | OAuth2ConnectionDefinition;

@@ -9,6 +9,7 @@ import {
   ComponentHooks,
   DataSourceDefinition,
   ConfigVarResultCollection,
+  OnPremConnectionInput,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -19,6 +20,7 @@ import {
   DataSource as ServerDataSource,
 } from ".";
 import { InputCleaners, createPerform } from "./perform";
+import { omit } from "lodash";
 
 export const convertInput = (
   key: string,
@@ -28,7 +30,7 @@ export const convertInput = (
     label,
     collection,
     ...rest
-  }: InputFieldDefinition
+  }: InputFieldDefinition | OnPremConnectionInput
 ): ServerInput => {
   const keyLabel =
     collection === "keyvaluelist" && typeof label === "object"
@@ -36,13 +38,15 @@ export const convertInput = (
       : undefined;
 
   return {
-    ...rest,
+    ...omit(rest, ["onPremControlled"]),
     key,
     type,
     default: defaultValue ?? InputFieldDefaultMap[type],
     collection,
     label: typeof label === "string" ? label : label.value,
     keyLabel,
+    onPremiseControlled:
+      ("onPremControlled" in rest && rest.onPremControlled) || undefined,
   };
 };
 
