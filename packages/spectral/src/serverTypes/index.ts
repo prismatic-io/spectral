@@ -206,7 +206,7 @@ export interface Connection {
   comments?: string;
   oauth2Type?: OAuth2Type;
   iconPath?: string;
-  inputs: (Input & { shown?: boolean; onPremiseControlled?: boolean })[];
+  inputs: (Input & { shown?: boolean; onPremControlled?: boolean })[];
 }
 
 export interface ConnectionValue {
@@ -288,4 +288,5 @@ export interface Input {
   required?: boolean;
   model?: InputFieldChoice[];
   language?: string;
+  onPremiseControlled?: boolean;
 }

@@ -1,7 +1,7 @@
 import { expectAssignable, expectNotAssignable } from "tsd";
-import { onPremiseConnection, OnPremiseConnectionDefinition } from "..";
+import { onPremConnection, OnPremConnectionDefinition } from "..";
 
-const valid = onPremiseConnection({
+const valid = onPremConnection({
   key: "basic",
   label: "Basic Connection",
   inputs: {
@@ -11,7 +11,7 @@ const valid = onPremiseConnection({
       type: "string",
       required: true,
       shown: true,
-      onPremiseControlled: true,
+      onPremControlled: true,
       example: "192.168.0.1",
     },
     port: {
@@ -20,7 +20,7 @@ const valid = onPremiseConnection({
       type: "string",
       required: true,
       shown: true,
-      onPremiseControlled: true,
+      onPremControlled: true,
       default: "1433",
     },
     username: {
@@ -39,7 +39,7 @@ const valid = onPremiseConnection({
     },
   },
 });
-expectAssignable<OnPremiseConnectionDefinition>(valid);
+expectAssignable<OnPremConnectionDefinition>(valid);
 
 const invalid = {
   key: "basic",
@@ -61,4 +61,4 @@ const invalid = {
     },
   },
 };
-expectNotAssignable<OnPremiseConnectionDefinition>(invalid);
+expectNotAssignable<OnPremConnectionDefinition>(invalid);
