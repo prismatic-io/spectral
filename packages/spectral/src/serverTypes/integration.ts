@@ -12,13 +12,13 @@ export interface ComponentReference {
 
 export type Input =
   | {
-      name?: string;
+      name?: string | Input;
       type: "value" | "reference" | "configVar" | "template";
       value: string;
       meta?: Record<string, unknown>;
     }
   | {
-      name?: string;
+      name?: string | Input;
       type: "complex";
       value: string | Input;
       meta?: Record<string, unknown>;

@@ -184,7 +184,16 @@ const convertComponentReference = <TValue>({
 
   const inputs = Object.entries(values ?? {}).reduce((result, [key, value]) => {
     if ("value" in value) {
-      return { ...result, [key]: { type: "value", value: value.value } };
+      const type = value.value instanceof Object ? "complex" : "value";
+      const valueExpr =
+        value.value instanceof Object && !Array.isArray(value.value)
+          ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
+              name: { type: "value", value: k },
+              type: "value",
+              value: v,
+            }))
+          : value.value;
+      return { ...result, [key]: { type: type, value: valueExpr } };
     }
     if ("configVar" in value) {
       return {
