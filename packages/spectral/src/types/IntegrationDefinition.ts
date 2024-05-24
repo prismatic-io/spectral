@@ -15,6 +15,7 @@ import {
   ObjectSelection,
   ConfigVarResultCollection,
   Schedule,
+  CollectionDataSourceType,
 } from ".";
 import { Prettify, UnionToIntersection, ValueOf } from "./utils";
 
@@ -156,23 +157,30 @@ type BaseConfigVar = {
   visibleToOrgDeployer?: boolean;
   /** Optional value that specifies whether this Config Var is visible to a Customer deployer. @default true */
   visibleToCustomerDeployer?: boolean;
+  /** Optional default value for the Config Var. */
+  defaultValue?: string;
+  /** Optional list of picklist values if the Config Var is a multi-choice selection value. */
+  pickList?: string[];
+  /** Optional value to specify the type of collection if the Config Var is multi-value. */
+  collectionType?: CollectionType;
 };
 
 /** Defines attributes of a standard Config Var. */
 export type StandardConfigVar = BaseConfigVar & {
   /** The data type of the Config Var. */
-  dataType: Exclude<ConfigVarDataType, "schedule">;
-  /** Optional default value for the Config Var. */
-  defaultValue?: string;
-  /** Optional list of picklist values if the Config Var is a multi-choice selection value. */
-  pickList?: string[];
-  /** Optional value to specify the type of language if the Config Var is a code value. */
-  codeLanguage?: CodeLanguageType;
-  /** Optional value to specify the type of collection if the Config Var is multi-value. */
-  collectionType?: CollectionType;
+  dataType: Exclude<ConfigVarDataType, "schedule" | "code">;
 };
 
-export type ScheduleConfigVar = BaseConfigVar & {
+export type CodeConfigVar = BaseConfigVar & {
+  /** The data type of the Config Var. */
+  dataType: "code";
+  /** Optional default value for the Config Var. */
+  defaultValue?: string;
+  /** Optional value to specify the type of language if the Config Var is a code value. */
+  codeLanguage?: CodeLanguageType;
+};
+
+export type ScheduleConfigVar = Omit<BaseConfigVar, "collectionType"> & {
   /** The data type of the Config Var. */
   dataType: "schedule";
   /** Optional default value for the Config Var. */
@@ -181,14 +189,25 @@ export type ScheduleConfigVar = BaseConfigVar & {
   timeZone?: string;
 };
 
-type DataSourceDefinitionConfigVar = BaseConfigVar &
+// Handle some data source types not supporting collections.
+type BaseDataSourceConfigVar =
+  | ({
+      dataSourceType: CollectionDataSourceType;
+    } & BaseConfigVar)
+  | ({
+      dataSourceType: Exclude<DataSourceType, CollectionDataSourceType>;
+    } & Omit<BaseConfigVar, "collectionType">);
+type DataSourceDefinitionConfigVar = BaseDataSourceConfigVar &
   Omit<
     DataSourceDefinition<Inputs, ConfigVarResultCollection, DataSourceType>,
-    "display" | "inputs" | "examplePayload"
+    | "display"
+    | "inputs"
+    | "examplePayload"
+    | "dataSourceType"
+    | "detailDataSource"
   >;
 type DataSourceReferenceConfigVar<TComponents extends ComponentSelector<any>> =
-  BaseConfigVar & {
-    dataSourceType: DataSourceType;
+  BaseDataSourceConfigVar & {
     dataSource: ToComponentReferences<
       "dataSource",
       TComponents,
@@ -201,10 +220,11 @@ export type DataSourceConfigVar<TComponents extends ComponentSelector<any>> =
   | DataSourceDefinitionConfigVar
   | DataSourceReferenceConfigVar<TComponents>;
 
-type ConnectionDefinitionConfigVar = BaseConfigVar &
+type BaseConnectionConfigVar = Omit<BaseConfigVar, "collectionType">;
+type ConnectionDefinitionConfigVar = BaseConnectionConfigVar &
   Omit<ConnectionDefinition, "label" | "comments" | "key">;
 type ConnectionReferenceConfigVar<TComponents extends ComponentSelector<any>> =
-  BaseConfigVar & {
+  BaseConnectionConfigVar & {
     connection: ToComponentReferences<"connection", TComponents> & {
       template?: string;
     };
@@ -217,9 +237,13 @@ export type ConnectionConfigVar<TComponents extends ComponentSelector<any>> =
 
 export type ConfigVar<TComponents extends ComponentSelector<any>> =
   | StandardConfigVar
+  | CodeConfigVar
   | ScheduleConfigVar
   | DataSourceConfigVar<TComponents>
   | ConnectionConfigVar<TComponents>;
+
+export const isCodeConfigVar = (cv: ConfigVar<any>): cv is CodeConfigVar =>
+  "dataType" in cv && cv.dataType === "code";
 
 export const isScheduleConfigVar = (
   cv: ConfigVar<any>
@@ -235,7 +259,9 @@ export const isDataSourceReferenceConfigVar = <
 >(
   cv: ConfigVar<TComponents>
 ): cv is DataSourceReferenceConfigVar<TComponents> =>
-  "dataSource" in cv && isComponentReference(cv.dataSource);
+  "dataSourceType" in cv &&
+  "dataSource" in cv &&
+  isComponentReference(cv.dataSource);
 
 export const isConnectionDefinitionConfigVar = (
   cv: ConfigVar<any>

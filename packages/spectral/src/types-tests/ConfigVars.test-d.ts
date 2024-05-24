@@ -1,5 +1,6 @@
-import { expectAssignable } from "tsd";
+import { expectAssignable, expectError } from "tsd";
 import type {
+  DataSourceConfigVar,
   ExtractConfigVars,
   GetElements,
 } from "../types/IntegrationDefinition";
@@ -66,3 +67,19 @@ expectAssignable<Connection>(null as unknown as ConnectionVars["A Connection"]);
 expectAssignable<Connection>(
   null as unknown as ConnectionVars["Ref Connection"]
 );
+
+// Subset of data source types support collections.
+expectAssignable<DataSourceConfigVar<any>>({
+  perform: async () => Promise.resolve({ result: "string" }),
+  stableKey: "ds",
+  dataSourceType: "picklist",
+  collectionType: "valuelist",
+});
+
+// Distinct subset of data source types does not support collections.
+expectError<DataSourceConfigVar<any>>({
+  perform: async () => Promise.resolve({ result: "string" }),
+  stableKey: "ds",
+  dataSourceType: "jsonForm",
+  collectionType: "valuelist",
+});
