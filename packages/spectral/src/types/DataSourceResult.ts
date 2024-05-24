@@ -16,6 +16,10 @@ type DataSourceTypeMap = {
 };
 
 export type DataSourceType = keyof DataSourceTypeMap;
+export type CollectionDataSourceType = Exclude<
+  DataSourceType,
+  "objectSelection" | "objectFieldMap" | "jsonForm"
+>;
 
 export type DataSourceResultType = DataSourceTypeMap[DataSourceType];
 

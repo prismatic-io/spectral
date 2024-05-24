@@ -278,9 +278,9 @@ const convertFlow = (
 };
 
 /** Converts a Config Var into the structure necessary for YAML generation. */
-const convertConfigVar = (
+const convertConfigVar = <TComponents extends ComponentSelector<any>>(
   key: string,
-  configVar: ConfigVar<any>,
+  configVar: ConfigVar<TComponents>,
   referenceKey: string
 ): ServerRequiredConfigVariable => {
   const meta = pick(configVar, [
