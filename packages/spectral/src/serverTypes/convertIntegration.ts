@@ -303,15 +303,13 @@ const convertConfigVar = (
             return result;
           }
 
-          const value = input.default
-            ? input.default
-            : input.collection
-            ? []
-            : "";
-
+          const defaultValue = input.collection ? [] : "";
           return {
             ...result,
-            [key]: { type: "value", value },
+            [key]: {
+              type: input.collection ? "complex" : "value",
+              value: input.default || defaultValue,
+            },
           };
         },
         {}
