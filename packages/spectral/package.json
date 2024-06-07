@@ -42,6 +42,7 @@
     "axios-retry": "3.9.1",
     "date-fns": "2.30.0",
     "form-data": "4.0.0",
+    "fs-extra": "11.2.0",
     "jest-mock": "29.7.0",
     "lodash": "4.17.21",
     "object-sizeof": "^2.6.4",
@@ -53,6 +54,8 @@
     "yaml": "2.3.4"
   },
   "devDependencies": {
+    "@types/ejs": "3.1.5",
+    "@types/fs-extra": "11.0.4",
     "@types/jest": "29.5.12",
     "@types/lodash": "4.17.0",
     "@types/node": "14.14.35",
@@ -62,6 +65,7 @@
     "@types/valid-url": "1.0.3",
     "@typescript-eslint/eslint-plugin": "5.18.0",
     "@typescript-eslint/parser": "5.18.0",
+    "ejs": "3.1.10",
     "eslint": "8.12.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-jest": "27.9.0",
