@@ -29,4 +29,5 @@ export * from "./UserAttributes";
 export * from "./IntegrationAttributes";
 export * from "./FlowAttributes";
 export * from "./IntegrationDefinition";
+export * from "./ComponentManifest";
 export * as serverTypes from "../serverTypes";
