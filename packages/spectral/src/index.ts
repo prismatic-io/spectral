@@ -24,10 +24,9 @@ import {
   ConfigVarResultCollection,
   TriggerPayload,
   DataSourceConfigVar,
-  ConfigPages,
   OnPremConnectionDefinition,
   ScheduleConfigVar,
-  ComponentSelector,
+  ComponentManifest,
 } from "./types";
 import { convertComponent } from "./serverTypes/convert";
 import { convertIntegration } from "./serverTypes/convertIntegration";
@@ -41,7 +40,7 @@ import { convertIntegration } from "./serverTypes/convertIntegration";
  * @returns This function returns an integration object that has the shape the Prismatic API expects.
  */
 export const integration = <
-  T extends IntegrationDefinition<any, any> = IntegrationDefinition<any, any>
+  T extends IntegrationDefinition = IntegrationDefinition
 >(
   definition: T
 ): ReturnType<typeof convertIntegration> => {
@@ -60,14 +59,8 @@ export const integration = <
  * @returns This function returns a flow object that has the shape the Prismatic API expects.
  */
 export const flow = <
-  TConfigPages extends ConfigPages<any> = ConfigPages<any>,
-  TComponents extends ComponentSelector<any> = ComponentSelector<any>,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
-  T extends Flow<TConfigPages, TComponents, TTriggerPayload> = Flow<
-    TConfigPages,
-    TComponents,
-    TTriggerPayload
-  >
+  T extends Flow<TTriggerPayload> = Flow<TTriggerPayload>
 >(
   definition: T
 ): T => definition;
@@ -78,20 +71,9 @@ export const flow = <
  * @param definition A Config Page type object.
  * @returns This function returns a config page object that has the shape the Prismatic API expects.
  */
-export const configPage = <T extends ConfigPage<any> = ConfigPage<any>>(
+export const configPage = <T extends ConfigPage = ConfigPage>(
   definition: T
 ): T => definition;
-
-/**
- * @returns Helper utility to create component references.
- */
-export const reference = <TComponents extends ComponentSelector<any>>(): {
-  connection: <T extends ConnectionConfigVar<TComponents>>(definition: T) => T;
-  dataSource: <T extends DataSourceConfigVar<TComponents>>(definition: T) => T;
-} => ({
-  connection: (definition) => definition,
-  dataSource: (definition) => definition,
-});
 
 /**
  * For information on writing Code Native Integrations, see
@@ -110,10 +92,10 @@ export const configVar = <T extends StandardConfigVar | ScheduleConfigVar>(
  * @returns This function returns a data source config var object that has the shape the Prismatic API expects.
  */
 export const dataSourceConfigVar = <
-  T extends DataSourceConfigVar<any> = DataSourceConfigVar<any>
+  TDataSourceConfigVar extends DataSourceConfigVar
 >(
-  definition: T
-): T => definition;
+  definition: TDataSourceConfigVar
+): TDataSourceConfigVar => definition;
 
 /**
  * For information on writing Code Native Integrations, see
@@ -122,8 +104,16 @@ export const dataSourceConfigVar = <
  * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
  */
 export const connectionConfigVar = <
-  T extends ConnectionConfigVar<any> = ConnectionConfigVar<any>
+  T extends ConnectionConfigVar = ConnectionConfigVar
 >(
+  definition: T
+): T => definition;
+
+/**
+ * @param definition A Component Manifest type object.
+ * @returns This function returns a component manifest object that has the shape the Prismatic API expects.
+ */
+export const componentManifest = <T extends ComponentManifest>(
   definition: T
 ): T => definition;
 

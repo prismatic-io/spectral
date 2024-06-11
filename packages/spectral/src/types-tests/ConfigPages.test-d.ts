@@ -12,31 +12,8 @@ import {
   JSONForm,
   ConfigVarResultCollection,
   TriggerPayload,
-  reference,
+  componentManifest,
 } from "..";
-
-interface ExampleConnection {
-  type: "connection";
-  component: "example";
-  key: "example-connection";
-  values: { foo: string };
-}
-interface ExampleDataSource {
-  type: "dataSource";
-  component: "data-source-example";
-  key: "example-data-source";
-  values: { bar: string };
-}
-interface ExampleTrigger {
-  type: "trigger";
-  component: "http";
-  key: "hmac";
-  values: {
-    secret: string;
-    secret2: string;
-  };
-}
-type Components = ExampleConnection | ExampleDataSource | ExampleTrigger;
 
 const configPages = {
   "First Page": configPage({
@@ -52,11 +29,11 @@ const configPages = {
           // more inputs
         },
       }),
-      "Ref Connection": reference<Components>().connection({
+      "Ref Connection": connectionConfigVar({
         stableKey: "ref-connection",
         connection: {
           component: "example",
-          key: "example-connection",
+          key: "exampleConnection",
           values: { foo: { value: "bar" } },
         },
       }),
@@ -92,12 +69,12 @@ const configPages = {
           });
         },
       }),
-      "Ref Data Source": reference<Components>().dataSource({
+      "Ref Data Source": dataSourceConfigVar({
         stableKey: "ref-data-source",
         dataSourceType: "jsonForm",
         dataSource: {
-          component: "data-source-example",
-          key: "example-data-source",
+          component: "example",
+          key: "exampleDataSource",
           values: { bar: { value: "foo" } },
         },
       }),
@@ -112,9 +89,84 @@ const configPages = {
     },
   }),
 };
-type ConfigPages = typeof configPages;
 
-const basicFlow = flow<ConfigPages>({
+export const componentRegistry = {
+  example: componentManifest({
+    key: "example",
+    public: true,
+    actions: {},
+    triggers: {},
+    dataSources: {
+      exampleDataSource: {
+        inputs: {
+          bar: "string",
+        },
+      },
+    },
+    connections: {
+      exampleConnection: {
+        inputs: {
+          foo: "string",
+        },
+      },
+    },
+  }),
+  slack: componentManifest({
+    key: "slack",
+    public: true,
+    actions: {},
+    triggers: {},
+    dataSources: {
+      selectChannels: {
+        inputs: {
+          connection: "string",
+          includeImChannels: "boolean",
+          includeMultiPartyImchannels: "boolean",
+          includePublicChannels: "boolean",
+          includePrivateChannels: "boolean",
+          showIdInDropdown: "boolean",
+        },
+      },
+    },
+    connections: {
+      slackOAuth: {
+        inputs: {
+          clientId: "string",
+          clientSecret: "string",
+          signingSecret: "string",
+        },
+      },
+    },
+  }),
+  http: componentManifest({
+    key: "http",
+    public: true,
+    actions: {},
+    triggers: {
+      hmac: {
+        inputs: {
+          secret: "string",
+          secret2: "string",
+        },
+      },
+    },
+    dataSources: {},
+    connections: {},
+  }),
+};
+
+type TConfigPages = typeof configPages;
+type TComponentRegistry = typeof componentRegistry;
+
+declare module ".." {
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface IntegrationDefinitionConfigPages extends TConfigPages {}
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface IntegrationDefinitionComponentRegistry extends TComponentRegistry {}
+}
+
+const basicFlow = flow({
   name: "Basic Flow",
   stableKey: "basic-flow",
   description: "This is a basic flow",
@@ -168,7 +220,7 @@ const basicFlow = flow<ConfigPages>({
   },
 });
 
-const triggerFlow = flow<ConfigPages, Components>({
+const triggerFlow = flow({
   name: "Trigger Flow",
   stableKey: "trigger-flow",
   description: "This is a trigger flow",
@@ -189,4 +241,5 @@ integration({
   name: "Config Pages",
   flows: [basicFlow, triggerFlow],
   configPages,
+  componentRegistry,
 });

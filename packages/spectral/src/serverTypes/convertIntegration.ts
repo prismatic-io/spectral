@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import YAML from "yaml";
 import { v4 as uuid } from "uuid";
 import { assign, camelCase, pick } from "lodash";
@@ -11,7 +10,6 @@ import {
   isDataSourceDefinitionConfigVar,
   isConnectionDefinitionConfigVar,
   isScheduleConfigVar,
-  ComponentSelector,
   isConnectionReferenceConfigVar,
   ComponentReference,
   isComponentReference,
@@ -24,6 +22,8 @@ import {
   Connection as ServerConnection,
   DataSource as ServerDataSource,
   Trigger as ServerTrigger,
+  TriggerPerformFunction,
+  TriggerEventFunction,
 } from ".";
 import { convertInput } from "./convert";
 import {
@@ -36,14 +36,14 @@ import {
 } from "./integration";
 
 export const convertIntegration = (
-  definition: IntegrationDefinition<ConfigPages<any>, ComponentSelector<any>>
+  definition: IntegrationDefinition
 ): ServerComponent => {
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
   // inline as part of the integration definition.
   const referenceKey = uuid();
 
-  const configVars: Record<string, ConfigVar<any>> = Object.assign(
+  const configVars: Record<string, ConfigVar> = Object.assign(
     {},
     ...Object.values(definition.configPages ?? {}).map(
       ({ elements }) => elements
@@ -61,7 +61,7 @@ export const convertIntegration = (
 };
 
 const convertConfigPages = (
-  pages: ConfigPages<any>
+  pages: ConfigPages
 ): ServerConfigPage[] | undefined => {
   if (!pages || !Object.keys(pages).length) {
     return;
@@ -91,9 +91,9 @@ const codeNativeIntegrationYaml = (
     triggerPreprocessFlowConfig,
     flows,
     configPages,
-  }: IntegrationDefinition<ConfigPages<any>, ComponentSelector<any>>,
+  }: IntegrationDefinition,
   referenceKey: string,
-  configVars: Record<string, ConfigVar<any>>
+  configVars: Record<string, ConfigVar>
 ): string => {
   // Find the preprocess flow config on the flow, if one exists.
   const preprocessFlows = flows.filter((flow) => flow.preprocessFlowConfig);
@@ -155,7 +155,7 @@ const codeNativeIntegrationYaml = (
       preprocessFlowConfig?.flowNameField
     ),
     flows: flows.map((flow) => convertFlow(flow, referenceKey)),
-    configPages: convertConfigPages(configPages ?? {}),
+    configPages: convertConfigPages(configPages ?? ({} as ConfigPages)),
   };
 
   return YAML.stringify(result);
@@ -165,7 +165,7 @@ const convertComponentReference = <TValue>({
   key,
   component: componentRef,
   values,
-}: ComponentReference<TValue, ConfigPages<any>>): {
+}: ComponentReference<TValue>): {
   ref: ServerComponentReference;
   inputs: Record<string, ServerInput>;
 } => {
@@ -212,7 +212,7 @@ const convertComponentReference = <TValue>({
 
 /** Converts a Flow into the structure necessary for YAML generation. */
 const convertFlow = (
-  flow: Flow<ConfigPages<any>, any>,
+  flow: Flow,
   referenceKey: string
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {
@@ -287,9 +287,9 @@ const convertFlow = (
 };
 
 /** Converts a Config Var into the structure necessary for YAML generation. */
-const convertConfigVar = <TComponents extends ComponentSelector<any>>(
+const convertConfigVar = (
   key: string,
-  configVar: ConfigVar<TComponents>,
+  configVar: ConfigVar,
   referenceKey: string
 ): ServerRequiredConfigVariable => {
   const meta = pick(configVar, [
@@ -408,14 +408,9 @@ const flowFunctionKey = (
 /** Creates the structure necessary to import a Component as part of a
  *  Code Native integration. */
 const codeNativeIntegrationComponent = (
-  {
-    name,
-    iconPath,
-    description,
-    flows = [],
-  }: IntegrationDefinition<ConfigPages<any>, ComponentSelector<any>>,
+  { name, iconPath, description, flows = [] }: IntegrationDefinition,
   referenceKey: string,
-  configVars: Record<string, ConfigVar<any>>
+  configVars: Record<string, ConfigVar>
 ): ServerComponent => {
   const convertedActions = flows.reduce<Record<string, ServerAction>>(
     (result, { name, onExecution }) => {
@@ -443,6 +438,7 @@ const codeNativeIntegrationComponent = (
       }
 
       const key = flowFunctionKey(name, "onTrigger");
+
       return {
         ...result,
         [key]: {
@@ -452,10 +448,10 @@ const codeNativeIntegrationComponent = (
             description:
               "The function that will be executed by the flow to return an HTTP response.",
           },
-          perform: onTrigger,
-          onInstanceDeploy,
+          perform: onTrigger as TriggerPerformFunction,
+          onInstanceDeploy: onInstanceDeploy as TriggerEventFunction,
           hasOnInstanceDeploy: !!onInstanceDeploy,
-          onInstanceDelete,
+          onInstanceDelete: onInstanceDeploy as TriggerEventFunction,
           hasOnInstanceDelete: !!onInstanceDelete,
           inputs: [],
           scheduleSupport: "valid",

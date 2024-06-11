@@ -14,9 +14,11 @@ export interface ComponentManifestAction {
 export interface ComponentManifestTrigger {
   inputs: Record<string, unknown>;
 }
+
 export interface ComponentManifestDataSource {
   inputs: Record<string, unknown>;
 }
+
 export interface ComponentManifestConnection {
   inputs: Record<string, unknown>;
 }

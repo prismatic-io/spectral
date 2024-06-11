@@ -32,9 +32,7 @@ import {
   TriggerEventFunctionReturn,
   Flow,
   ConfigVarResultCollection,
-  ConfigPages,
-  ExtractConfigVars,
-  ComponentSelector,
+  ConfigVars,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -339,11 +337,10 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
  * Runs the Trigger and then the Action function and returns the result of the Action.
  */
 export const invokeFlow = async <
-  TConfigPages extends ConfigPages<any>,
-  TConfigVars extends ConfigVarResultCollection = ExtractConfigVars<TConfigPages>,
+  TConfigVars extends ConfigVars = ConfigVars,
   TConfigVarValues extends TestConfigVarValues = ToTestValues<TConfigVars>
 >(
-  flow: Flow<TConfigPages, ComponentSelector<any>>,
+  flow: Flow,
   {
     configVars,
     context,
