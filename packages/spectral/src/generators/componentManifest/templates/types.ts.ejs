@@ -1,0 +1,11 @@
+import type {
+  ComponentReference,
+  ComponentSelector,
+  ConfigPages,
+  ConnectionReferenceConfigVar,
+  DataSourceReferenceConfigVar,
+} from "@prismatic-io/spectral";
+
+
+export type CreateComponentTrigger<TConfigPages extends ConfigPages<any>> =
+  ComponentReference<string, TConfigPages>;

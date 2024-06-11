@@ -1,0 +1,12 @@
+<%- include('../partials/imports.ejs', { imports, helpers }) -%>
+
+export interface <%= helpers.capitalizeFirstLetter(action.key) %>Props {
+<%- include('../partials/inputTypes.ejs', { inputs: action.inputs }) -%>
+}
+
+/**
+ * <%= action.label %>
+ *
+ * @description <%= action.description %>
+ */
+export const <%= action.key %> = (props: <%= helpers.capitalizeFirstLetter(action.key) %>Props) => {};

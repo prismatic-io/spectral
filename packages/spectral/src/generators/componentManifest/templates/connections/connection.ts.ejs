@@ -1,0 +1,35 @@
+import type {
+  CreateComponentManifestConnection,
+  ConnectionReferenceConfigVar,
+} from "@prismatic-io/spectral";
+<%- include('../partials/imports.ejs', { imports, helpers }) -%>
+
+export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Props {
+  type: "connection";
+  component: "<%= component.key %>";
+  key: "<%= connection.key %>";
+  values: {
+<%- include('../partials/inputTypes.ejs', { inputs: connection.inputs }) -%>
+  };
+}
+
+/**
+ * <%= connection.label %>
+ *
+ * @comments <%= connection.comments %>
+ */
+export const <%= connection.key %> = ({
+  values,
+  ...connectionProps
+}: CreateComponentManifestConnection<<%= helpers.capitalizeFirstLetter(connection.key) %>Props>): ConnectionReferenceConfigVar<<%= helpers.capitalizeFirstLetter(connection.key) %>Props> => ({
+  ...connectionProps,
+  connection: {
+    component: "<%= component.key %>",
+    key: "<%= connection.key %>",
+    values: {
+      <%_ connection.inputs.forEach((input) => { -%>
+      <%= input.key %>: values.<%= input.key %> ? { value: values.<%= input.key %> } : undefined,
+      <%_ }); -%>
+    },
+  },
+});

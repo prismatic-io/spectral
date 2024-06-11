@@ -197,6 +197,7 @@ type BaseDataSourceConfigVar =
   | ({
       dataSourceType: Exclude<DataSourceType, CollectionDataSourceType>;
     } & Omit<BaseConfigVar, "collectionType">);
+
 type DataSourceDefinitionConfigVar = BaseDataSourceConfigVar &
   Omit<
     DataSourceDefinition<Inputs, ConfigVarResultCollection, DataSourceType>,
@@ -206,14 +207,31 @@ type DataSourceDefinitionConfigVar = BaseDataSourceConfigVar &
     | "dataSourceType"
     | "detailDataSource"
   >;
-type DataSourceReferenceConfigVar<TComponents extends ComponentSelector<any>> =
-  BaseDataSourceConfigVar & {
-    dataSource: ToComponentReferences<
-      "dataSource",
-      TComponents,
-      ConfigPages<TComponents>
-    >;
-  };
+
+export type DataSourceReferenceConfigVar<
+  TComponents extends ComponentSelector<any>
+> = BaseDataSourceConfigVar & {
+  dataSource: ToComponentReferences<
+    "dataSource",
+    TComponents,
+    ConfigPages<TComponents>
+  >;
+};
+
+export type CreateComponentManifestDataSource<
+  T extends ComponentSelector<any>
+> =
+  | Pick<
+      DataSourceReferenceConfigVar<T>,
+      | "description"
+      | "orgOnly"
+      | "stableKey"
+      | "visibleToCustomerDeployer"
+      | "visibleToOrgDeployer"
+    > & {
+      dataSourceType: DataSourceType;
+      values: DataSourceReferenceConfigVar<T>["dataSource"]["values"];
+    };
 
 /** Defines attributes of a data source Config Var. */
 export type DataSourceConfigVar<TComponents extends ComponentSelector<any>> =
@@ -221,14 +239,31 @@ export type DataSourceConfigVar<TComponents extends ComponentSelector<any>> =
   | DataSourceReferenceConfigVar<TComponents>;
 
 type BaseConnectionConfigVar = Omit<BaseConfigVar, "collectionType">;
+
 type ConnectionDefinitionConfigVar = BaseConnectionConfigVar &
   Omit<ConnectionDefinition, "label" | "comments" | "key">;
-type ConnectionReferenceConfigVar<TComponents extends ComponentSelector<any>> =
-  BaseConnectionConfigVar & {
-    connection: ToComponentReferences<"connection", TComponents> & {
-      template?: string;
-    };
+
+export type ConnectionReferenceConfigVar<
+  TComponents extends ComponentSelector<any>
+> = BaseConnectionConfigVar & {
+  connection: ToComponentReferences<"connection", TComponents> & {
+    template?: string;
   };
+};
+
+export type CreateComponentManifestConnection<
+  T extends ComponentSelector<any>
+> =
+  | Pick<
+      ConnectionReferenceConfigVar<T>,
+      | "description"
+      | "orgOnly"
+      | "stableKey"
+      | "visibleToCustomerDeployer"
+      | "visibleToOrgDeployer"
+    > & {
+      values: T["values"];
+    };
 
 /** Defines attributes of a Config Var that represents a Connection. */
 export type ConnectionConfigVar<TComponents extends ComponentSelector<any>> =
@@ -413,3 +448,7 @@ export const isComponentReference = (
   ref: unknown
 ): ref is ComponentReference<any, ConfigPages<any>> =>
   typeof ref === "object" && ref !== null && "key" in ref && "component" in ref;
+
+export type CreateManifestComponentTrigger<
+  TConfigPages extends ConfigPages<any>
+> = ComponentReference<string, TConfigPages>;

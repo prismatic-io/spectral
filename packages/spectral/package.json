@@ -8,6 +8,9 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://prismatic.io",
+  "bin": {
+    "component-manifest": "./dist/generators/componentManifest/cli.js"
+  },
   "bugs": {
     "url": "https://github.com/prismatic-io/spectral"
   },
@@ -23,6 +26,9 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "yarn run format && yarn run lint && yarn run clean && tsc",
+    "build:templates": "copyfiles --error -u 1 src/**/templates/**/* dist",
+    "cli:permission": "chmod +x dist/generators/**/cli.js",
+    "postbuild": "yarn run build:templates && yarn run cli:permission",
     "prepack": "yarn run build",
     "format": "yarn run lint-fix && prettier --loglevel error --write 'src/**/*.ts' '*.{ts,js,json}' '!sidebars.{js,jse}'",
     "check-format": "prettier --check 'src/**/*.ts' '*.{ts,js,json}' '!sidebars.{js,jse}'",
@@ -41,6 +47,7 @@
     "axios": "1.6.2",
     "axios-retry": "3.9.1",
     "date-fns": "2.30.0",
+    "ejs": "^3.1.10",
     "form-data": "4.0.0",
     "jest-mock": "29.7.0",
     "lodash": "4.17.21",
@@ -53,6 +60,8 @@
     "yaml": "2.3.4"
   },
   "devDependencies": {
+    "@types/ejs": "^3.1.5",
+    "@types/fs-extra": "^11.0.4",
     "@types/jest": "29.5.12",
     "@types/lodash": "4.17.0",
     "@types/node": "14.14.35",
@@ -62,6 +71,7 @@
     "@types/valid-url": "1.0.3",
     "@typescript-eslint/eslint-plugin": "5.18.0",
     "@typescript-eslint/parser": "5.18.0",
+    "copyfiles": "^2.4.1",
     "eslint": "8.12.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-jest": "27.9.0",

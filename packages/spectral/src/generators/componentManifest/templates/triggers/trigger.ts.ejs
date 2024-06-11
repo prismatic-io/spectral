@@ -1,0 +1,12 @@
+<%- include('../partials/imports.ejs', { imports, helpers }) -%>
+
+export interface <%= helpers.capitalizeFirstLetter(trigger.key) %>Props {
+<%- include('../partials/inputTypes.ejs', { inputs: trigger.inputs }) -%>
+}
+
+/**
+ * <%= trigger.label %>
+ *
+ * @description <%= trigger.description %>
+ */
+export const <%= trigger.key %> = (props: <%= helpers.capitalizeFirstLetter(trigger.key) %>Props) => {};
