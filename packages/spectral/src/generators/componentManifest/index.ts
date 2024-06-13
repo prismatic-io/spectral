@@ -4,22 +4,27 @@ import { createConnections } from "./createConnections";
 import { createDataSources } from "./createDataSources";
 import { createStaticFiles } from "./createStaticFiles";
 import { createTriggers } from "./createTriggers";
+import { getComponentSignatureWithPrism } from "../utils/getComponentSignatureWithPrism";
 import { Component } from "../../serverTypes";
 
 interface CreateComponentManifestProps {
   component?: Component;
   dryRun: boolean;
-  signature: string | null;
+  includeSignature: boolean;
 }
 
-export const createComponentManifest = ({
+export const createComponentManifest = async ({
   component,
   dryRun = FLAG_DRY_RUN,
-  signature = null,
+  includeSignature,
 }: CreateComponentManifestProps) => {
   if (!component) {
     throw new Error("Component is required");
   }
+
+  const signature = includeSignature
+    ? await getComponentSignatureWithPrism()
+    : null;
 
   console.info(`Creating a component manifest for ${component.display.label}...
   `);

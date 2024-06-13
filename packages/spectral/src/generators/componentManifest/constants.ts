@@ -1,11 +1,11 @@
 import path from "path";
 import { readJsonSync } from "fs-extra";
 
-import { getFlagValue } from "../utils/getFlagValue";
-
 export const PROCESS_ARGS = process.argv.slice(3);
-export const FLAG_DRY_RUN = PROCESS_ARGS.includes("--dry-run") || false;
-export const FLAG_SIGNATURE_KEY = getFlagValue("--signature");
+export const FLAG_DRY_RUN = PROCESS_ARGS.includes("--dry-run") ?? false;
+export const FLAG_INCLUDE_SIGNATURE = PROCESS_ARGS.includes(
+  "--include-signature"
+);
 export const FLAG_HELP = PROCESS_ARGS.includes("--help");
 export const FLAG_HELP_TEXT = [
   { flag: "--help", description: "Show this help message." },
@@ -15,9 +15,9 @@ export const FLAG_HELP_TEXT = [
       "Perform a dry run without generating the component manifest. This provides a preview of what you could expect to happen when running the command without this flag.",
   },
   {
-    flag: "--signature",
+    flag: "--include-signature",
     description:
-      "The published component signature key. This indicates the component has been published to the Prismatic platform, allowing you to publish the Code Native Integrations (CNI) where this component manifest is used.",
+      "This will include the published component's signature key. Allowing you to publish the Code Native Integrations (CNI) where this component manifest is used.",
   },
 ];
 

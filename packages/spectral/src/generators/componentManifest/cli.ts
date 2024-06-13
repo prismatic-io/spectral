@@ -5,8 +5,8 @@ import {
   COMPONENT_DIST_DIR,
   FLAG_DRY_RUN,
   FLAG_HELP,
-  FLAG_SIGNATURE_KEY,
   FLAG_HELP_TEXT,
+  FLAG_INCLUDE_SIGNATURE,
 } from "./constants";
 import { createHelpFlagText } from "../utils/createHelpFlagText";
 
@@ -23,9 +23,13 @@ if (FLAG_HELP) {
   process.exit(0);
 }
 
-createComponentManifest({
-  dryRun: FLAG_DRY_RUN,
-  signature: FLAG_SIGNATURE_KEY,
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-var-requires
-  component: require(COMPONENT_DIST_DIR).default,
+(async () => {
+  await createComponentManifest({
+    dryRun: FLAG_DRY_RUN,
+    includeSignature: FLAG_INCLUDE_SIGNATURE,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-var-requires
+    component: require(COMPONENT_DIST_DIR).default,
+  });
+})().catch((error) => {
+  console.error(error);
 });

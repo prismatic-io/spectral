@@ -448,7 +448,3 @@ export const isComponentReference = (
   ref: unknown
 ): ref is ComponentReference<any, ConfigPages<any>> =>
   typeof ref === "object" && ref !== null && "key" in ref && "component" in ref;
-
-export type CreateManifestComponentTrigger<
-  TConfigPages extends ConfigPages<any>
-> = ComponentReference<string, TConfigPages>;

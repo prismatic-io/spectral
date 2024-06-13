@@ -1,4 +1,4 @@
-export const generateVersion = () => {
+export const generatePackageJsonVersion = () => {
   const now = new Date();
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1);
