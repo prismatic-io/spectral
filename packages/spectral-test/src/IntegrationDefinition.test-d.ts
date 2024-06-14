@@ -1,6 +1,6 @@
+import { integration } from "@prismatic-io/spectral";
+import { Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable } from "tsd";
-import { Component } from "../serverTypes";
-import { integration } from "..";
 
 const basicDefinition = integration({
   name: "Basic Code Native Integration",

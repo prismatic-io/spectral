@@ -1,4 +1,3 @@
-import { expectAssignable } from "tsd";
 import {
   Connection,
   ElementToRuntimeType,
@@ -8,7 +7,8 @@ import {
   ConnectionReference,
   TriggerReference,
   ActionReference,
-} from "..";
+} from "@prismatic-io/spectral";
+import { expectAssignable } from "tsd";
 
 // Test connection runtime type translation
 type DeterminedConnectionRuntimeType = ElementToRuntimeType<

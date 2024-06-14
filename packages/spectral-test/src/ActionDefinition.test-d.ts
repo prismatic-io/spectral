@@ -1,7 +1,11 @@
+import {
+  action,
+  ActionPerformDataReturn,
+  ActionPerformFunction,
+  ConfigVarResultCollection,
+  Inputs,
+} from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
-import { action, ActionPerformDataReturn } from "..";
-import { ActionPerformFunction } from "../types/ActionPerformFunction";
-import { ConfigVarResultCollection, Inputs } from "../types/Inputs";
 
 const inputs: Inputs = { foo: { label: "Foo", type: "string" } };
 

@@ -1,6 +1,10 @@
+import {
+  Connection,
+  input,
+  InputCleanFunction,
+  ConditionalExpression,
+} from "@prismatic-io/spectral";
 import { expectType } from "tsd";
-import { Connection, input, InputCleanFunction } from "..";
-import { ConditionalExpression } from "../types/conditional-logic";
 
 const omittedCollectionInput = input({
   label: "Omitted Collection",

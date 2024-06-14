@@ -1,11 +1,11 @@
-import { expectType } from "tsd";
 import {
   input,
   Connection,
   ActionInputParameters,
   ConditionalExpression,
-} from "..";
-import util from "../util";
+  util,
+} from "@prismatic-io/spectral";
+import { expectType } from "tsd";
 
 const inputs = {
   plain: input({

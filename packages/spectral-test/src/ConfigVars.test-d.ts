@@ -1,11 +1,11 @@
-import { expectAssignable, expectError } from "tsd";
 import type {
   DataSourceConfigVar,
   ConfigPages,
   ConfigVars,
-} from "../types/IntegrationDefinition";
-import { Connection } from "..";
-import { ValueOf } from "../types/utils";
+  Connection,
+} from "@prismatic-io/spectral";
+import { ValueOf } from "@prismatic-io/spectral/dist/types/utils";
+import { expectAssignable, expectError } from "tsd";
 
 (pages: ConfigPages) => {
   pages;
