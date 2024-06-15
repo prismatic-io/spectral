@@ -1,16 +1,8 @@
-import type {
-  CreateComponentManifestConnection,
-  ConnectionReferenceConfigVar,
-} from "@prismatic-io/spectral";
 <%- include('../partials/imports.ejs', { imports, helpers }) -%>
 
-export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Props {
-  type: "connection";
-  component: "<%= component.key %>";
-  key: "<%= connection.key %>";
-  values: {
+
+export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Values {
 <%- include('../partials/inputTypes.ejs', { inputs: connection.inputs }) -%>
-  };
 }
 
 /**
@@ -18,18 +10,6 @@ export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Props {
  *
  * @comments <%= connection.comments %>
  */
-export const <%= connection.key %> = ({
-  values,
-  ...connectionProps
-}: CreateComponentManifestConnection<<%= helpers.capitalizeFirstLetter(connection.key) %>Props>): ConnectionReferenceConfigVar<<%= helpers.capitalizeFirstLetter(connection.key) %>Props> => ({
-  ...connectionProps,
-  connection: {
-    component: "<%= component.key %>",
-    key: "<%= connection.key %>",
-    values: {
-      <%_ connection.inputs.forEach((input) => { -%>
-      <%= input.key %>: values.<%= input.key %> ? { value: values.<%= input.key %> } : undefined,
-      <%_ }); -%>
-    },
-  },
-});
+export const <%= connection.key %> = <TReturn>(_values: <%=
+helpers.capitalizeFirstLetter(connection.key) %>Values): Promise<TReturn> =>
+Promise.resolve<TReturn>({} as TReturn)

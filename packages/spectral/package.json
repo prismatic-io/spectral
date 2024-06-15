@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "8.1.7",
+  "version": "9.0.0",
   "description": "Utility library for building Prismatic components",
   "keywords": [
     "prismatic"
@@ -27,6 +27,7 @@
     "clean": "rm -rf dist",
     "build": "yarn run format && yarn run lint && yarn run clean && tsc",
     "build:templates": "copyfiles --error -u 1 src/**/templates/**/* dist",
+    "dev": "tsc -w",
     "cli:permission": "chmod +x dist/generators/**/cli.js",
     "postbuild": "yarn run build:templates && yarn run cli:permission",
     "prepack": "yarn run build",

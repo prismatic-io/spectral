@@ -1,16 +1,8 @@
-import type {
-  CreateComponentManifestDataSource,
-  DataSourceReferenceConfigVar
-} from "@prismatic-io/spectral";
 <%- include('../partials/imports.ejs', { imports, helpers }) -%>
 
-export interface <%= helpers.capitalizeFirstLetter(dataSource.key) %>Props {
-  type: "dataSource";
-  component: "<%= component.key %>";
-  key: "<%= dataSource.key %>";
-  values: {
+
+export interface <%= helpers.capitalizeFirstLetter(dataSource.key) %>Values {
 <%- include('../partials/inputTypes.ejs', { inputs: dataSource.inputs }) -%>
-  };
 }
 
 /**
@@ -18,19 +10,6 @@ export interface <%= helpers.capitalizeFirstLetter(dataSource.key) %>Props {
  *
  * @comments <%= dataSource.comments %>
  */
-export const <%= dataSource.key %> = ({
-  values,
-  ...dataSourceProps
-}: CreateComponentManifestDataSource<<%= helpers.capitalizeFirstLetter(dataSource.key) %>Props>): DataSourceReferenceConfigVar<<%= helpers.capitalizeFirstLetter(dataSource.key) %>Props> => ({
-  ...dataSourceProps,
-  dataSourceType: "string",
-  dataSource: {
-    component: "<%= component.key %>",
-    key: "<%= dataSource.key %>",
-    values: {
-      <%_ dataSource.inputs.forEach((input) => { -%>
-      <%= input.key %>: values.<%= input.key %> ? { value: values.<%= input.key %> } : undefined,
-      <%_ }); -%>
-    },
-  },
-});
+export const <%= dataSource.key %> = <TReturn>(_values: <%=
+helpers.capitalizeFirstLetter(dataSource.key) %>Values): Promise<TReturn> =>
+Promise.resolve<TReturn>({} as TReturn)
