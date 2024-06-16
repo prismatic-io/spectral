@@ -140,12 +140,12 @@ export const component = <TPublic extends boolean, TKey extends string>(
  */
 export const action = <
   TInputs extends Inputs,
-  TConfigVar extends ConfigVarResultCollection,
+  TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
   TReturn extends ActionPerformReturn<TAllowsBranching, unknown>
 >(
-  definition: ActionDefinition<TInputs, TConfigVar, TAllowsBranching, TReturn>
-): ActionDefinition<TInputs, TConfigVar, TAllowsBranching, TReturn> =>
+  definition: ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>
+): ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn> =>
   definition;
 
 /**
@@ -159,12 +159,12 @@ export const action = <
  */
 export const trigger = <
   TInputs extends Inputs,
-  TConfigVar extends ConfigVarResultCollection,
+  TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
   TResult extends TriggerResult<TAllowsBranching, TriggerPayload>
 >(
-  definition: TriggerDefinition<TInputs, TConfigVar, TAllowsBranching, TResult>
-): TriggerDefinition<TInputs, TConfigVar, TAllowsBranching, TResult> =>
+  definition: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult>
+): TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult> =>
   definition;
 
 /**

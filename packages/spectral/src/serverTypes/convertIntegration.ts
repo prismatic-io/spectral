@@ -14,6 +14,9 @@ import {
   ComponentReference,
   isComponentReference,
   isDataSourceReferenceConfigVar,
+  ComponentRegistry,
+  ComponentManifest,
+  ComponentManifestAction,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -24,6 +27,8 @@ import {
   Trigger as ServerTrigger,
   TriggerPerformFunction,
   TriggerEventFunction,
+  ActionPerformFunction,
+  ActionContext,
 } from ".";
 import { convertInput } from "./convert";
 import {
@@ -91,6 +96,7 @@ const codeNativeIntegrationYaml = (
     triggerPreprocessFlowConfig,
     flows,
     configPages,
+    componentRegistry = {},
   }: IntegrationDefinition,
   referenceKey: string,
   configVars: Record<string, ConfigVar>
@@ -154,7 +160,9 @@ const codeNativeIntegrationYaml = (
       hasPreprocessFlow ? "onExecution" : "payload",
       preprocessFlowConfig?.flowNameField
     ),
-    flows: flows.map((flow) => convertFlow(flow, referenceKey)),
+    flows: flows.map((flow) =>
+      convertFlow(flow, componentRegistry, referenceKey)
+    ),
     configPages: convertConfigPages(configPages ?? ({} as ConfigPages)),
   };
 
@@ -173,11 +181,13 @@ const convertComponentReference = <TValue>({
     typeof componentRef === "string"
       ? {
           key: componentRef,
+          // TODO: Update to use `signature` when support is added.
           version: "LATEST" as const,
           isPublic: true,
         }
       : {
           key: componentRef.key,
+          // TODO: Update to use `signature` when support is added.
           version: "LATEST" as const,
           isPublic: componentRef.isPublic,
         };
@@ -210,9 +220,18 @@ const convertComponentReference = <TValue>({
   };
 };
 
+const convertComponentRegistry = (componentRegistry: ComponentRegistry) =>
+  Object.values(componentRegistry).map(({ key, public: isPublic }) => ({
+    key,
+    // TODO: Update to use `signature` when support is added.
+    version: "LATEST" as const,
+    isPublic,
+  }));
+
 /** Converts a Flow into the structure necessary for YAML generation. */
 const convertFlow = (
   flow: Flow,
+  componentRegistry: ComponentRegistry,
   referenceKey: string
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {
@@ -240,6 +259,7 @@ const convertFlow = (
       key: flowFunctionKey(flow.name, "onTrigger"),
       component: {
         key: referenceKey,
+        // We always want to use latest for the CNI-backed trigger
         version: "LATEST",
         isPublic: false,
       },
@@ -253,7 +273,12 @@ const convertFlow = (
     const key = hasSchedule ? "schedule" : "webhook";
     triggerStep.action = {
       key,
-      component: { key: `${key}-triggers`, version: "LATEST", isPublic: true },
+      component: {
+        key: `${key}-triggers`,
+        // TODO: Determine how we intend to support management triggers.
+        version: "LATEST",
+        isPublic: true,
+      },
     };
   }
 
@@ -273,7 +298,12 @@ const convertFlow = (
   const actionStep: Record<string, unknown> = {
     action: {
       key: flowFunctionKey(flow.name, "onExecution"),
-      component: { key: referenceKey, version: "LATEST", isPublic: false },
+      component: {
+        key: referenceKey,
+        // We always want to use latest for the CNI-backed execution action
+        version: "LATEST",
+        isPublic: false,
+      },
     },
     name: "On Execution",
     stableKey: `${flow.stableKey}-onExecution`,
@@ -282,6 +312,8 @@ const convertFlow = (
   };
 
   result.steps = [triggerStep, actionStep];
+
+  result.supplementalComponents = convertComponentRegistry(componentRegistry);
 
   return result;
 };
@@ -303,7 +335,12 @@ const convertConfigVar = (
       key,
       dataType: "connection",
       connection: {
-        component: { key: referenceKey, version: "LATEST", isPublic: false },
+        component: {
+          key: referenceKey,
+          // We always want to use latest for the CNI-backed connection
+          version: "LATEST",
+          isPublic: false,
+        },
         key: camelCase(key),
       },
       inputs: Object.entries(configVar.inputs).reduce(
@@ -361,7 +398,12 @@ const convertConfigVar = (
     result.dataType = configVar.dataSourceType;
     result.dataSource = {
       key: camelCase(key),
-      component: { key: referenceKey, version: "LATEST", isPublic: false },
+      component: {
+        key: referenceKey,
+        // We always want to use latest for the CNI-backed data source
+        version: "LATEST",
+        isPublic: false,
+      },
     };
   }
 
@@ -405,10 +447,73 @@ const flowFunctionKey = (
   return `${flowKey}_${functionName}`;
 };
 
+type ComponentActionInvokeFunction = <TValues extends Record<string, unknown>>(
+  action: {
+    component: string;
+    action: string;
+    isPublic: boolean;
+    version: number;
+  },
+  context: ActionContext,
+  values: TValues
+) => Promise<unknown>;
+
+const convertOnExecution =
+  (
+    onExecution: ActionPerformFunction,
+    componentRegistry: ComponentRegistry
+  ): ServerActionPerformFunction =>
+  (context, params) => {
+    // @ts-expect-error _components isn't part of the public API
+    const { _components, ...remainingContext } = context;
+
+    const invoke = (_components as { invoke: ComponentActionInvokeFunction })
+      .invoke;
+
+    const componentMethods = Object.entries(componentRegistry).reduce<
+      Record<string, ComponentManifest["actions"]>
+    >((acc, [componentKey, { actions, public: isPublic }]) => {
+      return {
+        ...acc,
+        [componentKey]: Object.keys(actions).reduce<
+          Record<string, ComponentManifestAction>
+        >(
+          (acc, actionKey) => ({
+            ...acc,
+            [actionKey]: (values) => {
+              return invoke(
+                {
+                  component: componentKey,
+                  action: actionKey,
+                  isPublic,
+                  version: 2,
+                },
+                context,
+                values
+              );
+            },
+          }),
+          {}
+        ),
+      };
+    }, {});
+
+    return onExecution(
+      { ...remainingContext, components: componentMethods },
+      params
+    );
+  };
+
 /** Creates the structure necessary to import a Component as part of a
  *  Code Native integration. */
 const codeNativeIntegrationComponent = (
-  { name, iconPath, description, flows = [] }: IntegrationDefinition,
+  {
+    name,
+    iconPath,
+    description,
+    flows = [],
+    componentRegistry = {},
+  }: IntegrationDefinition,
   referenceKey: string,
   configVars: Record<string, ConfigVar>
 ): ServerComponent => {
@@ -423,7 +528,10 @@ const codeNativeIntegrationComponent = (
             label: `${name} - onExecution`,
             description: "The function that will be executed by the flow.",
           },
-          perform: onExecution as ServerActionPerformFunction,
+          perform: convertOnExecution(
+            onExecution as ServerActionPerformFunction,
+            componentRegistry
+          ),
           inputs: [],
         },
       };

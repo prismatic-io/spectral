@@ -128,6 +128,9 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
       };
     },
     ConfigVars,
+    {
+      [Key in keyof ComponentRegistry]: ComponentRegistry[Key]["actions"];
+    },
     false,
     ActionPerformReturn<false, unknown>
   >;
@@ -185,15 +188,9 @@ export type ComponentRegistry =
     : UnionToIntersection<
         keyof IntegrationDefinitionComponentRegistry extends infer TComponentKey
           ? TComponentKey extends keyof IntegrationDefinitionComponentRegistry
-            ? IntegrationDefinitionComponentRegistry[TComponentKey] extends ComponentManifest
-              ? {
-                  [Key in TComponentKey]: Omit<
-                    ComponentManifest,
-                    keyof IntegrationDefinitionComponentRegistry[TComponentKey]
-                  > &
-                    IntegrationDefinitionComponentRegistry[TComponentKey];
-                }
-              : never
+            ? {
+                [Key in TComponentKey]: IntegrationDefinitionComponentRegistry[TComponentKey];
+              }
             : never
           : never
       >;
@@ -209,11 +206,15 @@ type GetComponentRegistryPropertiesByType<
       ? TProperty extends keyof ComponentRegistry[TComponentKey]
         ? keyof ComponentRegistry[TComponentKey][TProperty] extends infer TComponentPropertyKey
           ? TComponentPropertyKey extends keyof ComponentRegistry[TComponentKey][TProperty]
-            ? ComponentRegistry[TComponentKey][TProperty][TComponentPropertyKey] extends ComponentManifest[TProperty][string]
+            ? ComponentRegistry[TComponentKey][TProperty][TComponentPropertyKey] extends (
+                ...args: any[]
+              ) => any
               ? {
                   component: TComponentKey;
                   key: TComponentPropertyKey;
-                  inputs: ComponentRegistry[TComponentKey][TProperty][TComponentPropertyKey]["inputs"];
+                  inputs: Parameters<
+                    ComponentRegistry[TComponentKey][TProperty][TComponentPropertyKey]
+                  >[0];
                 }
               : never
             : never
@@ -306,7 +307,10 @@ export type DataSourceConfigVar =
   | DataSourceDefinitionConfigVar
   | DataSourceReferenceConfigVar;
 
-type BaseConnectionConfigVar = Omit<BaseConfigVar, "collectionType">;
+type BaseConnectionConfigVar = Omit<BaseConfigVar, "collectionType"> & {
+  dataType: "connection";
+};
+
 type ConnectionDefinitionConfigVar = BaseConnectionConfigVar &
   Omit<ConnectionDefinition, "label" | "comments" | "key">;
 type ConnectionReferenceConfigVar = BaseConnectionConfigVar & {
@@ -347,7 +351,8 @@ export const isDataSourceReferenceConfigVar = (
 
 export const isConnectionDefinitionConfigVar = (
   cv: ConfigVar
-): cv is ConnectionDefinitionConfigVar => "inputs" in cv;
+): cv is ConnectionDefinitionConfigVar =>
+  "dataType" in cv && cv.dataType === "connection" && "inputs" in cv;
 
 export const isConnectionReferenceConfigVar = (
   cv: ConfigVar
@@ -363,11 +368,7 @@ export type ConfigPages = keyof IntegrationDefinitionConfigPages extends never
         ? TPageName extends keyof IntegrationDefinitionConfigPages
           ? IntegrationDefinitionConfigPages[TPageName] extends ConfigPage
             ? {
-                [Key in TPageName]: Omit<
-                  ConfigPage,
-                  keyof IntegrationDefinitionConfigPages[TPageName]
-                > &
-                  IntegrationDefinitionConfigPages[TPageName];
+                [Key in TPageName]: IntegrationDefinitionConfigPages[TPageName];
               }
             : never
           : never
