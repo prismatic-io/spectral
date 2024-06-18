@@ -1,0 +1,9 @@
+<% imports.forEach((item) => { -%>
+import { <%= item.key %> } from "./<%= item.key %>";
+<% }); -%>
+
+export default {
+  <%_ imports.forEach((item) => { -%>
+  <%= item.key %>,
+  <%_ }); -%>
+}

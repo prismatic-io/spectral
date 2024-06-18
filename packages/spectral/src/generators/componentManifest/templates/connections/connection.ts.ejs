@@ -1,0 +1,15 @@
+<%- include('../partials/imports.ejs', { imports, helpers }) -%>
+
+
+export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Values {
+<%- include('../partials/inputTypes.ejs', { inputs: connection.inputs }) -%>
+}
+
+/**
+ * <%= connection.label %>
+ *
+ * @comments <%= connection.comments %>
+ */
+export const <%= connection.key %> = <TReturn>(_values: <%=
+helpers.capitalizeFirstLetter(connection.key) %>Values): Promise<TReturn> =>
+Promise.resolve<TReturn>({} as TReturn)

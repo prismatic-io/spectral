@@ -1,0 +1,10 @@
+<% inputs.forEach((input) => { -%>
+  /**
+   * <%= input.label %>
+   *
+   <%_ input.properties.forEach((property) => { -%>
+   * @<%= property.key %> <%- property.value %>
+   <%_ }); -%>
+   */
+  <%= input.key %><%= input.required ? "" : "?" %>: <%- input.type.type ? input.type.type : input.type %>;
+<% }); -%>

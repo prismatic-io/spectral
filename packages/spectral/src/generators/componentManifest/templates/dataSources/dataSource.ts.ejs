@@ -1,0 +1,15 @@
+<%- include('../partials/imports.ejs', { imports, helpers }) -%>
+
+
+export interface <%= helpers.capitalizeFirstLetter(dataSource.key) %>Values {
+<%- include('../partials/inputTypes.ejs', { inputs: dataSource.inputs }) -%>
+}
+
+/**
+ * <%= dataSource.label %>
+ *
+ * @comments <%= dataSource.comments %>
+ */
+export const <%= dataSource.key %> = <TReturn>(_values: <%=
+helpers.capitalizeFirstLetter(dataSource.key) %>Values): Promise<TReturn> =>
+Promise.resolve<TReturn>({} as TReturn)
