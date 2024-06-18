@@ -26,7 +26,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "yarn run format && yarn run lint && yarn run clean && tsc",
-    "build:templates": "copyfiles --error -u 1 src/**/templates/**/* dist",
+    "build:templates": "copyfiles --error -u 1 src/**/templates/**/*.ejs dist",
     "dev": "tsc -w",
     "cli:permission": "chmod +x dist/generators/**/cli.js",
     "postbuild": "yarn run build:templates && yarn run cli:permission",
