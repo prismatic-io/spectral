@@ -238,7 +238,7 @@ type CreateComponentReference<
   TComponentRegistryPropertry extends {
     component: string;
     key: string;
-    inputs: Record<string, unknown>;
+    inputs: unknown;
   },
   TExpressionType extends ExpressionType
 > = {
@@ -383,7 +383,9 @@ export type ConfigVars = Prettify<
           ? TConfigPage extends ConfigPage
             ? {
                 [Key in keyof TConfigPage["elements"] as Key extends string
-                  ? Key
+                  ? TConfigPage["elements"][Key] extends ConfigVar
+                    ? Key
+                    : never
                   : never]: ElementToRuntimeType<TConfigPage["elements"][Key]>;
               }
             : never

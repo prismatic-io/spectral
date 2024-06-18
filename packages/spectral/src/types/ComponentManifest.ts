@@ -7,24 +7,10 @@ export interface ComponentManifest {
   connections: Record<string, ComponentManifestConnection>;
 }
 
-export type ComponentManifestAction = <TValues extends Record<string, unknown>>(
-  values: TValues
-) => Promise<unknown>;
+export type ComponentManifestAction = (values: any) => Promise<unknown>;
 
-export type ComponentManifestTrigger = <
-  TValues extends Record<string, unknown>
->(
-  values: TValues
-) => Promise<unknown>;
+export type ComponentManifestTrigger = (values: any) => Promise<unknown>;
 
-export type ComponentManifestDataSource = <
-  TValues extends Record<string, unknown>
->(
-  values: TValues
-) => Promise<unknown>;
+export type ComponentManifestDataSource = (values: any) => Promise<unknown>;
 
-export type ComponentManifestConnection = <
-  TValues extends Record<string, unknown>
->(
-  values: TValues
-) => Promise<unknown>;
+export type ComponentManifestConnection = (values: any) => Promise<unknown>;

@@ -14,6 +14,7 @@ export const configPages = {
   "First Page": configPage({
     elements: {
       "A Connection": connectionConfigVar({
+        dataType: "connection",
         stableKey: "a-connection",
         oauth2Type: OAuth2Type.AuthorizationCode,
         inputs: {
@@ -25,6 +26,7 @@ export const configPages = {
         },
       }),
       "Ref Connection": connectionConfigVar({
+        dataType: "connection",
         stableKey: "ref-connection",
         connection: {
           component: "example",
@@ -92,18 +94,12 @@ export const componentRegistry = {
     actions: {},
     triggers: {},
     dataSources: {
-      exampleDataSource: {
-        inputs: {
-          bar: "string",
-        },
-      },
+      exampleDataSource: (inputs: { bar: string }) =>
+        Promise.resolve<unknown>(inputs),
     },
     connections: {
-      exampleConnection: {
-        inputs: {
-          foo: "string",
-        },
-      },
+      exampleConnection: (inputs: { foo: string }) =>
+        Promise.resolve<unknown>(inputs),
     },
   }),
   slack: componentManifest({
@@ -112,25 +108,21 @@ export const componentRegistry = {
     actions: {},
     triggers: {},
     dataSources: {
-      selectChannels: {
-        inputs: {
-          connection: "string",
-          includeImChannels: "boolean",
-          includeMultiPartyImchannels: "boolean",
-          includePublicChannels: "boolean",
-          includePrivateChannels: "boolean",
-          showIdInDropdown: "boolean",
-        },
-      },
+      selectChannels: (inputs: {
+        connection: string;
+        includeImChannels: boolean;
+        includeMultiPartyImchannels: boolean;
+        includePublicChannels: boolean;
+        includePrivateChannels: boolean;
+        showIdInDropdown: boolean;
+      }) => Promise.resolve<unknown>(inputs),
     },
     connections: {
-      slackOAuth: {
-        inputs: {
-          clientId: "string",
-          clientSecret: "string",
-          signingSecret: "string",
-        },
-      },
+      slackOAuth: (inputs: {
+        clientId: string;
+        clientSecret: string;
+        signingSecret: string;
+      }) => Promise.resolve<unknown>(inputs),
     },
   }),
   http: componentManifest({
@@ -138,12 +130,8 @@ export const componentRegistry = {
     public: true,
     actions: {},
     triggers: {
-      hmac: {
-        inputs: {
-          secret: "string",
-          secret2: "string",
-        },
-      },
+      hmac: (inputs: { secret: string; secret2: string }) =>
+        Promise.resolve<unknown>(inputs),
     },
     dataSources: {},
     connections: {},

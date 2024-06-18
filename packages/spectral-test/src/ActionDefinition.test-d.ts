@@ -2,6 +2,7 @@ import {
   action,
   ActionPerformDataReturn,
   ActionPerformFunction,
+  ComponentManifestAction,
   ConfigVarResultCollection,
   Inputs,
 } from "@prismatic-io/spectral";
@@ -19,6 +20,7 @@ expectAssignable<
   ActionPerformFunction<
     Inputs,
     ConfigVarResultCollection,
+    Record<string, Record<string, ComponentManifestAction>>,
     boolean,
     ActionPerformDataReturn<unknown>
   >

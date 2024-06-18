@@ -5,6 +5,7 @@ import {
   ConfigVarResultCollection,
   Inputs,
 } from ".";
+import { ComponentManifestAction } from "./ComponentManifest";
 
 /**
  * ActionDefinition is the type of the object that is passed in to `action` function to
@@ -25,7 +26,7 @@ export interface ActionDefinition<
   perform: ActionPerformFunction<
     TInputs,
     TConfigVars,
-    {},
+    Record<string, Record<string, ComponentManifestAction>>,
     TAllowsBranching,
     TReturn
   >;
