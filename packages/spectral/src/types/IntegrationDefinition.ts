@@ -16,48 +16,42 @@ import {
   ConfigVarResultCollection,
   Schedule,
   CollectionDataSourceType,
+  ComponentManifest,
 } from ".";
-import { Prettify, UnionToIntersection, ValueOf } from "./utils";
+import { Prettify, UnionToIntersection } from "./utils";
 
-export type ToDataSourceRuntimeType<TType extends DataSourceType> =
-  TType extends "jsonForm"
-    ? JSONForm
-    : TType extends "objectSelection"
-    ? ObjectSelection
-    : TType extends "objectFieldMap"
-    ? ObjectFieldMap
-    : string;
+/**
+ * Root ComponentRegistry type exposed for augmentation.
+ *
+ * The expected interface when augmenting is:
+ *
+ * ```ts
+ * interface IntegrationDefinitionComponentRegistry {
+ *   [key: string]: ComponentManifest
+ * }
+ * ```
+ *
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface IntegrationDefinitionComponentRegistry {}
 
-export type ElementToRuntimeType<TElement extends ConfigPageElement<any>> =
-  TElement extends ConnectionConfigVar<any>
-    ? Connection
-    : TElement extends DataSourceConfigVar<any>
-    ? ToDataSourceRuntimeType<TElement["dataSourceType"]>
-    : TElement extends ScheduleConfigVar
-    ? Schedule
-    : TElement extends StandardConfigVar
-    ? string
-    : never;
-
-export type GetElements<TConfigPages extends ConfigPages<any>> =
-  TConfigPages extends ConfigPages<any>
-    ? UnionToIntersection<ValueOf<TConfigPages>["elements"]>
-    : never;
-
-export type ExtractConfigVars<
-  TConfigPages extends ConfigPages<any>,
-  TElements extends ConfigPage<any>["elements"] = GetElements<TConfigPages>
-> = Prettify<{
-  [Key in keyof TElements as Key extends string
-    ? Key
-    : never]: ElementToRuntimeType<TElements[Key]>;
-}>;
+/**
+ * Root ConfigPages type exposed for augmentation.
+ *
+ * The expected interface when augmenting is:
+ *
+ * ```ts
+ * interface IntegrationDefinitionConfigPages {
+ *   [key: string]: ConfigPage
+ * }
+ * ```
+ *
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface IntegrationDefinitionConfigPages {}
 
 /** Defines attributes of a Code-Native Integration. */
-export type IntegrationDefinition<
-  TConfigPages extends ConfigPages<TComponents>,
-  TComponents extends ComponentSelector<any>
-> = {
+export type IntegrationDefinition = {
   /** The unique name for this Integration. */
   name: string;
   /** Optional description for this Integration. */
@@ -80,17 +74,15 @@ export type IntegrationDefinition<
    *  Cannot specify this if a Preprocess Flow is also configured. */
   triggerPreprocessFlowConfig?: PreprocessFlowConfig;
   /** Flows for this Integration. */
-  flows: Flow<TConfigPages, TComponents>[];
+  flows: Flow[];
   /** Config Wizard Pages for this Integration. */
-  configPages?: TConfigPages;
+  configPages?: ConfigPages;
+
+  componentRegistry?: ComponentRegistry;
 };
 
 /** Defines attributes of a Flow of a Code-Native Integration. */
-export interface Flow<
-  TConfigPages extends ConfigPages<TComponents>,
-  TComponents extends ComponentSelector<any>,
-  TTriggerPayload extends TriggerPayload = TriggerPayload
-> {
+export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   /** The unique name for this Flow. */
   name: string;
   /** A unique, unchanging value that is used to maintain identity for the Flow even if the name changes. */
@@ -108,28 +100,24 @@ export interface Flow<
   /** Optional list of API key(s) to use for the endpoint of this Flow when the endpoint security type is EndpointSecurityType.Organization. */
   organizationApiKeys?: string[];
   /** Optional schedule configuration that defines the frequency with which this Flow will be automatically executed. */
-  schedule?: ValueReference<string, TConfigPages> & { timezone?: string };
+  schedule?: (ValueExpression<string> | ConfigVarExpression) & {
+    timezone?: string;
+  };
   /** Optional error handling configuration. */
   errorConfig?: StepErrorConfig;
   /** Specifies the trigger function for this Flow, which returns a payload and optional HTTP response. */
   onTrigger?:
-    | ToComponentReferences<"trigger", TComponents, TConfigPages>
+    | TriggerReference
     | TriggerPerformFunction<
         Inputs,
-        ExtractConfigVars<TConfigPages>,
+        ConfigVars,
         false,
         TriggerResult<false, TTriggerPayload>
       >;
   /** Specifies the function to execute when an Instance of this Integration is deployed. */
-  onInstanceDeploy?: TriggerEventFunction<
-    Inputs,
-    ExtractConfigVars<TConfigPages>
-  >;
+  onInstanceDeploy?: TriggerEventFunction<Inputs, ConfigVars>;
   /** Specifies the function to execute when an Instance of an Integration is deleted. */
-  onInstanceDelete?: TriggerEventFunction<
-    Inputs,
-    ExtractConfigVars<TConfigPages>
-  >;
+  onInstanceDelete?: TriggerEventFunction<Inputs, ConfigVars>;
   /** Specifies the main function for this Flow */
   onExecution: ActionPerformFunction<
     {
@@ -139,7 +127,10 @@ export interface Flow<
         clean: (value: unknown) => { results: TTriggerPayload };
       };
     },
-    ExtractConfigVars<TConfigPages>,
+    ConfigVars,
+    {
+      [Key in keyof ComponentRegistry]: ComponentRegistry[Key]["actions"];
+    },
     false,
     ActionPerformReturn<false, unknown>
   >;
@@ -189,6 +180,107 @@ export type ScheduleConfigVar = Omit<BaseConfigVar, "collectionType"> & {
   timeZone?: string;
 };
 
+export type ComponentRegistry =
+  keyof IntegrationDefinitionComponentRegistry extends never
+    ? {
+        [key: string]: ComponentManifest;
+      }
+    : UnionToIntersection<
+        keyof IntegrationDefinitionComponentRegistry extends infer TComponentKey
+          ? TComponentKey extends keyof IntegrationDefinitionComponentRegistry
+            ? {
+                [Key in TComponentKey]: IntegrationDefinitionComponentRegistry[TComponentKey];
+              }
+            : never
+          : never
+      >;
+
+type GetComponentRegistryPropertiesByType<
+  TProperty extends Extract<
+    keyof ComponentManifest,
+    "actions" | "triggers" | "dataSources" | "connections"
+  >
+> = keyof ComponentRegistry extends infer TComponentKey
+  ? TComponentKey extends keyof ComponentRegistry
+    ? TComponentKey extends string
+      ? TProperty extends keyof ComponentRegistry[TComponentKey]
+        ? keyof ComponentRegistry[TComponentKey][TProperty] extends infer TComponentPropertyKey
+          ? TComponentPropertyKey extends keyof ComponentRegistry[TComponentKey][TProperty]
+            ? ComponentRegistry[TComponentKey][TProperty][TComponentPropertyKey] extends (
+                ...args: any[]
+              ) => any
+              ? {
+                  component: TComponentKey;
+                  key: TComponentPropertyKey;
+                  inputs: Parameters<
+                    ComponentRegistry[TComponentKey][TProperty][TComponentPropertyKey]
+                  >[0];
+                }
+              : never
+            : never
+          : never
+        : never
+      : never
+    : never
+  : never;
+
+type ExpressionType = "value" | "configVar";
+
+type ExpressionTypeMap<
+  TValueType,
+  TMap extends Record<ExpressionType, unknown> = {
+    value: ValueExpression<TValueType>;
+    configVar: ConfigVarExpression;
+  }
+> = TMap;
+
+type CreateComponentReference<
+  TComponentRegistryPropertry extends {
+    component: string;
+    key: string;
+    inputs: unknown;
+  },
+  TExpressionType extends ExpressionType
+> = {
+  component: TComponentRegistryPropertry["component"];
+  key: TComponentRegistryPropertry["key"];
+  values: {
+    [Key in keyof TComponentRegistryPropertry["inputs"]]: TExpressionType extends infer TType
+      ? TType extends ExpressionType
+        ? ExpressionTypeMap<TComponentRegistryPropertry["inputs"][Key]>[TType]
+        : never
+      : never;
+  };
+};
+
+type ComponentRegistryTrigger =
+  GetComponentRegistryPropertiesByType<"triggers">;
+
+export type TriggerReference = CreateComponentReference<
+  ComponentRegistryTrigger,
+  "value" | "configVar"
+>;
+
+type ComponentRegistryAction = GetComponentRegistryPropertiesByType<"actions">;
+export type ActionReference = CreateComponentReference<
+  ComponentRegistryAction,
+  "value" | "configVar"
+>;
+
+type ComponentRegistryDataSource =
+  GetComponentRegistryPropertiesByType<"dataSources">;
+export type DataSourceReference = CreateComponentReference<
+  ComponentRegistryDataSource,
+  "value"
+>;
+
+type ComponentRegistryConnection =
+  GetComponentRegistryPropertiesByType<"connections">;
+export type ConnectionReference = CreateComponentReference<
+  ComponentRegistryConnection,
+  "value"
+>;
+
 // Handle some data source types not supporting collections.
 type BaseDataSourceConfigVar =
   | ({
@@ -206,90 +298,130 @@ type DataSourceDefinitionConfigVar = BaseDataSourceConfigVar &
     | "dataSourceType"
     | "detailDataSource"
   >;
-type DataSourceReferenceConfigVar<TComponents extends ComponentSelector<any>> =
-  BaseDataSourceConfigVar & {
-    dataSource: ToComponentReferences<
-      "dataSource",
-      TComponents,
-      ConfigPages<TComponents>
-    >;
-  };
+export type DataSourceReferenceConfigVar = BaseDataSourceConfigVar & {
+  dataSource: DataSourceReference;
+};
 
 /** Defines attributes of a data source Config Var. */
-export type DataSourceConfigVar<TComponents extends ComponentSelector<any>> =
+export type DataSourceConfigVar =
   | DataSourceDefinitionConfigVar
-  | DataSourceReferenceConfigVar<TComponents>;
+  | DataSourceReferenceConfigVar;
 
-type BaseConnectionConfigVar = Omit<BaseConfigVar, "collectionType">;
+type BaseConnectionConfigVar = Omit<BaseConfigVar, "collectionType"> & {
+  dataType: "connection";
+};
+
 type ConnectionDefinitionConfigVar = BaseConnectionConfigVar &
   Omit<ConnectionDefinition, "label" | "comments" | "key">;
-type ConnectionReferenceConfigVar<TComponents extends ComponentSelector<any>> =
-  BaseConnectionConfigVar & {
-    connection: ToComponentReferences<"connection", TComponents> & {
-      template?: string;
-    };
+type ConnectionReferenceConfigVar = BaseConnectionConfigVar & {
+  connection: ConnectionReference & {
+    template?: string;
   };
+};
 
 /** Defines attributes of a Config Var that represents a Connection. */
-export type ConnectionConfigVar<TComponents extends ComponentSelector<any>> =
+export type ConnectionConfigVar =
   | ConnectionDefinitionConfigVar
-  | ConnectionReferenceConfigVar<TComponents>;
+  | ConnectionReferenceConfigVar;
 
-export type ConfigVar<TComponents extends ComponentSelector<any>> =
+export type ConfigVar =
   | StandardConfigVar
   | CodeConfigVar
   | ScheduleConfigVar
-  | DataSourceConfigVar<TComponents>
-  | ConnectionConfigVar<TComponents>;
+  | DataSourceConfigVar
+  | ConnectionConfigVar;
 
-export const isCodeConfigVar = (cv: ConfigVar<any>): cv is CodeConfigVar =>
+export const isCodeConfigVar = (cv: ConfigVar): cv is CodeConfigVar =>
   "dataType" in cv && cv.dataType === "code";
 
-export const isScheduleConfigVar = (
-  cv: ConfigVar<any>
-): cv is ScheduleConfigVar => "dataType" in cv && cv.dataType === "schedule";
+export const isScheduleConfigVar = (cv: ConfigVar): cv is ScheduleConfigVar =>
+  "dataType" in cv && cv.dataType === "schedule";
 
 export const isDataSourceDefinitionConfigVar = (
-  cv: ConfigVar<any>
+  cv: ConfigVar
 ): cv is DataSourceDefinitionConfigVar =>
   "dataSourceType" in cv && "perform" in cv && typeof cv.perform === "function";
 
-export const isDataSourceReferenceConfigVar = <
-  TComponents extends ComponentSelector<any>
->(
-  cv: ConfigVar<TComponents>
-): cv is DataSourceReferenceConfigVar<TComponents> =>
+export const isDataSourceReferenceConfigVar = (
+  cv: ConfigVar
+): cv is DataSourceReferenceConfigVar =>
   "dataSourceType" in cv &&
   "dataSource" in cv &&
   isComponentReference(cv.dataSource);
 
 export const isConnectionDefinitionConfigVar = (
-  cv: ConfigVar<any>
-): cv is ConnectionDefinitionConfigVar => "inputs" in cv;
+  cv: ConfigVar
+): cv is ConnectionDefinitionConfigVar =>
+  "dataType" in cv && cv.dataType === "connection" && "inputs" in cv;
 
-export const isConnectionReferenceConfigVar = <
-  TComponents extends ComponentSelector<any>
->(
-  cv: ConfigVar<TComponents>
-): cv is ConnectionReferenceConfigVar<TComponents> =>
+export const isConnectionReferenceConfigVar = (
+  cv: ConfigVar
+): cv is ConnectionReferenceConfigVar =>
   "connection" in cv && isComponentReference(cv.connection);
 
-export type ConfigPageElement<TComponents extends ComponentSelector<any>> =
-  | string
-  | ConfigVar<TComponents>;
+export type ConfigPageElement = string | ConfigVar;
 
-export type ConfigPages<TComponents extends ComponentSelector<any>> = Record<
-  string,
-  ConfigPage<TComponents>
+export type ConfigPages = keyof IntegrationDefinitionConfigPages extends never
+  ? { [key: string]: ConfigPage }
+  : UnionToIntersection<
+      keyof IntegrationDefinitionConfigPages extends infer TPageName
+        ? TPageName extends keyof IntegrationDefinitionConfigPages
+          ? IntegrationDefinitionConfigPages[TPageName] extends ConfigPage
+            ? {
+                [Key in TPageName]: IntegrationDefinitionConfigPages[TPageName];
+              }
+            : never
+          : never
+        : never
+    >;
+
+export type ConfigVars = Prettify<
+  UnionToIntersection<
+    keyof ConfigPages extends infer TPageName
+      ? TPageName extends keyof ConfigPages
+        ? ConfigPages[TPageName] extends infer TConfigPage
+          ? TConfigPage extends ConfigPage
+            ? {
+                [Key in keyof TConfigPage["elements"] as Key extends string
+                  ? TConfigPage["elements"][Key] extends ConfigVar
+                    ? Key
+                    : never
+                  : never]: ElementToRuntimeType<TConfigPage["elements"][Key]>;
+              }
+            : never
+          : never
+        : never
+      : never
+  >
 >;
 
+export type ToDataSourceRuntimeType<TType extends DataSourceType> =
+  TType extends "jsonForm"
+    ? JSONForm
+    : TType extends "objectSelection"
+    ? ObjectSelection
+    : TType extends "objectFieldMap"
+    ? ObjectFieldMap
+    : string;
+
+export type ElementToRuntimeType<TElement extends ConfigPageElement> =
+  TElement extends ConnectionConfigVar
+    ? Connection
+    : TElement extends DataSourceConfigVar
+    ? ToDataSourceRuntimeType<TElement["dataSourceType"]>
+    : TElement extends ScheduleConfigVar
+    ? Schedule
+    : TElement extends StandardConfigVar
+    ? string
+    : never;
+
 /** Defines attributes of a Config Wizard Page used when deploying an Instance of an Integration. */
-export type ConfigPage<TComponents extends ComponentSelector<any>> = {
+export interface ConfigPage {
   /** Elements included on this Config Page. */
-  elements: Record<string, ConfigPageElement<TComponents>>;
+  elements: Record<string, ConfigPageElement>;
   /** Specifies an optional tagline for this Config Page. */
   tagline?: string;
-};
+}
 
 /** Defines attributes of a Preprocess Flow Configuration used by a Flow of an Integration. */
 export type PreprocessFlowConfig = {
@@ -363,53 +495,17 @@ export type CollectionType = "valuelist" | "keyvaluelist";
 /** Choices of component reference types. */
 export type ComponentSelectorType = "trigger" | "connection" | "dataSource";
 
-export type ValueReference<
-  TValueType,
-  TConfigPages extends ConfigPages<any>,
-  TConfigVarKeys = keyof ExtractConfigVars<TConfigPages>
-> =
-  | { value: TValueType }
-  | (TConfigPages extends ConfigPages<any>
-      ? { configVar: TConfigVarKeys }
-      : never);
+export type ConfigVarExpression = { configVar: keyof ConfigVars };
+export type ValueExpression<TValueType> = { value: TValueType };
 
-export interface ComponentSelector<TValueType> {
-  type: ComponentSelectorType;
+export interface ComponentReference<TValueType> {
   component: string | { key: string; isPublic: boolean };
   key: string;
-  values?: { [key: string]: TValueType };
-}
-
-export type ToComponentReferences<
-  TReferenceType extends ComponentSelectorType,
-  TComponents extends ComponentSelector<any>,
-  TConfigPages extends ConfigPages<TComponents> = never
-> = TComponents extends ComponentSelector<infer TValueType>
-  ? TComponents["type"] extends TReferenceType
-    ? {
-        component: TComponents["component"];
-        key: TComponents["key"];
-        values: {
-          [K in keyof TComponents["values"]]: ValueReference<
-            TValueType,
-            TConfigPages
-          >;
-        };
-      }
-    : never
-  : never;
-
-export interface ComponentReference<
-  TValueType,
-  TConfigPages extends ConfigPages<any>
-> {
-  component: string | { key: string; isPublic: boolean };
-  key: string;
-  values?: { [key: string]: ValueReference<TValueType, TConfigPages> };
+  values?: { [key: string]: ValueExpression<TValueType> | ConfigVarExpression };
   template?: string;
 }
 
 export const isComponentReference = (
   ref: unknown
-): ref is ComponentReference<any, ConfigPages<any>> =>
+): ref is ComponentReference<any> =>
   typeof ref === "object" && ref !== null && "key" in ref && "component" in ref;

@@ -32,9 +32,8 @@ import {
   TriggerEventFunctionReturn,
   Flow,
   ConfigVarResultCollection,
-  ConfigPages,
-  ExtractConfigVars,
-  ComponentSelector,
+  ConfigVars,
+  ComponentManifest,
 } from "./types";
 import { spyOn } from "jest-mock";
 
@@ -80,16 +79,23 @@ export const loggerMock = (): ActionLogger => ({
   error: spyOn(console, "error") as unknown as ActionLoggerFunction,
 });
 
-const createActionContext = <TConfigVars extends ConfigVarResultCollection>(
+const createActionContext = <
+  TConfigVars extends ConfigVarResultCollection,
+  TComponentActions extends Record<
+    string,
+    ComponentManifest["actions"]
+  > = Record<string, ComponentManifest["actions"]>
+>(
   context?: Partial<ActionContext<TConfigVars>>
-): ActionContext<TConfigVars> => {
+): ActionContext<TConfigVars, TComponentActions> => {
   return {
     logger: loggerMock(),
     instanceState: {},
     crossFlowState: {},
     executionState: {},
     integrationState: {},
-    configVars: {} as unknown as TConfigVars,
+    configVars: {} as unknown as any,
+    components: {} as unknown as any,
     stepId: "mockStepId",
     executionId: "mockExecutionId",
     webhookUrls: {
@@ -339,11 +345,10 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
  * Runs the Trigger and then the Action function and returns the result of the Action.
  */
 export const invokeFlow = async <
-  TConfigPages extends ConfigPages<any>,
-  TConfigVars extends ConfigVarResultCollection = ExtractConfigVars<TConfigPages>,
+  TConfigVars extends ConfigVars = ConfigVars,
   TConfigVarValues extends TestConfigVarValues = ToTestValues<TConfigVars>
 >(
-  flow: Flow<TConfigPages, ComponentSelector<any>>,
+  flow: Flow,
   {
     configVars,
     context,

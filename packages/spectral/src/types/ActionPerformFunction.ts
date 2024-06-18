@@ -9,22 +9,28 @@ import {
   UserAttributes,
   IntegrationAttributes,
   FlowAttributes,
+  ComponentManifest,
 } from ".";
 
 /** Definition of the function to perform when an Action is invoked. */
 export type ActionPerformFunction<
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
+  TComponentActions extends Record<string, ComponentManifest["actions"]>,
   TAllowsBranching extends boolean | undefined,
   TReturn extends ActionPerformReturn<TAllowsBranching, unknown>
 > = (
-  context: ActionContext<TConfigVars>,
+  context: ActionContext<TConfigVars, TComponentActions>,
   params: ActionInputParameters<TInputs>
 ) => Promise<TReturn>;
 
 /** Context provided to perform method containing helpers and contextual data */
 export type ActionContext<
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TComponentActions extends Record<
+    string,
+    ComponentManifest["actions"]
+  > = Record<string, ComponentManifest["actions"]>
 > = {
   /** Logger for permanent logging; console calls are also captured */
   logger: ActionLogger;
@@ -38,6 +44,8 @@ export type ActionContext<
   integrationState: Record<string, unknown>;
   /** Key/value collection of config variables of the integration. */
   configVars: TConfigVars;
+  /** Available component actions registered in the `componentRegistry`. */
+  components: TComponentActions;
   /** A unique id that corresponds to the step on the Integration */
   stepId: string;
   /** A unique id that corresponds to the specific execution of the Integration */
