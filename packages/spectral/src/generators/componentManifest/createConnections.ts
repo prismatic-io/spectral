@@ -1,6 +1,5 @@
 import path from "path";
 
-import { DESTINATION_DIR, SOURCE_DIR } from "./constants";
 import { Input, getInputs } from "./getInputs";
 import { Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
@@ -17,15 +16,19 @@ const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
 interface CreateConnectionsProps {
   component: Component;
   dryRun: boolean;
+  sourceDir: string;
+  destinationDir: string;
 }
 
-export const createConnections = ({
+export const createConnections = async ({
   component,
   dryRun,
+  sourceDir,
+  destinationDir,
 }: CreateConnectionsProps) => {
   console.info("Creating connections...");
 
-  const connectionIndex = renderConnectionsIndex({
+  const connectionIndex = await renderConnectionsIndex({
     connections: Object.entries(component.connections).map(
       ([connectionKey, connection]) => {
         return {
@@ -34,33 +37,39 @@ export const createConnections = ({
       }
     ),
     dryRun,
+    sourceDir,
+    destinationDir,
   });
 
-  const connections = component.connections.map((connection) => {
-    const inputs = getInputs({
-      inputs: connection.inputs,
-      documentProperties: DOCUMENT_PROPERTIES,
-    });
-    const imports = getImports({ inputs });
+  const connections = await Promise.all(
+    component.connections.map(async (connection) => {
+      const inputs = getInputs({
+        inputs: connection.inputs,
+        documentProperties: DOCUMENT_PROPERTIES,
+      });
+      const imports = getImports({ inputs });
 
-    return renderConnection({
-      connection: {
-        key: connection.key,
-        label: connection.label,
-        comments: connection.comments,
-        inputs,
-      },
-      imports,
-      dryRun,
-    });
-  });
+      return await renderConnection({
+        connection: {
+          key: connection.key,
+          label: connection.label,
+          comments: connection.comments,
+          inputs,
+        },
+        imports,
+        dryRun,
+        sourceDir,
+        destinationDir,
+      });
+    })
+  );
 
   console.info("");
 
-  return {
+  return Promise.resolve({
     connectionIndex,
     connections,
-  };
+  });
 };
 
 interface RenderConnectionsIndexProps {
@@ -68,15 +77,19 @@ interface RenderConnectionsIndexProps {
     key: string;
   }[];
   dryRun: boolean;
+  sourceDir: string;
+  destinationDir: string;
 }
 
 const renderConnectionsIndex = async ({
   connections,
   dryRun,
+  sourceDir,
+  destinationDir,
 }: RenderConnectionsIndexProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "connections", "index.ts.ejs"),
-    destination: path.join(DESTINATION_DIR, "connections", "index.ts"),
+    source: path.join(sourceDir, "connections", "index.ts.ejs"),
+    destination: path.join(destinationDir, "connections", "index.ts"),
     data: {
       connections,
     },
@@ -93,17 +106,21 @@ interface RenderConnectionProps {
   };
   dryRun: boolean;
   imports: Imports;
+  sourceDir: string;
+  destinationDir: string;
 }
 
 const renderConnection = async ({
   connection,
   dryRun,
   imports,
+  sourceDir,
+  destinationDir,
 }: RenderConnectionProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "connections", "connection.ts.ejs"),
+    source: path.join(sourceDir, "connections", "connection.ts.ejs"),
     destination: path.join(
-      DESTINATION_DIR,
+      destinationDir,
       "connections",
       `${connection.key}.ts`
     ),

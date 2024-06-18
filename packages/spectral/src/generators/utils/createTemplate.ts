@@ -21,22 +21,33 @@ export const createTemplate = async ({
 
   try {
     if (path.extname(source) === ".ejs") {
-      console.info(`Rendering ${source} to ${destination}`);
-
       const rendered = await renderFile(source, data);
 
       if (dryRun) {
-        return console.info("Rendered Template:", rendered);
-      }
-
-      await outputFile(destination, rendered, { encoding: "utf-8" });
-    } else {
-      console.info(`Copying ${source} to ${destination}`);
-
-      if (dryRun) {
+        console.info("");
+        console.info("");
+        console.info(`Rendering ${source} to ${destination}`);
+        console.info(
+          "---------------------------- Start ----------------------------"
+        );
+        console.info(rendered);
+        console.info(
+          "---------------------------- End ----------------------------"
+        );
+        console.info("");
         return;
       }
 
+      console.info(`Rendering ${source} to ${destination}`);
+      await outputFile(destination, rendered, { encoding: "utf-8" });
+    } else {
+      if (dryRun) {
+        console.info("");
+        console.info(`Copying ${source} to ${destination}`);
+        return;
+      }
+
+      console.info(`Copying ${source} to ${destination}`);
       await mkdirp(path.dirname(destination));
       await copyFile(source, destination);
     }

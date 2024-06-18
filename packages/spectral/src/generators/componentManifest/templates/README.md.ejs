@@ -12,7 +12,7 @@ This package contains the Component Manifest for the **<%= component.label %>** 
 
 ```typescript
 import { integration } from "@prismatic-io/spectral";
-import <%= component.key %> from "@components/<%= component.key %>-manifest";
+import <%= component.key %> from "<%= packageName %>";
 
 import { configPages } from './configPages'
 export { configPages } from './configPages'
@@ -20,7 +20,6 @@ export { configPages } from './configPages'
 export const componentRegistry = {
   <%= component.key %>
 };
-
 
 export default integration({
   name: "Integration Name",
@@ -94,7 +93,7 @@ export const myFlow = flow({
 
 ```typescript
 import { configPage } from "@prismatic-io/spectral";
-import { slackDataSource } from "@components/<%= component.key %>-manifest/dataSources";
+import { slackDataSource } from "<%= packageName %>/dataSources";
 
 export const configPages = {
   "Slack Config": configPage({
@@ -119,7 +118,7 @@ export const configPages = {
 
 ```typescript
 import { configPage } from "@prismatic-io/spectral";
-import { slackConnection } from "@component/<%= component.key %>-type-manifest/connections";
+import { slackConnection } from "<%= packageName %>/connections";
 
 export const configPages = {
   Connections: configPage({
@@ -155,12 +154,12 @@ There are two modes for this package:
 **For public components:**
 
 ```bash
-npm install @components/<%= component.key %>-manifest
+npm install <%= packageName %>
 ```
 
 **For private components:**
 
-- If you're installing from a private registry, install the `@components/<%= component.key %>-manifest` however you normally install your packages from your own registry.
+- If you're installing from a private registry, install the `<%= packageName %>` however you normally install your packages from your own registry.
 
 **Alternatively, install from a local package or tarball.**
 
@@ -172,7 +171,7 @@ npm install @components/<%= component.key %>-manifest
 
 **Steps:**
 
-1. From the new `<%= component.key %>-manifest` directory, create a symlink to the global module directory:
+1. From the new `<%= packageName %>` directory, create a symlink to the global module directory:
 
 ```bash
 npm link;
@@ -181,12 +180,12 @@ npm link;
 2. From the Code Native Integration directory, link the local package:
 
 ```bash
-npm link @components/<%= component.key %>-manifest;
+npm link <%= packageName %>;
 ```
 
 ### Install from local tarball package
 
-1. From the new `<%= component.key %>-manifest` directory, create a tarball package:
+1. From the new `<%= packageName %>` directory, create a tarball package:
 
 ```bash
 npm pack;

@@ -6,7 +6,11 @@ import triggers from "./triggers";
 export default {
   key: "<%= component.key %>",
   public: <%= component.public %>,
+  <%_ if (component.signature) { -%>
   signature: "<%= component.signature %>",
+  <%_ } else { -%>
+  signature: null,
+  <%_ }  -%>
   actions,
   dataSources,
   connections,

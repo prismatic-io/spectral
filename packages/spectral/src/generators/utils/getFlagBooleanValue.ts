@@ -1,12 +1,26 @@
-const PROCESS_ARGS = process.argv.slice(3);
+interface GetFlagBooleanValueProps {
+  args: string[];
+  flag: string;
+}
 
-export const getFlagBooleanValue = (flag: string): boolean => {
-  return PROCESS_ARGS.includes(flag);
+export const getFlagBooleanValue = ({
+  args,
+  flag,
+}: GetFlagBooleanValueProps): boolean => {
+  return args.includes(flag);
 };
 
-export const getFlagsBooleanValue = (flags: string[]): boolean => {
+interface GetFlagsBooleanValueProps {
+  args: string[];
+  flags: string[];
+}
+
+export const getFlagsBooleanValue = ({
+  args,
+  flags,
+}: GetFlagsBooleanValueProps): boolean => {
   return flags.reduce((acc, flag) => {
-    const value = getFlagBooleanValue(flag);
+    const value = getFlagBooleanValue({ args, flag });
 
     if (typeof value === "undefined" || acc) {
       return acc;

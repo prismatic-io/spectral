@@ -1,13 +1,19 @@
-const PROCESS_ARGS = process.argv.slice(3);
+interface GetFlagStringValueProps {
+  args: string[];
+  flag: string;
+}
 
-export const getFlagStringValue = (flag: string): string | null => {
-  const flagIndex = PROCESS_ARGS.indexOf(flag);
+export const getFlagStringValue = ({
+  args,
+  flag,
+}: GetFlagStringValueProps): string | null => {
+  const flagIndex = args.indexOf(flag);
 
   if (flagIndex === -1) {
     return null;
   }
 
-  const flagValue = PROCESS_ARGS[flagIndex + 1];
+  const flagValue = args[flagIndex + 1];
 
   if (!flagValue || flagValue.startsWith("--")) {
     return null;
@@ -16,9 +22,17 @@ export const getFlagStringValue = (flag: string): string | null => {
   return flagValue.replace(/(^"|"$)|(^'|'$)/g, "");
 };
 
-export const getFlagsStringValue = (flags: string[]): string | null => {
+interface GetFlagsStringValueProps {
+  args: string[];
+  flags: string[];
+}
+
+export const getFlagsStringValue = ({
+  args,
+  flags,
+}: GetFlagsStringValueProps): string | null => {
   return flags.reduce((acc, flag) => {
-    const value = getFlagStringValue(flag);
+    const value = getFlagStringValue({ args, flag });
 
     if (typeof value === "undefined" || acc) {
       return acc;
