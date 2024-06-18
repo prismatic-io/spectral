@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { createComponentManifest } from "./index";
 import { COMPONENT_DIR, COMPONENT_DIST_DIR, FLAGS } from "./constants";
 import { createFlagHelpText } from "../utils/createFlagHelpText";
