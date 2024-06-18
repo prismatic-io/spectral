@@ -4,8 +4,15 @@ import {
   Connection,
   JSONForm,
   TriggerPayload,
+  ConfigPageConfigVarReferences,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
+
+(ref: ConfigPageConfigVarReferences) => {
+  ref["First Page"];
+  const string = ref["Third Page"]["A String"];
+  const other = ref["Fourth Page"]["Ref Connection"];
+};
 
 import { configPages, componentRegistry } from "./testData.test-d";
 

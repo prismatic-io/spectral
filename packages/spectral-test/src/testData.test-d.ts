@@ -9,6 +9,30 @@ import {
   componentManifest,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
+import {
+  ConfigPages,
+  ConfigPageConfigVarReferences,
+  ConnectionReference,
+} from "@prismatic-io/spectral";
+
+(
+  pages: ConfigPages,
+  references: ConfigPageConfigVarReferences,
+  createConnection: (
+    thirdPageConnection: ConnectionReference<
+      ConfigPageConfigVarReferences["Third Page"]
+    >
+  ) => void
+) => {
+  pages["Third Page"].elements["A Data Source"];
+  references["Third Page"]["A String"];
+
+  createConnection({
+    key: "slackOAuth",
+    component: "slack",
+    values: {},
+  });
+};
 
 export const configPages = {
   "First Page": configPage({
@@ -31,7 +55,7 @@ export const configPages = {
         connection: {
           component: "example",
           key: "exampleConnection",
-          values: { foo: { value: "bar" } },
+          values: { foo: "bar" },
         },
       }),
     },
