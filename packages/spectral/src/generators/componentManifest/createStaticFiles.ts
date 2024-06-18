@@ -9,18 +9,20 @@ interface CreateStaticFilesProps {
   component: Component;
   dryRun: boolean;
   signature: string | null;
+  name: string | null;
 }
 
 export const createStaticFiles = ({
   component,
   dryRun,
   signature,
+  name,
 }: CreateStaticFilesProps) => {
   console.info("Creating static files...");
 
   const index = renderIndex({
     component: {
-      key: component.key,
+      key: name ?? component.key,
       public: Boolean(component.public),
       signature,
     },
@@ -29,7 +31,7 @@ export const createStaticFiles = ({
 
   const packageJson = renderPackageJson({
     component: {
-      key: component.key,
+      key: name ?? component.key,
       spectralVersion: SPECTRAL_VERSION,
     },
     dryRun,
@@ -37,7 +39,7 @@ export const createStaticFiles = ({
 
   const readme = renderReadme({
     component: {
-      key: component.key,
+      key: name ?? component.key,
       label: component.display.label,
       description: component.display.description,
     },

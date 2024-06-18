@@ -1,25 +1,39 @@
-import { DESTINATION_DIR, FLAG_DRY_RUN } from "./constants";
+import { DESTINATION_DIR, FLAGS } from "./constants";
 import { createActions } from "./createActions";
 import { createConnections } from "./createConnections";
 import { createDataSources } from "./createDataSources";
 import { createStaticFiles } from "./createStaticFiles";
 import { createTriggers } from "./createTriggers";
+import { removeComponentManifest } from "./removeComponentManifest";
 import { getComponentSignatureWithPrism } from "../utils/getComponentSignatureWithPrism";
 import { Component } from "../../serverTypes";
+import { isObjectWithTruthyKeys } from "../../util";
 
 interface CreateComponentManifestProps {
   component?: Component;
   dryRun: boolean;
   includeSignature: boolean;
+  name: string | null;
 }
 
 export const createComponentManifest = async ({
   component,
-  dryRun = FLAG_DRY_RUN,
+  dryRun = FLAGS.DRY_RUN.value,
   includeSignature,
+  name,
 }: CreateComponentManifestProps) => {
-  if (!component) {
-    throw new Error("Component is required");
+  if (
+    !component ||
+    !isObjectWithTruthyKeys(component, [
+      "key",
+      "display",
+      "actions",
+      "triggers",
+      "dataSources",
+      "connections",
+    ])
+  ) {
+    throw new Error("Component is invalid");
   }
 
   const signature = includeSignature
@@ -29,7 +43,8 @@ export const createComponentManifest = async ({
   console.info(`Creating a component manifest for ${component.display.label}...
   `);
 
-  createStaticFiles({ component, dryRun, signature });
+  removeComponentManifest();
+  createStaticFiles({ component, dryRun, signature, name });
   createActions({ component, dryRun });
   createTriggers({ component, dryRun });
   createConnections({ component, dryRun });

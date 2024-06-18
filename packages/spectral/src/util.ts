@@ -22,7 +22,10 @@ import {
   Element,
 } from "./types";
 
-const isObjectWithTruthyKeys = (value: unknown, keys: string[]): boolean => {
+export const isObjectWithTruthyKeys = (
+  value: unknown,
+  keys: string[]
+): boolean => {
   return (
     value !== null &&
     typeof value === "object" &&

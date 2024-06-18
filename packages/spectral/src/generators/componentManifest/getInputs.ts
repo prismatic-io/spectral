@@ -31,17 +31,21 @@ export const getInputs = ({
       required: input.required,
       properties: documentProperties.reduce(
         (acc, key) => {
-          const value = input[key];
+          const value = input[key]
+            ? JSON.stringify(input[key])
+                .replace(/(^"|"$)|(^'|'$)/g, "")
+                .trim()
+            : null;
 
-          if (!value) {
+          if (typeof value === "undefined" || value === null || value === "") {
             return acc;
           }
 
           return [
             ...acc,
             {
-              key: key,
-              value: JSON.stringify(value).replace(/^"|"$/g, ""),
+              key,
+              value,
             },
           ];
         },

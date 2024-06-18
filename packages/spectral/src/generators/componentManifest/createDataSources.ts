@@ -46,9 +46,6 @@ export const createDataSources = ({
       const imports = getImports({ inputs });
 
       return renderDataSource({
-        component: {
-          key: component.key,
-        },
         dataSource: {
           key: dataSource.key || dataSourceKey,
           label: dataSource.display.label,
@@ -91,9 +88,6 @@ const renderDataSourcesIndex = async ({
 };
 
 interface RenderDataSourceProps {
-  component: {
-    key: string;
-  };
   dataSource: {
     key: string;
     label: string;
@@ -105,7 +99,6 @@ interface RenderDataSourceProps {
 }
 
 const renderDataSource = async ({
-  component,
   dataSource,
   dryRun,
   imports,
@@ -118,7 +111,6 @@ const renderDataSource = async ({
       `${dataSource.key}.ts`
     ),
     data: {
-      component,
       dataSource,
       helpers,
       imports,

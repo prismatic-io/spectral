@@ -10,6 +10,6 @@ export interface <%= helpers.capitalizeFirstLetter(action.key) %>Values {
  *
  * @description <%= action.description %>
  */
-export const <%= action.key %> = <TReturn>(_values: <%=
-helpers.capitalizeFirstLetter(action.key) %>Values): Promise<TReturn> =>
-Promise.resolve<TReturn>({} as TReturn)
+export const <%= action.key %> = <TReturn>(
+  _values: <%= helpers.capitalizeFirstLetter(action.key) %>Values
+): Promise<TReturn> => Promise.resolve<TReturn>({} as TReturn);

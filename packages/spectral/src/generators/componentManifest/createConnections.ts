@@ -44,9 +44,6 @@ export const createConnections = ({
     const imports = getImports({ inputs });
 
     return renderConnection({
-      component: {
-        key: component.key,
-      },
       connection: {
         key: connection.key,
         label: connection.label,
@@ -88,9 +85,6 @@ const renderConnectionsIndex = async ({
 };
 
 interface RenderConnectionProps {
-  component: {
-    key: string;
-  };
   connection: {
     key: string;
     label: string;
@@ -102,7 +96,6 @@ interface RenderConnectionProps {
 }
 
 const renderConnection = async ({
-  component,
   connection,
   dryRun,
   imports,
@@ -115,7 +108,6 @@ const renderConnection = async ({
       `${connection.key}.ts`
     ),
     data: {
-      component,
       connection,
       helpers,
       imports,
