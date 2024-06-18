@@ -47,7 +47,7 @@ export const DESTINATION_BASE_NAME = FLAGS.NAME.value
   : `${path.basename(COMPONENT_DIR)}-manifest`;
 
 export const DESTINATION_DIR = FLAGS.OUTPUT_DIR.value
-  ? path.join(FLAGS.OUTPUT_DIR.value, DESTINATION_BASE_NAME)
+  ? FLAGS.OUTPUT_DIR.value
   : path.join(COMPONENT_DIR, "..", DESTINATION_BASE_NAME);
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
