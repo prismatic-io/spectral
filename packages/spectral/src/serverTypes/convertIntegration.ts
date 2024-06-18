@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import YAML from "yaml";
 import { v4 as uuid } from "uuid";
 import { assign, camelCase, pick } from "lodash";
@@ -11,11 +10,13 @@ import {
   isDataSourceDefinitionConfigVar,
   isConnectionDefinitionConfigVar,
   isScheduleConfigVar,
-  ComponentSelector,
   isConnectionReferenceConfigVar,
   ComponentReference,
   isComponentReference,
   isDataSourceReferenceConfigVar,
+  ComponentRegistry,
+  ComponentManifest,
+  ComponentManifestAction,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -24,6 +25,10 @@ import {
   Connection as ServerConnection,
   DataSource as ServerDataSource,
   Trigger as ServerTrigger,
+  TriggerPerformFunction,
+  TriggerEventFunction,
+  ActionPerformFunction,
+  ActionContext,
 } from ".";
 import { convertInput } from "./convert";
 import {
@@ -36,14 +41,14 @@ import {
 } from "./integration";
 
 export const convertIntegration = (
-  definition: IntegrationDefinition<ConfigPages<any>, ComponentSelector<any>>
+  definition: IntegrationDefinition
 ): ServerComponent => {
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
   // inline as part of the integration definition.
   const referenceKey = uuid();
 
-  const configVars: Record<string, ConfigVar<any>> = Object.assign(
+  const configVars: Record<string, ConfigVar> = Object.assign(
     {},
     ...Object.values(definition.configPages ?? {}).map(
       ({ elements }) => elements
@@ -61,7 +66,7 @@ export const convertIntegration = (
 };
 
 const convertConfigPages = (
-  pages: ConfigPages<any>
+  pages: ConfigPages
 ): ServerConfigPage[] | undefined => {
   if (!pages || !Object.keys(pages).length) {
     return;
@@ -91,9 +96,10 @@ const codeNativeIntegrationYaml = (
     triggerPreprocessFlowConfig,
     flows,
     configPages,
-  }: IntegrationDefinition<ConfigPages<any>, ComponentSelector<any>>,
+    componentRegistry = {},
+  }: IntegrationDefinition,
   referenceKey: string,
-  configVars: Record<string, ConfigVar<any>>
+  configVars: Record<string, ConfigVar>
 ): string => {
   // Find the preprocess flow config on the flow, if one exists.
   const preprocessFlows = flows.filter((flow) => flow.preprocessFlowConfig);
@@ -154,8 +160,10 @@ const codeNativeIntegrationYaml = (
       hasPreprocessFlow ? "onExecution" : "payload",
       preprocessFlowConfig?.flowNameField
     ),
-    flows: flows.map((flow) => convertFlow(flow, referenceKey)),
-    configPages: convertConfigPages(configPages ?? {}),
+    flows: flows.map((flow) =>
+      convertFlow(flow, componentRegistry, referenceKey)
+    ),
+    configPages: convertConfigPages(configPages ?? ({} as ConfigPages)),
   };
 
   return YAML.stringify(result);
@@ -165,7 +173,7 @@ const convertComponentReference = <TValue>({
   key,
   component: componentRef,
   values,
-}: ComponentReference<TValue, ConfigPages<any>>): {
+}: ComponentReference<TValue>): {
   ref: ServerComponentReference;
   inputs: Record<string, ServerInput>;
 } => {
@@ -173,11 +181,13 @@ const convertComponentReference = <TValue>({
     typeof componentRef === "string"
       ? {
           key: componentRef,
+          // TODO: Update to use `signature` when support is added.
           version: "LATEST" as const,
           isPublic: true,
         }
       : {
           key: componentRef.key,
+          // TODO: Update to use `signature` when support is added.
           version: "LATEST" as const,
           isPublic: componentRef.isPublic,
         };
@@ -210,9 +220,18 @@ const convertComponentReference = <TValue>({
   };
 };
 
+const convertComponentRegistry = (componentRegistry: ComponentRegistry) =>
+  Object.values(componentRegistry).map(({ key, public: isPublic }) => ({
+    key,
+    // TODO: Update to use `signature` when support is added.
+    version: "LATEST" as const,
+    isPublic,
+  }));
+
 /** Converts a Flow into the structure necessary for YAML generation. */
 const convertFlow = (
-  flow: Flow<ConfigPages<any>, any>,
+  flow: Flow,
+  componentRegistry: ComponentRegistry,
   referenceKey: string
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {
@@ -240,6 +259,7 @@ const convertFlow = (
       key: flowFunctionKey(flow.name, "onTrigger"),
       component: {
         key: referenceKey,
+        // We always want to use latest for the CNI-backed trigger
         version: "LATEST",
         isPublic: false,
       },
@@ -253,7 +273,12 @@ const convertFlow = (
     const key = hasSchedule ? "schedule" : "webhook";
     triggerStep.action = {
       key,
-      component: { key: `${key}-triggers`, version: "LATEST", isPublic: true },
+      component: {
+        key: `${key}-triggers`,
+        // TODO: Determine how we intend to support management triggers.
+        version: "LATEST",
+        isPublic: true,
+      },
     };
   }
 
@@ -273,7 +298,12 @@ const convertFlow = (
   const actionStep: Record<string, unknown> = {
     action: {
       key: flowFunctionKey(flow.name, "onExecution"),
-      component: { key: referenceKey, version: "LATEST", isPublic: false },
+      component: {
+        key: referenceKey,
+        // We always want to use latest for the CNI-backed execution action
+        version: "LATEST",
+        isPublic: false,
+      },
     },
     name: "On Execution",
     stableKey: `${flow.stableKey}-onExecution`,
@@ -283,13 +313,15 @@ const convertFlow = (
 
   result.steps = [triggerStep, actionStep];
 
+  result.supplementalComponents = convertComponentRegistry(componentRegistry);
+
   return result;
 };
 
 /** Converts a Config Var into the structure necessary for YAML generation. */
-const convertConfigVar = <TComponents extends ComponentSelector<any>>(
+const convertConfigVar = (
   key: string,
-  configVar: ConfigVar<TComponents>,
+  configVar: ConfigVar,
   referenceKey: string
 ): ServerRequiredConfigVariable => {
   const meta = pick(configVar, [
@@ -303,7 +335,12 @@ const convertConfigVar = <TComponents extends ComponentSelector<any>>(
       key,
       dataType: "connection",
       connection: {
-        component: { key: referenceKey, version: "LATEST", isPublic: false },
+        component: {
+          key: referenceKey,
+          // We always want to use latest for the CNI-backed connection
+          version: "LATEST",
+          isPublic: false,
+        },
         key: camelCase(key),
       },
       inputs: Object.entries(configVar.inputs).reduce(
@@ -361,7 +398,12 @@ const convertConfigVar = <TComponents extends ComponentSelector<any>>(
     result.dataType = configVar.dataSourceType;
     result.dataSource = {
       key: camelCase(key),
-      component: { key: referenceKey, version: "LATEST", isPublic: false },
+      component: {
+        key: referenceKey,
+        // We always want to use latest for the CNI-backed data source
+        version: "LATEST",
+        isPublic: false,
+      },
     };
   }
 
@@ -405,6 +447,63 @@ const flowFunctionKey = (
   return `${flowKey}_${functionName}`;
 };
 
+type ComponentActionInvokeFunction = <TValues extends Record<string, unknown>>(
+  action: {
+    component: string;
+    action: string;
+    isPublic: boolean;
+    version: number;
+  },
+  context: ActionContext,
+  values: TValues
+) => Promise<unknown>;
+
+const convertOnExecution =
+  (
+    onExecution: ActionPerformFunction,
+    componentRegistry: ComponentRegistry
+  ): ServerActionPerformFunction =>
+  (context, params) => {
+    // @ts-expect-error _components isn't part of the public API
+    const { _components, ...remainingContext } = context;
+
+    const invoke = (_components as { invoke: ComponentActionInvokeFunction })
+      .invoke;
+
+    const componentMethods = Object.entries(componentRegistry).reduce<
+      Record<string, ComponentManifest["actions"]>
+    >((acc, [componentKey, { actions, public: isPublic }]) => {
+      return {
+        ...acc,
+        [componentKey]: Object.keys(actions).reduce<
+          Record<string, ComponentManifestAction>
+        >(
+          (acc, actionKey) => ({
+            ...acc,
+            [actionKey]: (values) => {
+              return invoke(
+                {
+                  component: componentKey,
+                  action: actionKey,
+                  isPublic,
+                  version: 2,
+                },
+                context,
+                values
+              );
+            },
+          }),
+          {}
+        ),
+      };
+    }, {});
+
+    return onExecution(
+      { ...remainingContext, components: componentMethods },
+      params
+    );
+  };
+
 /** Creates the structure necessary to import a Component as part of a
  *  Code Native integration. */
 const codeNativeIntegrationComponent = (
@@ -413,9 +512,10 @@ const codeNativeIntegrationComponent = (
     iconPath,
     description,
     flows = [],
-  }: IntegrationDefinition<ConfigPages<any>, ComponentSelector<any>>,
+    componentRegistry = {},
+  }: IntegrationDefinition,
   referenceKey: string,
-  configVars: Record<string, ConfigVar<any>>
+  configVars: Record<string, ConfigVar>
 ): ServerComponent => {
   const convertedActions = flows.reduce<Record<string, ServerAction>>(
     (result, { name, onExecution }) => {
@@ -428,7 +528,10 @@ const codeNativeIntegrationComponent = (
             label: `${name} - onExecution`,
             description: "The function that will be executed by the flow.",
           },
-          perform: onExecution as ServerActionPerformFunction,
+          perform: convertOnExecution(
+            onExecution as ServerActionPerformFunction,
+            componentRegistry
+          ),
           inputs: [],
         },
       };
@@ -443,6 +546,7 @@ const codeNativeIntegrationComponent = (
       }
 
       const key = flowFunctionKey(name, "onTrigger");
+
       return {
         ...result,
         [key]: {
@@ -452,10 +556,10 @@ const codeNativeIntegrationComponent = (
             description:
               "The function that will be executed by the flow to return an HTTP response.",
           },
-          perform: onTrigger,
-          onInstanceDeploy,
+          perform: onTrigger as TriggerPerformFunction,
+          onInstanceDeploy: onInstanceDeploy as TriggerEventFunction,
           hasOnInstanceDeploy: !!onInstanceDeploy,
-          onInstanceDelete,
+          onInstanceDelete: onInstanceDeploy as TriggerEventFunction,
           hasOnInstanceDelete: !!onInstanceDelete,
           inputs: [],
           scheduleSupport: "valid",

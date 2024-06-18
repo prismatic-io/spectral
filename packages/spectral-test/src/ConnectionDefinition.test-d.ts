@@ -1,5 +1,8 @@
+import {
+  onPremConnection,
+  OnPremConnectionDefinition,
+} from "@prismatic-io/spectral";
 import { expectAssignable, expectNotAssignable } from "tsd";
-import { onPremConnection, OnPremConnectionDefinition } from "..";
 
 const valid = onPremConnection({
   key: "basic",

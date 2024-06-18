@@ -1,120 +1,15 @@
-import { expectAssignable } from "tsd";
 import {
   flow,
   integration,
-  configVar,
-  connectionConfigVar,
-  OAuth2Type,
-  input,
-  configPage,
   Connection,
-  dataSourceConfigVar,
   JSONForm,
-  ConfigVarResultCollection,
   TriggerPayload,
-  reference,
-} from "..";
+} from "@prismatic-io/spectral";
+import { expectAssignable } from "tsd";
 
-interface ExampleConnection {
-  type: "connection";
-  component: "example";
-  key: "example-connection";
-  values: { foo: string };
-}
-interface ExampleDataSource {
-  type: "dataSource";
-  component: "data-source-example";
-  key: "example-data-source";
-  values: { bar: string };
-}
-interface ExampleTrigger {
-  type: "trigger";
-  component: "http";
-  key: "hmac";
-  values: {
-    secret: string;
-    secret2: string;
-  };
-}
-type Components = ExampleConnection | ExampleDataSource | ExampleTrigger;
+import { configPages, componentRegistry } from "./testData.test-d";
 
-const configPages = {
-  "First Page": configPage({
-    elements: {
-      "A Connection": connectionConfigVar({
-        stableKey: "a-connection",
-        oauth2Type: OAuth2Type.AuthorizationCode,
-        inputs: {
-          authorizeUrl: input({
-            label: "Authorize URL",
-            type: "string",
-          }),
-          // more inputs
-        },
-      }),
-      "Ref Connection": reference<Components>().connection({
-        stableKey: "ref-connection",
-        connection: {
-          component: "example",
-          key: "example-connection",
-          values: { foo: { value: "bar" } },
-        },
-      }),
-    },
-  }),
-  "Second Page": configPage({
-    elements: {
-      "A String": configVar({
-        stableKey: "a-string",
-        dataType: "string",
-      }),
-      "A Picklist": configVar({
-        stableKey: "a-picklist",
-        dataType: "picklist",
-        pickList: ["a", "b", "c"],
-      }),
-    },
-  }),
-  "Third Page": configPage({
-    elements: {
-      "A Data Source": dataSourceConfigVar({
-        stableKey: "a-data-source",
-        dataSourceType: "jsonForm",
-        perform: async (context) => {
-          // Currently limited to a relatively untyped collection
-          expectAssignable<ConfigVarResultCollection>(context.configVars);
-
-          return Promise.resolve({
-            result: {
-              schema: {},
-              uiSchema: { type: "VerticalLayout" },
-            },
-          });
-        },
-      }),
-      "Ref Data Source": reference<Components>().dataSource({
-        stableKey: "ref-data-source",
-        dataSourceType: "jsonForm",
-        dataSource: {
-          component: "data-source-example",
-          key: "example-data-source",
-          values: { bar: { value: "foo" } },
-        },
-      }),
-    },
-  }),
-  "Fourth Page": configPage({
-    elements: {
-      "Fourth Page String": configVar({
-        stableKey: "fourth-page-string",
-        dataType: "string",
-      }),
-    },
-  }),
-};
-type ConfigPages = typeof configPages;
-
-const basicFlow = flow<ConfigPages>({
+const basicFlow = flow({
   name: "Basic Flow",
   stableKey: "basic-flow",
   description: "This is a basic flow",
@@ -168,7 +63,7 @@ const basicFlow = flow<ConfigPages>({
   },
 });
 
-const triggerFlow = flow<ConfigPages, Components>({
+const triggerFlow = flow({
   name: "Trigger Flow",
   stableKey: "trigger-flow",
   description: "This is a trigger flow",
@@ -189,4 +84,5 @@ integration({
   name: "Config Pages",
   flows: [basicFlow, triggerFlow],
   configPages,
+  componentRegistry,
 });

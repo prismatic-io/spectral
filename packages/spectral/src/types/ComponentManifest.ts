@@ -7,16 +7,10 @@ export interface ComponentManifest {
   connections: Record<string, ComponentManifestConnection>;
 }
 
-export interface ComponentManifestAction {
-  inputs: Record<string, unknown>;
-}
+export type ComponentManifestAction = (values: any) => Promise<unknown>;
 
-export interface ComponentManifestTrigger {
-  inputs: Record<string, unknown>;
-}
-export interface ComponentManifestDataSource {
-  inputs: Record<string, unknown>;
-}
-export interface ComponentManifestConnection {
-  inputs: Record<string, unknown>;
-}
+export type ComponentManifestTrigger = (values: any) => Promise<unknown>;
+
+export type ComponentManifestDataSource = (values: any) => Promise<unknown>;
+
+export type ComponentManifestConnection = (values: any) => Promise<unknown>;

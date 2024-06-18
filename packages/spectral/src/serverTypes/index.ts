@@ -8,6 +8,7 @@ import {
   IntegrationAttributes,
   FlowAttributes,
   ConfigVarResultCollection,
+  ComponentManifest,
 } from "../types";
 
 interface DisplayDefinition {
@@ -59,7 +60,11 @@ export interface ActionLogger {
 }
 
 export type ActionContext<
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TComponentActions extends Record<
+    string,
+    ComponentManifest["actions"]
+  > = Record<string, ComponentManifest["actions"]>
 > = {
   logger: ActionLogger;
   instanceState: Record<string, unknown>;
@@ -67,6 +72,7 @@ export type ActionContext<
   executionState: Record<string, unknown>;
   integrationState: Record<string, unknown>;
   configVars: TConfigVars;
+  components: TComponentActions;
   stepId: string;
   executionId: string;
   webhookUrls: Record<string, string>;
