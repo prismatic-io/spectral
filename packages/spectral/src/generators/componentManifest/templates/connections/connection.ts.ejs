@@ -10,6 +10,6 @@ export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Values {
  *
  * @comments <%= connection.comments %>
  */
-export const <%= connection.key %> = <TReturn>(_values: <%=
-helpers.capitalizeFirstLetter(connection.key) %>Values): Promise<TReturn> =>
-Promise.resolve<TReturn>({} as TReturn)
+export const <%= connection.key %> = <TReturn>(
+  _values: <%= helpers.capitalizeFirstLetter(connection.key) %>Values
+): Promise<TReturn> => Promise.resolve<TReturn>({} as TReturn);

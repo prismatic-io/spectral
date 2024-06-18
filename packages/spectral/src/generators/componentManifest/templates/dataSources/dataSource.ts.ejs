@@ -8,8 +8,8 @@ export interface <%= helpers.capitalizeFirstLetter(dataSource.key) %>Values {
 /**
  * <%= dataSource.label %>
  *
- * @comments <%= dataSource.comments %>
+ * @description <%= dataSource.description %>
  */
-export const <%= dataSource.key %> = <TReturn>(_values: <%=
-helpers.capitalizeFirstLetter(dataSource.key) %>Values): Promise<TReturn> =>
-Promise.resolve<TReturn>({} as TReturn)
+export const <%= dataSource.key %> = <TReturn>(
+  _values: <%= helpers.capitalizeFirstLetter(dataSource.key) %>Values
+): Promise<TReturn> => Promise.resolve<TReturn>({} as TReturn);
