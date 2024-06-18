@@ -1,0 +1,15 @@
+<%- include('../partials/imports.ejs', { imports, helpers }) -%>
+
+
+export interface <%= helpers.capitalizeFirstLetter(trigger.key) %>Values {
+<%- include('../partials/inputTypes.ejs', { inputs: trigger.inputs }) -%>
+}
+
+/**
+ * <%= trigger.label %>
+ *
+ * @description <%= trigger.description %>
+ */
+export const <%= trigger.key %> = <TReturn>(_values: <%=
+helpers.capitalizeFirstLetter(trigger.key) %>Values): Promise<TReturn> =>
+Promise.resolve<TReturn>({} as TReturn)

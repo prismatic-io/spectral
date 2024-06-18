@@ -1,0 +1,9 @@
+{
+  "name": "@component/<%= component.key %>-manifest",
+  "version": "<%= helpers.generatePackageJsonVersion() %>",
+  "main": "index.ts",
+  "scripts": {},
+  "peerDependencies": {
+    "@prismatic-io/spectral": ">= <%= component.spectralVersion %>"
+  }
+}
