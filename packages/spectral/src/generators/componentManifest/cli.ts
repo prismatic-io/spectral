@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { createComponentManifest } from "./index";
 import {
   COMPONENT_DIR,

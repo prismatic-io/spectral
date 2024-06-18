@@ -9,7 +9,7 @@
   "types": "dist/index.d.ts",
   "homepage": "https://prismatic.io",
   "bin": {
-    "component-manifest": "./dist/generators/componentManifest/cli.js"
+    "component-manifest": "./bin/component-manifest.js"
   },
   "bugs": {
     "url": "https://github.com/prismatic-io/spectral"
@@ -28,8 +28,7 @@
     "build": "yarn run format && yarn run lint && yarn run clean && tsc",
     "build:templates": "copyfiles --error -u 1 src/**/templates/**/* dist",
     "dev": "tsc -w",
-    "cli:permission": "chmod +x dist/generators/**/cli.js",
-    "postbuild": "yarn run build:templates && yarn run cli:permission",
+    "postbuild": "yarn run build:templates",
     "prepack": "yarn run build",
     "format": "yarn run lint-fix && prettier --loglevel error --write 'src/**/*.ts' '*.{ts,js,json}' '!sidebars.{js,jse}'",
     "check-format": "prettier --check 'src/**/*.ts' '*.{ts,js,json}' '!sidebars.{js,jse}'",
