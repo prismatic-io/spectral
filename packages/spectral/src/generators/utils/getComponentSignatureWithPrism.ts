@@ -22,7 +22,7 @@ export const getComponentSignatureWithPrism = async (): Promise<
     process.exit(1);
   }
 
-  return signatureKey;
+  return signatureKey.replace(/\n$/, "");
 };
 
 const isPrismAvailable = async (): Promise<boolean> => {
