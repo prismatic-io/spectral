@@ -29,14 +29,7 @@ export const runMain = async (process: NodeJS.Process) => {
 
   if (
     !component ||
-    !isObjectWithTruthyKeys(component, [
-      "key",
-      "display",
-      "actions",
-      "triggers",
-      "dataSources",
-      "connections",
-    ])
+    !isObjectWithTruthyKeys(component, ["key", "display", "actions"])
   ) {
     console.error("Component is invalid.");
     process.exit(1);
