@@ -45,6 +45,15 @@ export const runMain = async (process: NodeJS.Process) => {
       description:
         "The name of the component manifest. Defaults to the name of the current component being generated.",
     },
+    verbose: {
+      flag: ["--verbose", "-v"],
+      value: getFlagsBooleanValue({
+        args: process.argv.slice(3),
+        flags: ["--verbose", "-v"],
+      }),
+      description:
+        "Provides more detailed or extensive information about the files being generated during the process.",
+    },
     output_dir: {
       flag: ["--output-dir", "-o"],
       value: getFlagsStringValue({
@@ -97,6 +106,7 @@ export const runMain = async (process: NodeJS.Process) => {
     packageName: flags.name.value ?? `@components/${component.key}-manifest`,
     spectralVersion: readJsonSync(path.join(__dirname, "../../../package.json"))
       .version,
+    verbose: flags.verbose.value,
     sourceDir: path.join(__dirname, "templates"),
     destinationDir: flags.output_dir.value
       ? flags.output_dir.value

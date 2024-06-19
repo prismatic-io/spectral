@@ -16,6 +16,7 @@ const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
 interface CreateActionsProps {
   component: Component;
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -23,10 +24,13 @@ interface CreateActionsProps {
 export const createActions = async ({
   component,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: CreateActionsProps) => {
-  console.info("Creating actions...");
+  if (verbose) {
+    console.info("Creating actions...");
+  }
 
   const actionIndex = await renderActionsIndex({
     actions: Object.entries(component.actions ?? {}).map(
@@ -37,6 +41,7 @@ export const createActions = async ({
       }
     ),
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
@@ -58,13 +63,16 @@ export const createActions = async ({
         },
         imports,
         dryRun,
+        verbose,
         sourceDir,
         destinationDir,
       });
     })
   );
 
-  console.info("");
+  if (verbose) {
+    console.info("");
+  }
 
   return Promise.resolve({
     actionIndex,
@@ -77,6 +85,7 @@ interface RenderActionsIndexProps {
     key: string;
   }[];
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -84,6 +93,7 @@ interface RenderActionsIndexProps {
 const renderActionsIndex = async ({
   actions,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderActionsIndexProps) => {
@@ -94,6 +104,7 @@ const renderActionsIndex = async ({
       actions,
     },
     dryRun,
+    verbose,
   });
 };
 
@@ -106,14 +117,16 @@ interface RenderActionProps {
   };
   dryRun: boolean;
   imports: Imports;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
 
 const renderAction = async ({
   action,
-  imports,
   dryRun,
+  imports,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderActionProps) => {
@@ -126,5 +139,6 @@ const renderAction = async ({
       imports,
     },
     dryRun,
+    verbose,
   });
 };

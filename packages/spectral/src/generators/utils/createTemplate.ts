@@ -7,6 +7,7 @@ interface CreateTemplateProps {
   destination?: string;
   data?: Record<string, unknown>;
   dryRun: boolean;
+  verbose: boolean;
 }
 
 export const createTemplate = async ({
@@ -14,6 +15,7 @@ export const createTemplate = async ({
   destination = source.replace(/\.ejs$/, ""),
   data = {},
   dryRun,
+  verbose,
 }: CreateTemplateProps): Promise<string | void> => {
   if (!source) {
     throw new Error("Source is required");
@@ -38,7 +40,10 @@ export const createTemplate = async ({
         return;
       }
 
-      console.info(`Rendering ${source} to ${destination}`);
+      if (verbose) {
+        console.info(`Rendering ${source} to ${destination}`);
+      }
+
       await outputFile(destination, rendered, { encoding: "utf-8" });
     } else {
       if (dryRun) {
@@ -47,7 +52,10 @@ export const createTemplate = async ({
         return;
       }
 
-      console.info(`Copying ${source} to ${destination}`);
+      if (verbose) {
+        console.info(`Copying ${source} to ${destination}`);
+      }
+
       await mkdirp(path.dirname(destination));
       await copyFile(source, destination);
     }

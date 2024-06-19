@@ -16,6 +16,7 @@ const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
 interface CreateTriggersProps {
   component: Component;
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -23,13 +24,16 @@ interface CreateTriggersProps {
 export const createTriggers = async ({
   component,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: CreateTriggersProps) => {
-  console.info("Creating triggers...");
+  if (verbose) {
+    console.info("Creating triggers...");
+  }
 
   const triggersIndex = await renderTriggersIndex({
-    triggers: Object.entries(component.triggers).map(
+    triggers: Object.entries(component.triggers ?? {}).map(
       ([triggerKey, trigger]) => {
         return {
           key: trigger.key || triggerKey,
@@ -37,6 +41,7 @@ export const createTriggers = async ({
       }
     ),
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
@@ -67,7 +72,9 @@ export const createTriggers = async ({
     )
   );
 
-  console.info("");
+  if (verbose) {
+    console.info("");
+  }
 
   return Promise.resolve({
     triggersIndex,
@@ -80,6 +87,7 @@ interface RenderTriggersIndexProps {
     key: string;
   }[];
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -87,6 +95,7 @@ interface RenderTriggersIndexProps {
 const renderTriggersIndex = async ({
   triggers,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderTriggersIndexProps) => {
@@ -97,6 +106,7 @@ const renderTriggersIndex = async ({
       triggers,
     },
     dryRun,
+    verbose,
   });
 };
 
@@ -109,6 +119,7 @@ interface RenderTriggerProps {
   };
   dryRun: boolean;
   imports: Imports;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -117,6 +128,7 @@ const renderTrigger = async ({
   dryRun,
   imports,
   trigger,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderTriggerProps) => {
@@ -129,5 +141,6 @@ const renderTrigger = async ({
       trigger,
     },
     dryRun,
+    verbose,
   });
 };

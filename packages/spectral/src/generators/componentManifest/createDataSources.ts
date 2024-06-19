@@ -16,6 +16,7 @@ const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
 interface CreateDataSourcesProps {
   component: Component;
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -23,10 +24,13 @@ interface CreateDataSourcesProps {
 export const createDataSources = async ({
   component,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: CreateDataSourcesProps) => {
-  console.info("Creating data sources...");
+  if (verbose) {
+    console.info("Creating data sources...");
+  }
 
   const dataSourceIndex = await renderDataSourcesIndex({
     dataSources: Object.entries(component.dataSources ?? {}).map(
@@ -37,6 +41,7 @@ export const createDataSources = async ({
       }
     ),
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
@@ -60,6 +65,7 @@ export const createDataSources = async ({
           },
           imports,
           dryRun,
+          verbose,
           sourceDir,
           destinationDir,
         });
@@ -67,7 +73,9 @@ export const createDataSources = async ({
     )
   );
 
-  console.info("");
+  if (verbose) {
+    console.info("");
+  }
 
   return Promise.resolve({
     dataSourceIndex,
@@ -80,6 +88,7 @@ interface RenderDataSourcesProps {
     key: string;
   }[];
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -87,6 +96,7 @@ interface RenderDataSourcesProps {
 const renderDataSourcesIndex = async ({
   dataSources,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderDataSourcesProps) => {
@@ -97,6 +107,7 @@ const renderDataSourcesIndex = async ({
       dataSources,
     },
     dryRun,
+    verbose,
   });
 };
 
@@ -109,6 +120,7 @@ interface RenderDataSourceProps {
   };
   dryRun: boolean;
   imports: Imports;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -117,6 +129,7 @@ const renderDataSource = async ({
   dataSource,
   dryRun,
   imports,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderDataSourceProps) => {
@@ -133,5 +146,6 @@ const renderDataSource = async ({
       imports,
     },
     dryRun,
+    verbose,
   });
 };

@@ -10,6 +10,7 @@ interface CreateStaticFilesProps {
   signature: string | null;
   packageName: string;
   spectralVersion: string;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -20,10 +21,13 @@ export const createStaticFiles = async ({
   signature,
   packageName,
   spectralVersion,
+  verbose,
   sourceDir,
   destinationDir,
 }: CreateStaticFilesProps) => {
-  console.info("Creating static files...");
+  if (verbose) {
+    console.info("Creating static files...");
+  }
 
   const index = await renderIndex({
     component: {
@@ -32,6 +36,7 @@ export const createStaticFiles = async ({
       signature,
     },
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
@@ -43,6 +48,7 @@ export const createStaticFiles = async ({
     dryRun,
     spectralVersion,
     packageName,
+    verbose,
     sourceDir,
     destinationDir,
   });
@@ -55,11 +61,14 @@ export const createStaticFiles = async ({
     },
     packageName,
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
 
-  console.info("");
+  if (verbose) {
+    console.info("");
+  }
 
   return Promise.resolve({
     index,
@@ -75,6 +84,7 @@ interface RenderIndexProps {
     signature: string | null;
   };
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -82,6 +92,7 @@ interface RenderIndexProps {
 export const renderIndex = async ({
   component,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderIndexProps) => {
@@ -91,6 +102,7 @@ export const renderIndex = async ({
     data: {
       component,
     },
+    verbose,
     dryRun,
   });
 };
@@ -102,6 +114,7 @@ interface RenderPackageJsonProps {
   dryRun: boolean;
   packageName: string;
   spectralVersion: string;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -111,6 +124,7 @@ export const renderPackageJson = async ({
   dryRun,
   packageName,
   spectralVersion,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderPackageJsonProps) => {
@@ -124,6 +138,7 @@ export const renderPackageJson = async ({
       helpers,
     },
     dryRun,
+    verbose,
   });
 };
 
@@ -135,6 +150,7 @@ interface RenderReadmeProps {
   };
   dryRun: boolean;
   packageName: string;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -143,6 +159,7 @@ export const renderReadme = async ({
   component,
   dryRun,
   packageName,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderReadmeProps) => {
@@ -155,5 +172,6 @@ export const renderReadme = async ({
       packageName,
     },
     dryRun,
+    verbose,
   });
 };
