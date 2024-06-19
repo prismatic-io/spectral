@@ -1,4 +1,3 @@
-import { DESTINATION_DIR, FLAGS } from "./constants";
 import { createActions } from "./createActions";
 import { createConnections } from "./createConnections";
 import { createDataSources } from "./createDataSources";
@@ -7,35 +6,26 @@ import { createTriggers } from "./createTriggers";
 import { removeComponentManifest } from "./removeComponentManifest";
 import { getComponentSignatureWithPrism } from "../utils/getComponentSignatureWithPrism";
 import { Component } from "../../serverTypes";
-import { isObjectWithTruthyKeys } from "../../util";
 
 interface CreateComponentManifestProps {
-  component?: Component;
+  component: Component;
   dryRun: boolean;
   includeSignature: boolean;
-  name: string | null;
+  packageName: string;
+  spectralVersion: string;
+  sourceDir: string;
+  destinationDir: string;
 }
 
 export const createComponentManifest = async ({
   component,
-  dryRun = FLAGS.DRY_RUN.value,
+  dryRun,
   includeSignature,
-  name,
+  packageName,
+  spectralVersion,
+  sourceDir,
+  destinationDir,
 }: CreateComponentManifestProps) => {
-  if (
-    !component ||
-    !isObjectWithTruthyKeys(component, [
-      "key",
-      "display",
-      "actions",
-      "triggers",
-      "dataSources",
-      "connections",
-    ])
-  ) {
-    throw new Error("Component is invalid");
-  }
-
   const signature = includeSignature
     ? await getComponentSignatureWithPrism()
     : null;
@@ -43,14 +33,49 @@ export const createComponentManifest = async ({
   console.info(`Creating a component manifest for ${component.display.label}...
   `);
 
-  removeComponentManifest();
-  createStaticFiles({ component, dryRun, signature, name });
-  createActions({ component, dryRun });
-  createTriggers({ component, dryRun });
-  createConnections({ component, dryRun });
-  createDataSources({ component, dryRun });
+  removeComponentManifest({
+    destinationDir,
+  });
+
+  await createStaticFiles({
+    component,
+    dryRun,
+    packageName,
+    signature,
+    spectralVersion,
+    sourceDir,
+    destinationDir,
+  });
+
+  await createActions({
+    component,
+    dryRun,
+    sourceDir,
+    destinationDir,
+  });
+
+  await createTriggers({
+    component,
+    dryRun,
+    sourceDir,
+    destinationDir,
+  });
+
+  await createConnections({
+    component,
+    dryRun,
+    sourceDir,
+    destinationDir,
+  });
+
+  await createDataSources({
+    component,
+    dryRun,
+    sourceDir,
+    destinationDir,
+  });
 
   console.info(
-    `Component manifest created successfully for ${component.display.label} in ${DESTINATION_DIR}! 🎉`
+    `Component manifest created successfully for ${component.display.label} in ${destinationDir}! 🎉`
   );
 };

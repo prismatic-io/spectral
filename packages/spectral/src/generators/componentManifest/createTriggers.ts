@@ -1,6 +1,5 @@
 import path from "path";
 
-import { DESTINATION_DIR, SOURCE_DIR } from "./constants";
 import { Input, getInputs } from "./getInputs";
 import { Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
@@ -17,12 +16,19 @@ const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
 interface CreateTriggersProps {
   component: Component;
   dryRun: boolean;
+  sourceDir: string;
+  destinationDir: string;
 }
 
-export const createTriggers = ({ component, dryRun }: CreateTriggersProps) => {
+export const createTriggers = async ({
+  component,
+  dryRun,
+  sourceDir,
+  destinationDir,
+}: CreateTriggersProps) => {
   console.info("Creating triggers...");
 
-  const triggersIndex = renderTriggersIndex({
+  const triggersIndex = await renderTriggersIndex({
     triggers: Object.entries(component.triggers).map(
       ([triggerKey, trigger]) => {
         return {
@@ -31,17 +37,19 @@ export const createTriggers = ({ component, dryRun }: CreateTriggersProps) => {
       }
     ),
     dryRun,
+    sourceDir,
+    destinationDir,
   });
 
-  const triggers = Object.entries(component.triggers).map(
-    ([triggerKey, trigger]) => {
+  const triggers = await Promise.all(
+    Object.entries(component.triggers).map(async ([triggerKey, trigger]) => {
       const inputs = getInputs({
         inputs: trigger.inputs,
         documentProperties: DOCUMENT_PROPERTIES,
       });
       const imports = getImports({ inputs });
 
-      return renderTrigger({
+      return await renderTrigger({
         trigger: {
           key: trigger.key || triggerKey,
           label: trigger.display.description,
@@ -50,16 +58,18 @@ export const createTriggers = ({ component, dryRun }: CreateTriggersProps) => {
         },
         dryRun,
         imports,
+        sourceDir,
+        destinationDir,
       });
-    }
+    })
   );
 
   console.info("");
 
-  return {
+  return Promise.resolve({
     triggersIndex,
     triggers,
-  };
+  });
 };
 
 interface RenderTriggersIndexProps {
@@ -67,15 +77,19 @@ interface RenderTriggersIndexProps {
     key: string;
   }[];
   dryRun: boolean;
+  sourceDir: string;
+  destinationDir: string;
 }
 
 const renderTriggersIndex = async ({
   triggers,
   dryRun,
+  sourceDir,
+  destinationDir,
 }: RenderTriggersIndexProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "triggers", "index.ts.ejs"),
-    destination: path.join(DESTINATION_DIR, "triggers", "index.ts"),
+    source: path.join(sourceDir, "triggers", "index.ts.ejs"),
+    destination: path.join(destinationDir, "triggers", "index.ts"),
     data: {
       triggers,
     },
@@ -92,16 +106,20 @@ interface RenderTriggerProps {
   };
   dryRun: boolean;
   imports: Imports;
+  sourceDir: string;
+  destinationDir: string;
 }
 
 const renderTrigger = async ({
   dryRun,
   imports,
   trigger,
+  sourceDir,
+  destinationDir,
 }: RenderTriggerProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "triggers", "trigger.ts.ejs"),
-    destination: path.join(DESTINATION_DIR, "triggers", `${trigger.key}.ts`),
+    source: path.join(sourceDir, "triggers", "trigger.ts.ejs"),
+    destination: path.join(destinationDir, "triggers", `${trigger.key}.ts`),
     data: {
       helpers,
       imports,

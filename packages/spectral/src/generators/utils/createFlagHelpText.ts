@@ -1,4 +1,4 @@
-interface CreateHelpFlagsProps {
+interface CreateFlagHelpTextProps {
   flags: {
     [key: string]: {
       flag: string[];
@@ -12,7 +12,7 @@ interface CreateHelpFlagsProps {
 export const createFlagHelpText = ({
   flags,
   command,
-}: CreateHelpFlagsProps) => {
+}: CreateFlagHelpTextProps) => {
   console.log(`Usage: ${command} [options]\n`);
   console.log("Options:");
 
@@ -30,6 +30,6 @@ export const createFlagHelpText = ({
   );
 
   formattedFlags.forEach(({ flag, description }) => {
-    console.log(`  ${flag.padEnd(longestFlag + 5)}  ${description}`);
+    console.log(`  ${flag.padEnd(longestFlag + 2)}  ${description}`);
   });
 };

@@ -1,6 +1,5 @@
 import path from "path";
 
-import { DESTINATION_DIR, SOURCE_DIR, SPECTRAL_VERSION } from "./constants";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import { Component } from "../../serverTypes";
@@ -9,50 +8,61 @@ interface CreateStaticFilesProps {
   component: Component;
   dryRun: boolean;
   signature: string | null;
-  name: string | null;
+  packageName: string;
+  spectralVersion: string;
+  sourceDir: string;
+  destinationDir: string;
 }
 
-export const createStaticFiles = ({
+export const createStaticFiles = async ({
   component,
   dryRun,
   signature,
-  name,
+  packageName,
+  spectralVersion,
+  sourceDir,
+  destinationDir,
 }: CreateStaticFilesProps) => {
   console.info("Creating static files...");
 
-  const index = renderIndex({
+  const index = await renderIndex({
     component: {
-      key: name ?? component.key,
+      key: component.key,
       public: Boolean(component.public),
       signature,
     },
     dryRun,
+    sourceDir,
+    destinationDir,
   });
 
-  const packageJson = renderPackageJson({
-    component: {
-      key: name ?? component.key,
-      spectralVersion: SPECTRAL_VERSION,
-    },
+  const packageJson = await renderPackageJson({
     dryRun,
+    spectralVersion,
+    packageName,
+    sourceDir,
+    destinationDir,
   });
 
-  const readme = renderReadme({
+  const readme = await renderReadme({
     component: {
-      key: name ?? component.key,
+      key: component.key,
       label: component.display.label,
       description: component.display.description,
     },
+    packageName,
     dryRun,
+    sourceDir,
+    destinationDir,
   });
 
   console.info("");
 
-  return {
+  return Promise.resolve({
     index,
     packageJson,
     readme,
-  };
+  });
 };
 
 interface RenderIndexProps {
@@ -62,12 +72,19 @@ interface RenderIndexProps {
     signature: string | null;
   };
   dryRun: boolean;
+  sourceDir: string;
+  destinationDir: string;
 }
 
-export const renderIndex = async ({ component, dryRun }: RenderIndexProps) => {
+export const renderIndex = async ({
+  component,
+  dryRun,
+  sourceDir,
+  destinationDir,
+}: RenderIndexProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "index.ts.ejs"),
-    destination: path.join(DESTINATION_DIR, "index.ts"),
+    source: path.join(sourceDir, "index.ts.ejs"),
+    destination: path.join(destinationDir, "index.ts"),
     data: {
       component,
     },
@@ -76,22 +93,26 @@ export const renderIndex = async ({ component, dryRun }: RenderIndexProps) => {
 };
 
 interface RenderPackageJsonProps {
-  component: {
-    key: string;
-    spectralVersion: string;
-  };
   dryRun: boolean;
+  packageName: string;
+  spectralVersion: string;
+  sourceDir: string;
+  destinationDir: string;
 }
 
 export const renderPackageJson = async ({
-  component,
   dryRun,
+  packageName,
+  spectralVersion,
+  sourceDir,
+  destinationDir,
 }: RenderPackageJsonProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "package.json.ejs"),
-    destination: path.join(DESTINATION_DIR, "package.json"),
+    source: path.join(sourceDir, "package.json.ejs"),
+    destination: path.join(destinationDir, "package.json"),
     data: {
-      component,
+      packageName,
+      spectralVersion,
       helpers,
     },
     dryRun,
@@ -105,18 +126,25 @@ interface RenderReadmeProps {
     description: string;
   };
   dryRun: boolean;
+  packageName: string;
+  sourceDir: string;
+  destinationDir: string;
 }
 
 export const renderReadme = async ({
   component,
   dryRun,
+  packageName,
+  sourceDir,
+  destinationDir,
 }: RenderReadmeProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "README.md.ejs"),
-    destination: path.join(DESTINATION_DIR, "README.md"),
+    source: path.join(sourceDir, "README.md.ejs"),
+    destination: path.join(destinationDir, "README.md"),
     data: {
       component,
       helpers,
+      packageName,
     },
     dryRun,
   });

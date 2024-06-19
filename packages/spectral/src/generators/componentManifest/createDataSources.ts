@@ -1,6 +1,5 @@
 import path from "path";
 
-import { DESTINATION_DIR, SOURCE_DIR } from "./constants";
 import { Input, getInputs } from "./getInputs";
 import { Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
@@ -17,15 +16,19 @@ const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
 interface CreateDataSourcesProps {
   component: Component;
   dryRun: boolean;
+  sourceDir: string;
+  destinationDir: string;
 }
 
-export const createDataSources = ({
+export const createDataSources = async ({
   component,
   dryRun,
+  sourceDir,
+  destinationDir,
 }: CreateDataSourcesProps) => {
   console.info("Creating data sources...");
 
-  const dataSourceIndex = renderDataSourcesIndex({
+  const dataSourceIndex = await renderDataSourcesIndex({
     dataSources: Object.entries(component.dataSources).map(
       ([dataSourceKey, dataSource]) => {
         return {
@@ -34,36 +37,42 @@ export const createDataSources = ({
       }
     ),
     dryRun,
+    sourceDir,
+    destinationDir,
   });
 
-  const dataSources = Object.entries(component.dataSources).map(
-    ([dataSourceKey, dataSource]) => {
-      const inputs = getInputs({
-        inputs: dataSource.inputs,
-        documentProperties: DOCUMENT_PROPERTIES,
-      });
+  const dataSources = await Promise.all(
+    Object.entries(component.dataSources).map(
+      async ([dataSourceKey, dataSource]) => {
+        const inputs = getInputs({
+          inputs: dataSource.inputs,
+          documentProperties: DOCUMENT_PROPERTIES,
+        });
 
-      const imports = getImports({ inputs });
+        const imports = getImports({ inputs });
 
-      return renderDataSource({
-        dataSource: {
-          key: dataSource.key || dataSourceKey,
-          label: dataSource.display.label,
-          description: dataSource.display.description,
-          inputs,
-        },
-        imports,
-        dryRun,
-      });
-    }
+        return await renderDataSource({
+          dataSource: {
+            key: dataSource.key || dataSourceKey,
+            label: dataSource.display.label,
+            description: dataSource.display.description,
+            inputs,
+          },
+          imports,
+          dryRun,
+          sourceDir,
+          destinationDir,
+        });
+      }
+    )
   );
 
   console.info("");
 
-  return {
+  return Promise.resolve({
     dataSourceIndex,
     dataSources,
-  };
+  });
 };
 
 interface RenderDataSourcesProps {
@@ -71,15 +80,19 @@ interface RenderDataSourcesProps {
     key: string;
   }[];
   dryRun: boolean;
+  sourceDir: string;
+  destinationDir: string;
 }
 
 const renderDataSourcesIndex = async ({
   dataSources,
   dryRun,
+  sourceDir,
+  destinationDir,
 }: RenderDataSourcesProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "dataSources", "index.ts.ejs"),
-    destination: path.join(DESTINATION_DIR, "dataSources", "index.ts"),
+    source: path.join(sourceDir, "dataSources", "index.ts.ejs"),
+    destination: path.join(destinationDir, "dataSources", "index.ts"),
     data: {
       dataSources,
     },
@@ -96,17 +109,21 @@ interface RenderDataSourceProps {
   };
   dryRun: boolean;
   imports: Imports;
+  sourceDir: string;
+  destinationDir: string;
 }
 
 const renderDataSource = async ({
   dataSource,
   dryRun,
   imports,
+  sourceDir,
+  destinationDir,
 }: RenderDataSourceProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "dataSources", "dataSource.ts.ejs"),
+    source: path.join(sourceDir, "dataSources", "dataSource.ts.ejs"),
     destination: path.join(
-      DESTINATION_DIR,
+      destinationDir,
       "dataSources",
       `${dataSource.key}.ts`
     ),

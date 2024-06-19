@@ -1,9 +1,9 @@
 {
-  "name": "@component/<%= component.key %>-manifest",
+  "name": "<%= packageName %>",
   "version": "<%= helpers.generatePackageJsonVersion() %>",
   "main": "index.ts",
   "scripts": {},
   "peerDependencies": {
-    "@prismatic-io/spectral": ">= <%= component.spectralVersion %>"
+    "@prismatic-io/spectral": ">= <%= spectralVersion %>"
   }
 }
