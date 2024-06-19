@@ -5,5 +5,12 @@
   "scripts": {},
   "peerDependencies": {
     "@prismatic-io/spectral": ">= <%= spectralVersion %>"
+  },
+  spectral: {
+    <%_ if (component.signature) { -%>
+    "signature": "<%= component.signature %>",
+    <%_ } else { -%>
+    "signature": null,
+    <%_ } -%>
   }
 }
