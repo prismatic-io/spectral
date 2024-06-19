@@ -1,6 +1,7 @@
 export interface ComponentManifest {
   key: string;
   public: boolean;
+  signature: string | null;
   actions: Record<string, ComponentManifestAction>;
   triggers: Record<string, ComponentManifestTrigger>;
   dataSources: Record<string, ComponentManifestDataSource>;
