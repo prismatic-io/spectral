@@ -1,6 +1,5 @@
 import path from "path";
 
-import { DESTINATION_DIR, SOURCE_DIR } from "./constants";
 import { Input, getInputs } from "./getInputs";
 import { Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
@@ -17,29 +16,38 @@ const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
 interface CreateActionsProps {
   component: Component;
   dryRun: boolean;
+  sourceDir: string;
+  destinationDir: string;
 }
 
-export const createActions = ({ component, dryRun }: CreateActionsProps) => {
+export const createActions = async ({
+  component,
+  dryRun,
+  sourceDir,
+  destinationDir,
+}: CreateActionsProps) => {
   console.info("Creating actions...");
 
-  const actionIndex = renderActionsIndex({
+  const actionIndex = await renderActionsIndex({
     actions: Object.entries(component.actions).map(([actionKey, action]) => {
       return {
         key: action.key || actionKey,
       };
     }),
     dryRun,
+    sourceDir,
+    destinationDir,
   });
 
-  const actions = Object.entries(component.actions).map(
-    ([actionKey, action]) => {
+  const actions = await Promise.all(
+    Object.entries(component.actions).map(async ([actionKey, action]) => {
       const inputs = getInputs({
         inputs: action.inputs,
         documentProperties: DOCUMENT_PROPERTIES,
       });
       const imports = getImports({ inputs });
 
-      return renderAction({
+      return await renderAction({
         action: {
           key: action.key || actionKey,
           label: action.display.description,
@@ -48,16 +56,18 @@ export const createActions = ({ component, dryRun }: CreateActionsProps) => {
         },
         imports,
         dryRun,
+        sourceDir,
+        destinationDir,
       });
-    }
+    })
   );
 
   console.info("");
 
-  return {
+  return Promise.resolve({
     actionIndex,
     actions,
-  };
+  });
 };
 
 interface RenderActionsIndexProps {
@@ -65,15 +75,19 @@ interface RenderActionsIndexProps {
     key: string;
   }[];
   dryRun: boolean;
+  sourceDir: string;
+  destinationDir: string;
 }
 
 const renderActionsIndex = async ({
   actions,
   dryRun,
+  sourceDir,
+  destinationDir,
 }: RenderActionsIndexProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "actions", "index.ts.ejs"),
-    destination: path.join(DESTINATION_DIR, "actions", "index.ts"),
+    source: path.join(sourceDir, "actions", "index.ts.ejs"),
+    destination: path.join(destinationDir, "actions", "index.ts"),
     data: {
       actions,
     },
@@ -90,12 +104,20 @@ interface RenderActionProps {
   };
   dryRun: boolean;
   imports: Imports;
+  sourceDir: string;
+  destinationDir: string;
 }
 
-const renderAction = async ({ action, imports, dryRun }: RenderActionProps) => {
+const renderAction = async ({
+  action,
+  imports,
+  dryRun,
+  sourceDir,
+  destinationDir,
+}: RenderActionProps) => {
   return await createTemplate({
-    source: path.join(SOURCE_DIR, "actions", "action.ts.ejs"),
-    destination: path.join(DESTINATION_DIR, "actions", `${action.key}.ts`),
+    source: path.join(sourceDir, "actions", "action.ts.ejs"),
+    destination: path.join(destinationDir, "actions", `${action.key}.ts`),
     data: {
       action,
       helpers,

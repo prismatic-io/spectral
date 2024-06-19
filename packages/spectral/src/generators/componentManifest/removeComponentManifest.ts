@@ -1,12 +1,16 @@
 import { removeSync } from "fs-extra";
 
-import { DESTINATION_DIR } from "./constants";
+interface RemoveComponentManifestProps {
+  destinationDir: string;
+}
 
-export const removeComponentManifest = () => {
+export const removeComponentManifest = ({
+  destinationDir,
+}: RemoveComponentManifestProps) => {
   console.info("Removing existing component manifest files...");
 
   try {
-    removeSync(DESTINATION_DIR);
+    removeSync(destinationDir);
   } catch (err) {
     console.error(err);
   }
