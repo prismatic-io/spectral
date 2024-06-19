@@ -37,6 +37,9 @@ export const createStaticFiles = async ({
   });
 
   const packageJson = await renderPackageJson({
+    component: {
+      signature,
+    },
     dryRun,
     spectralVersion,
     packageName,
@@ -93,6 +96,9 @@ export const renderIndex = async ({
 };
 
 interface RenderPackageJsonProps {
+  component: {
+    signature: string | null;
+  };
   dryRun: boolean;
   packageName: string;
   spectralVersion: string;
@@ -101,6 +107,7 @@ interface RenderPackageJsonProps {
 }
 
 export const renderPackageJson = async ({
+  component,
   dryRun,
   packageName,
   spectralVersion,
@@ -111,6 +118,7 @@ export const renderPackageJson = async ({
     source: path.join(sourceDir, "package.json.ejs"),
     destination: path.join(destinationDir, "package.json"),
     data: {
+      component,
       packageName,
       spectralVersion,
       helpers,
