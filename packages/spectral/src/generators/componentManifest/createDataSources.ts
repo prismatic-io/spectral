@@ -29,7 +29,7 @@ export const createDataSources = async ({
   console.info("Creating data sources...");
 
   const dataSourceIndex = await renderDataSourcesIndex({
-    dataSources: Object.entries(component.dataSources).map(
+    dataSources: Object.entries(component.dataSources ?? {}).map(
       ([dataSourceKey, dataSource]) => {
         return {
           key: dataSource.key || dataSourceKey,
@@ -42,7 +42,7 @@ export const createDataSources = async ({
   });
 
   const dataSources = await Promise.all(
-    Object.entries(component.dataSources).map(
+    Object.entries(component.dataSources ?? {}).map(
       async ([dataSourceKey, dataSource]) => {
         const inputs = getInputs({
           inputs: dataSource.inputs,

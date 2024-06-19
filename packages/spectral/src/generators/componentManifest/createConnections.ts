@@ -29,20 +29,18 @@ export const createConnections = async ({
   console.info("Creating connections...");
 
   const connectionIndex = await renderConnectionsIndex({
-    connections: Object.entries(component.connections).map(
-      ([connectionKey, connection]) => {
-        return {
-          key: connection.key || connectionKey,
-        };
-      }
-    ),
+    connections: (component.connections ?? []).map((connection) => {
+      return {
+        key: connection.key,
+      };
+    }),
     dryRun,
     sourceDir,
     destinationDir,
   });
 
   const connections = await Promise.all(
-    component.connections.map(async (connection) => {
+    (component.connections ?? []).map(async (connection) => {
       const inputs = getInputs({
         inputs: connection.inputs,
         documentProperties: DOCUMENT_PROPERTIES,

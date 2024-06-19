@@ -29,18 +29,20 @@ export const createActions = async ({
   console.info("Creating actions...");
 
   const actionIndex = await renderActionsIndex({
-    actions: Object.entries(component.actions).map(([actionKey, action]) => {
-      return {
-        key: action.key || actionKey,
-      };
-    }),
+    actions: Object.entries(component.actions ?? {}).map(
+      ([actionKey, action]) => {
+        return {
+          key: action.key || actionKey,
+        };
+      }
+    ),
     dryRun,
     sourceDir,
     destinationDir,
   });
 
   const actions = await Promise.all(
-    Object.entries(component.actions).map(async ([actionKey, action]) => {
+    Object.entries(component.actions ?? {}).map(async ([actionKey, action]) => {
       const inputs = getInputs({
         inputs: action.inputs,
         documentProperties: DOCUMENT_PROPERTIES,

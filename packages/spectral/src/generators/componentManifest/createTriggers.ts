@@ -42,26 +42,29 @@ export const createTriggers = async ({
   });
 
   const triggers = await Promise.all(
-    Object.entries(component.triggers).map(async ([triggerKey, trigger]) => {
-      const inputs = getInputs({
-        inputs: trigger.inputs,
-        documentProperties: DOCUMENT_PROPERTIES,
-      });
-      const imports = getImports({ inputs });
+    Object.entries(component.triggers ?? {}).map(
+      async ([triggerKey, trigger]) => {
+        const inputs = getInputs({
+          inputs: trigger.inputs,
+          documentProperties: DOCUMENT_PROPERTIES,
+        });
+        const imports = getImports({ inputs });
 
-      return await renderTrigger({
-        trigger: {
-          key: trigger.key || triggerKey,
-          label: trigger.display.description,
-          description: trigger.display.description,
-          inputs,
-        },
-        dryRun,
-        imports,
-        sourceDir,
-        destinationDir,
-      });
-    })
+        return await renderTrigger({
+          trigger: {
+            key: trigger.key || triggerKey,
+            label: trigger.display.description,
+            description: trigger.display.description,
+            inputs,
+          },
+          dryRun,
+          imports,
+          verbose,
+          sourceDir,
+          destinationDir,
+        });
+      }
+    )
   );
 
   console.info("");
