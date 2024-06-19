@@ -91,6 +91,7 @@ export const componentRegistry = {
   example: componentManifest({
     key: "example",
     public: true,
+    signature: "example-signature",
     actions: {},
     triggers: {},
     dataSources: {
@@ -105,6 +106,7 @@ export const componentRegistry = {
   slack: componentManifest({
     key: "slack",
     public: true,
+    signature: "slack-signature",
     actions: {},
     triggers: {},
     dataSources: {
@@ -128,6 +130,7 @@ export const componentRegistry = {
   http: componentManifest({
     key: "http",
     public: true,
+    signature: "http-signature",
     actions: {},
     triggers: {
       hmac: (inputs: { secret: string; secret2: string }) =>
