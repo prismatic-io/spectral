@@ -1,16 +1,17 @@
 {
   "name": "<%= packageName %>",
   "version": "<%= helpers.generatePackageJsonVersion() %>",
-  "main": "index.ts",
-  "scripts": {},
+  "main": "dist/index.js",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "@prismatic-io/spectral": "<%= spectralVersion %>",
+    "typescript": "<%= typescriptVersion %>"
+  },
   "peerDependencies": {
     "@prismatic-io/spectral": ">= <%= spectralVersion %>"
-  },
-  spectral: {
-    <%_ if (component.signature) { -%>
-    "signature": "<%= component.signature %>",
-    <%_ } else { -%>
-    "signature": null,
-    <%_ } -%>
   }
 }

@@ -1,7 +1,9 @@
+import path from "path";
+
 import { createActions } from "./createActions";
 import { createConnections } from "./createConnections";
 import { createDataSources } from "./createDataSources";
-import { createStaticFiles } from "./createStaticFiles";
+import { createStaticFiles, PackageDependencies } from "./createStaticFiles";
 import { createTriggers } from "./createTriggers";
 import { removeComponentManifest } from "./removeComponentManifest";
 import { getComponentSignatureWithPrism } from "../utils/getComponentSignatureWithPrism";
@@ -12,7 +14,7 @@ interface CreateComponentManifestProps {
   dryRun: boolean;
   includeSignature: boolean;
   packageName: string;
-  spectralVersion: string;
+  dependencies: PackageDependencies;
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
@@ -23,7 +25,7 @@ export const createComponentManifest = async ({
   dryRun,
   includeSignature,
   packageName,
-  spectralVersion,
+  dependencies,
   verbose,
   sourceDir,
   destinationDir,
@@ -49,18 +51,20 @@ export const createComponentManifest = async ({
     dryRun,
     packageName,
     signature,
-    spectralVersion,
+    dependencies,
     verbose,
     sourceDir,
     destinationDir,
   });
+
+  const srcDir = path.join(destinationDir, "src");
 
   await createActions({
     component,
     dryRun,
     verbose,
     sourceDir,
-    destinationDir,
+    destinationDir: srcDir,
   });
 
   await createTriggers({
@@ -68,7 +72,7 @@ export const createComponentManifest = async ({
     dryRun,
     verbose,
     sourceDir,
-    destinationDir,
+    destinationDir: srcDir,
   });
 
   await createConnections({
@@ -76,7 +80,7 @@ export const createComponentManifest = async ({
     dryRun,
     verbose,
     sourceDir,
-    destinationDir,
+    destinationDir: srcDir,
   });
 
   await createDataSources({
@@ -84,7 +88,7 @@ export const createComponentManifest = async ({
     dryRun,
     verbose,
     sourceDir,
-    destinationDir,
+    destinationDir: srcDir,
   });
 
   console.info(

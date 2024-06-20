@@ -4,12 +4,18 @@ import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import { Component } from "../../serverTypes";
 
+export interface PackageDependencies {
+  spectral: string;
+  dependencies: Record<string, string>;
+  devDependencies: Record<string, string>;
+}
+
 interface CreateStaticFilesProps {
   component: Component;
   dryRun: boolean;
   signature: string | null;
   packageName: string;
-  spectralVersion: string;
+  dependencies: PackageDependencies;
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
@@ -20,7 +26,7 @@ export const createStaticFiles = async ({
   dryRun,
   signature,
   packageName,
-  spectralVersion,
+  dependencies,
   verbose,
   sourceDir,
   destinationDir,
@@ -42,12 +48,16 @@ export const createStaticFiles = async ({
   });
 
   const packageJson = await renderPackageJson({
-    component: {
-      signature,
-    },
     dryRun,
-    spectralVersion,
+    dependencies,
     packageName,
+    verbose,
+    sourceDir,
+    destinationDir,
+  });
+
+  const tsConfig = await renderTsConfig({
+    dryRun,
     verbose,
     sourceDir,
     destinationDir,
@@ -73,6 +83,7 @@ export const createStaticFiles = async ({
   return Promise.resolve({
     index,
     packageJson,
+    tsConfig,
     readme,
   });
 };
@@ -98,7 +109,7 @@ export const renderIndex = async ({
 }: RenderIndexProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "index.ts.ejs"),
-    destination: path.join(destinationDir, "index.ts"),
+    destination: path.join(destinationDir, "src", "index.ts"),
     data: {
       component,
     },
@@ -108,22 +119,18 @@ export const renderIndex = async ({
 };
 
 interface RenderPackageJsonProps {
-  component: {
-    signature: string | null;
-  };
   dryRun: boolean;
   packageName: string;
-  spectralVersion: string;
+  dependencies: PackageDependencies;
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
 
 export const renderPackageJson = async ({
-  component,
   dryRun,
   packageName,
-  spectralVersion,
+  dependencies,
   verbose,
   sourceDir,
   destinationDir,
@@ -132,11 +139,32 @@ export const renderPackageJson = async ({
     source: path.join(sourceDir, "package.json.ejs"),
     destination: path.join(destinationDir, "package.json"),
     data: {
-      component,
       packageName,
-      spectralVersion,
+      spectralVersion: dependencies.spectral,
+      typescriptVersion: dependencies.devDependencies.typescript,
       helpers,
     },
+    dryRun,
+    verbose,
+  });
+};
+
+interface RenderTsConfigProps {
+  dryRun: boolean;
+  verbose: boolean;
+  sourceDir: string;
+  destinationDir: string;
+}
+
+export const renderTsConfig = async ({
+  dryRun,
+  verbose,
+  sourceDir,
+  destinationDir,
+}: RenderTsConfigProps) => {
+  return await createTemplate({
+    source: path.join(sourceDir, "tsconfig.json.ejs"),
+    destination: path.join(destinationDir, "tsconfig.json"),
     dryRun,
     verbose,
   });
