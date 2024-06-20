@@ -19,6 +19,7 @@ interface CreateStaticFilesProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
+  registry: string | null;
 }
 
 export const createStaticFiles = async ({
@@ -30,6 +31,7 @@ export const createStaticFiles = async ({
   verbose,
   sourceDir,
   destinationDir,
+  registry,
 }: CreateStaticFilesProps) => {
   if (verbose) {
     console.info("Creating static files...");
@@ -54,6 +56,7 @@ export const createStaticFiles = async ({
     verbose,
     sourceDir,
     destinationDir,
+    registry,
   });
 
   const tsConfig = await renderTsConfig({
@@ -125,6 +128,7 @@ interface RenderPackageJsonProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
+  registry: string | null;
 }
 
 export const renderPackageJson = async ({
@@ -134,6 +138,7 @@ export const renderPackageJson = async ({
   verbose,
   sourceDir,
   destinationDir,
+  registry,
 }: RenderPackageJsonProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "package.json.ejs"),
@@ -143,6 +148,7 @@ export const renderPackageJson = async ({
       spectralVersion: dependencies.spectral,
       typescriptVersion: dependencies.devDependencies.typescript,
       helpers,
+      registry,
     },
     dryRun,
     verbose,
