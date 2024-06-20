@@ -39,8 +39,14 @@ const createRef = <TComponentRef extends AllComponentReferences>(
 const slackRef = createRef<AllComponentReferences>({
   component: "slack",
   key: "selectChannels",
+  isPublic: true,
   values: {
     connection: { configVar: "A String" },
+    includeImChannels: { value: true },
+    includeMultiPartyImchannels: { value: true },
+    includePublicChannels: { value: true },
+    includePrivateChannels: { value: false },
+    showIdInDropdown: { value: false },
   },
 });
 
@@ -55,6 +61,7 @@ expectAssignable<
 const hmacRef = createRef<TriggerReference>({
   component: "http",
   key: "hmac",
+  isPublic: true,
   values: {
     secret: { value: "secret" },
     secret2: { value: "secret2" },
@@ -65,6 +72,7 @@ expectAssignable<"hmac">(hmacRef.key);
 const slackOAuthRef = createRef<ConnectionReference>({
   component: "slack",
   key: "slackOAuth",
+  isPublic: true,
   values: {
     clientId: { value: "id" },
     clientSecret: { value: "secret" },
@@ -76,13 +84,14 @@ expectAssignable<"exampleConnection" | "slackOAuth">(slackOAuthRef.key);
 const slackChannelsRef = createRef<DataSourceReference>({
   component: "slack",
   key: "selectChannels",
+  isPublic: true,
   values: {
     connection: { configVar: "A String" },
-    includeImChannels: { value: "true" },
-    includeMultiPartyImchannels: { value: "true" },
-    includePublicChannels: { value: "true" },
-    includePrivateChannels: { value: "true" },
-    showIdInDropdown: { value: "true" },
+    includeImChannels: { value: true },
+    includeMultiPartyImchannels: { value: true },
+    includePublicChannels: { value: true },
+    includePrivateChannels: { value: false },
+    showIdInDropdown: { value: false },
   },
 });
 expectAssignable<"exampleDataSource" | "selectChannels">(slackChannelsRef.key);
