@@ -195,91 +195,95 @@ export type ComponentRegistry =
           : never
       >;
 
-type GetComponentRegistryPropertiesByType<
-  TProperty extends Extract<
-    keyof ComponentManifest,
-    "actions" | "triggers" | "dataSources" | "connections"
-  >
-> = keyof ComponentRegistry extends infer TComponentKey
-  ? TComponentKey extends keyof ComponentRegistry
-    ? TComponentKey extends string
-      ? TProperty extends keyof ComponentRegistry[TComponentKey]
-        ? keyof ComponentRegistry[TComponentKey][TProperty] extends infer TComponentPropertyKey
-          ? TComponentPropertyKey extends keyof ComponentRegistry[TComponentKey][TProperty]
-            ? ComponentRegistry[TComponentKey][TProperty][TComponentPropertyKey] extends (
-                ...args: any[]
-              ) => any
-              ? {
-                  component: TComponentKey;
-                  key: TComponentPropertyKey;
-                  inputs: Parameters<
-                    ComponentRegistry[TComponentKey][TProperty][TComponentPropertyKey]
-                  >[0];
-                }
-              : never
-            : never
-          : never
-        : never
-      : never
-    : never
-  : never;
+type ComponentReferenceType = Extract<
+  keyof ComponentManifest,
+  "actions" | "triggers" | "dataSources" | "connections"
+>;
 
-type ExpressionType = "value" | "configVar";
-
-type ExpressionTypeMap<
-  TValueType,
-  TMap extends Record<ExpressionType, unknown> = {
-    value: ValueExpression<TValueType>;
-    configVar: ConfigVarExpression;
+type ComponentReferenceTypeValueMap<
+  TValue,
+  TMap extends Record<ComponentReferenceType, unknown> = {
+    actions: ValueExpression<TValue>;
+    triggers: ValueExpression<TValue> | ConfigVarExpression;
+    dataSources: ValueExpression<TValue> | ConfigVarExpression;
+    connections: ValueExpression<TValue> | ConfigVarExpression;
   }
 > = TMap;
 
-type CreateComponentReference<
-  TComponentRegistryPropertry extends {
+export type ComponentReference<
+  TComponentReference extends {
     component: string;
+    isPublic: boolean;
     key: string;
-    inputs: unknown;
-  },
-  TExpressionType extends ExpressionType
-> = {
-  component: TComponentRegistryPropertry["component"];
-  key: TComponentRegistryPropertry["key"];
-  values: {
-    [Key in keyof TComponentRegistryPropertry["inputs"]]: TExpressionType extends infer TType
-      ? TType extends ExpressionType
-        ? ExpressionTypeMap<TComponentRegistryPropertry["inputs"][Key]>[TType]
-        : never
-      : never;
-  };
-};
+    values?: {
+      [key: string]: ValueExpression | ConfigVarExpression;
+    };
+    template?: string;
+  } = {
+    component: string;
+    isPublic: boolean;
+    key: string;
+    values?: {
+      [key: string]: ValueExpression | ConfigVarExpression;
+    };
+    template?: string;
+  }
+> = TComponentReference;
 
-type ComponentRegistryTrigger =
-  GetComponentRegistryPropertiesByType<"triggers">;
+export const isComponentReference = (ref: unknown): ref is ComponentReference =>
+  typeof ref === "object" && ref !== null && "key" in ref && "component" in ref;
 
-export type TriggerReference = CreateComponentReference<
-  ComponentRegistryTrigger,
-  "value" | "configVar"
+type ComponentReferencesByType = UnionToIntersection<
+  ComponentReferenceType extends infer TComponentReferenceType
+    ? TComponentReferenceType extends Extract<
+        keyof ComponentManifest,
+        "actions" | "triggers" | "dataSources" | "connections"
+      >
+      ? {
+          [Key in TComponentReferenceType]: keyof ComponentRegistry extends infer TComponentKey
+            ? TComponentKey extends keyof ComponentRegistry
+              ? TComponentKey extends string
+                ? TComponentReferenceType extends keyof ComponentRegistry[TComponentKey]
+                  ? keyof ComponentRegistry[TComponentKey][TComponentReferenceType] extends infer TComponentPropertyKey
+                    ? TComponentPropertyKey extends keyof ComponentRegistry[TComponentKey][TComponentReferenceType]
+                      ? TComponentPropertyKey extends string
+                        ? ComponentRegistry[TComponentKey][TComponentReferenceType][TComponentPropertyKey] extends (
+                            ...args: any[]
+                          ) => any
+                          ? Parameters<
+                              ComponentRegistry[TComponentKey][TComponentReferenceType][TComponentPropertyKey]
+                            >[0] extends infer TInputs
+                            ? ComponentReference<{
+                                component: TComponentKey;
+                                isPublic: ComponentRegistry[TComponentKey]["public"];
+                                key: TComponentPropertyKey;
+                                values: {
+                                  [Key in keyof TInputs]: ComponentReferenceTypeValueMap<
+                                    TInputs[Key]
+                                  >[TComponentReferenceType];
+                                };
+                              }>
+                            : never
+                          : never
+                        : never
+                      : never
+                    : never
+                  : never
+                : never
+              : never
+            : never;
+        }
+      : never
+    : never
 >;
 
-type ComponentRegistryAction = GetComponentRegistryPropertiesByType<"actions">;
-export type ActionReference = CreateComponentReference<
-  ComponentRegistryAction,
-  "value" | "configVar"
->;
+export type TriggerReference = ComponentReferencesByType["triggers"];
 
-type ComponentRegistryDataSource =
-  GetComponentRegistryPropertiesByType<"dataSources">;
-export type DataSourceReference = CreateComponentReference<
-  ComponentRegistryDataSource,
-  "value"
->;
+export type ActionReference = ComponentReferencesByType["actions"];
 
-type ComponentRegistryConnection =
-  GetComponentRegistryPropertiesByType<"connections">;
-export type ConnectionReference = CreateComponentReference<
-  ComponentRegistryConnection,
-  "value"
->;
+export type DataSourceReference = ComponentReferencesByType["dataSources"];
+
+export type ConnectionReference = ComponentReferencesByType["connections"];
 
 // Handle some data source types not supporting collections.
 type BaseDataSourceConfigVar =
@@ -495,17 +499,7 @@ export type CollectionType = "valuelist" | "keyvaluelist";
 /** Choices of component reference types. */
 export type ComponentSelectorType = "trigger" | "connection" | "dataSource";
 
-export type ConfigVarExpression = { configVar: keyof ConfigVars };
-export type ValueExpression<TValueType> = { value: TValueType };
-
-export interface ComponentReference<TValueType> {
-  component: string | { key: string; isPublic: boolean };
-  key: string;
-  values?: { [key: string]: ValueExpression<TValueType> | ConfigVarExpression };
-  template?: string;
-}
-
-export const isComponentReference = (
-  ref: unknown
-): ref is ComponentReference<any> =>
-  typeof ref === "object" && ref !== null && "key" in ref && "component" in ref;
+export type ConfigVarExpression = { configVar: string };
+export type ValueExpression<TValueType = unknown> = {
+  value: TValueType;
+};

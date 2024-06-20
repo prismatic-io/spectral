@@ -1,14 +1,24 @@
 export const DefinitionVersion = 7;
 
-export interface ComponentReference {
-  component: {
-    key: string;
-    version: number | "LATEST";
-    isPublic: boolean;
-  };
-  key: string;
-  template?: string;
-}
+export type ComponentReference =
+  | {
+      component: {
+        key: string;
+        version: number | "LATEST";
+        isPublic: boolean;
+      };
+      key: string;
+      template?: string;
+    }
+  | {
+      component: {
+        key: string;
+        signature: string;
+        isPublic: boolean;
+      };
+      key: string;
+      template?: string;
+    };
 
 export type Input =
   | {

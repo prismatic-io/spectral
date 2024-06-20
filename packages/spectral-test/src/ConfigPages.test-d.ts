@@ -70,6 +70,8 @@ const triggerFlow = flow({
   onTrigger: {
     component: "http",
     key: "hmac",
+    signature: "http-signature",
+    isPublic: true,
     values: {
       secret: { value: "hello" },
       secret2: { configVar: "Fourth Page String" },

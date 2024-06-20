@@ -144,7 +144,8 @@ const codeNativeIntegrationYaml = (
     version,
     labels,
     requiredConfigVars: Object.entries(configVars || {}).map(
-      ([key, configVar]) => convertConfigVar(key, configVar, referenceKey)
+      ([key, configVar]) =>
+        convertConfigVar(key, configVar, referenceKey, componentRegistry)
     ),
     endpointType,
     preprocessFlowName: hasPreprocessFlow ? preprocessFlows[0].name : undefined,
@@ -169,64 +170,64 @@ const codeNativeIntegrationYaml = (
   return YAML.stringify(result);
 };
 
-const convertComponentReference = <TValue>({
-  key,
-  component: componentRef,
-  values,
-}: ComponentReference<TValue>): {
+const convertComponentReference = (
+  componentReference: ComponentReference,
+  componentRegistry: ComponentRegistry
+): {
   ref: ServerComponentReference;
   inputs: Record<string, ServerInput>;
 } => {
-  const component =
-    typeof componentRef === "string"
-      ? {
-          key: componentRef,
-          // TODO: Update to use `signature` when support is added.
-          version: "LATEST" as const,
-          isPublic: true,
-        }
-      : {
-          key: componentRef.key,
-          // TODO: Update to use `signature` when support is added.
-          version: "LATEST" as const,
-          isPublic: componentRef.isPublic,
-        };
+  const ref: ServerComponentReference = {
+    component: {
+      key: componentReference.component,
+      signature:
+        componentRegistry[componentReference.component]?.signature ?? "",
+      isPublic: componentReference.isPublic,
+    },
+    key: componentReference.key,
+  };
 
-  const inputs = Object.entries(values ?? {}).reduce((result, [key, value]) => {
-    if ("value" in value) {
-      const type = value.value instanceof Object ? "complex" : "value";
-      const valueExpr =
-        value.value instanceof Object && !Array.isArray(value.value)
-          ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
-              name: { type: "value", value: k },
-              type: "value",
-              value: v,
-            }))
-          : value.value;
-      return { ...result, [key]: { type: type, value: valueExpr } };
-    }
-    if ("configVar" in value) {
-      return {
-        ...result,
-        [key]: { type: "configVar", value: value.configVar },
-      };
-    }
-    return result;
-  }, {});
+  const inputs = Object.entries(componentReference.values ?? {}).reduce(
+    (result, [key, value]) => {
+      if ("value" in value) {
+        const type = value.value instanceof Object ? "complex" : "value";
+        const valueExpr =
+          value.value instanceof Object && !Array.isArray(value.value)
+            ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
+                name: { type: "value", value: k },
+                type: "value",
+                value: v,
+              }))
+            : value.value;
+        return { ...result, [key]: { type: type, value: valueExpr } };
+      }
+      if ("configVar" in value) {
+        return {
+          ...result,
+          [key]: { type: "configVar", value: value.configVar },
+        };
+      }
+      return result;
+    },
+    {}
+  );
 
   return {
-    ref: { key, component },
+    ref,
     inputs,
   };
 };
 
 const convertComponentRegistry = (componentRegistry: ComponentRegistry) =>
-  Object.values(componentRegistry).map(({ key, public: isPublic }) => ({
-    key,
-    // TODO: Update to use `signature` when support is added.
-    version: "LATEST" as const,
-    isPublic,
-  }));
+  Object.values(componentRegistry).map(
+    ({ key, public: isPublic, signature }) => ({
+      key,
+      // TODO: Replace this once yml validator is updated to allow signature
+      version: "LATEST",
+      // signature,
+      isPublic,
+    })
+  );
 
 /** Converts a Flow into the structure necessary for YAML generation. */
 const convertFlow = (
@@ -265,7 +266,10 @@ const convertFlow = (
       },
     };
   } else if (isComponentReference(flow.onTrigger)) {
-    const { ref, inputs } = convertComponentReference(flow.onTrigger);
+    const { ref, inputs } = convertComponentReference(
+      flow.onTrigger,
+      componentRegistry
+    );
     triggerStep.action = ref;
     triggerStep.inputs = inputs;
   } else {
@@ -322,7 +326,8 @@ const convertFlow = (
 const convertConfigVar = (
   key: string,
   configVar: ConfigVar,
-  referenceKey: string
+  referenceKey: string,
+  componentRegistry: ComponentRegistry
 ): ServerRequiredConfigVariable => {
   const meta = pick(configVar, [
     "visibleToCustomerDeployer",
@@ -365,12 +370,25 @@ const convertConfigVar = (
   }
 
   if (isConnectionReferenceConfigVar(configVar)) {
-    const { ref, inputs } = convertComponentReference(configVar.connection);
+    const { ref, inputs } = convertComponentReference(
+      configVar.connection,
+      componentRegistry
+    );
     return {
       ...pick(configVar, ["stableKey", "description", "orgOnly"]),
       key,
       dataType: "connection",
-      connection: { ...ref, template: configVar.connection.template },
+      connection: {
+        key: ref.key,
+        component: {
+          key: ref.component.key,
+          isPublic: ref.component.isPublic,
+          // TODO: Replace this once yml validator is updated to allow signature
+          version: "LATEST",
+          // signature: ref.component.signature,
+        },
+        template: configVar.connection.template,
+      },
       inputs,
     };
   }
@@ -408,9 +426,21 @@ const convertConfigVar = (
   }
 
   if (isDataSourceReferenceConfigVar(configVar)) {
-    const { ref, inputs } = convertComponentReference(configVar.dataSource);
+    const { ref, inputs } = convertComponentReference(
+      configVar.dataSource,
+      componentRegistry
+    );
     result.dataType = configVar.dataSourceType;
-    result.dataSource = ref;
+    result.dataSource = {
+      key: ref.key,
+      component: {
+        key: ref.component.key,
+        isPublic: ref.component.isPublic,
+        // TODO: Replace this once yml validator is updated to allow signature
+        version: "LATEST",
+        // signature: ref.component.signature,
+      },
+    };
     result.inputs = inputs;
   }
 
@@ -450,9 +480,9 @@ const flowFunctionKey = (
 type ComponentActionInvokeFunction = <TValues extends Record<string, unknown>>(
   action: {
     component: string;
-    action: string;
+    signature: string;
     isPublic: boolean;
-    version: number;
+    action: string;
   },
   context: ActionContext,
   values: TValues
@@ -472,7 +502,7 @@ const convertOnExecution =
 
     const componentMethods = Object.entries(componentRegistry).reduce<
       Record<string, ComponentManifest["actions"]>
-    >((acc, [componentKey, { actions, public: isPublic }]) => {
+    >((acc, [componentKey, { actions, public: isPublic, signature }]) => {
       return {
         ...acc,
         [componentKey]: Object.keys(actions).reduce<
@@ -484,9 +514,9 @@ const convertOnExecution =
               return invoke(
                 {
                   component: componentKey,
-                  action: actionKey,
+                  signature: signature ?? "",
                   isPublic,
-                  version: 2,
+                  action: actionKey,
                 },
                 context,
                 values

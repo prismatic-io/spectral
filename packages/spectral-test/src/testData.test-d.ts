@@ -31,6 +31,7 @@ export const configPages = {
         connection: {
           component: "example",
           key: "exampleConnection",
+          isPublic: false,
           values: { foo: { value: "bar" } },
         },
       }),
@@ -72,6 +73,7 @@ export const configPages = {
         dataSource: {
           component: "example",
           key: "exampleDataSource",
+          isPublic: false,
           values: { bar: { value: "foo" } },
         },
       }),
@@ -90,8 +92,8 @@ export const configPages = {
 export const componentRegistry = {
   example: componentManifest({
     key: "example",
-    public: true,
-    signature: "example-signature",
+    public: false,
+    signature: "example-signature" as const,
     actions: {},
     triggers: {},
     dataSources: {
@@ -106,7 +108,7 @@ export const componentRegistry = {
   slack: componentManifest({
     key: "slack",
     public: true,
-    signature: "slack-signature",
+    signature: "slack-signature" as const,
     actions: {},
     triggers: {},
     dataSources: {
@@ -130,7 +132,7 @@ export const componentRegistry = {
   http: componentManifest({
     key: "http",
     public: true,
-    signature: "http-signature",
+    signature: "http-signature" as const,
     actions: {},
     triggers: {
       hmac: (inputs: { secret: string; secret2: string }) =>
