@@ -16,6 +16,7 @@ const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
 interface CreateConnectionsProps {
   component: Component;
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -23,26 +24,28 @@ interface CreateConnectionsProps {
 export const createConnections = async ({
   component,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: CreateConnectionsProps) => {
-  console.info("Creating connections...");
+  if (verbose) {
+    console.info("Creating connections...");
+  }
 
   const connectionIndex = await renderConnectionsIndex({
-    connections: Object.entries(component.connections).map(
-      ([connectionKey, connection]) => {
-        return {
-          key: connection.key || connectionKey,
-        };
-      }
-    ),
+    connections: (component.connections ?? []).map((connection) => {
+      return {
+        key: connection.key,
+      };
+    }),
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
 
   const connections = await Promise.all(
-    component.connections.map(async (connection) => {
+    (component.connections ?? []).map(async (connection) => {
       const inputs = getInputs({
         inputs: connection.inputs,
         documentProperties: DOCUMENT_PROPERTIES,
@@ -58,13 +61,16 @@ export const createConnections = async ({
         },
         imports,
         dryRun,
+        verbose,
         sourceDir,
         destinationDir,
       });
     })
   );
 
-  console.info("");
+  if (verbose) {
+    console.info("");
+  }
 
   return Promise.resolve({
     connectionIndex,
@@ -77,6 +83,7 @@ interface RenderConnectionsIndexProps {
     key: string;
   }[];
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -84,6 +91,7 @@ interface RenderConnectionsIndexProps {
 const renderConnectionsIndex = async ({
   connections,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderConnectionsIndexProps) => {
@@ -94,6 +102,7 @@ const renderConnectionsIndex = async ({
       connections,
     },
     dryRun,
+    verbose,
   });
 };
 
@@ -106,6 +115,7 @@ interface RenderConnectionProps {
   };
   dryRun: boolean;
   imports: Imports;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -114,6 +124,7 @@ const renderConnection = async ({
   connection,
   dryRun,
   imports,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderConnectionProps) => {
@@ -130,5 +141,6 @@ const renderConnection = async ({
       imports,
     },
     dryRun,
+    verbose,
   });
 };

@@ -1,6 +1,5 @@
 <%- include('../partials/imports.ejs', { imports, helpers }) -%>
 
-
 export interface <%= helpers.capitalizeFirstLetter(trigger.key) %>Values {
 <%- include('../partials/inputTypes.ejs', { inputs: trigger.inputs }) -%>
 }
