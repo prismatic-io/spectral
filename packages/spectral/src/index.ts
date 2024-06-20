@@ -224,6 +224,10 @@ export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(
   definition: T
 ): T => definition;
 
+export const componentManifests = <T extends Record<string, ComponentManifest>>(
+  definition: T
+): T => definition;
+
 export { default as util } from "./util";
 export * from "./types";
 export { default as testing } from "./testing";
