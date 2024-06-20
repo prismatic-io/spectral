@@ -99,13 +99,22 @@ export const runMain = async (process: NodeJS.Process) => {
     process.exit(0);
   }
 
+  const packageJson: {
+    version: string;
+    dependencies: Record<string, string>;
+    devDependencies: Record<string, string>;
+  } = readJsonSync(path.join(__dirname, "../../../package.json"));
+
   await createComponentManifest({
     component,
     dryRun: flags.dry_run.value,
     includeSignature: flags.include_signature.value,
     packageName: flags.name.value ?? `@components/${component.key}-manifest`,
-    spectralVersion: readJsonSync(path.join(__dirname, "../../../package.json"))
-      .version,
+    dependencies: {
+      spectral: packageJson.version,
+      dependencies: packageJson.dependencies,
+      devDependencies: packageJson.devDependencies,
+    },
     verbose: flags.verbose.value,
     sourceDir: path.join(__dirname, "templates"),
     destinationDir: flags.output_dir.value
