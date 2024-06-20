@@ -13,6 +13,7 @@ interface CreateComponentManifestProps {
   includeSignature: boolean;
   packageName: string;
   spectralVersion: string;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -23,6 +24,7 @@ export const createComponentManifest = async ({
   includeSignature,
   packageName,
   spectralVersion,
+  verbose,
   sourceDir,
   destinationDir,
 }: CreateComponentManifestProps) => {
@@ -30,11 +32,16 @@ export const createComponentManifest = async ({
     ? await getComponentSignatureWithPrism()
     : null;
 
-  console.info(`Creating a component manifest for ${component.display.label}...
-  `);
+  if (verbose) {
+    console.info(
+      `Creating a component manifest for ${component.display.label}...`
+    );
+    console.log("");
+  }
 
   removeComponentManifest({
     destinationDir,
+    verbose,
   });
 
   await createStaticFiles({
@@ -43,6 +50,7 @@ export const createComponentManifest = async ({
     packageName,
     signature,
     spectralVersion,
+    verbose,
     sourceDir,
     destinationDir,
   });
@@ -50,6 +58,7 @@ export const createComponentManifest = async ({
   await createActions({
     component,
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
@@ -57,6 +66,7 @@ export const createComponentManifest = async ({
   await createTriggers({
     component,
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
@@ -64,6 +74,7 @@ export const createComponentManifest = async ({
   await createConnections({
     component,
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
@@ -71,11 +82,12 @@ export const createComponentManifest = async ({
   await createDataSources({
     component,
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
 
   console.info(
-    `Component manifest created successfully for ${component.display.label} in ${destinationDir}! 🎉`
+    `Component manifest created successfully for ${component.display.label} in ${destinationDir}!`
   );
 };

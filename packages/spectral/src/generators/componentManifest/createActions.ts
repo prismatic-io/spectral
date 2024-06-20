@@ -16,6 +16,7 @@ const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
 interface CreateActionsProps {
   component: Component;
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -23,24 +24,30 @@ interface CreateActionsProps {
 export const createActions = async ({
   component,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: CreateActionsProps) => {
-  console.info("Creating actions...");
+  if (verbose) {
+    console.info("Creating actions...");
+  }
 
   const actionIndex = await renderActionsIndex({
-    actions: Object.entries(component.actions).map(([actionKey, action]) => {
-      return {
-        key: action.key || actionKey,
-      };
-    }),
+    actions: Object.entries(component.actions ?? {}).map(
+      ([actionKey, action]) => {
+        return {
+          key: action.key || actionKey,
+        };
+      }
+    ),
     dryRun,
+    verbose,
     sourceDir,
     destinationDir,
   });
 
   const actions = await Promise.all(
-    Object.entries(component.actions).map(async ([actionKey, action]) => {
+    Object.entries(component.actions ?? {}).map(async ([actionKey, action]) => {
       const inputs = getInputs({
         inputs: action.inputs,
         documentProperties: DOCUMENT_PROPERTIES,
@@ -56,13 +63,16 @@ export const createActions = async ({
         },
         imports,
         dryRun,
+        verbose,
         sourceDir,
         destinationDir,
       });
     })
   );
 
-  console.info("");
+  if (verbose) {
+    console.info("");
+  }
 
   return Promise.resolve({
     actionIndex,
@@ -75,6 +85,7 @@ interface RenderActionsIndexProps {
     key: string;
   }[];
   dryRun: boolean;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
@@ -82,6 +93,7 @@ interface RenderActionsIndexProps {
 const renderActionsIndex = async ({
   actions,
   dryRun,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderActionsIndexProps) => {
@@ -92,6 +104,7 @@ const renderActionsIndex = async ({
       actions,
     },
     dryRun,
+    verbose,
   });
 };
 
@@ -104,14 +117,16 @@ interface RenderActionProps {
   };
   dryRun: boolean;
   imports: Imports;
+  verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
 
 const renderAction = async ({
   action,
-  imports,
   dryRun,
+  imports,
+  verbose,
   sourceDir,
   destinationDir,
 }: RenderActionProps) => {
@@ -124,5 +139,6 @@ const renderAction = async ({
       imports,
     },
     dryRun,
+    verbose,
   });
 };
