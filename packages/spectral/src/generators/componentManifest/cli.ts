@@ -63,6 +63,15 @@ export const runMain = async (process: NodeJS.Process) => {
       description:
         "The output directory for the component manifest. Defaults to the sibling of the current component directory.",
     },
+    registry: {
+      flag: ["--registry", "-r"],
+      value: getFlagsStringValue({
+        args: process.argv.slice(3),
+        flags: ["--registry", "-r"],
+      }),
+      description:
+        "The registry to publish the component manifest to (as a URI). This is where your package will be published. If not specified, it defaults to your system's default registry.",
+    },
     dry_run: {
       flag: ["--dry-run", "-d"],
       value: getFlagsBooleanValue({
@@ -126,5 +135,6 @@ export const runMain = async (process: NodeJS.Process) => {
             ? flags.name.value
             : `${path.basename(componentDir)}-manifest`
         ),
+    registry: flags.registry.value ?? null,
   });
 };

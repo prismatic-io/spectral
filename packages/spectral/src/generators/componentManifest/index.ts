@@ -18,6 +18,7 @@ interface CreateComponentManifestProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
+  registry: string | null;
 }
 
 export const createComponentManifest = async ({
@@ -29,6 +30,7 @@ export const createComponentManifest = async ({
   verbose,
   sourceDir,
   destinationDir,
+  registry,
 }: CreateComponentManifestProps) => {
   const signature = includeSignature
     ? await getComponentSignatureWithPrism()
@@ -55,6 +57,7 @@ export const createComponentManifest = async ({
     verbose,
     sourceDir,
     destinationDir,
+    registry,
   });
 
   const srcDir = path.join(destinationDir, "src");
