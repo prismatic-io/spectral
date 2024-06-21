@@ -218,16 +218,28 @@ const convertComponentReference = (
   };
 };
 
-const convertComponentRegistry = (componentRegistry: ComponentRegistry) =>
+const convertComponentRegistry = (
+  componentRegistry: ComponentRegistry
+): Array<ServerComponentReference["component"]> =>
   Object.values(componentRegistry).map(
     ({ key, public: isPublic, signature }) => ({
       key,
-      // TODO: Replace this once yml validator is updated to allow signature
-      version: "LATEST",
-      // signature,
+      signature: signature ?? "",
       isPublic,
     })
   );
+
+/**
+ * Create a reference to the private component built as part of this CNI.
+ *
+ * References to this component always use `version: "LATEST", isPublic: false`
+ * because they automatically publish alongside the corresponding CNI yml.
+ * */
+const codeNativeIntegrationComponentReference = (referenceKey: string) => ({
+  key: referenceKey,
+  version: "LATEST" as const,
+  isPublic: false,
+});
 
 /** Converts a Flow into the structure necessary for YAML generation. */
 const convertFlow = (
@@ -258,12 +270,7 @@ const convertFlow = (
   if (typeof flow.onTrigger === "function") {
     triggerStep.action = {
       key: flowFunctionKey(flow.name, "onTrigger"),
-      component: {
-        key: referenceKey,
-        // We always want to use latest for the CNI-backed trigger
-        version: "LATEST",
-        isPublic: false,
-      },
+      component: codeNativeIntegrationComponentReference(referenceKey),
     };
   } else if (isComponentReference(flow.onTrigger)) {
     const { ref, inputs } = convertComponentReference(
@@ -279,7 +286,9 @@ const convertFlow = (
       key,
       component: {
         key: `${key}-triggers`,
-        // TODO: Determine how we intend to support management triggers.
+        /**
+         * TODO: Add support for specific versions of platform triggers
+         */
         version: "LATEST",
         isPublic: true,
       },
@@ -302,12 +311,7 @@ const convertFlow = (
   const actionStep: Record<string, unknown> = {
     action: {
       key: flowFunctionKey(flow.name, "onExecution"),
-      component: {
-        key: referenceKey,
-        // We always want to use latest for the CNI-backed execution action
-        version: "LATEST",
-        isPublic: false,
-      },
+      component: codeNativeIntegrationComponentReference(referenceKey),
     },
     name: "On Execution",
     stableKey: `${flow.stableKey}-onExecution`,
@@ -340,13 +344,8 @@ const convertConfigVar = (
       key,
       dataType: "connection",
       connection: {
-        component: {
-          key: referenceKey,
-          // We always want to use latest for the CNI-backed connection
-          version: "LATEST",
-          isPublic: false,
-        },
         key: camelCase(key),
+        component: codeNativeIntegrationComponentReference(referenceKey),
       },
       inputs: Object.entries(configVar.inputs).reduce(
         (result, [key, input]) => {
@@ -379,14 +378,7 @@ const convertConfigVar = (
       key,
       dataType: "connection",
       connection: {
-        key: ref.key,
-        component: {
-          key: ref.component.key,
-          isPublic: ref.component.isPublic,
-          // TODO: Replace this once yml validator is updated to allow signature
-          version: "LATEST",
-          // signature: ref.component.signature,
-        },
+        ...ref,
         template: configVar.connection.template,
       },
       inputs,
@@ -416,12 +408,7 @@ const convertConfigVar = (
     result.dataType = configVar.dataSourceType;
     result.dataSource = {
       key: camelCase(key),
-      component: {
-        key: referenceKey,
-        // We always want to use latest for the CNI-backed data source
-        version: "LATEST",
-        isPublic: false,
-      },
+      component: codeNativeIntegrationComponentReference(referenceKey),
     };
   }
 
@@ -431,16 +418,7 @@ const convertConfigVar = (
       componentRegistry
     );
     result.dataType = configVar.dataSourceType;
-    result.dataSource = {
-      key: ref.key,
-      component: {
-        key: ref.component.key,
-        isPublic: ref.component.isPublic,
-        // TODO: Replace this once yml validator is updated to allow signature
-        version: "LATEST",
-        // signature: ref.component.signature,
-      },
-    };
+    result.dataSource = ref;
     result.inputs = inputs;
   }
 
@@ -478,12 +456,7 @@ const flowFunctionKey = (
 };
 
 type ComponentActionInvokeFunction = <TValues extends Record<string, unknown>>(
-  action: {
-    component: string;
-    signature: string;
-    isPublic: boolean;
-    action: string;
-  },
+  ref: ServerComponentReference,
   context: ActionContext,
   values: TValues
 ) => Promise<unknown>;
@@ -513,10 +486,12 @@ const convertOnExecution =
             [actionKey]: (values) => {
               return invoke(
                 {
-                  component: componentKey,
-                  signature: signature ?? "",
-                  isPublic,
-                  action: actionKey,
+                  component: {
+                    key: componentKey,
+                    signature: signature ?? "",
+                    isPublic,
+                  },
+                  key: actionKey,
                 },
                 context,
                 values
