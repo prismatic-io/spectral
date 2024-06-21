@@ -7,7 +7,7 @@ import { createComponentManifest } from "./index";
 import { createFlagHelpText } from "../utils/createFlagHelpText";
 import { getFlagsStringValue } from "../utils/getFlagStringValue";
 import { getFlagsBooleanValue } from "../utils/getFlagBooleanValue";
-import { isObjectWithTruthyKeys } from "../../util";
+import { isObjectWithOneTruthyKey, isObjectWithTruthyKeys } from "../../util";
 
 export const runMain = async (process: NodeJS.Process) => {
   const componentDir = process.cwd();
@@ -29,7 +29,12 @@ export const runMain = async (process: NodeJS.Process) => {
 
   if (
     !component ||
-    !isObjectWithTruthyKeys(component, ["key", "display", "actions"])
+    !isObjectWithTruthyKeys(component, ["key", "display"]) ||
+    !isObjectWithOneTruthyKey(component, [
+      "actions",
+      "connections",
+      "dataSources",
+    ])
   ) {
     console.error("Component is invalid.");
     process.exit(1);
