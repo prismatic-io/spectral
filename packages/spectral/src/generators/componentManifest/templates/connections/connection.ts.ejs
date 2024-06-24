@@ -1,7 +1,7 @@
 <%- include('../partials/imports.ejs', { imports, helpers }) -%>
 
 export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Values {
-<%- include('../partials/inputTypes.ejs', { inputs: connection.inputs }) -%>
+<%- include('../partials/performArgs.ejs', { inputs: connection.inputs }) -%>
 }
 
 /**
@@ -9,6 +9,11 @@ export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Values {
  *
  * @comments <%= connection.comments %>
  */
-export const <%= connection.key %> = <TReturn>(
-  _values: <%= helpers.capitalizeFirstLetter(connection.key) %>Values
-): Promise<TReturn> => Promise.resolve<TReturn>({} as TReturn);
+export const <%= connection.key %> = {
+  perform: (
+    _values: <%= helpers.capitalizeFirstLetter(connection.key) %>Values
+  ): Promise<void> => Promise.resolve(),
+  inputs: {
+    <%- include('../partials/inputs.ejs', { inputs: connection.inputs }) -%>
+  }
+};

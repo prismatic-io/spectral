@@ -97,12 +97,16 @@ export const componentRegistry = {
     actions: {},
     triggers: {},
     dataSources: {
-      exampleDataSource: (inputs: { bar: string }) =>
-        Promise.resolve<unknown>(inputs),
+      exampleDataSource: {
+        perform: (inputs: { bar: string }) => Promise.resolve<unknown>(inputs),
+        inputs: {},
+      },
     },
     connections: {
-      exampleConnection: (inputs: { foo: string }) =>
-        Promise.resolve<unknown>(inputs),
+      exampleConnection: {
+        perform: (inputs: { foo: string }) => Promise.resolve<unknown>(inputs),
+        inputs: {},
+      },
     },
   }),
   slack: componentManifest({
@@ -112,21 +116,27 @@ export const componentRegistry = {
     actions: {},
     triggers: {},
     dataSources: {
-      selectChannels: (inputs: {
-        connection: string;
-        includeImChannels: boolean;
-        includeMultiPartyImchannels: boolean;
-        includePublicChannels: boolean;
-        includePrivateChannels: boolean;
-        showIdInDropdown: boolean;
-      }) => Promise.resolve<unknown>(inputs),
+      selectChannels: {
+        perform: (inputs: {
+          connection: string;
+          includeImChannels: boolean;
+          includeMultiPartyImchannels: boolean;
+          includePublicChannels: boolean;
+          includePrivateChannels: boolean;
+          showIdInDropdown: boolean;
+        }) => Promise.resolve<unknown>(inputs),
+        inputs: {},
+      },
     },
     connections: {
-      slackOAuth: (inputs: {
-        clientId: string;
-        clientSecret: string;
-        signingSecret: string;
-      }) => Promise.resolve<unknown>(inputs),
+      slackOAuth: {
+        perform: (inputs: {
+          clientId: string;
+          clientSecret: string;
+          signingSecret: string;
+        }) => Promise.resolve<unknown>(inputs),
+        inputs: {},
+      },
     },
   }),
   http: componentManifest({
@@ -135,8 +145,11 @@ export const componentRegistry = {
     signature: "http-signature" as const,
     actions: {},
     triggers: {
-      hmac: (inputs: { secret: string; secret2: string }) =>
-        Promise.resolve<unknown>(inputs),
+      hmac: {
+        perform: (inputs: { secret: string; secret2: string }) =>
+          Promise.resolve<unknown>(inputs),
+        inputs: {},
+      },
     },
     dataSources: {},
     connections: {},

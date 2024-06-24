@@ -1,0 +1,19 @@
+<% inputs.forEach((input) => { -%>
+  <%= input.key %>: {
+    inputType: "<%= input.defaultType %>",
+    <%_ if (input.collection) { -%>
+    collection: "<%= input.collection %>" as const,
+    <%_ } else { -%>
+    collection: null,
+    <%_ } -%>
+    <%_ if (input.default) { -%>
+    default: <%= input.default %>,
+    <%_ } -%>
+    <%_ if (input.required) { -%>
+    required: <%= input.required %>,
+    <%_ } -%>
+    <%_ if (input.onPremiseControlled) { -%>
+    onPremiseControlled: <%= input.onPremiseControlled %>,
+    <%_ } -%>
+  },
+<% }); -%>
