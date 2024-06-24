@@ -16,10 +16,8 @@
   },
   "peerDependencies": {
     "@prismatic-io/spectral": ">= <%= spectralVersion %>"
-  }
-  <%_ if (registry) { -%>
-   ,"publishConfig": {
+  }<% if (registry) { %>,
+  "publishConfig": {
     "registry": "<%= registry %>"
-  }
-  <%_ } -%>
+  }<% } %>
 }

@@ -22,6 +22,20 @@ import {
   Element,
 } from "./types";
 
+export const isObjectWithOneTruthyKey = (
+  value: unknown,
+  keys: string[]
+): boolean => {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    keys.some(
+      (key) =>
+        key in value && Boolean((value as Record<string, unknown>)?.[key])
+    )
+  );
+};
+
 export const isObjectWithTruthyKeys = (
   value: unknown,
   keys: string[]

@@ -71,6 +71,29 @@ export const createStaticFiles = async ({
       key: component.key,
       label: component.display.label,
       description: component.display.description,
+      isPublic: Boolean(component.public),
+      action: Object.keys(component.actions).length
+        ? {
+            key: Object.keys(component.actions)[0],
+          }
+        : null,
+      trigger: Object.keys(component.triggers).length
+        ? {
+            key: Object.keys(component.triggers)[0],
+          }
+        : null,
+      connection: component.connections.length
+        ? {
+            key: component.connections[0].key,
+          }
+        : null,
+      dataSource: Object.keys(component.dataSources).length
+        ? {
+            key: Object.keys(component.dataSources)[0],
+            type: component.dataSources[Object.keys(component.dataSources)[0]]
+              .dataSourceType,
+          }
+        : null,
     },
     packageName,
     dryRun,
@@ -181,6 +204,20 @@ interface RenderReadmeProps {
     key: string;
     label: string;
     description: string;
+    isPublic: boolean;
+    action: {
+      key: string;
+    } | null;
+    trigger: {
+      key: string;
+    } | null;
+    connection: {
+      key: string;
+    } | null;
+    dataSource: {
+      key: string;
+      type: string;
+    } | null;
   };
   dryRun: boolean;
   packageName: string;
