@@ -6,35 +6,46 @@
 
 This package contains the Component Manifest for the **<%= component.label %>** Component.
 
-## Usage
+## Code Native Integration (CNI) Usage
 
-### Code Native Integration (CNI) setup
+### Register your component manifest in the Code Native Integration (CNI) component registry `src/componentRegistry.ts`.
 
 ```typescript
-import { integration } from "@prismatic-io/spectral";
+import { componentManifests } from "@prismatic-io/spectral";
 import <%= component.key %> from "<%= packageName %>";
 
-import { configPages } from './configPages'
-export { configPages } from './configPages'
-
-export const componentRegistry = {
-  <%= component.key %>
-};
-
-export default integration({
-  name: "Integration Name",
-  configPages,
-  componentRegistry,
-  ...
+export const componentRegistry = componentManifests({
+  <%= component.key %>,
 });
 ```
 
+<% if (component.trigger) { -%>
+### Using Triggers in flows
 
-### Using Actions in the Code Native Integration (CNI) flows
+**Example:**
 
-1. Import the Component Manifest package.
-2. Include the imported package in the integration method's `components` property.
-3. Access the Component's actions through the `context` attribute in the `onExecution` or `onTrigger` method.
+```typescript
+import { flow } from "@prismatic-io/spectral";
+
+export default flow({
+  name: "Flow Name",
+  ...
+  onTrigger: {
+    key: "<%= component.trigger.key %>",
+    component: "<%= component.key %>",
+    isPublic: <%= component.isPublic %>,
+    values: {
+      ...
+    }
+  },
+});
+```
+<% } -%>
+
+<% if (component.action) { -%>
+### Using Actions in flows
+
+The component registry is accessible on the `context` argument in the `onExecution` and `onTrigger` methods as `context.components`.
 
 **Example:**
 
@@ -45,105 +56,82 @@ export default flow({
   name: "Flow Name",
   ...
   onExecution: async (context, params) => {
-    const { components, logger } = context;
+    const { components, logger, components } = context;
 
-    const response = await components.[component_name].actions.[component_action]({
-      [component_action_input]: "123",
-      [component_action_input]: "456",
+    const response = await components.<%= component.key %>.<%= component.action.key %>({
+      ...
     });
 
     return Promise.resolve({ data: response });
   },
 });
 ```
+<% } -%>
 
-### Using Triggers in the Code Native Integration (CNI) flows
-
-1. Import the Component Manifest package.
-2. Include the imported package in the flow method's `components` property.
-3. Access the Component's actions through the q
+<% if (component.dataSource) { -%>
+### Using Data Sources in config pages
 
 **Example:**
 
 ```typescript
-import { flow } from "@prismatic-io/spectral";
-
-export const myFlow = flow({
-  name: "Flow Name",
-  ...
-  onTrigger: async (context, params) => {
-    const { components, logger } = context;
-
-    const response = await components.[component_name].actions.[component_action]({
-      [component_action_input]: "123",
-      [component_action_input]: "456",
-    });
-
-    return Promise.resolve({ data: response });
-  },
-});
-```
-
-### Using Data Sources in the Code Native Integration (CNI) config pages
-
-1. Import the Component Manifest package.
-2. Import the specific dataSource you want to use (e.g., `slackDataSource`).
-
-**Example:**
-
-```typescript
-import { configPage } from "@prismatic-io/spectral";
-import { slackDataSource } from "<%= packageName %>/dataSources";
+import { configPage, dataSourceConfigVar } from "@prismatic-io/spectral";
 
 export const configPages = {
-  "Slack Config": configPage({
-    tagline: "Select a Slack channel from a dropdown menu",
+  "Data Sources": configPage({
     elements: {
-      "Select Slack Channel": slackDataSource({
-        stableKey: "my-slack-channel-picklist",
-        values: {
-          connection: { configVar: "my-slack-connection" },
-        },
-      }),
+      "Custom Data Source": dataSourceConfigVar({
+        dataType: "<%= component.dataSource.type  %>",
+        stableKey: "custom-data-source",
+        dataSource: {
+          key: "<%= component.dataSource.key %>",
+          component: "<%= component.key %>",
+          isPublic: <%= component.isPublic %>,
+          values: {
+            ...
+          },
+        }
+      })
     },
   }),
 };
+```
+<% } -%>
 
-### Using Connections in the Code Native Integration (CNI) config pages
-
-1. Import the Component Manifest package.
-2. Import the specific connection you want to use (e.g., `slackConnection`).
+<% if (component.connection) { -%>
+### Using Connections in config pages
 
 **Example:**
 
 ```typescript
-import { configPage } from "@prismatic-io/spectral";
-import { slackConnection } from "<%= packageName %>/connections";
+import { configPage, connectionConfigVar } from "@prismatic-io/spectral";
 
 export const configPages = {
   Connections: configPage({
-    tagline: "Authenticate with Slack",
     elements: {
-      "Slack Connection": slackConnection({
-        stableKey: "my-slack-connection",
-        values: {
-          username: "my-username",
-          password: "my-password",
+      "Custom Connection": connectionConfigVar({
+        dataType: "connection",
+        stableKey: "custom-connection"
+        connection: {
+          key: "<%= component.connection.key %>",
+          component: "<%= component.key %>",
+          isPublic: <%= component.isPublic %>,
+          values: {
+            ...
+          },
         },
-      }),
-    },
+    }),
   }),
 };
 ```
-
+<% } -%>
 
 ## Development
 
 There are two modes for this package:
 
-1. **Component Manifest development package:** Use this to test the Component in the Code Native Integration (CNI) locally. Publishing the CNI with this package will fail because the Component doesn't exist on the Prismatic Platform yet. A development package is identified by a `null` `componentSignature` in the `Component Manifest index.ts` file.
+1. **Component Manifest development package:** Use this to test the Component in the Code Native Integration (CNI) locally. Publishing the CNI with this package will fail because the Component doesn't exist in the Prismatic Platform yet. A development package is typically built with `npm run generate:manifest:dev` and identified by a `null` `signature` in the Component Manifest `index.ts` file.
 
-2. **Component Manifest production package:** Use this to test the CNI locally and publish it to the Prismatic Platform. A production package is identified by a non-null `componentSignature` generated by running the `prism components:publish` command. This signature is the key for the Component Manifest.
+2. **Component Manifest production package:** Use this with the Code Native Integration (CNI) either locally or in production by publishing the CNI to the Prismatic Platform. A production package is generated by publishing the Component with `prism components:publish` command, and then generating the Component Manifest with the `generate:manifest` command. A production package is identified by a non-null `signature` in the Component Manifest `index.ts` file.
 
 ### Installation with a Code Native Integration
 
