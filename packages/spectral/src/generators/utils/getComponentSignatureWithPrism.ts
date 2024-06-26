@@ -1,7 +1,7 @@
-import { execFile as execFileCb } from "child_process";
+import { exec as execCb } from "child_process";
 import { promisify } from "util";
 
-const execFile = promisify(execFileCb);
+const exec = promisify(execCb);
 
 export const getComponentSignatureWithPrism = async (): Promise<
   string | null
@@ -11,9 +11,9 @@ export const getComponentSignatureWithPrism = async (): Promise<
     process.exit(1);
   }
 
-  const { stdout: signatureKey } = await execFile("prism", [
-    "components:signature",
-  ]);
+  const { stdout: signatureKey } = await exec("prism components:signature", {
+    windowsHide: true,
+  });
 
   if (!signatureKey) {
     console.log(
@@ -27,7 +27,9 @@ export const getComponentSignatureWithPrism = async (): Promise<
 
 const isPrismAvailable = async (): Promise<boolean> => {
   try {
-    await execFile("prism", ["--version"]);
+    await exec("prism --version", {
+      windowsHide: true,
+    });
   } catch {
     return false;
   }
