@@ -11,9 +11,11 @@ export const getComponentSignatureWithPrism = async (): Promise<
     process.exit(1);
   }
 
-  const { stdout: signatureKey } = await exec("prism components:signature", {
+  const { stdout } = await exec("prism components:signature", {
     windowsHide: true,
   });
+
+  const signatureKey = stdout.replace(/\n$/, "");
 
   if (!signatureKey) {
     console.log(
@@ -22,7 +24,7 @@ export const getComponentSignatureWithPrism = async (): Promise<
     process.exit(1);
   }
 
-  return signatureKey.replace(/\n$/, "");
+  return signatureKey;
 };
 
 const isPrismAvailable = async (): Promise<boolean> => {
