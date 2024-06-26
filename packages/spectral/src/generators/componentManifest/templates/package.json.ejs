@@ -3,7 +3,7 @@
   "version": "<%= helpers.generatePackageJsonVersion() %>",
   "main": "dist/index.js",
   "scripts": {
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist",
     "build": "npm run clean && tsc",
     "prepare": "npm run build"
   },
@@ -12,6 +12,7 @@
   ],
   "devDependencies": {
     "@prismatic-io/spectral": "<%= spectralVersion %>",
+    "rimraf": "5.0.7",
     "typescript": "<%= typescriptVersion %>"
   },
   "peerDependencies": {
