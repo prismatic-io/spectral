@@ -3,17 +3,26 @@ import { promisify } from "util";
 
 const exec = promisify(execCb);
 
-export const getComponentSignatureWithPrism = async (): Promise<
-  string | null
-> => {
+interface GetComponentSignatureWithPrismProps {
+  skipSignatureVerify: boolean;
+}
+
+export const getComponentSignatureWithPrism = async ({
+  skipSignatureVerify,
+}: GetComponentSignatureWithPrismProps): Promise<string | null> => {
   if (!(await isPrismAvailable())) {
-    console.log("Prism must be installed");
+    console.log("Prism must be installed.");
     process.exit(1);
   }
 
-  const { stdout } = await exec("prism components:signature", {
-    windowsHide: true,
-  });
+  const { stdout } = await exec(
+    `prism components:signature ${
+      skipSignatureVerify ? "--skip-signature-verify" : ""
+    }`,
+    {
+      windowsHide: true,
+    }
+  );
 
   const signatureKey = stdout.replace(/\n$/, "");
 

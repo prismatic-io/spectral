@@ -12,7 +12,7 @@ import { Component } from "../../serverTypes";
 interface CreateComponentManifestProps {
   component: Component;
   dryRun: boolean;
-  includeSignature: boolean;
+  skipSignatureVerify: boolean;
   packageName: string;
   dependencies: PackageDependencies;
   verbose: boolean;
@@ -24,7 +24,7 @@ interface CreateComponentManifestProps {
 export const createComponentManifest = async ({
   component,
   dryRun,
-  includeSignature,
+  skipSignatureVerify,
   packageName,
   dependencies,
   verbose,
@@ -32,9 +32,9 @@ export const createComponentManifest = async ({
   destinationDir,
   registry,
 }: CreateComponentManifestProps) => {
-  const signature = includeSignature
-    ? await getComponentSignatureWithPrism()
-    : null;
+  const signature = await getComponentSignatureWithPrism({
+    skipSignatureVerify,
+  });
 
   if (verbose) {
     console.info(
