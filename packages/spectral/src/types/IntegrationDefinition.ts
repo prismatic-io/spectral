@@ -136,18 +136,27 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   >;
 }
 
+export type PermissionAndVisibilityType =
+  | "customer"
+  | "embedded"
+  | "organization";
+
 /** Common attribute shared by all types of Config Vars. */
 type BaseConfigVar = {
   /** A unique, unchanging value that is used to maintain identity for the Config Var even if the key changes. */
   stableKey: string;
   /** Optional description for this Config Var. */
   description?: string;
-  /** Optional value that specifies whether this Config Var is only configurable by Organization users. @default false  */
-  orgOnly?: boolean;
+  /**
+   * Optional value that sets the permission and visibility of the Config Var. @default "customer"
+   *
+   * "customer" - Customers can view and edit the Config Var.
+   * "embedded" - Customers cannot view or update the Config Var as the value will be set programmatically.
+   * "organization" - Customers cannot view or update the Config Var as it will always have a default value or be set by the organization.
+   */
+  permissionAndVisibilityType?: PermissionAndVisibilityType;
   /** Optional value that specifies whether this Config Var is visible to an Organization deployer. @default true */
   visibleToOrgDeployer?: boolean;
-  /** Optional value that specifies whether this Config Var is visible to a Customer deployer. @default true */
-  visibleToCustomerDeployer?: boolean;
   /** Optional default value for the Config Var. */
   defaultValue?: string;
   /** Optional list of picklist values if the Config Var is a multi-choice selection value. */
@@ -195,6 +204,19 @@ export type ComponentRegistry =
           : never
       >;
 
+interface ConnectionInputPermissionAndVisibility {
+  /**
+   * Optional value that sets the permission and visibility of the Config Var. @default "customer"
+   *
+   * "customer" - Customers can view and edit the Config Var.
+   * "embedded" - Customers cannot view or update the Config Var as the value will be set programmatically.
+   * "organization" - Customers cannot view or update the Config Var as it will always have a default value or be set by the organization.
+   */
+  permissionAndVisibilityType?: PermissionAndVisibilityType;
+  /** Optional value that specifies whether this Config Var is visible to an Organization deployer. @default true */
+  visibleToOrgDeployer?: boolean;
+}
+
 type ComponentReferenceType = Extract<
   keyof ComponentManifest,
   "actions" | "triggers" | "dataSources" | "connections"
@@ -206,7 +228,8 @@ type ComponentReferenceTypeValueMap<
     actions: ValueExpression<TValue>;
     triggers: ValueExpression<TValue> | ConfigVarExpression;
     dataSources: ValueExpression<TValue> | ConfigVarExpression;
-    connections: ValueExpression<TValue> | ConfigVarExpression;
+    connections: (ValueExpression<TValue> | ConfigVarExpression) &
+      ConnectionInputPermissionAndVisibility;
   }
 > = TMap;
 
@@ -319,6 +342,7 @@ type BaseConnectionConfigVar = Omit<BaseConfigVar, "collectionType"> & {
 
 type ConnectionDefinitionConfigVar = BaseConnectionConfigVar &
   Omit<ConnectionDefinition, "label" | "comments" | "key">;
+
 type ConnectionReferenceConfigVar = BaseConnectionConfigVar & {
   connection: ConnectionReference & {
     template?: string;

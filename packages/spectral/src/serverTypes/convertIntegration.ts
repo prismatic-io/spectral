@@ -16,6 +16,7 @@ import {
   isDataSourceReferenceConfigVar,
   ComponentRegistry,
   ComponentManifestAction,
+  PermissionAndVisibilityType,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -72,13 +73,21 @@ export const convertIntegration = (
     {}
   );
 
+  const cniComponent = codeNativeIntegrationComponent(
+    definition,
+    referenceKey,
+    configVars
+  );
+
+  const cniYaml = codeNativeIntegrationYaml(
+    definition,
+    referenceKey,
+    configVars
+  );
+
   return {
-    ...codeNativeIntegrationComponent(definition, referenceKey, configVars),
-    codeNativeIntegrationYAML: codeNativeIntegrationYaml(
-      definition,
-      referenceKey,
-      configVars
-    ),
+    ...cniComponent,
+    codeNativeIntegrationYAML: cniYaml,
   };
 };
 
@@ -194,6 +203,85 @@ const codeNativeIntegrationYaml = (
   return YAML.stringify(result);
 };
 
+interface VisibilityAndPermissionValue {
+  visibleToOrgDeployer: boolean;
+  visibleToCustomerDeployer: boolean;
+  orgOnly: boolean;
+}
+
+const permissionAndVisibilityTypeValueMap: Record<
+  PermissionAndVisibilityType,
+  VisibilityAndPermissionValue
+> = {
+  customer: {
+    orgOnly: false,
+    visibleToOrgDeployer: true,
+    visibleToCustomerDeployer: true,
+  },
+  embedded: {
+    orgOnly: false,
+    visibleToOrgDeployer: true,
+    visibleToCustomerDeployer: false,
+  },
+  organization: {
+    orgOnly: true,
+    visibleToOrgDeployer: true,
+    visibleToCustomerDeployer: false,
+  },
+};
+
+const getPermissionAndVisibilityValues = ({
+  permissionAndVisibilityType = "customer",
+  visibleToOrgDeployer = true,
+}: {
+  permissionAndVisibilityType?: PermissionAndVisibilityType;
+  visibleToOrgDeployer?: boolean;
+}) => {
+  return {
+    ...permissionAndVisibilityTypeValueMap[permissionAndVisibilityType],
+    ...(visibleToOrgDeployer !== undefined ? { visibleToOrgDeployer } : {}),
+  };
+};
+
+/** Converts permission and visibility properties into `meta` properties for inputs. */
+const convertInputPermissionAndVisibility = ({
+  permissionAndVisibilityType,
+  visibleToOrgDeployer,
+}: {
+  permissionAndVisibilityType?: PermissionAndVisibilityType;
+  visibleToOrgDeployer?: boolean;
+}) => {
+  const meta = getPermissionAndVisibilityValues({
+    permissionAndVisibilityType,
+    visibleToOrgDeployer,
+  });
+
+  return meta;
+};
+
+/** Converts permission and visibility properties into `meta` properties for config vars. */
+const convertConfigVarPermissionAndVisibility = ({
+  permissionAndVisibilityType,
+  visibleToOrgDeployer: visibleToOrgDeployerBase,
+}: {
+  permissionAndVisibilityType?: PermissionAndVisibilityType;
+  visibleToOrgDeployer?: boolean;
+}) => {
+  const { orgOnly, visibleToCustomerDeployer, visibleToOrgDeployer } =
+    getPermissionAndVisibilityValues({
+      permissionAndVisibilityType,
+      visibleToOrgDeployer: visibleToOrgDeployerBase,
+    });
+
+  return {
+    orgOnly,
+    meta: {
+      visibleToCustomerDeployer,
+      visibleToOrgDeployer,
+    },
+  };
+};
+
 const convertComponentReference = (
   componentReference: ComponentReference,
   componentRegistry: ComponentRegistry
@@ -215,6 +303,7 @@ const convertComponentReference = (
     (result, [key, value]) => {
       if ("value" in value) {
         const type = value.value instanceof Object ? "complex" : "value";
+
         const valueExpr =
           value.value instanceof Object && !Array.isArray(value.value)
             ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
@@ -223,14 +312,27 @@ const convertComponentReference = (
                 value: v,
               }))
             : value.value;
-        return { ...result, [key]: { type: type, value: valueExpr } };
+
+        const meta = convertInputPermissionAndVisibility(
+          pick(value, [
+            "permissionAndVisibilityType",
+            "visibleToOrgDeployer",
+          ]) as {
+            permissionAndVisibilityType?: PermissionAndVisibilityType;
+            visibleToOrgDeployer?: boolean;
+          }
+        );
+
+        return { ...result, [key]: { type: type, value: valueExpr, meta } };
       }
+
       if ("configVar" in value) {
         return {
           ...result,
           [key]: { type: "configVar", value: value.configVar },
         };
       }
+
       return result;
     },
     {}
@@ -357,14 +459,19 @@ const convertConfigVar = (
   referenceKey: string,
   componentRegistry: ComponentRegistry
 ): ServerRequiredConfigVariable => {
-  const meta = pick(configVar, [
-    "visibleToCustomerDeployer",
-    "visibleToOrgDeployer",
-  ]);
+  const { orgOnly, meta } = convertConfigVarPermissionAndVisibility(
+    pick(configVar, ["permissionAndVisibilityType", "visibleToOrgDeployer"])
+  );
 
   if (isConnectionDefinitionConfigVar(configVar)) {
+    const { stableKey, description } = pick(configVar, [
+      "stableKey",
+      "description",
+    ]);
+
     return {
-      ...pick(configVar, ["stableKey", "description", "orgOnly"]),
+      stableKey,
+      description,
       key,
       dataType: "connection",
       connection: {
@@ -378,6 +485,7 @@ const convertConfigVar = (
           }
 
           const defaultValue = input.collection ? [] : "";
+
           return {
             ...result,
             [key]: {
@@ -388,6 +496,7 @@ const convertConfigVar = (
         },
         {}
       ),
+      orgOnly,
       meta,
     };
   }
@@ -397,24 +506,33 @@ const convertConfigVar = (
       configVar.connection,
       componentRegistry
     );
+
+    const {
+      stableKey = "",
+      description,
+      connection: { template },
+    } = pick(configVar, ["stableKey", "description", "connection"]);
+
     return {
-      ...pick(configVar, ["stableKey", "description", "orgOnly"]),
+      stableKey,
+      description,
       key,
       dataType: "connection",
       connection: {
         ...ref,
-        template: configVar.connection.template,
+        template,
       },
       inputs,
+      orgOnly,
+      meta,
     };
   }
 
   const result = assign(
-    { meta, key },
+    { orgOnly, meta, key },
     pick(configVar, [
       "stableKey",
       "description",
-      "orgOnly",
       "defaultValue",
       "dataType",
       "pickList",
