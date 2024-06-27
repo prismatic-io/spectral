@@ -48,11 +48,29 @@ export const convertIntegration = (
   // inline as part of the integration definition.
   const referenceKey = uuid();
 
-  const configVars: Record<string, ConfigVar> = Object.assign(
-    {},
-    ...Object.values(definition.configPages ?? {}).map(
-      ({ elements }) => elements
-    )
+  const configVars: Record<string, ConfigVar> = Object.values(
+    definition.configPages ?? {}
+  ).reduce<Record<string, ConfigVar>>(
+    (acc, configPage) =>
+      Object.entries(configPage.elements).reduce<Record<string, ConfigVar>>(
+        (acc, [key, element]) => {
+          // "string" elements are HTML elements and should be ignored.
+          if (typeof element === "string") {
+            return acc;
+          }
+
+          if (key in acc) {
+            throw new Error('Duplicate config var key "' + key + '"');
+          }
+
+          return {
+            ...acc,
+            [key]: element,
+          };
+        },
+        acc
+      ),
+    {}
   );
 
   return {
@@ -76,10 +94,17 @@ const convertConfigPages = (
     ([name, { tagline, elements }]) => ({
       name,
       tagline,
-      elements: Object.keys(elements).map((key) => ({
-        type: "configVar",
-        value: key,
-      })),
+      elements: Object.entries(elements).map(([key, value]) =>
+        typeof value === "string"
+          ? {
+              type: "htmlElement",
+              value,
+            }
+          : {
+              type: "configVar",
+              value: key,
+            }
+      ),
     })
   );
 };
