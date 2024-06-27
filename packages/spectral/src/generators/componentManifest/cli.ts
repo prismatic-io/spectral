@@ -40,11 +40,12 @@ export const runMain = async (process: NodeJS.Process) => {
     process.exit(1);
   }
 
+  const args = process.argv.slice(3);
   const flags = {
     name: {
       flag: ["--name", "-n"],
       value: getFlagsStringValue({
-        args: process.argv.slice(3),
+        args,
         flags: ["--name", "-n"],
       }),
       description:
@@ -53,7 +54,7 @@ export const runMain = async (process: NodeJS.Process) => {
     verbose: {
       flag: ["--verbose", "-v"],
       value: getFlagsBooleanValue({
-        args: process.argv.slice(3),
+        args,
         flags: ["--verbose", "-v"],
       }),
       description:
@@ -62,7 +63,7 @@ export const runMain = async (process: NodeJS.Process) => {
     output_dir: {
       flag: ["--output-dir", "-o"],
       value: getFlagsStringValue({
-        args: process.argv.slice(3),
+        args,
         flags: ["--output-dir", "-o"],
       }),
       description:
@@ -71,7 +72,7 @@ export const runMain = async (process: NodeJS.Process) => {
     registry: {
       flag: ["--registry", "-r"],
       value: getFlagsStringValue({
-        args: process.argv.slice(3),
+        args,
         flags: ["--registry", "-r"],
       }),
       description:
@@ -80,25 +81,25 @@ export const runMain = async (process: NodeJS.Process) => {
     dry_run: {
       flag: ["--dry-run", "-d"],
       value: getFlagsBooleanValue({
-        args: process.argv.slice(3),
+        args,
         flags: ["--dry-run", "-d"],
       }),
       description:
         "Perform a dry run without generating the component manifest. This provides a preview of what you could expect to happen when running the command without this flag.",
     },
-    include_signature: {
-      flag: ["--include-signature", "-s"],
+    skip_signature_verify: {
+      flag: ["--skip-signature-verify"],
       value: getFlagsBooleanValue({
-        args: process.argv.slice(3),
-        flags: ["--include-signature", "-s"],
+        args,
+        flags: ["--skip-signature-verify"],
       }),
       description:
-        "This will include the published component's signature key. Allowing you to publish the Code Native Integrations (CNI) where this component manifest is used.",
+        "This skips the signature verification process, always returning a component signature in the component manifest.",
     },
     help: {
       flag: ["--help", "-h"],
       value: getFlagsBooleanValue({
-        args: process.argv.slice(3),
+        args,
         flags: ["--help", "-h"],
       }),
       description: "Show this help message.",
@@ -122,8 +123,8 @@ export const runMain = async (process: NodeJS.Process) => {
   await createComponentManifest({
     component,
     dryRun: flags.dry_run.value,
-    includeSignature: flags.include_signature.value,
-    packageName: flags.name.value ?? `@components/${component.key}-manifest`,
+    skipSignatureVerify: flags.skip_signature_verify.value,
+    packageName: flags.name.value ?? `@component-manifests/${component.key}`,
     dependencies: {
       spectral: packageJson.version,
       dependencies: packageJson.dependencies,
