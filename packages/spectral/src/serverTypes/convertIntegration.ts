@@ -48,28 +48,35 @@ export const convertIntegration = (
   // inline as part of the integration definition.
   const referenceKey = uuid();
 
-  const configVars: Record<string, ConfigVar> = Object.values(
-    definition.configPages ?? {}
-  ).reduce<Record<string, ConfigVar>>(
-    (acc, configPage) =>
-      Object.entries(configPage.elements).reduce<Record<string, ConfigVar>>(
-        (acc, [key, element]) => {
-          // "string" elements are HTML elements and should be ignored.
-          if (typeof element === "string") {
-            return acc;
-          }
+  const configVars: Record<string, ConfigVar> = Object.values({
+    configPages: definition.configPages ?? {},
+    userLevelConfigPages: definition.userLevelConfigPages ?? {},
+  }).reduce<Record<string, ConfigVar>>(
+    (acc, configPages) => ({
+      ...acc,
+      ...Object.values(configPages).reduce<Record<string, ConfigVar>>(
+        (acc, configPage) =>
+          Object.entries(configPage.elements).reduce<Record<string, ConfigVar>>(
+            (acc, [key, element]) => {
+              // "string" elements are HTML elements and should be ignored.
+              if (typeof element === "string") {
+                return acc;
+              }
 
-          if (key in acc) {
-            throw new Error('Duplicate config var key "' + key + '"');
-          }
+              if (key in acc) {
+                throw new Error(`Duplicate config var key: "${key}"`);
+              }
 
-          return {
-            ...acc,
-            [key]: element,
-          };
-        },
-        acc
+              return {
+                ...acc,
+                [key]: element,
+              };
+            },
+            acc
+          ),
+        {}
       ),
+    }),
     {}
   );
 
@@ -92,16 +99,18 @@ export const convertIntegration = (
 };
 
 const convertConfigPages = (
-  pages: ConfigPages
-): ServerConfigPage[] | undefined => {
+  pages: ConfigPages | undefined,
+  userLevelConfigured: boolean
+): ServerConfigPage[] => {
   if (!pages || !Object.keys(pages).length) {
-    return;
+    return [];
   }
 
   return Object.entries(pages).map<ServerConfigPage>(
     ([name, { tagline, elements }]) => ({
       name,
       tagline,
+      ...(userLevelConfigured ? { userLevelConfigured } : {}),
       elements: Object.entries(elements).map(([key, value]) =>
         typeof value === "string"
           ? {
@@ -129,6 +138,7 @@ const codeNativeIntegrationYaml = (
     triggerPreprocessFlowConfig,
     flows,
     configPages,
+    userLevelConfigPages,
     componentRegistry = {},
   }: IntegrationDefinition,
   referenceKey: string,
@@ -197,7 +207,10 @@ const codeNativeIntegrationYaml = (
     flows: flows.map((flow) =>
       convertFlow(flow, componentRegistry, referenceKey)
     ),
-    configPages: convertConfigPages(configPages ?? ({} as ConfigPages)),
+    configPages: [
+      ...convertConfigPages(configPages, false),
+      ...convertConfigPages(userLevelConfigPages, true),
+    ],
   };
 
   return YAML.stringify(result);
