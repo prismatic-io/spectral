@@ -17,6 +17,7 @@ export const createFlagHelpText = ({
   console.log("Options:");
 
   let longestFlag = 0;
+
   const formattedFlags = Object.values(flags).map(
     ({ flag: flagBase, description }) => {
       const flag = flagBase.join(", ");
