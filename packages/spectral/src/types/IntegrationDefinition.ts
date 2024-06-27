@@ -247,22 +247,24 @@ type ComponentReferencesByType = UnionToIntersection<
                   ? keyof ComponentRegistry[TComponentKey][TComponentReferenceType] extends infer TComponentPropertyKey
                     ? TComponentPropertyKey extends keyof ComponentRegistry[TComponentKey][TComponentReferenceType]
                       ? TComponentPropertyKey extends string
-                        ? ComponentRegistry[TComponentKey][TComponentReferenceType][TComponentPropertyKey] extends (
-                            ...args: any[]
-                          ) => any
-                          ? Parameters<
-                              ComponentRegistry[TComponentKey][TComponentReferenceType][TComponentPropertyKey]
-                            >[0] extends infer TInputs
-                            ? ComponentReference<{
-                                component: TComponentKey;
-                                isPublic: ComponentRegistry[TComponentKey]["public"];
-                                key: TComponentPropertyKey;
-                                values: {
-                                  [Key in keyof TInputs]: ComponentReferenceTypeValueMap<
-                                    TInputs[Key]
-                                  >[TComponentReferenceType];
-                                };
-                              }>
+                        ? "perform" extends keyof ComponentRegistry[TComponentKey][TComponentReferenceType][TComponentPropertyKey]
+                          ? ComponentRegistry[TComponentKey][TComponentReferenceType][TComponentPropertyKey]["perform"] extends (
+                              ...args: any[]
+                            ) => any
+                            ? Parameters<
+                                ComponentRegistry[TComponentKey][TComponentReferenceType][TComponentPropertyKey]["perform"]
+                              >[0] extends infer TInputs
+                              ? ComponentReference<{
+                                  component: TComponentKey;
+                                  isPublic: ComponentRegistry[TComponentKey]["public"];
+                                  key: TComponentPropertyKey;
+                                  values: {
+                                    [Key in keyof TInputs]: ComponentReferenceTypeValueMap<
+                                      TInputs[Key]
+                                    >[TComponentReferenceType];
+                                  };
+                                }>
+                              : never
                             : never
                           : never
                         : never

@@ -8,10 +8,45 @@ export interface ComponentManifest {
   connections: Record<string, ComponentManifestConnection>;
 }
 
-export type ComponentManifestAction = (values: any) => Promise<unknown>;
+export interface ComponentManifestAction {
+  perform: (values: any) => Promise<unknown>;
+  inputs: Record<
+    string,
+    {
+      inputType: string;
+      collection: "keyvaluelist" | "valuelist" | null;
+    }
+  >;
+}
 
-export type ComponentManifestTrigger = (values: any) => Promise<unknown>;
+export interface ComponentManifestTrigger {
+  perform: (values: any) => Promise<unknown>;
+  inputs: Record<
+    string,
+    {
+      inputType: string;
+      collection: "keyvaluelist" | "valuelist" | null;
+    }
+  >;
+}
 
-export type ComponentManifestDataSource = (values: any) => Promise<unknown>;
-
-export type ComponentManifestConnection = (values: any) => Promise<unknown>;
+export interface ComponentManifestDataSource {
+  perform: (values: any) => Promise<unknown>;
+  inputs: Record<
+    string,
+    {
+      inputType: string;
+      collection: "keyvaluelist" | "valuelist" | null;
+    }
+  >;
+}
+export interface ComponentManifestConnection {
+  perform: (values: any) => Promise<unknown>;
+  inputs: Record<
+    string,
+    {
+      inputType: string;
+      collection: "keyvaluelist" | "valuelist" | null;
+    }
+  >;
+}

@@ -72,7 +72,11 @@ export type ActionContext<
   executionState: Record<string, unknown>;
   integrationState: Record<string, unknown>;
   configVars: TConfigVars;
-  components: TComponentActions;
+  components: {
+    [K in keyof TComponentActions]: {
+      [A in keyof TComponentActions[K]]: TComponentActions[K][A]["perform"];
+    };
+  };
   stepId: string;
   executionId: string;
   webhookUrls: Record<string, string>;

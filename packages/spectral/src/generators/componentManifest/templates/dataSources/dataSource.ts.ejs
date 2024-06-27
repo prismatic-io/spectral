@@ -1,7 +1,7 @@
 <%- include('../partials/imports.ejs', { imports, helpers }) -%>
 
 export interface <%= helpers.capitalizeFirstLetter(dataSource.key) %>Values {
-<%- include('../partials/inputTypes.ejs', { inputs: dataSource.inputs }) -%>
+<%- include('../partials/performArgs.ejs', { inputs: dataSource.inputs }) -%>
 }
 
 /**
@@ -9,6 +9,11 @@ export interface <%= helpers.capitalizeFirstLetter(dataSource.key) %>Values {
  *
  * @description <%= dataSource.description %>
  */
-export const <%= dataSource.key %> = <TReturn>(
-  _values: <%= helpers.capitalizeFirstLetter(dataSource.key) %>Values
-): Promise<TReturn> => Promise.resolve<TReturn>({} as TReturn);
+export const <%= dataSource.key %> = {
+  perform: (
+    _values: <%= helpers.capitalizeFirstLetter(dataSource.key) %>Values
+  ): Promise<void> => Promise.resolve(),
+  inputs: {
+    <%- include('../partials/inputs.ejs', { inputs: dataSource.inputs }) -%>
+  }
+}

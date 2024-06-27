@@ -45,7 +45,11 @@ export type ActionContext<
   /** Key/value collection of config variables of the integration. */
   configVars: TConfigVars;
   /** Available component actions registered in the `componentRegistry`. */
-  components: TComponentActions;
+  components: {
+    [K in keyof TComponentActions]: {
+      [A in keyof TComponentActions[K]]: TComponentActions[K][A]["perform"];
+    };
+  };
   /** A unique id that corresponds to the step on the Integration */
   stepId: string;
   /** A unique id that corresponds to the specific execution of the Integration */
