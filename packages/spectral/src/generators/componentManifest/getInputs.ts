@@ -30,7 +30,7 @@ export const getInputs = ({
       type: getInputType(input),
       required: input.required,
       collection: input.collection,
-      defaultType: input.type,
+      inputType: input.type,
       properties: documentProperties.reduce(
         (acc, key) => {
           const value = input[key]
@@ -96,25 +96,13 @@ const getInputType = (input: ServerTypeInput) => {
     ? input.model.map((choice) => `"${choice.value}"`).join(" | ")
     : INPUT_TYPE_MAP[input.type as InputFieldDefinition["type"]] || "never";
 
-  if (isKeyValueList(input)) {
+  if (input.collection === "keyvaluelist") {
     return `Record<string, ${valueType}>`;
   }
 
-  if (isValueList(input)) {
+  if (input.collection === "valuelist") {
     return `${valueType}[]`;
   }
 
   return valueType;
-};
-
-const isKeyValueList = (
-  input: ServerTypeInput
-): input is ServerTypeInput & { collection: "keyvaluelist" } => {
-  return input.collection === "keyvaluelist";
-};
-
-const isValueList = (
-  input: ServerTypeInput
-): input is ServerTypeInput & { collection: "valuelist" } => {
-  return input.collection === "valuelist";
 };

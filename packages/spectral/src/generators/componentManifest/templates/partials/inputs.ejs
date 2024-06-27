@@ -12,7 +12,7 @@
     <%_ if (input.required) { -%>
     required: <%= input.required %>,
     <%_ } -%>
-    <%_ if (input.onPremiseControlled) { -%>
+    <%_ if (typeof input.onPremiseControlled !== "undefined") { -%>
     onPremiseControlled: <%= input.onPremiseControlled %>,
     <%_ } -%>
   },
