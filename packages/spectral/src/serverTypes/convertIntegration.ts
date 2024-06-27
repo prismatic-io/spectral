@@ -15,7 +15,6 @@ import {
   isComponentReference,
   isDataSourceReferenceConfigVar,
   ComponentRegistry,
-  ComponentManifest,
   ComponentManifestAction,
 } from "../types";
 import {
@@ -480,11 +479,16 @@ const flowFunctionKey = (
   return `${flowKey}_${functionName}`;
 };
 
-type ComponentActionInvokeFunction = <TValues extends Record<string, unknown>>(
+type ComponentActionInvokeFunction = <TValues extends Record<string, any>>(
   ref: ServerComponentReference,
   context: ActionContext,
   values: TValues
 ) => Promise<unknown>;
+
+type ComponentMethods = Record<
+  string,
+  Record<string, ComponentManifestAction["perform"]>
+>;
 
 const convertOnExecution =
   (
@@ -498,35 +502,76 @@ const convertOnExecution =
     const invoke = (_components as { invoke: ComponentActionInvokeFunction })
       .invoke;
 
-    const componentMethods = Object.entries(componentRegistry).reduce<
-      Record<string, ComponentManifest["actions"]>
-    >((acc, [componentKey, { actions, public: isPublic, signature }]) => {
-      return {
-        ...acc,
-        [componentKey]: Object.keys(actions).reduce<
-          Record<string, ComponentManifestAction>
-        >(
-          (acc, actionKey) => ({
-            ...acc,
-            [actionKey]: (values) => {
-              return invoke(
-                {
-                  component: {
-                    key: componentKey,
-                    signature: signature ?? "",
-                    isPublic,
-                  },
-                  key: actionKey,
+    // Construct the component methods from the component registry
+    const componentMethods = Object.entries(
+      componentRegistry
+    ).reduce<ComponentMethods>(
+      (
+        accumulator,
+        [
+          registryComponentKey,
+          { key: componentKey, actions, public: isPublic, signature },
+        ]
+      ) => {
+        // Create an object to hold the methods for each action
+        const methods = Object.keys(actions).reduce<
+          Record<string, ComponentManifestAction["perform"]>
+        >((methodsAccumulator, actionKey) => {
+          const action = actions[actionKey];
+
+          // Define the method to be called for the action
+          methodsAccumulator[actionKey] = async (values) => {
+            // Transform the input values based on the action's inputs
+            const transformedValues = Object.entries(
+              values as Record<string, any>
+            ).reduce<Record<string, any>>(
+              (transformedAccumulator, [inputKey, inputValue]) => {
+                const { collection } = action.inputs[inputKey];
+
+                // Transform key-value list inputs
+                if (
+                  collection === "keyvaluelist" &&
+                  Object.keys(inputValue).length
+                ) {
+                  transformedAccumulator[inputKey] = Object.entries(
+                    inputValue
+                  ).map(([keyItem, valueItem]) => ({
+                    key: keyItem,
+                    value: valueItem,
+                  }));
+                } else {
+                  transformedAccumulator[inputKey] = inputValue;
+                }
+
+                return transformedAccumulator;
+              },
+              {}
+            );
+
+            // Invoke the action with the transformed values
+            return invoke(
+              {
+                component: {
+                  key: componentKey,
+                  signature: signature ?? "",
+                  isPublic,
                 },
-                context,
-                values
-              );
-            },
-          }),
-          {}
-        ),
-      };
-    }, {});
+                key: actionKey,
+              },
+              context,
+              transformedValues
+            );
+          };
+
+          return methodsAccumulator;
+        }, {});
+
+        // Add the methods to the accumulator under the registry component key
+        accumulator[registryComponentKey] = methods;
+        return accumulator;
+      },
+      {}
+    );
 
     return onExecution(
       { ...remainingContext, components: componentMethods },

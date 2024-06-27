@@ -29,6 +29,8 @@ export const getInputs = ({
       label: input.label,
       type: getInputType(input),
       required: input.required,
+      collection: input.collection,
+      inputType: input.type,
       properties: documentProperties.reduce(
         (acc, key) => {
           const value = input[key]
@@ -90,7 +92,17 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
 };
 
 const getInputType = (input: ServerTypeInput) => {
-  return input.model
+  const valueType = input.model
     ? input.model.map((choice) => `"${choice.value}"`).join(" | ")
     : INPUT_TYPE_MAP[input.type as InputFieldDefinition["type"]] || "never";
+
+  if (input.collection === "keyvaluelist") {
+    return `Record<string, ${valueType}>`;
+  }
+
+  if (input.collection === "valuelist") {
+    return `${valueType}[]`;
+  }
+
+  return valueType;
 };
