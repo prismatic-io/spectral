@@ -50,6 +50,21 @@ export interface IntegrationDefinitionComponentRegistry {}
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IntegrationDefinitionConfigPages {}
 
+/**
+ * Root UserLevelConfigPages type exposed for augmentation.
+ *
+ * The expected interface when augmenting is:
+ *
+ * ```ts
+ * interface IntegrationDefinitionUserLevelConfigPages {
+ *   [key: string]: ConfigPage
+ * }
+ * ```
+ *
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface IntegrationDefinitionUserLevelConfigPages {}
+
 /** Defines attributes of a Code-Native Integration. */
 export type IntegrationDefinition = {
   /** The unique name for this Integration. */
@@ -77,6 +92,8 @@ export type IntegrationDefinition = {
   flows: Flow[];
   /** Config Wizard Pages for this Integration. */
   configPages?: ConfigPages;
+  /** User Level Config Wizard Pages for this Integration. */
+  userLevelConfigPages?: UserLevelConfigPages;
 
   componentRegistry?: ComponentRegistry;
 };
@@ -391,37 +408,45 @@ export const isConnectionReferenceConfigVar = (
 
 export type ConfigPageElement = string | ConfigVar;
 
-export type ConfigPages = keyof IntegrationDefinitionConfigPages extends never
-  ? { [key: string]: ConfigPage }
-  : UnionToIntersection<
-      keyof IntegrationDefinitionConfigPages extends infer TPageName
-        ? TPageName extends keyof IntegrationDefinitionConfigPages
-          ? IntegrationDefinitionConfigPages[TPageName] extends ConfigPage
-            ? {
-                [Key in TPageName]: IntegrationDefinitionConfigPages[TPageName];
-              }
+type CreateConfigPages<TIntegrationDefinitionConfigPages> =
+  keyof TIntegrationDefinitionConfigPages extends never
+    ? { [key: string]: ConfigPage }
+    : UnionToIntersection<
+        keyof TIntegrationDefinitionConfigPages extends infer TPageName
+          ? TPageName extends keyof TIntegrationDefinitionConfigPages
+            ? TIntegrationDefinitionConfigPages[TPageName] extends ConfigPage
+              ? {
+                  [Key in TPageName]: TIntegrationDefinitionConfigPages[TPageName];
+                }
+              : never
             : never
           : never
-        : never
-    >;
+      >;
 
-export type ConfigVars = Prettify<
-  UnionToIntersection<
-    keyof ConfigPages extends infer TPageName
-      ? TPageName extends keyof ConfigPages
-        ? ConfigPages[TPageName] extends infer TConfigPage
-          ? TConfigPage extends ConfigPage
-            ? {
-                [Key in keyof TConfigPage["elements"] as Key extends string
-                  ? TConfigPage["elements"][Key] extends ConfigVar
-                    ? Key
-                    : never
-                  : never]: ElementToRuntimeType<TConfigPage["elements"][Key]>;
-              }
-            : never
+export type ConfigPages = CreateConfigPages<IntegrationDefinitionConfigPages>;
+export type UserLevelConfigPages =
+  CreateConfigPages<IntegrationDefinitionUserLevelConfigPages>;
+
+type ExtractConfigVars<TConfigPages extends { [key: string]: ConfigPage }> =
+  keyof TConfigPages extends infer TPageName
+    ? TPageName extends keyof TConfigPages
+      ? TConfigPages[TPageName] extends infer TConfigPage
+        ? TConfigPage extends ConfigPage
+          ? {
+              [Key in keyof TConfigPage["elements"] as Key extends string
+                ? TConfigPage["elements"][Key] extends ConfigVar
+                  ? Key
+                  : never
+                : never]: ElementToRuntimeType<TConfigPage["elements"][Key]>;
+            }
           : never
         : never
       : never
+    : never;
+
+export type ConfigVars = Prettify<
+  UnionToIntersection<
+    ExtractConfigVars<ConfigPages> | ExtractConfigVars<UserLevelConfigPages>
   >
 >;
 
