@@ -3,11 +3,14 @@ import path from "path";
 import { createActions } from "./createActions";
 import { createConnections } from "./createConnections";
 import { createDataSources } from "./createDataSources";
-import { createStaticFiles, PackageDependencies } from "./createStaticFiles";
+import {
+  createStaticFiles,
+  type PackageDependencies,
+} from "./createStaticFiles";
 import { createTriggers } from "./createTriggers";
 import { removeComponentManifest } from "./removeComponentManifest";
 import { getComponentSignatureWithPrism } from "../utils/getComponentSignatureWithPrism";
-import { Component } from "../../serverTypes";
+import type { Component } from "../../serverTypes";
 
 interface CreateComponentManifestProps {
   component: Component;

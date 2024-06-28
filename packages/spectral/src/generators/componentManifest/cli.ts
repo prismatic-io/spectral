@@ -13,34 +13,7 @@ export const runMain = async (process: NodeJS.Process) => {
   const componentDir = process.cwd();
   const componentDistDir = path.join(componentDir, "dist", "index.js");
 
-  if (!componentDir) {
-    console.error("Please run this script using npm or yarn.");
-    process.exit(1);
-  }
-
-  if (!existsSync(componentDistDir)) {
-    console.error(
-      "Component build directory `dist` does not exist. Please verify that the component has been built."
-    );
-    process.exit(1);
-  }
-
-  const component = require(componentDistDir).default;
-
-  if (
-    !component ||
-    !isObjectWithTruthyKeys(component, ["key", "display"]) ||
-    !isObjectWithOneTruthyKey(component, [
-      "actions",
-      "connections",
-      "dataSources",
-    ])
-  ) {
-    console.error("Component is invalid.");
-    process.exit(1);
-  }
-
-  const args = process.argv.slice(3);
+  const args = process.argv.slice(2);
   const flags = {
     name: {
       flag: ["--name", "-n"],
@@ -112,6 +85,33 @@ export const runMain = async (process: NodeJS.Process) => {
       flags,
     });
     process.exit(0);
+  }
+
+  if (!componentDir) {
+    console.error("Please run this script using npm or yarn.");
+    process.exit(1);
+  }
+
+  if (!existsSync(componentDistDir)) {
+    console.error(
+      "Component build directory `dist` does not exist. Please verify that the component has been built."
+    );
+    process.exit(1);
+  }
+
+  const component = require(componentDistDir).default;
+
+  if (
+    !component ||
+    !isObjectWithTruthyKeys(component, ["key", "display"]) ||
+    !isObjectWithOneTruthyKey(component, [
+      "actions",
+      "connections",
+      "dataSources",
+    ])
+  ) {
+    console.error("Component is invalid.");
+    process.exit(1);
   }
 
   const packageJson: {

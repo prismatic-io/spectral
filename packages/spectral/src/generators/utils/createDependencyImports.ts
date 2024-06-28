@@ -1,4 +1,4 @@
-import { Imports } from "../componentManifest/getImports";
+import type { Imports } from "../componentManifest/getImports";
 
 export interface CreateDependencyImportsProps {
   imports: Imports;

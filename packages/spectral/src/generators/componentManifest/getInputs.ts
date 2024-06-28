@@ -1,5 +1,9 @@
-import { Input as ServerTypeInput } from "../../serverTypes";
-import { InputFieldDefinition } from "../../types/Inputs";
+import type { Input as InputBase } from "../../serverTypes";
+import type { InputFieldDefinition } from "../../types/Inputs";
+
+type ServerTypeInput = InputBase & {
+  onPremControlled?: boolean;
+};
 
 export interface Input {
   key: string;
@@ -14,15 +18,19 @@ export interface Input {
 
 export type InputType = string | { type: string; module: string };
 
+export type DocBlock = {
+  inputKey?: string;
+  propertyKey: keyof ServerTypeInput;
+  propertyValue?: unknown;
+  output?: string;
+}[];
+
 interface GetInputsProps {
   inputs: ServerTypeInput[];
-  documentProperties: (keyof ServerTypeInput)[];
+  docBlock: DocBlock;
 }
 
-export const getInputs = ({
-  inputs,
-  documentProperties,
-}: GetInputsProps): Input[] => {
+export const getInputs = ({ inputs, docBlock }: GetInputsProps): Input[] => {
   return inputs.map((input) => {
     return {
       key: input.key,
@@ -31,23 +39,44 @@ export const getInputs = ({
       required: input.required,
       collection: input.collection,
       inputType: input.type,
-      properties: documentProperties.reduce(
-        (acc, key) => {
-          const value = input[key]
-            ? JSON.stringify(input[key])
-                .replace(/(^"|"$)|(^'|'$)/g, "")
-                .trim()
-            : null;
+      onPremiseControlled: input.onPremiseControlled || input.onPremControlled,
+      properties: docBlock.reduce(
+        (acc, { propertyKey, inputKey, propertyValue, output }) => {
+          if (inputKey && inputKey !== input.key) {
+            return acc;
+          }
 
-          if (typeof value === "undefined" || value === null || value === "") {
+          if (
+            output &&
+            (input[propertyKey] === propertyValue ||
+              typeof propertyValue === "undefined")
+          ) {
+            return [
+              ...acc,
+              {
+                key: propertyKey,
+                value: output,
+              },
+            ];
+          }
+
+          if (
+            typeof input[propertyKey] === "undefined" ||
+            input[propertyKey] === null ||
+            input[propertyKey] === "" ||
+            (typeof propertyValue !== "undefined" &&
+              input[propertyKey] !== propertyValue)
+          ) {
             return acc;
           }
 
           return [
             ...acc,
             {
-              key,
-              value,
+              key: propertyKey,
+              value: JSON.stringify(input[propertyKey])
+                .replace(/(^"|"$)|(^'|'$)/g, "")
+                .trim(),
             },
           ];
         },
