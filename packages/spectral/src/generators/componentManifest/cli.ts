@@ -13,7 +13,7 @@ export const runMain = async (process: NodeJS.Process) => {
   const componentDir = process.cwd();
   const componentDistDir = path.join(componentDir, "dist", "index.js");
 
-  const args = process.argv.slice(3);
+  const args = process.argv.slice(2);
   const flags = {
     name: {
       flag: ["--name", "-n"],
