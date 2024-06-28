@@ -302,12 +302,13 @@ const convertComponentReference = (
   ref: ServerComponentReference;
   inputs: Record<string, ServerInput>;
 } => {
+  const manifest = componentRegistry[componentReference.component];
+
   const ref: ServerComponentReference = {
     component: {
-      key: componentReference.component,
-      signature:
-        componentRegistry[componentReference.component]?.signature ?? "",
-      isPublic: componentReference.isPublic,
+      key: manifest.key,
+      signature: manifest.signature ?? "",
+      isPublic: manifest.public,
     },
     key: componentReference.key,
   };
