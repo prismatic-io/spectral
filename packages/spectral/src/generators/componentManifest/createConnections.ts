@@ -1,16 +1,34 @@
 import path from "path";
 
-import { Input, getInputs } from "./getInputs";
-import { Imports, getImports } from "./getImports";
+import { type DocBlock, type Input, getInputs } from "./getInputs";
+import { type Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
-import { Component, Input as ServerTypeInput } from "../../serverTypes";
+import type { Component } from "../../serverTypes";
 
-const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
-  "comments",
-  "default",
-  "example",
-  "placeholder",
+const DOC_BLOCK: DocBlock = [
+  {
+    propertyKey: "comments",
+  },
+  {
+    propertyKey: "default",
+  },
+  {
+    propertyKey: "example",
+  },
+  {
+    propertyKey: "placeholder",
+  },
+  {
+    propertyKey: "onPremControlled",
+    propertyValue: true,
+    output: "This input will be supplied when using an on prem resource.",
+  },
+  {
+    propertyKey: "onPremiseControlled",
+    propertyValue: true,
+    output: "This input will be supplied when using an on prem resource.",
+  },
 ];
 
 interface CreateConnectionsProps {
@@ -48,9 +66,14 @@ export const createConnections = async ({
     (component.connections ?? []).map(async (connection) => {
       const inputs = getInputs({
         inputs: connection.inputs,
-        documentProperties: DOCUMENT_PROPERTIES,
+        docBlock: DOC_BLOCK,
       });
+
       const imports = getImports({ inputs });
+
+      const onPremAvailable = connection.inputs.some(
+        (input) => input.onPremControlled || input.onPremiseControlled
+      );
 
       return await renderConnection({
         connection: {
@@ -58,6 +81,7 @@ export const createConnections = async ({
           label: connection.label,
           comments: connection.comments,
           inputs,
+          onPremAvailable,
         },
         imports,
         dryRun,
@@ -112,6 +136,7 @@ interface RenderConnectionProps {
     label: string;
     comments?: string;
     inputs: Input[];
+    onPremAvailable: boolean;
   };
   dryRun: boolean;
   imports: Imports;

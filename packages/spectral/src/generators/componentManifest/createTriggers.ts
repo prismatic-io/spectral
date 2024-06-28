@@ -1,16 +1,24 @@
 import path from "path";
 
-import { Input, getInputs } from "./getInputs";
-import { Imports, getImports } from "./getImports";
+import { type DocBlock, type Input, getInputs } from "./getInputs";
+import { type Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
-import { Component, Input as ServerTypeInput } from "../../serverTypes";
+import type { Component } from "../../serverTypes";
 
-const DOCUMENT_PROPERTIES: (keyof ServerTypeInput)[] = [
-  "comments",
-  "default",
-  "example",
-  "placeholder",
+const DOC_BLOCK: DocBlock = [
+  {
+    propertyKey: "comments",
+  },
+  {
+    propertyKey: "default",
+  },
+  {
+    propertyKey: "example",
+  },
+  {
+    propertyKey: "placeholder",
+  },
 ];
 
 interface CreateTriggersProps {
@@ -51,7 +59,7 @@ export const createTriggers = async ({
       async ([triggerKey, trigger]) => {
         const inputs = getInputs({
           inputs: trigger.inputs,
-          documentProperties: DOCUMENT_PROPERTIES,
+          docBlock: DOC_BLOCK,
         });
         const imports = getImports({ inputs });
 

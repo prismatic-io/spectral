@@ -1,4 +1,4 @@
-import { Input } from "./getInputs";
+import type { Input } from "./getInputs";
 
 export type Imports = Record<string, string[]>;
 
