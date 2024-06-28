@@ -50,7 +50,12 @@ export const createConnections = async ({
         inputs: connection.inputs,
         documentProperties: DOCUMENT_PROPERTIES,
       });
+
       const imports = getImports({ inputs });
+
+      const onPremiseAvailable = connection.inputs.some(
+        (input) => input.onPremiseControlled || input.onPremControlled
+      );
 
       return await renderConnection({
         connection: {
@@ -58,6 +63,7 @@ export const createConnections = async ({
           label: connection.label,
           comments: connection.comments,
           inputs,
+          onPremiseAvailable,
         },
         imports,
         dryRun,
@@ -112,6 +118,7 @@ interface RenderConnectionProps {
     label: string;
     comments?: string;
     inputs: Input[];
+    onPremiseAvailable: boolean;
   };
   dryRun: boolean;
   imports: Imports;

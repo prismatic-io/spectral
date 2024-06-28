@@ -31,6 +31,7 @@ export const getInputs = ({
       required: input.required,
       collection: input.collection,
       inputType: input.type,
+      onPremiseControlled: input.onPremiseControlled || input.onPremControlled,
       properties: documentProperties.reduce(
         (acc, key) => {
           const value = input[key]
