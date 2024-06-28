@@ -13,8 +13,8 @@ export const <%= connection.key %> = {
   perform: (
     _values: <%= helpers.capitalizeFirstLetter(connection.key) %>Values
   ): Promise<void> => Promise.resolve(),
-  <%_ if (connection.onPremiseAvailable) { -%>
-  onPremiseAvailable: true,
+  <%_ if (connection.onPremAvailable) { -%>
+  onPremAvailable: true,
   <%_ } -%>
   inputs: {
     <%- include('../partials/inputs.ejs', { inputs: connection.inputs }) -%>

@@ -2,7 +2,7 @@ import path from "path";
 
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
-import { Component } from "../../serverTypes";
+import type { Component } from "../../serverTypes";
 
 export interface PackageDependencies {
   spectral: string;
