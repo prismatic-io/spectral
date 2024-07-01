@@ -126,7 +126,7 @@ const getInputType = (input: ServerTypeInput) => {
     : INPUT_TYPE_MAP[input.type as InputFieldDefinition["type"]] || "never";
 
   if (input.collection === "keyvaluelist") {
-    return `Record<string, ${valueType}>`;
+    return `Record<string, ${valueType}> | Array<{key: string, value: ${valueType}}>`;
   }
 
   if (input.collection === "valuelist") {
