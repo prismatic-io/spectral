@@ -8,17 +8,17 @@ interface GetImportsProps {
 
 export const getImports = ({ inputs }: GetImportsProps) => {
   return inputs.reduce((acc, input) => {
-    if (typeof input.type === "string") {
+    if (typeof input.valueType === "string") {
       return acc;
     }
 
     return {
       ...acc,
-      [input.type.module]: acc[input.type.module]
-        ? !acc[input.type.module].includes(input.type.type)
-          ? [...acc[input.type.module], input.type.type]
-          : acc[input.type.module]
-        : [input.type.type],
+      [input.valueType.module]: acc[input.valueType.module]
+        ? !acc[input.valueType.module].includes(input.valueType.type)
+          ? [...acc[input.valueType.module], input.valueType.type]
+          : acc[input.valueType.module]
+        : [input.valueType.type],
     };
   }, {} as Imports);
 };
