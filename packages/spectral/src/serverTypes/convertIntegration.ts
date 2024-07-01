@@ -660,6 +660,18 @@ const convertOnExecution =
               (transformedAccumulator, [inputKey, inputValue]) => {
                 const { collection } = action.inputs[inputKey];
 
+                if (
+                  collection === "keyvaluelist" &&
+                  Array.isArray(inputValue)
+                ) {
+                  transformedAccumulator[inputKey] = inputValue.reduce<
+                    Array<{ key: string; value: any }>
+                  >((acc, { key, value }) => {
+                    return [...acc, { key, value }];
+                  }, []);
+                  return transformedAccumulator;
+                }
+
                 // Transform key-value list inputs
                 if (
                   collection === "keyvaluelist" &&
