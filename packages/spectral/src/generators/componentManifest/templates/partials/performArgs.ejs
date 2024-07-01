@@ -6,5 +6,5 @@
    * @<%= property.key %> <%- property.value %>
    <%_ }); -%>
    */
-  <%= input.key %><%= input.required ? "" : "?" %>: <%- input.type.type ? input.type.type : input.type %>;
+  <%= input.key %><%= input.required ? "" : "?" %>: <%- input.valueType.type ? input.valueType.type : input.valueType %>;
 <% }); -%>

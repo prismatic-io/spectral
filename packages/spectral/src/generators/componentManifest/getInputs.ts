@@ -8,7 +8,8 @@ type ServerTypeInput = InputBase & {
 export interface Input {
   key: string;
   label: string;
-  type: InputType;
+  inputType: string;
+  valueType: ValueType;
   required: boolean | undefined;
   properties: {
     key: keyof ServerTypeInput;
@@ -16,7 +17,7 @@ export interface Input {
   }[];
 }
 
-export type InputType = string | { type: string; module: string };
+export type ValueType = string | { type: string; module: string };
 
 export type DocBlock = {
   inputKey?: string;
@@ -35,11 +36,11 @@ export const getInputs = ({ inputs, docBlock }: GetInputsProps): Input[] => {
     return {
       key: input.key,
       label: input.label,
-      type: getInputType(input),
+      inputType: input.type,
+      valueType: getInputValueType(input),
       required: input.required,
       collection: input.collection,
-      inputType: input.type,
-      onPremiseControlled: input.onPremiseControlled || input.onPremControlled,
+      onPremControlled: input.onPremiseControlled || input.onPremControlled,
       properties: docBlock.reduce(
         (acc, { propertyKey, inputKey, propertyValue, output }) => {
           if (inputKey && inputKey !== input.key) {
@@ -89,7 +90,7 @@ export const getInputs = ({ inputs, docBlock }: GetInputsProps): Input[] => {
   });
 };
 
-export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
+export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], ValueType> = {
   string: "string",
   data: "string",
   text: "string",
@@ -120,7 +121,7 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   dynamicFieldSelection: "string",
 };
 
-const getInputType = (input: ServerTypeInput) => {
+const getInputValueType = (input: ServerTypeInput) => {
   const valueType = input.model
     ? input.model.map((choice) => `"${choice.value}"`).join(" | ")
     : INPUT_TYPE_MAP[input.type as InputFieldDefinition["type"]] || "never";
