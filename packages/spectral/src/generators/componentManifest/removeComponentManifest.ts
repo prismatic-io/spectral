@@ -1,4 +1,4 @@
-import { removeSync } from "fs-extra";
+import { rmSync, existsSync } from "fs";
 
 interface RemoveComponentManifestProps {
   destinationDir: string;
@@ -14,7 +14,9 @@ export const removeComponentManifest = ({
   }
 
   try {
-    removeSync(destinationDir);
+    if (existsSync(destinationDir)) {
+      rmSync(destinationDir, { recursive: true, force: true });
+    }
   } catch (err) {
     console.error(err);
   }
