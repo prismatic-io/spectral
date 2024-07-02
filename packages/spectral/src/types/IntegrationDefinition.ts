@@ -253,7 +253,6 @@ type ComponentReferenceTypeValueMap<
 export type ComponentReference<
   TComponentReference extends {
     component: string;
-    isPublic: boolean;
     key: string;
     values?: {
       [key: string]: ValueExpression | ConfigVarExpression;
@@ -261,7 +260,6 @@ export type ComponentReference<
     template?: string;
   } = {
     component: string;
-    isPublic: boolean;
     key: string;
     values?: {
       [key: string]: ValueExpression | ConfigVarExpression;
@@ -296,7 +294,6 @@ type ComponentReferencesByType = UnionToIntersection<
                               >[0] extends infer TInputs
                               ? ComponentReference<{
                                   component: TComponentKey;
-                                  isPublic: ComponentRegistry[TComponentKey]["public"];
                                   key: TComponentPropertyKey;
                                   values: {
                                     [Key in keyof TInputs]: ComponentReferenceTypeValueMap<
