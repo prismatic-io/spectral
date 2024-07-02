@@ -30,7 +30,7 @@ import {
   ActionPerformFunction,
   ActionContext,
 } from ".";
-import { convertInput } from "./convert";
+import { convertInput } from "./convertComponent";
 import {
   DefinitionVersion,
   RequiredConfigVariable as ServerRequiredConfigVariable,
@@ -151,6 +151,7 @@ const codeNativeIntegrationYaml = (
   if (preprocessFlows.length > 1) {
     throw new Error("Only one flow may define a Preprocess Flow Config.");
   }
+
   if (preprocessFlows.length && triggerPreprocessFlowConfig) {
     throw new Error(
       "Integration must not define both a Trigger Preprocess Flow Config and a Preprocess Flow."
@@ -303,6 +304,12 @@ const convertComponentReference = (
   inputs: Record<string, ServerInput>;
 } => {
   const manifest = componentRegistry[componentReference.component];
+
+  if (!manifest) {
+    throw new Error(
+      `Component with key "${componentReference.component}" not found in component registry.`
+    );
+  }
 
   const ref: ServerComponentReference = {
     component: {

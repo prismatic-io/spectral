@@ -28,7 +28,7 @@ import {
   ScheduleConfigVar,
   ComponentManifest,
 } from "./types";
-import { convertComponent } from "./serverTypes/convert";
+import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
 
 /**
@@ -49,6 +49,7 @@ export const integration = <
   if (process.env?.DEBUG === "true") {
     console.info(integrationDefinition.codeNativeIntegrationYAML);
   }
+
   return integrationDefinition;
 };
 
