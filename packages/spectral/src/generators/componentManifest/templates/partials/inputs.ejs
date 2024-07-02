@@ -1,11 +1,10 @@
 <% inputs.forEach((input) => { -%>
   <%= input.key %>: {
-    valueType: "<%- input.valueType.type ? input.valueType.type : input.valueType %>",
     inputType: "<%= input.inputType %>",
     <%_ if (input.collection) { -%>
-    collection: "<%= input.collection %>" as const,
+    collection: "<%= input.collection %>",
     <%_ } else { -%>
-    collection: null,
+    collection: undefined,
     <%_ } -%>
     <%_ if (input.default) { -%>
     default: <%= input.default %>,
@@ -16,5 +15,5 @@
     <%_ if (typeof input.onPremControlled !== "undefined") { -%>
     onPremControlled: <%= input.onPremControlled %>,
     <%_ } -%>
-  },
+  } as const,
 <% }); -%>

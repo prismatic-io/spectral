@@ -1,3 +1,5 @@
+import { CollectionType, InputFieldType } from ".";
+
 export interface ComponentManifest {
   key: string;
   public: boolean;
@@ -8,45 +10,29 @@ export interface ComponentManifest {
   connections: Record<string, ComponentManifestConnection>;
 }
 
+interface BaseInput {
+  inputType: InputFieldType;
+  collection?: CollectionType | undefined;
+  required?: boolean;
+  default?: unknown;
+}
+
 export interface ComponentManifestAction {
   perform: (values: any) => Promise<unknown>;
-  inputs: Record<
-    string,
-    {
-      inputType: string;
-      collection: "keyvaluelist" | "valuelist" | null;
-    }
-  >;
+  inputs: Record<string, BaseInput>;
 }
 
 export interface ComponentManifestTrigger {
   perform: (values: any) => Promise<unknown>;
-  inputs: Record<
-    string,
-    {
-      inputType: string;
-      collection: "keyvaluelist" | "valuelist" | null;
-    }
-  >;
+  inputs: Record<string, BaseInput>;
 }
 
 export interface ComponentManifestDataSource {
   perform: (values: any) => Promise<unknown>;
-  inputs: Record<
-    string,
-    {
-      inputType: string;
-      collection: "keyvaluelist" | "valuelist" | null;
-    }
-  >;
+  inputs: Record<string, BaseInput>;
 }
 export interface ComponentManifestConnection {
   perform: (values: any) => Promise<unknown>;
-  inputs: Record<
-    string,
-    {
-      inputType: string;
-      collection: "keyvaluelist" | "valuelist" | null;
-    }
-  >;
+  onPremAvailable?: boolean;
+  inputs: Record<string, BaseInput & { onPremControlled?: boolean }>;
 }
