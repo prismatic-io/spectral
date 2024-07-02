@@ -346,5 +346,5 @@ export type InputFieldCollection = "valuelist" | "keyvaluelist";
 /** Config variable result collection */
 export type ConfigVarResultCollection = Record<
   string,
-  string | Schedule | Connection | JSONForm | ObjectSelection | ObjectFieldMap
+  string | Schedule | Connection | unknown | ObjectSelection | ObjectFieldMap
 >;

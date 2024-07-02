@@ -5,7 +5,7 @@ import type {
   Connection,
 } from "@prismatic-io/spectral";
 import { ValueOf } from "@prismatic-io/spectral/dist/types/utils";
-import { expectAssignable, expectError } from "tsd";
+import { expectAssignable } from "tsd";
 
 type RawConnectionElems = ValueOf<ConfigPages>["elements"];
 expectAssignable<"A Connection" | "Ref Connection">(
@@ -28,10 +28,15 @@ expectAssignable<DataSourceConfigVar>({
   collectionType: "valuelist",
 });
 
-// Distinct subset of data source types does not support collections.
-expectError<DataSourceConfigVar>({
+const createDataSourceConfigVar = (configVar: DataSourceConfigVar) => configVar;
+
+// eslint-disable-next-line
+// @ts-ignore Collection type is not supported for this data source type.
+createDataSourceConfigVar({
   perform: async () => Promise.resolve({ result: "string" }),
   stableKey: "ds",
   dataSourceType: "jsonForm",
+  // eslint-disable-next-line
+  // @ts-ignore `collectionType` is not a valid property for this data source type.
   collectionType: "valuelist",
 });
