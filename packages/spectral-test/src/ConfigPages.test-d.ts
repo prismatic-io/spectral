@@ -2,8 +2,8 @@ import {
   flow,
   integration,
   Connection,
-  JSONForm,
   TriggerPayload,
+  ObjectSelection,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 
@@ -18,8 +18,14 @@ const basicFlow = flow({
     expectAssignable<Connection>(context.configVars["Ref Connection"]);
     expectAssignable<string>(context.configVars["A String"]);
     expectAssignable<string>(context.configVars["A Picklist"]);
-    expectAssignable<JSONForm>(context.configVars["A Data Source"]);
-    expectAssignable<JSONForm>(context.configVars["Ref Data Source"]);
+    // JSON Form config var values are the resulting form values so they are
+    // typed as `unknown`
+    expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
+    expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
+    expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
+    expectAssignable<ObjectSelection>(
+      context.configVars["Object Selection Data Source"]
+    );
     expectAssignable<string>(context.configVars["Fourth Page String"]);
 
     expectAssignable<Record<string, unknown>>(params);
@@ -31,8 +37,11 @@ const basicFlow = flow({
     expectAssignable<Connection>(context.configVars["Ref Connection"]);
     expectAssignable<string>(context.configVars["A String"]);
     expectAssignable<string>(context.configVars["A Picklist"]);
-    expectAssignable<JSONForm>(context.configVars["A Data Source"]);
-    expectAssignable<JSONForm>(context.configVars["Ref Data Source"]);
+    expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
+    expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
+    expectAssignable<ObjectSelection>(
+      context.configVars["Object Selection Data Source"]
+    );
     expectAssignable<string>(context.configVars["Fourth Page String"]);
 
     expectAssignable<TriggerPayload>(params.onTrigger.results);
@@ -44,8 +53,11 @@ const basicFlow = flow({
     expectAssignable<Connection>(context.configVars["Ref Connection"]);
     expectAssignable<string>(context.configVars["A String"]);
     expectAssignable<string>(context.configVars["A Picklist"]);
-    expectAssignable<JSONForm>(context.configVars["A Data Source"]);
-    expectAssignable<JSONForm>(context.configVars["Ref Data Source"]);
+    expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
+    expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
+    expectAssignable<ObjectSelection>(
+      context.configVars["Object Selection Data Source"]
+    );
     expectAssignable<string>(context.configVars["Fourth Page String"]);
 
     return Promise.resolve();
@@ -55,8 +67,11 @@ const basicFlow = flow({
     expectAssignable<Connection>(context.configVars["Ref Connection"]);
     expectAssignable<string>(context.configVars["A String"]);
     expectAssignable<string>(context.configVars["A Picklist"]);
-    expectAssignable<JSONForm>(context.configVars["A Data Source"]);
-    expectAssignable<JSONForm>(context.configVars["Ref Data Source"]);
+    expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
+    expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
+    expectAssignable<ObjectSelection>(
+      context.configVars["Object Selection Data Source"]
+    );
     expectAssignable<string>(context.configVars["Fourth Page String"]);
 
     return Promise.resolve();

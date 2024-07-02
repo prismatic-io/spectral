@@ -17,6 +17,8 @@ import {
   ComponentRegistry,
   ComponentManifestAction,
   PermissionAndVisibilityType,
+  CollectionType,
+  KeyValuePair,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -473,6 +475,25 @@ const convertFlow = (
   return result;
 };
 
+/** Converts an input value to the expected server type by its collection type */
+const convertInputValue = (
+  value: unknown,
+  collectionType: CollectionType | undefined
+) => {
+  if (collectionType !== "keyvaluelist") {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return Object.entries(value as object).map<KeyValuePair>(([key, value]) => ({
+    key,
+    value,
+  }));
+};
+
 /** Converts a Config Var into the structure necessary for YAML generation. */
 const convertConfigVar = (
   key: string,
@@ -549,12 +570,23 @@ const convertConfigVar = (
     };
   }
 
+  const rawDefaultValue =
+    "defaultValue" in configVar
+      ? convertInputValue(configVar.defaultValue, configVar.collectionType)
+      : undefined;
+
+  const defaultValue =
+    typeof rawDefaultValue !== "undefined"
+      ? typeof rawDefaultValue === "string"
+        ? rawDefaultValue
+        : JSON.stringify(rawDefaultValue)
+      : undefined;
+
   const result = assign(
-    { orgOnly, meta, key },
+    { orgOnly, meta, key, defaultValue },
     pick(configVar, [
       "stableKey",
       "description",
-      "defaultValue",
       "dataType",
       "pickList",
       "timeZone",
@@ -635,8 +667,11 @@ const convertOnExecution =
     componentRegistry: ComponentRegistry
   ): ServerActionPerformFunction =>
   (context, params) => {
-    // @ts-expect-error _components isn't part of the public API
-    const { _components, ...remainingContext } = context;
+    const {
+      // @ts-expect-error _components isn't part of the public API
+      _components,
+      ...remainingContext
+    } = context;
 
     const invoke = (_components as { invoke: ComponentActionInvokeFunction })
       .invoke;
@@ -652,52 +687,24 @@ const convertOnExecution =
           { key: componentKey, actions, public: isPublic, signature },
         ]
       ) => {
-        // Create an object to hold the methods for each action
-        const methods = Object.keys(actions).reduce<
+        const componentActions = Object.entries(actions).reduce<
           Record<string, ComponentManifestAction["perform"]>
-        >((methodsAccumulator, actionKey) => {
-          const action = actions[actionKey];
-
+        >((actionsAccumulator, [actionKey, action]) => {
           // Define the method to be called for the action
-          methodsAccumulator[actionKey] = async (values) => {
+          const invokeAction: ComponentManifestAction["perform"] = async (
+            values
+          ) => {
             // Transform the input values based on the action's inputs
-            const transformedValues = Object.entries(
-              values as Record<string, any>
-            ).reduce<Record<string, any>>(
-              (transformedAccumulator, [inputKey, inputValue]) => {
-                const { collection } = action.inputs[inputKey];
+            const transformedValues = Object.entries(values).reduce<
+              Record<string, any>
+            >((transformedAccumulator, [inputKey, inputValue]) => {
+              const { collection } = action.inputs[inputKey];
 
-                if (
-                  collection === "keyvaluelist" &&
-                  Array.isArray(inputValue)
-                ) {
-                  transformedAccumulator[inputKey] = inputValue.reduce<
-                    Array<{ key: string; value: any }>
-                  >((acc, { key, value }) => {
-                    return [...acc, { key, value }];
-                  }, []);
-                  return transformedAccumulator;
-                }
-
-                // Transform key-value list inputs
-                if (
-                  collection === "keyvaluelist" &&
-                  Object.keys(inputValue).length
-                ) {
-                  transformedAccumulator[inputKey] = Object.entries(
-                    inputValue
-                  ).map(([keyItem, valueItem]) => ({
-                    key: keyItem,
-                    value: valueItem,
-                  }));
-                } else {
-                  transformedAccumulator[inputKey] = inputValue;
-                }
-
-                return transformedAccumulator;
-              },
-              {}
-            );
+              return {
+                ...transformedAccumulator,
+                [inputKey]: convertInputValue(inputValue, collection),
+              };
+            }, {});
 
             // Invoke the action with the transformed values
             return invoke(
@@ -713,13 +720,16 @@ const convertOnExecution =
               transformedValues
             );
           };
-
-          return methodsAccumulator;
+          return {
+            ...actionsAccumulator,
+            [actionKey]: invokeAction,
+          };
         }, {});
 
-        // Add the methods to the accumulator under the registry component key
-        accumulator[registryComponentKey] = methods;
-        return accumulator;
+        return {
+          ...accumulator,
+          [registryComponentKey]: componentActions,
+        };
       },
       {}
     );

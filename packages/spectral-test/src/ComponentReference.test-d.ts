@@ -1,28 +1,10 @@
 import {
-  Connection,
-  ElementToRuntimeType,
-  JSONForm,
-  ConfigPages,
   DataSourceReference,
   ConnectionReference,
   TriggerReference,
   ActionReference,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
-
-// Test connection runtime type translation
-type DeterminedConnectionRuntimeType = ElementToRuntimeType<
-  ConfigPages["First Page"]["elements"]["A Connection"]
->;
-expectAssignable<Connection>(
-  null as unknown as DeterminedConnectionRuntimeType
-);
-
-// Test dataSource runtime type translation
-type DeterminedDataSourceRuntimeType = ElementToRuntimeType<
-  ConfigPages["Third Page"]["elements"]["A Data Source"]
->;
-expectAssignable<JSONForm>(null as unknown as DeterminedDataSourceRuntimeType);
 
 type AllComponentReferences =
   | DataSourceReference
