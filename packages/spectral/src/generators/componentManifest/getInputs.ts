@@ -3,6 +3,7 @@ import type { InputFieldDefinition } from "../../types/Inputs";
 
 type ServerTypeInput = InputBase & {
   onPremControlled?: boolean;
+  shown?: boolean;
 };
 
 export interface Input {
@@ -32,62 +33,71 @@ interface GetInputsProps {
 }
 
 export const getInputs = ({ inputs, docBlock }: GetInputsProps): Input[] => {
-  return inputs.map((input) => {
-    return {
-      key: input.key,
-      label: input.label,
-      inputType: input.type,
-      valueType: getInputValueType(input),
-      required: input.required,
-      collection: input.collection,
-      onPremControlled: input.onPremiseControlled || input.onPremControlled,
-      properties: docBlock.reduce(
-        (acc, { propertyKey, inputKey, propertyValue, output }) => {
-          if (inputKey && inputKey !== input.key) {
-            return acc;
-          }
+  return inputs.reduce((acc, input) => {
+    if (typeof input.shown === "boolean" && input.shown === false) {
+      return acc;
+    }
 
-          if (
-            output &&
-            (input[propertyKey] === propertyValue ||
-              typeof propertyValue === "undefined")
-          ) {
+    return [
+      ...acc,
+      {
+        key: input.key,
+        label: input.label,
+        inputType: input.type,
+        valueType: getInputValueType(input),
+        required:
+          input.required &&
+          (input.default === undefined || input.default === ""),
+        collection: input.collection,
+        onPremControlled: input.onPremiseControlled || input.onPremControlled,
+        properties: docBlock.reduce(
+          (acc, { propertyKey, inputKey, propertyValue, output }) => {
+            if (inputKey && inputKey !== input.key) {
+              return acc;
+            }
+
+            if (
+              output &&
+              (input[propertyKey] === propertyValue ||
+                typeof propertyValue === "undefined")
+            ) {
+              return [
+                ...acc,
+                {
+                  key: propertyKey,
+                  value: output,
+                },
+              ];
+            }
+
+            if (
+              typeof input[propertyKey] === "undefined" ||
+              input[propertyKey] === null ||
+              input[propertyKey] === "" ||
+              (typeof propertyValue !== "undefined" &&
+                input[propertyKey] !== propertyValue)
+            ) {
+              return acc;
+            }
+
             return [
               ...acc,
               {
                 key: propertyKey,
-                value: output,
+                value: JSON.stringify(input[propertyKey])
+                  .replace(/(^"|"$)|(^'|'$)/g, "")
+                  .trim(),
               },
             ];
-          }
-
-          if (
-            typeof input[propertyKey] === "undefined" ||
-            input[propertyKey] === null ||
-            input[propertyKey] === "" ||
-            (typeof propertyValue !== "undefined" &&
-              input[propertyKey] !== propertyValue)
-          ) {
-            return acc;
-          }
-
-          return [
-            ...acc,
-            {
-              key: propertyKey,
-              value: JSON.stringify(input[propertyKey])
-                .replace(/(^"|"$)|(^'|'$)/g, "")
-                .trim(),
-            },
-          ];
-        },
-        [] as {
-          key: keyof ServerTypeInput;
-          value: string;
-        }[]
-      ),
-    };
-  });
+          },
+          [] as {
+            key: keyof ServerTypeInput;
+            value: string;
+          }[]
+        ),
+      },
+    ];
+  }, [] as Input[]);
 };
 
 export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], ValueType> = {
