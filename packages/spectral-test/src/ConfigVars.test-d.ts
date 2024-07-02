@@ -7,10 +7,6 @@ import type {
 import { ValueOf } from "@prismatic-io/spectral/dist/types/utils";
 import { expectAssignable, expectError } from "tsd";
 
-(pages: ConfigPages) => {
-  pages;
-};
-
 type RawConnectionElems = ValueOf<ConfigPages>["elements"];
 expectAssignable<"A Connection" | "Ref Connection">(
   null as unknown as keyof RawConnectionElems
