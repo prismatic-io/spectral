@@ -34,7 +34,11 @@ interface GetInputsProps {
 
 export const getInputs = ({ inputs, docBlock }: GetInputsProps): Input[] => {
   return inputs.reduce((acc, input) => {
-    if (typeof input.shown === "boolean" && input.shown === false) {
+    if (
+      (typeof input.shown === "boolean" && input.shown === false) ||
+      input.type === "dynamicObjectSelection" ||
+      input.type === "dynamicFieldSelection"
+    ) {
       return acc;
     }
 
