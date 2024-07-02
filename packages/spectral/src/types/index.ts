@@ -5,6 +5,9 @@
 
 export * from "./ActionDefinition";
 export * from "./ComponentDefinition";
+export * from "./ComponentRegistry";
+export * from "./ConfigPages";
+export * from "./ConfigVars";
 export * from "./ConnectionDefinition";
 export * from "./Inputs";
 export * from "./ActionPerformReturn";

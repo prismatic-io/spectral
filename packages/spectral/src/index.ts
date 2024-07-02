@@ -25,7 +25,6 @@ import {
   TriggerPayload,
   DataSourceConfigVar,
   OnPremConnectionDefinition,
-  ScheduleConfigVar,
   ComponentManifest,
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
@@ -82,9 +81,8 @@ export const configPage = <T extends ConfigPage = ConfigPage>(
  * @param definition A Config Var type object.
  * @returns This function returns a standard config var object that has the shape the Prismatic API expects.
  */
-export const configVar = <T extends StandardConfigVar | ScheduleConfigVar>(
-  definition: T
-): T => definition;
+export const configVar = <T extends StandardConfigVar>(definition: T): T =>
+  definition;
 
 /**
  * For information on writing Code Native Integrations, see

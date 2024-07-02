@@ -7,6 +7,8 @@ import {
   dataSourceConfigVar,
   ConfigVarResultCollection,
   componentManifest,
+  ObjectSelection,
+  JSONForm,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 
@@ -52,22 +54,45 @@ export const configPages = {
   }),
   "Third Page": configPage({
     elements: {
-      "A Data Source": dataSourceConfigVar({
-        stableKey: "a-data-source",
+      "JSON Form Data Source": dataSourceConfigVar({
+        stableKey: "json-form-data-source",
         dataSourceType: "jsonForm",
         perform: async (context) => {
           // Currently limited to a relatively untyped collection
           expectAssignable<ConfigVarResultCollection>(context.configVars);
 
+          const result: JSONForm = {
+            schema: {},
+            uiSchema: { type: "VerticalLayout" },
+          };
+
           return Promise.resolve({
-            result: {
-              schema: {},
-              uiSchema: { type: "VerticalLayout" },
-            },
+            result,
           });
         },
       }),
-      "Ref Data Source": dataSourceConfigVar({
+      "Object Selection Data Source": dataSourceConfigVar({
+        stableKey: "object-selection-data-source",
+        dataSourceType: "objectSelection",
+        perform: async (context) => {
+          // Currently limited to a relatively untyped collection
+          expectAssignable<ConfigVarResultCollection>(context.configVars);
+
+          const result: ObjectSelection = [
+            {
+              object: {
+                key: "object 1",
+                label: "Object 1",
+              },
+            },
+          ];
+
+          return Promise.resolve({
+            result,
+          });
+        },
+      }),
+      "Ref JSON Form Data Source": dataSourceConfigVar({
         stableKey: "ref-data-source",
         dataSourceType: "jsonForm",
         dataSource: {
