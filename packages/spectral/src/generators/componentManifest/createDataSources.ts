@@ -5,6 +5,7 @@ import { type Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import type { Component } from "../../serverTypes";
+import { DataSourceType } from "../../types";
 
 const DOC_BLOCK: DocBlock = [
   {
@@ -69,6 +70,7 @@ export const createDataSources = async ({
             key: dataSource.key || dataSourceKey,
             label: dataSource.display.label,
             description: dataSource.display.description,
+            dataSourceType: dataSource.dataSourceType,
             inputs,
           },
           imports,
@@ -124,6 +126,7 @@ interface RenderDataSourceProps {
     key: string;
     label: string;
     description: string;
+    dataSourceType: DataSourceType;
     inputs: Input[];
   };
   dryRun: boolean;

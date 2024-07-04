@@ -32,7 +32,8 @@ const slackRef = createRef<AllComponentReferences>({
 });
 
 expectAssignable<
-  | "exampleDataSource"
+  | "jsonFormDataSource"
+  | "stringDataSource"
   | "exampleConnection"
   | "slackOAuth"
   | "selectChannels"
@@ -72,4 +73,6 @@ const slackChannelsRef = createRef<DataSourceReference>({
     showIdInDropdown: { value: false },
   },
 });
-expectAssignable<"exampleDataSource" | "selectChannels">(slackChannelsRef.key);
+expectAssignable<"jsonFormDataSource" | "stringDataSource" | "selectChannels">(
+  slackChannelsRef.key
+);
