@@ -1,4 +1,4 @@
-import { CollectionType, InputFieldType } from ".";
+import { CollectionType, DataSourceType, InputFieldType } from ".";
 
 export interface ComponentManifest {
   key: string;
@@ -29,6 +29,7 @@ export interface ComponentManifestTrigger {
 
 export interface ComponentManifestDataSource {
   perform: (values: any) => Promise<unknown>;
+  dataSourceType: DataSourceType;
   inputs: Record<string, BaseInput>;
 }
 export interface ComponentManifestConnection {

@@ -1,5 +1,5 @@
 import { ComponentManifest, PermissionAndVisibilityType } from ".";
-import { UnionToIntersection } from "./utils";
+import { Prettify, UnionToIntersection } from "./utils";
 
 /**
  * Root ComponentRegistry type exposed for augmentation.
@@ -86,7 +86,7 @@ export type ComponentReference<
 export const isComponentReference = (ref: unknown): ref is ComponentReference =>
   typeof ref === "object" && ref !== null && "key" in ref && "component" in ref;
 
-type ComponentReferencesByType = UnionToIntersection<
+type ComponentRegistryFunctionsByType = UnionToIntersection<
   ComponentReferenceType extends infer TComponentReferenceType
     ? TComponentReferenceType extends Extract<
         keyof ComponentManifest,
@@ -107,15 +107,22 @@ type ComponentReferencesByType = UnionToIntersection<
                             ? Parameters<
                                 ComponentRegistry[TComponentKey][TComponentReferenceType][TComponentPropertyKey]["perform"]
                               >[0] extends infer TInputs
-                              ? ComponentReference<{
-                                  component: TComponentKey;
-                                  key: TComponentPropertyKey;
-                                  values: {
-                                    [Key in keyof TInputs]: ComponentReferenceTypeValueMap<
-                                      TInputs[Key]
-                                    >[TComponentReferenceType];
-                                  };
-                                }>
+                              ? Prettify<
+                                  Omit<
+                                    ComponentRegistry[TComponentKey][TComponentReferenceType][TComponentPropertyKey],
+                                    "perform"
+                                  > & {
+                                    reference: ComponentReference<{
+                                      component: TComponentKey;
+                                      key: TComponentPropertyKey;
+                                      values: {
+                                        [Key in keyof TInputs]: ComponentReferenceTypeValueMap<
+                                          TInputs[Key]
+                                        >[TComponentReferenceType];
+                                      };
+                                    }>;
+                                  }
+                                >
                               : never
                             : never
                           : never
@@ -131,10 +138,18 @@ type ComponentReferencesByType = UnionToIntersection<
     : never
 >;
 
-export type TriggerReference = ComponentReferencesByType["triggers"];
+export type ComponentRegistryTrigger =
+  ComponentRegistryFunctionsByType["triggers"];
+export type TriggerReference = ComponentRegistryTrigger["reference"];
 
-export type ActionReference = ComponentReferencesByType["actions"];
+export type ComponentRegistryAction =
+  ComponentRegistryFunctionsByType["actions"];
+export type ActionReference = ComponentRegistryAction["reference"];
 
-export type DataSourceReference = ComponentReferencesByType["dataSources"];
+export type ComponentRegistryDataSource =
+  ComponentRegistryFunctionsByType["dataSources"];
+export type DataSourceReference = ComponentRegistryDataSource["reference"];
 
-export type ConnectionReference = ComponentReferencesByType["connections"];
+export type ComponentRegistryConnection =
+  ComponentRegistryFunctionsByType["connections"];
+export type ConnectionReference = ComponentRegistryConnection["reference"];

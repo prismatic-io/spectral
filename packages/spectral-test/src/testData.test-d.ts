@@ -33,7 +33,6 @@ export const configPages = {
         connection: {
           component: "example",
           key: "exampleConnection",
-          isPublic: false,
           values: { foo: { value: "bar" } },
         },
       }),
@@ -94,11 +93,17 @@ export const configPages = {
       }),
       "Ref JSON Form Data Source": dataSourceConfigVar({
         stableKey: "ref-data-source",
-        dataSourceType: "jsonForm",
         dataSource: {
           component: "example",
-          key: "exampleDataSource",
-          isPublic: false,
+          key: "jsonFormDataSource",
+          values: { bar: { value: "foo" } },
+        },
+      }),
+      "Ref String Data Source": dataSourceConfigVar({
+        stableKey: "ref-picklist-source",
+        dataSource: {
+          component: "example",
+          key: "stringDataSource",
           values: { bar: { value: "foo" } },
         },
       }),
@@ -122,9 +127,26 @@ export const componentRegistry = {
     actions: {},
     triggers: {},
     dataSources: {
-      exampleDataSource: {
-        perform: (inputs: { bar: string }) => Promise.resolve<unknown>(inputs),
-        inputs: {},
+      jsonFormDataSource: {
+        dataSourceType: "jsonForm",
+        perform: (inputs: { bar: string }) =>
+          Promise.resolve<unknown>(inputs.bar),
+        inputs: {
+          bar: {
+            inputType: "string",
+            required: true,
+          },
+        },
+      },
+      stringDataSource: {
+        dataSourceType: "string",
+        perform: (inputs: { bar: string }) => Promise.resolve(inputs.bar),
+        inputs: {
+          bar: {
+            inputType: "string",
+            required: true,
+          },
+        },
       },
     },
     connections: {
@@ -142,6 +164,7 @@ export const componentRegistry = {
     triggers: {},
     dataSources: {
       selectChannels: {
+        dataSourceType: "picklist",
         perform: (inputs: {
           connection: string;
           includeImChannels: boolean;
