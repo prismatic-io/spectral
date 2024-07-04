@@ -612,7 +612,10 @@ const convertConfigVar = (
       configVar.dataSource,
       componentRegistry
     );
-    result.dataType = configVar.dataSourceType;
+    result.dataType =
+      componentRegistry[ref.component.key]["dataSources"][ref.key][
+        "dataSourceType"
+      ];
     result.dataSource = ref;
     result.inputs = inputs;
   }

@@ -23,6 +23,7 @@ const basicFlow = flow({
     expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
     expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
     expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
+    expectAssignable<string>(context.configVars["Ref String Data Source"]);
     expectAssignable<ObjectSelection>(
       context.configVars["Object Selection Data Source"]
     );
@@ -39,6 +40,7 @@ const basicFlow = flow({
     expectAssignable<string>(context.configVars["A Picklist"]);
     expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
     expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
+    expectAssignable<string>(context.configVars["Ref String Data Source"]);
     expectAssignable<ObjectSelection>(
       context.configVars["Object Selection Data Source"]
     );
@@ -55,6 +57,7 @@ const basicFlow = flow({
     expectAssignable<string>(context.configVars["A Picklist"]);
     expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
     expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
+    expectAssignable<string>(context.configVars["Ref String Data Source"]);
     expectAssignable<ObjectSelection>(
       context.configVars["Object Selection Data Source"]
     );
@@ -69,6 +72,7 @@ const basicFlow = flow({
     expectAssignable<string>(context.configVars["A Picklist"]);
     expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
     expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
+    expectAssignable<string>(context.configVars["Ref String Data Source"]);
     expectAssignable<ObjectSelection>(
       context.configVars["Object Selection Data Source"]
     );
