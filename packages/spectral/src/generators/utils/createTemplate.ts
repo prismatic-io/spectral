@@ -1,6 +1,7 @@
 import { renderFile } from "ejs";
 import { copyFile, mkdirp, outputFile } from "fs-extra";
 import path from "path";
+import { format } from "prettier";
 
 interface CreateTemplateProps {
   source: string;
@@ -23,7 +24,12 @@ export const createTemplate = async ({
 
   try {
     if (path.extname(source) === ".ejs") {
-      const rendered = await renderFile(source, data);
+      const render = await renderFile(source, data);
+      const formattedRender = [".ts", ".js"].includes(path.extname(destination))
+        ? format(render, {
+            parser: "typescript",
+          })
+        : render;
 
       if (dryRun) {
         console.info("");
@@ -32,7 +38,7 @@ export const createTemplate = async ({
         console.info(
           "---------------------------- Start ----------------------------"
         );
-        console.info(rendered);
+        console.info(formattedRender);
         console.info(
           "---------------------------- End ----------------------------"
         );
@@ -44,7 +50,7 @@ export const createTemplate = async ({
         console.info(`Rendering ${source} to ${destination}`);
       }
 
-      await outputFile(destination, rendered, { encoding: "utf-8" });
+      await outputFile(destination, formattedRender, { encoding: "utf-8" });
     } else {
       if (dryRun) {
         console.info("");

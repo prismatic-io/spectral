@@ -1,4 +1,4 @@
-<%- include('../partials/imports.ejs', { imports, helpers }) -%>
+<%- include('../partials/imports.ejs', { imports, helpers }) %>
 
 export interface <%= helpers.capitalizeFirstLetter(action.key) %>Values {
 <%- include('../partials/performArgs.ejs', { inputs: action.inputs }) -%>
