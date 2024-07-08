@@ -158,84 +158,78 @@ interface KeyValueListCollection<T> {
   default?: KeyValuePair<T>[];
 }
 
-export type StringInputField = BaseInputField &
-  CollectionOptions<string> & {
-    /** Data type the InputField will collect. */
-    type: "string";
-    /** Dictates possible choices for the input. */
-    model?: InputFieldChoice[];
-    /** Clean function */
-    clean?: InputCleanFunction<unknown>;
-  };
+export type StringInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "string";
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
 
-export type DataInputField = BaseInputField &
-  CollectionOptions<string> & {
-    /** Data type the InputField will collect. */
-    type: "data";
-    /** Dictates possible choices for the input. */
-    model?: InputFieldChoice[];
-    /** Clean function */
-    clean?: InputCleanFunction<unknown>;
-  };
+export type DataInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "data";
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
 
-export type TextInputField = BaseInputField &
-  CollectionOptions<string> & {
-    /** Data type the InputField will collect. */
-    type: "text";
-    /** Dictates possible choices for the input. */
-    model?: InputFieldChoice[];
-    /** Clean function */
-    clean?: InputCleanFunction<unknown>;
-  };
+export type TextInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "text";
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
 
-export type PasswordInputField = BaseInputField &
-  CollectionOptions<string> & {
-    /** Data type the InputField will collect. */
-    type: "password";
-    /** Dictates possible choices for the input. */
-    model?: InputFieldChoice[];
-    /** Clean function */
-    clean?: InputCleanFunction<unknown>;
-  };
+export type PasswordInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "password";
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
 
-export type BooleanInputField = BaseInputField &
-  CollectionOptions<string> & {
-    /** Data type the InputField will collect. */
-    type: "boolean";
-    /** Dictates possible choices for the input. */
-    model?: InputFieldChoice[];
-    /** Clean function */
-    clean?: InputCleanFunction<unknown>;
-  };
+export type BooleanInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "boolean";
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
 
 /** Defines attributes of a CodeInputField. */
-export type CodeInputField = BaseInputField &
-  CollectionOptions<string> & {
-    /** Data type the InputField will collect. */
-    type: "code";
-    /** Code language for syntax highlighting. For no syntax highlighting, choose "plaintext" */
-    language:
-      | "css"
-      | "graphql"
-      | "handlebars"
-      | "hcl"
-      | "html"
-      | "javascript"
-      | "json"
-      | "liquid"
-      | "markdown"
-      | "mysql"
-      | "pgsql"
-      | "plaintext"
-      | "sql"
-      | "typescript"
-      | "xml"
-      | "yaml";
-    /** Dictates possible choices for the input. */
-    model?: InputFieldChoice[];
-    /** Clean function */
-    clean?: InputCleanFunction<unknown>;
-  };
+export type CodeInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "code";
+  /** Code language for syntax highlighting. For no syntax highlighting, choose "plaintext" */
+  language:
+    | "css"
+    | "graphql"
+    | "handlebars"
+    | "hcl"
+    | "html"
+    | "javascript"
+    | "json"
+    | "liquid"
+    | "markdown"
+    | "mysql"
+    | "pgsql"
+    | "plaintext"
+    | "sql"
+    | "typescript"
+    | "xml"
+    | "yaml";
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
 
 /** Defines attributes of a ConditionalInputField. */
 export interface ConditionalInputField extends BaseInputField {
