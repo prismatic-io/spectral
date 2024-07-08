@@ -1,25 +1,10 @@
 import path from "path";
 
-import { type DocBlock, type Input, getInputs } from "./getInputs";
+import { type Input, getInputs } from "./getInputs";
 import { type Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import type { Component } from "../../serverTypes";
-
-const DOC_BLOCK: DocBlock = [
-  {
-    propertyKey: "comments",
-  },
-  {
-    propertyKey: "default",
-  },
-  {
-    propertyKey: "example",
-  },
-  {
-    propertyKey: "placeholder",
-  },
-];
 
 interface CreateDataSourcesProps {
   component: Component;
@@ -59,7 +44,6 @@ export const createDataSources = async ({
       async ([dataSourceKey, dataSource]) => {
         const inputs = getInputs({
           inputs: dataSource.inputs,
-          docBlock: DOC_BLOCK,
         });
 
         const imports = getImports({ inputs });

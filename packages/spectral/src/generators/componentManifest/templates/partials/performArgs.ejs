@@ -1,10 +1,4 @@
 <% inputs.forEach((input) => { -%>
-  /**
-   * <%= input.label %>
-   *
-   <%_ input.properties.forEach((property) => { -%>
-   * @<%= property.key %> <%- property.value %>
-   <%_ }); -%>
-   */
+  <%= input.docBlock -%>
   <%= input.key %><%= input.required ? "" : "?" %>: <%- input.valueType.type ? input.valueType.type : input.valueType %>;
 <% }); -%>
