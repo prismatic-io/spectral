@@ -552,7 +552,7 @@ const convertConfigVar = (
     const {
       stableKey = "",
       description,
-      connection: { template },
+      connection: { template, onPremiseConnectionConfig },
     } = pick(configVar, ["stableKey", "description", "connection"]);
 
     return {
@@ -563,6 +563,7 @@ const convertConfigVar = (
       connection: {
         ...ref,
         template,
+        onPremiseConnectionConfig,
       },
       inputs,
       orgOnly,
