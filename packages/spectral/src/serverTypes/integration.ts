@@ -9,6 +9,7 @@ export type ComponentReference =
       };
       key: string;
       template?: string;
+      onPremiseConnectionConfig?: string;
     }
   | {
       component: {
@@ -18,6 +19,7 @@ export type ComponentReference =
       };
       key: string;
       template?: string;
+      onPremiseConnectionConfig?: string;
     };
 
 export type Input =

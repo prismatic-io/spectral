@@ -16,4 +16,4 @@ export const <%= action.key %> = {
   inputs: {
     <%- include('../partials/inputs.ejs', { inputs: action.inputs }) -%>
   }
-}
+} as const;

@@ -36,6 +36,16 @@ export const configPages = {
           values: { foo: { value: "bar" } },
         },
       }),
+      "On Prem Connection": connectionConfigVar({
+        dataType: "connection",
+        stableKey: "on-prem-connection",
+        connection: {
+          component: "example",
+          key: "onPremConnection",
+          onPremiseConnectionConfig: "allowed",
+          values: { foo: { value: "bar" } },
+        },
+      }),
     },
   }),
   "Second Page": configPage({
@@ -153,6 +163,11 @@ export const componentRegistry = {
       exampleConnection: {
         perform: (inputs: { foo: string }) => Promise.resolve<unknown>(inputs),
         inputs: {},
+      },
+      onPremConnection: {
+        perform: (inputs: { foo: string }) => Promise.resolve(inputs),
+        inputs: {},
+        onPremAvailable: true,
       },
     },
   }),

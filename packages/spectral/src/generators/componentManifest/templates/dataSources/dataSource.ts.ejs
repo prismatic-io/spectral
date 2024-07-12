@@ -13,8 +13,8 @@ export const <%= dataSource.key %> = {
   perform: (
     _values: <%= helpers.capitalizeFirstLetter(dataSource.key) %>Values
   ): Promise<void> => Promise.resolve(),
-  dataSourceType: "<%= dataSource.dataSourceType %>" as const,
+  dataSourceType: "<%= dataSource.dataSourceType %>",
   inputs: {
     <%- include('../partials/inputs.ejs', { inputs: dataSource.inputs }) -%>
   }
-}
+} as const;

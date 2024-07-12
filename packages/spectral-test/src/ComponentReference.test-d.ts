@@ -35,6 +35,7 @@ expectAssignable<
   | "jsonFormDataSource"
   | "stringDataSource"
   | "exampleConnection"
+  | "onPremConnection"
   | "slackOAuth"
   | "selectChannels"
   | "hmac"
@@ -59,8 +60,9 @@ const slackOAuthRef = createRef<ConnectionReference>({
     signingSecret: { value: "sign" },
   },
 });
-expectAssignable<"exampleConnection" | "slackOAuth">(slackOAuthRef.key);
-
+expectAssignable<"exampleConnection" | "onPremConnection" | "slackOAuth">(
+  slackOAuthRef.key
+);
 const slackChannelsRef = createRef<DataSourceReference>({
   component: "slack",
   key: "selectChannels",

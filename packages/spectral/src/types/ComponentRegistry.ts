@@ -31,7 +31,7 @@ export type ComponentRegistry =
           : never
       >;
 
-interface ConnectionInputPermissionAndVisibility {
+export interface ConnectionInputPermissionAndVisibility {
   /**
    * Optional value that sets the permission and visibility of the Config Var. @default "customer"
    *

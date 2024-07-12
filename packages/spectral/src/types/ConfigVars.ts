@@ -10,7 +10,6 @@ import {
   ConfigVarResultCollection,
   Schedule,
   CollectionDataSourceType,
-  ConnectionReference,
   DataSourceReference,
   isComponentReference,
   ConfigPage,
@@ -18,6 +17,7 @@ import {
   UserLevelConfigPages,
   ConfigPageElement,
   ComponentRegistryDataSource,
+  ComponentRegistryConnection,
 } from ".";
 import { Prettify, UnionToIntersection } from "./utils";
 
@@ -254,11 +254,30 @@ type BaseConnectionConfigVar = BaseConfigVar & {
 type ConnectionDefinitionConfigVar = BaseConnectionConfigVar &
   Omit<ConnectionDefinition, "label" | "comments" | "key">;
 
-type ConnectionReferenceConfigVar = BaseConnectionConfigVar & {
-  connection: ConnectionReference & {
-    template?: string;
-  };
-};
+type OnPremiseConnectionConfigTypeEnum = "allowed" | "disallowed" | "required";
+
+type ConnectionReferenceConfigVar =
+  ComponentRegistryConnection extends infer TConnectionReference
+    ? TConnectionReference extends ComponentRegistryConnection
+      ? BaseConnectionConfigVar & {
+          connection: TConnectionReference["reference"] &
+            ("onPremAvailable" extends keyof TConnectionReference
+              ? TConnectionReference["onPremAvailable"] extends true
+                ? {
+                    template?: string;
+                    onPremiseConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
+                  }
+                : {
+                    template?: string;
+                    onPremiseConnectionConfig?: undefined;
+                  }
+              : {
+                  template?: string;
+                  onPremiseConnectionConfig?: undefined;
+                });
+        }
+      : never
+    : never;
 
 /** Defines attributes of a Config Var that represents a Connection. */
 export type ConnectionConfigVar =
@@ -378,6 +397,12 @@ export const isConnectionDefinitionConfigVar = (
   "dataType" in cv && cv.dataType === "connection" && "inputs" in cv;
 
 export const isConnectionReferenceConfigVar = (
-  cv: ConfigVar
+  // FIXME: Module augmetation causes this to produce a compile error while
+  // running `tsd`. I'm pretty uncertain how this happens but leaving as
+  // `unkonwn` is fine for now.
+  cv: unknown
 ): cv is ConnectionReferenceConfigVar =>
-  "connection" in cv && isComponentReference(cv.connection);
+  typeof cv === "object" &&
+  cv !== null &&
+  "connection" in cv &&
+  isComponentReference((cv as ConnectionReferenceConfigVar).connection);
