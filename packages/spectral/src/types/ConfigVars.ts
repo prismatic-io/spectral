@@ -219,15 +219,21 @@ type BaseDataSourceConfigVar<
           collectionType?: undefined;
         });
 
-type DataSourceDefinitionConfigVar = BaseDataSourceConfigVar &
-  Omit<
-    DataSourceDefinition<Inputs, ConfigVarResultCollection, DataSourceType>,
-    | "display"
-    | "inputs"
-    | "examplePayload"
-    | "dataSourceType"
-    | "detailDataSource"
-  >;
+type DataSourceDefinitionConfigVar =
+  DataSourceType extends infer TDataSourceType
+    ? TDataSourceType extends DataSourceType
+      ? BaseDataSourceConfigVar<TDataSourceType> &
+          Omit<
+            DataSourceDefinition<
+              Inputs,
+              ConfigVarResultCollection,
+              TDataSourceType
+            >,
+            "display" | "inputs" | "examplePayload" | "detailDataSource"
+          >
+      : never
+    : never;
+
 type DataSourceReferenceConfigVar =
   ComponentRegistryDataSource extends infer TDataSourceReference
     ? TDataSourceReference extends ComponentRegistryDataSource
