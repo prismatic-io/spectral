@@ -16,4 +16,4 @@ export const <%= trigger.key %> = {
   inputs: {
     <%- include('../partials/inputs.ejs', { inputs: trigger.inputs }) -%>
   }
-}
+} as const;

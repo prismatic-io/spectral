@@ -19,4 +19,4 @@ export const <%= connection.key %> = {
   inputs: {
     <%- include('../partials/inputs.ejs', { inputs: connection.inputs }) -%>
   }
-};
+} as const;
