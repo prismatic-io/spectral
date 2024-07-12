@@ -22,7 +22,7 @@ expectAssignable<Connection>(null as unknown as ConfigVars["Ref Connection"]);
 
 // Subset of data source types support collections.
 expectAssignable<DataSourceConfigVar>({
-  perform: async () => Promise.resolve({ result: "string" }),
+  perform: async () => Promise.resolve({ result: ["string"] }),
   stableKey: "ds",
   dataSourceType: "picklist",
   collectionType: "valuelist",
@@ -33,7 +33,7 @@ const createDataSourceConfigVar = (configVar: DataSourceConfigVar) => configVar;
 // eslint-disable-next-line
 // @ts-ignore Collection type is not supported for this data source type.
 createDataSourceConfigVar({
-  perform: async () => Promise.resolve({ result: "string" }),
+  perform: async () => Promise.resolve({ result: { value: "string" } }),
   stableKey: "ds",
   // TODO: This causes a compile erorr when it's `jsonForm`
   // Need to figure out why that is happening. It also only happens when running
