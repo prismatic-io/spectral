@@ -799,7 +799,7 @@ const codeNativeIntegrationComponent = (
           perform: onTrigger as TriggerPerformFunction,
           onInstanceDeploy: onInstanceDeploy as TriggerEventFunction,
           hasOnInstanceDeploy: !!onInstanceDeploy,
-          onInstanceDelete: onInstanceDeploy as TriggerEventFunction,
+          onInstanceDelete: onInstanceDelete as TriggerEventFunction,
           hasOnInstanceDelete: !!onInstanceDelete,
           inputs: [],
           scheduleSupport: "valid",
