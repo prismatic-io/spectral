@@ -32,6 +32,7 @@ export interface ComponentManifestDataSource {
   dataSourceType: DataSourceType;
   inputs: Record<string, BaseInput>;
 }
+
 export interface ComponentManifestConnection {
   perform: (values: any) => Promise<unknown>;
   onPremAvailable?: boolean;
