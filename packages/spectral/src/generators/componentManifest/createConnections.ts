@@ -1,35 +1,10 @@
 import path from "path";
 
-import { type DocBlock, type Input, getInputs } from "./getInputs";
+import { type Input, getInputs } from "./getInputs";
 import { type Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import type { Component } from "../../serverTypes";
-
-const DOC_BLOCK: DocBlock = [
-  {
-    propertyKey: "comments",
-  },
-  {
-    propertyKey: "default",
-  },
-  {
-    propertyKey: "example",
-  },
-  {
-    propertyKey: "placeholder",
-  },
-  {
-    propertyKey: "onPremControlled",
-    propertyValue: true,
-    output: "This input will be supplied when using an on prem resource.",
-  },
-  {
-    propertyKey: "onPremiseControlled",
-    propertyValue: true,
-    output: "This input will be supplied when using an on prem resource.",
-  },
-];
 
 interface CreateConnectionsProps {
   component: Component;
@@ -66,7 +41,6 @@ export const createConnections = async ({
     (component.connections ?? []).map(async (connection) => {
       const inputs = getInputs({
         inputs: connection.inputs,
-        docBlock: DOC_BLOCK,
       });
 
       const imports = getImports({ inputs });

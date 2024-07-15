@@ -1,7 +1,8 @@
 import type { Input as InputBase } from "../../serverTypes";
 import type { InputFieldDefinition } from "../../types/Inputs";
+import { DOC_BLOCK_DEFAULT } from "./docBlock";
 
-type ServerTypeInput = InputBase & {
+export type ServerTypeInput = InputBase & {
   onPremControlled?: boolean;
   shown?: boolean;
 };
@@ -11,11 +12,8 @@ export interface Input {
   label: string;
   inputType: string;
   valueType: ValueType;
+  docBlock: string;
   required: boolean | undefined;
-  properties: {
-    key: keyof ServerTypeInput;
-    value: string;
-  }[];
 }
 
 export type ValueType = string | { type: string; module: string };
@@ -29,10 +27,13 @@ export type DocBlock = {
 
 interface GetInputsProps {
   inputs: ServerTypeInput[];
-  docBlock: DocBlock;
+  docBlock?: (input: ServerTypeInput) => string;
 }
 
-export const getInputs = ({ inputs, docBlock }: GetInputsProps): Input[] => {
+export const getInputs = ({
+  inputs,
+  docBlock = DOC_BLOCK_DEFAULT,
+}: GetInputsProps): Input[] => {
   return inputs.reduce((acc, input) => {
     if (
       (typeof input.shown === "boolean" && input.shown === false) ||
@@ -54,51 +55,7 @@ export const getInputs = ({ inputs, docBlock }: GetInputsProps): Input[] => {
           (input.default === undefined || input.default === ""),
         collection: input.collection,
         onPremControlled: input.onPremiseControlled || input.onPremControlled,
-        properties: docBlock.reduce(
-          (acc, { propertyKey, inputKey, propertyValue, output }) => {
-            if (inputKey && inputKey !== input.key) {
-              return acc;
-            }
-
-            if (
-              output &&
-              (input[propertyKey] === propertyValue ||
-                typeof propertyValue === "undefined")
-            ) {
-              return [
-                ...acc,
-                {
-                  key: propertyKey,
-                  value: output,
-                },
-              ];
-            }
-
-            if (
-              typeof input[propertyKey] === "undefined" ||
-              input[propertyKey] === null ||
-              input[propertyKey] === "" ||
-              (typeof propertyValue !== "undefined" &&
-                input[propertyKey] !== propertyValue)
-            ) {
-              return acc;
-            }
-
-            return [
-              ...acc,
-              {
-                key: propertyKey,
-                value: JSON.stringify(input[propertyKey])
-                  .replace(/(^"|"$)|(^'|'$)/g, "")
-                  .trim(),
-              },
-            ];
-          },
-          [] as {
-            key: keyof ServerTypeInput;
-            value: string;
-          }[]
-        ),
+        docBlock: docBlock(input),
       },
     ];
   }, [] as Input[]);

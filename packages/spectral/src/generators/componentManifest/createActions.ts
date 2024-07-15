@@ -1,25 +1,10 @@
 import path from "path";
 
-import { type DocBlock, type Input, getInputs } from "./getInputs";
+import { type Input, getInputs } from "./getInputs";
 import { type Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import type { Component } from "../../serverTypes";
-
-const DOC_BLOCK: DocBlock = [
-  {
-    propertyKey: "comments",
-  },
-  {
-    propertyKey: "default",
-  },
-  {
-    propertyKey: "example",
-  },
-  {
-    propertyKey: "placeholder",
-  },
-];
 
 interface CreateActionsProps {
   component: Component;
@@ -58,8 +43,8 @@ export const createActions = async ({
     Object.entries(component.actions ?? {}).map(async ([actionKey, action]) => {
       const inputs = getInputs({
         inputs: action.inputs,
-        docBlock: DOC_BLOCK,
       });
+
       const imports = getImports({ inputs });
 
       return await renderAction({
