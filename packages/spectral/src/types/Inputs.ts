@@ -89,6 +89,7 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> =
   };
 
 export type Inputs = Record<string, InputFieldDefinition>;
+
 export type ConnectionInput = (
   | StringInputField
   | DataInputField
@@ -96,9 +97,10 @@ export type ConnectionInput = (
   | PasswordInputField
   | BooleanInputField
 ) & { shown?: boolean };
-export type OnPremConnectionInput = ConnectionInput & {
+
+export type OnPremConnectionInput = {
   onPremControlled: true;
-};
+} & ConnectionInput;
 
 export type InputFieldDefinition =
   | StringInputField
