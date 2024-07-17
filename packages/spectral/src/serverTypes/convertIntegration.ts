@@ -454,7 +454,7 @@ const convertInputValue = (value: unknown, collectionType: CollectionType | unde
 
   return Object.entries(value as object).map<KeyValuePair>(([key, value]) => ({
     key,
-    value,
+    value: typeof value === "string" ? value : JSON.stringify(value),
   }));
 };
 
