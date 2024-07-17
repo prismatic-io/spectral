@@ -6,30 +6,21 @@ import {
   UnaryOperator,
   BinaryOperator,
 } from "./types";
-import {
-  isBefore,
-  isAfter,
-  parse,
-  parseISO,
-  isValid,
-  isEqual as isDateEqual,
-} from "date-fns";
+import { isBefore, isAfter, parse, parseISO, isValid, isEqual as isDateEqual } from "date-fns";
 import _ from "lodash";
 import util from "../util";
 
 export type ValidationResult = [boolean] | [boolean, string];
 
-export const validate = (
-  expression: ConditionalExpression
-): ValidationResult => {
-  if (!(expression instanceof Array)) {
+export const validate = (expression: ConditionalExpression): ValidationResult => {
+  if (!Array.isArray(expression)) {
     return [false, `Invalid expression syntax: '${expression}'`];
   }
   const [operator] = expression;
 
   if (operator in BooleanOperator) {
     if (operator === BooleanOperator.and || operator === BooleanOperator.or) {
-      const [, ...predicates] = expression as BooleanExpression;
+      const [, ...predicates] = expression;
 
       return predicates.reduce(
         (previous, current) => {
@@ -41,7 +32,7 @@ export const validate = (
 
           return previous;
         },
-        [true] as ValidationResult
+        [true] as ValidationResult,
       );
     }
 
@@ -73,10 +64,7 @@ export const contains = (container: unknown, containee: unknown): boolean => {
   if (typeof container === "object" && container !== null) {
     if (Array.isArray(container)) {
       // Array member check.
-      return (
-        container.includes(containee) ||
-        container.includes(parseValue(containee))
-      );
+      return container.includes(containee) || container.includes(parseValue(containee));
     }
     // Object attribute check (set membership).
     return Object.prototype.hasOwnProperty.call(container, `${containee}`);
@@ -178,9 +166,9 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
           }
           return !left;
         case UnaryOperator.doesNotExist:
-          return [undefined, null, 0, NaN, false, ""].includes(left);
+          return [undefined, null, 0, Number.NaN, false, ""].includes(left);
         case UnaryOperator.exists:
-          return ![undefined, null, 0, NaN, false, ""].includes(left);
+          return ![undefined, null, 0, Number.NaN, false, ""].includes(left);
         case UnaryOperator.isEmpty:
           if (Array.isArray(left)) {
             return left.length === 0;
@@ -212,11 +200,7 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
     // otherwise fall back to original value
     if (
       operator in
-      [
-        BinaryOperator.dateTimeAfter,
-        BinaryOperator.dateTimeBefore,
-        BinaryOperator.dateTimeSame,
-      ]
+      [BinaryOperator.dateTimeAfter, BinaryOperator.dateTimeBefore, BinaryOperator.dateTimeSame]
     ) {
       left = parseDate(leftTerm);
       right = parseDate(rightTerm);

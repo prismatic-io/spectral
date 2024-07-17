@@ -12,16 +12,16 @@ interface CreatePerformProps {
 
 const cleanParams = (
   params: Record<string, unknown>,
-  cleaners: InputCleaners
+  cleaners: InputCleaners,
 ): Record<string, any> =>
   Object.entries(params).reduce<Record<string, any>>((result, [key, value]) => {
     const cleanFn = cleaners[key];
-    return { ...result, [key]: cleanFn ? (cleanFn as CleanFn)(value) : value };
+    return { ...result, [key]: cleanFn ? cleanFn(value) : value };
   }, {});
 
 export const createPerform = (
   performFn: PerformFn,
-  { inputCleaners, errorHandler }: CreatePerformProps
+  { inputCleaners, errorHandler }: CreatePerformProps,
 ): PerformFn => {
   return async (...args: any[]): Promise<any> => {
     try {
@@ -35,11 +35,7 @@ export const createPerform = (
       }
 
       const [context, payload, params] = args;
-      return await performFn(
-        context,
-        payload,
-        cleanParams(params, inputCleaners)
-      );
+      return await performFn(context, payload, cleanParams(params, inputCleaners));
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
     }

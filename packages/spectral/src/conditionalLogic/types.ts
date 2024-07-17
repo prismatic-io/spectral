@@ -75,7 +75,7 @@ export type TermExpression = [TermOperator, Term, Term?];
 
 export type BooleanExpression = [
   BooleanOperator.and | BooleanOperator.or,
-  ...ConditionalExpression[]
+  ...ConditionalExpression[],
 ];
 
 export type ConditionalExpression = TermExpression | BooleanExpression;

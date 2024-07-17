@@ -8,14 +8,10 @@ import { ValueOf } from "@prismatic-io/spectral/dist/types/utils";
 import { expectAssignable } from "tsd";
 
 type RawConnectionElems = ValueOf<ConfigPages>["elements"];
-expectAssignable<"A Connection" | "Ref Connection">(
-  null as unknown as keyof RawConnectionElems
-);
+expectAssignable<"A Connection" | "Ref Connection">(null as unknown as keyof RawConnectionElems);
 
 type ConnectionElems = ValueOf<ConfigPages>["elements"];
-expectAssignable<"A Connection" | "Ref Connection">(
-  null as unknown as keyof ConnectionElems
-);
+expectAssignable<"A Connection" | "Ref Connection">(null as unknown as keyof ConnectionElems);
 
 expectAssignable<Connection>(null as unknown as ConfigVars["A Connection"]);
 expectAssignable<Connection>(null as unknown as ConfigVars["Ref Connection"]);

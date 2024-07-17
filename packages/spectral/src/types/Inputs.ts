@@ -71,22 +71,21 @@ export type DynamicFieldSelection = string;
 
 /** InputField type enumeration. */
 export type InputFieldType = InputFieldDefinition["type"];
-export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> =
-  {
-    string: "",
-    data: "",
-    text: "",
-    password: "",
-    boolean: "false",
-    code: "",
-    conditional: undefined,
-    connection: undefined,
-    objectSelection: undefined,
-    objectFieldMap: undefined,
-    jsonForm: undefined,
-    dynamicObjectSelection: "",
-    dynamicFieldSelection: "",
-  };
+export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = {
+  string: "",
+  data: "",
+  text: "",
+  password: "",
+  boolean: "false",
+  code: "",
+  conditional: undefined,
+  connection: undefined,
+  objectSelection: undefined,
+  objectFieldMap: undefined,
+  jsonForm: undefined,
+  dynamicObjectSelection: "",
+  dynamicFieldSelection: "",
+};
 
 export type Inputs = Record<string, InputFieldDefinition>;
 
@@ -117,9 +116,7 @@ export type InputFieldDefinition =
   | DynamicObjectSelectionInputField
   | DynamicFieldSelectionInputField;
 
-export type InputCleanFunction<TValue, TResult = TValue> = (
-  value: TValue
-) => TResult;
+export type InputCleanFunction<TValue, TResult = TValue> = (value: TValue) => TResult;
 
 interface BaseInputField {
   /** Interface label of the InputField. */
@@ -134,10 +131,7 @@ interface BaseInputField {
   required?: boolean;
 }
 
-type CollectionOptions<T> =
-  | SingleValue<T>
-  | ValueListCollection<T>
-  | KeyValueListCollection<T>;
+type CollectionOptions<T> = SingleValue<T> | ValueListCollection<T> | KeyValueListCollection<T>;
 
 interface SingleValue<T> {
   /** Collection type of the InputField */

@@ -15,10 +15,10 @@ export interface ActionDefinition<
   TInputs extends Inputs = Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TAllowsBranching extends boolean = boolean,
-  TReturn extends ActionPerformReturn<
+  TReturn extends ActionPerformReturn<TAllowsBranching, unknown> = ActionPerformReturn<
     TAllowsBranching,
     unknown
-  > = ActionPerformReturn<TAllowsBranching, unknown>
+  >,
 > {
   /** Defines how the Action is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;

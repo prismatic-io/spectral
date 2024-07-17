@@ -25,10 +25,9 @@ interface ExtraDisplayDefinitionFields<TPublic extends boolean> {
 }
 
 /** Component extensions for display properties. */
-export type ComponentDisplayDefinition<TPublic extends boolean> =
-  TPublic extends true
-    ? DisplayDefinition & Required<ExtraDisplayDefinitionFields<TPublic>>
-    : DisplayDefinition & ExtraDisplayDefinitionFields<TPublic>;
+export type ComponentDisplayDefinition<TPublic extends boolean> = TPublic extends true
+  ? DisplayDefinition & Required<ExtraDisplayDefinitionFields<TPublic>>
+  : DisplayDefinition & ExtraDisplayDefinitionFields<TPublic>;
 
 /** Action-specific Display attributes. */
 export interface ActionDisplayDefinition extends DisplayDefinition {

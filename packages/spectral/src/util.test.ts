@@ -2,9 +2,7 @@ import fc from "fast-check";
 import util from "./util";
 
 describe("util", () => {
-  const bufferArbitrary = fc
-    .base64String()
-    .map((v) => Buffer.from(v, "base64"));
+  const bufferArbitrary = fc.base64String().map((v) => Buffer.from(v, "base64"));
   const uint8ArrayArbitrary = bufferArbitrary.map((b) => new Uint8Array(b));
   const unknowns = (): fc.Arbitrary<unknown> => fc.constantFrom(undefined);
   const emptyStrings = (): fc.Arbitrary<string> => fc.constantFrom("");
@@ -20,184 +18,124 @@ describe("util", () => {
     };
 
     const truthy = (): fc.Arbitrary<TruthyValue> =>
-      fc.constantFrom<TruthyValue[]>(
-        true,
-        ...(booleanStringValues.truthy as TruthyValue[])
-      );
+      fc.constantFrom<TruthyValue[]>(true, ...(booleanStringValues.truthy as TruthyValue[]));
     const falsy = (): fc.Arbitrary<fc.FalsyValue | FalsyValue> =>
-      fc.constantFrom<FalsyValue[]>(
-        false,
-        ...(booleanStringValues.falsy as FalsyValue[])
-      );
+      fc.constantFrom<FalsyValue[]>(false, ...(booleanStringValues.falsy as FalsyValue[]));
 
     const invalidValues = fc.oneof(
       fc.integer(),
       fc
         .string()
         .filter(
-          (v) =>
-            !booleanStringValues.truthy.includes(v) &&
-            !booleanStringValues.falsy.includes(v)
+          (v) => !booleanStringValues.truthy.includes(v) && !booleanStringValues.falsy.includes(v),
         ),
       fc.float(),
-      fc.double()
+      fc.double(),
     );
 
     it("detects boolean value", () => {
-      fc.assert(
-        fc.property(fc.boolean(), (v) =>
-          expect(util.types.isBool(v)).toStrictEqual(true)
-        )
-      );
+      fc.assert(fc.property(fc.boolean(), (v) => expect(util.types.isBool(v)).toStrictEqual(true)));
     });
 
     it("detects non-boolean value", () => {
       fc.assert(
-        fc.property(invalidValues, (v) =>
-          expect(util.types.isBool(v)).toStrictEqual(false)
-        )
+        fc.property(invalidValues, (v) => expect(util.types.isBool(v)).toStrictEqual(false)),
       );
     });
 
     it("coerces truthy values to true", () => {
-      fc.assert(
-        fc.property(truthy(), (v) =>
-          expect(util.types.toBool(v)).toStrictEqual(true)
-        )
-      );
+      fc.assert(fc.property(truthy(), (v) => expect(util.types.toBool(v)).toStrictEqual(true)));
     });
 
     it("coerces falsy values to false", () => {
-      fc.assert(
-        fc.property(falsy(), (v) =>
-          expect(util.types.toBool(v)).toStrictEqual(false)
-        )
-      );
+      fc.assert(fc.property(falsy(), (v) => expect(util.types.toBool(v)).toStrictEqual(false)));
     });
 
     it("allows for boolean default to false for undefined inputs and undefined default", () => {
-      fc.assert(
-        fc.property(unknowns(), (v) =>
-          expect(util.types.toBool(v)).toStrictEqual(false)
-        )
-      );
+      fc.assert(fc.property(unknowns(), (v) => expect(util.types.toBool(v)).toStrictEqual(false)));
     });
 
     it("allows for boolean default of false for undefined inputs", () => {
       fc.assert(
-        fc.property(unknowns(), (v) =>
-          expect(util.types.toBool(v, false)).toStrictEqual(false)
-        )
+        fc.property(unknowns(), (v) => expect(util.types.toBool(v, false)).toStrictEqual(false)),
       );
     });
 
     it("allows for boolean default of true for undefined inputs", () => {
       fc.assert(
-        fc.property(unknowns(), (v) =>
-          expect(util.types.toBool(v, true)).toStrictEqual(true)
-        )
+        fc.property(unknowns(), (v) => expect(util.types.toBool(v, true)).toStrictEqual(true)),
       );
     });
 
     it("allows for boolean default to false for empty string inputs and undefined default", () => {
       fc.assert(
-        fc.property(emptyStrings(), (v) =>
-          expect(util.types.toBool(v)).toStrictEqual(false)
-        )
+        fc.property(emptyStrings(), (v) => expect(util.types.toBool(v)).toStrictEqual(false)),
       );
     });
 
     it("allows for boolean default of false for empty string inputs", () => {
       fc.assert(
         fc.property(emptyStrings(), (v) =>
-          expect(util.types.toBool(v, false)).toStrictEqual(false)
-        )
+          expect(util.types.toBool(v, false)).toStrictEqual(false),
+        ),
       );
     });
 
     it("allows for boolean default of true for empty string inputs", () => {
       fc.assert(
-        fc.property(emptyStrings(), (v) =>
-          expect(util.types.toBool(v, true)).toStrictEqual(true)
-        )
+        fc.property(emptyStrings(), (v) => expect(util.types.toBool(v, true)).toStrictEqual(true)),
       );
     });
   });
 
   describe("integer", () => {
     const invalidValues = fc.oneof(
-      fc.string().filter((v) => Number.isNaN(Number.parseInt(v)) && v !== "")
+      fc.string().filter((v) => Number.isNaN(Number.parseInt(v)) && v !== ""),
     );
 
     it("detects integer value", () => {
-      fc.assert(
-        fc.property(fc.integer(), (v) =>
-          expect(util.types.isInt(v)).toStrictEqual(true)
-        )
-      );
+      fc.assert(fc.property(fc.integer(), (v) => expect(util.types.isInt(v)).toStrictEqual(true)));
     });
 
     it("detects non-integer value", () => {
       fc.assert(
-        fc.property(invalidValues, (v) =>
-          expect(util.types.isInt(v)).toStrictEqual(false)
-        )
+        fc.property(invalidValues, (v) => expect(util.types.isInt(v)).toStrictEqual(false)),
       );
     });
 
     it("coerces integer values", () => {
       fc.assert(
-        fc.property(fc.integer(), (v) =>
-          expect(util.types.toInt(v.toString())).toStrictEqual(v)
-        )
+        fc.property(fc.integer(), (v) => expect(util.types.toInt(v.toString())).toStrictEqual(v)),
       );
     });
 
     it("coerces a float to an int", () => {
-      fc.assert(
-        fc.property(fc.float(), (v) =>
-          expect(util.types.toInt(v)).toStrictEqual(~~v)
-        )
-      );
+      fc.assert(fc.property(fc.float(), (v) => expect(util.types.toInt(v)).toStrictEqual(~~v)));
     });
 
     it("throws when coercing non-integer values", () => {
       fc.assert(
         fc.property(invalidValues, (v) =>
-          expect(() => util.types.toInt(v)).toThrow("cannot be coerced to int")
-        )
+          expect(() => util.types.toInt(v)).toThrow("cannot be coerced to int"),
+        ),
       );
     });
 
     it("Allows for default value of 0 when value is undefined", () => {
-      fc.assert(
-        fc.property(unknowns(), (v) =>
-          expect(util.types.toInt(v)).toStrictEqual(0)
-        )
-      );
+      fc.assert(fc.property(unknowns(), (v) => expect(util.types.toInt(v)).toStrictEqual(0)));
     });
 
     it("Allows for default values when value is undefined", () => {
-      fc.assert(
-        fc.property(unknowns(), (v) =>
-          expect(util.types.toInt(v, 20)).toStrictEqual(20)
-        )
-      );
+      fc.assert(fc.property(unknowns(), (v) => expect(util.types.toInt(v, 20)).toStrictEqual(20)));
     });
 
     it("Allows for default value of 0 when value is empty string", () => {
-      fc.assert(
-        fc.property(emptyStrings(), (v) =>
-          expect(util.types.toInt(v)).toStrictEqual(0)
-        )
-      );
+      fc.assert(fc.property(emptyStrings(), (v) => expect(util.types.toInt(v)).toStrictEqual(0)));
     });
 
     it("Allows for default values when value is empty string", () => {
       fc.assert(
-        fc.property(emptyStrings(), (v) =>
-          expect(util.types.toInt(v, 20)).toStrictEqual(20)
-        )
+        fc.property(emptyStrings(), (v) => expect(util.types.toInt(v, 20)).toStrictEqual(20)),
       );
     });
   });
@@ -208,67 +146,49 @@ describe("util", () => {
 
     it("detects things that can be cast to a number", () => {
       fc.assert(
-        fc.property(validValues, (v) =>
-          expect(util.types.isNumber(v)).toStrictEqual(true)
-        )
+        fc.property(validValues, (v) => expect(util.types.isNumber(v)).toStrictEqual(true)),
       );
     });
 
     it("detects things that cannot be cast to a number", () => {
       fc.assert(
-        fc.property(invalidValues, (v) =>
-          expect(util.types.isNumber(v)).toStrictEqual(false)
-        )
+        fc.property(invalidValues, (v) => expect(util.types.isNumber(v)).toStrictEqual(false)),
       );
     });
 
     it("returns a number when given a number", () => {
-      fc.assert(
-        fc.property(fc.float(), (v) =>
-          expect(util.types.toNumber(v)).toStrictEqual(v)
-        )
-      );
+      fc.assert(fc.property(fc.float(), (v) => expect(util.types.toNumber(v)).toStrictEqual(v)));
     });
 
     it("returns a number when given something that can be cast to number", () => {
       fc.assert(
-        fc.property(validValues, (v) =>
-          expect(util.types.toNumber(v)).toStrictEqual(Number(v))
-        )
+        fc.property(validValues, (v) => expect(util.types.toNumber(v)).toStrictEqual(Number(v))),
       );
     });
 
     it("throws when coercing non-number values", () => {
       fc.assert(
         fc.property(invalidValues, (v) =>
-          expect(() => util.types.toNumber(v)).toThrow(
-            "cannot be coerced to a number"
-          )
-        )
+          expect(() => util.types.toNumber(v)).toThrow("cannot be coerced to a number"),
+        ),
       );
     });
 
     it("returns the default value when a value is undefined", () => {
       fc.assert(
-        fc.property(unknowns(), (v) =>
-          expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)
-        )
+        fc.property(unknowns(), (v) => expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)),
       );
     });
 
     it("returns the default value when a value is empty string", () => {
       fc.assert(
-        fc.property(emptyStrings(), (v) =>
-          expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)
-        )
+        fc.property(emptyStrings(), (v) => expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)),
       );
     });
 
     it("returns the default value when a value is null", () => {
       fc.assert(
-        fc.property(nulls(), (v) =>
-          expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)
-        )
+        fc.property(nulls(), (v) => expect(util.types.toNumber(v, 5.5)).toStrictEqual(5.5)),
       );
     });
   });
@@ -285,35 +205,27 @@ describe("util", () => {
 
     it("detects bigint value", () => {
       fc.assert(
-        fc.property(fc.bigInt(), (v) =>
-          expect(util.types.isBigInt(v)).toStrictEqual(true)
-        )
+        fc.property(fc.bigInt(), (v) => expect(util.types.isBigInt(v)).toStrictEqual(true)),
       );
     });
 
     it("detects non-bigint value", () => {
       fc.assert(
-        fc.property(invalidValues, (v) =>
-          expect(util.types.isBigInt(v)).toStrictEqual(false)
-        )
+        fc.property(invalidValues, (v) => expect(util.types.isBigInt(v)).toStrictEqual(false)),
       );
     });
 
     it("coerces bigint values", () => {
       fc.assert(
-        fc.property(fc.bigInt(), (v) =>
-          expect(util.types.toBigInt(v.toString())).toStrictEqual(v)
-        )
+        fc.property(fc.bigInt(), (v) => expect(util.types.toBigInt(v.toString())).toStrictEqual(v)),
       );
     });
 
     it("throws when coercing non-bigint values", () => {
       fc.assert(
         fc.property(invalidValues, (v) =>
-          expect(() => util.types.toBigInt(v)).toThrow(
-            "cannot be coerced to bigint"
-          )
-        )
+          expect(() => util.types.toBigInt(v)).toThrow("cannot be coerced to bigint"),
+        ),
       );
     });
   });
@@ -322,40 +234,32 @@ describe("util", () => {
     const invalidValues = fc.oneof(
       // Filter out numerical strings as many of those are valid enough for ISO
       // TODO: Figure out if this is fine or if we should only accept specific formats
-      fc.string().filter((v) => !Number.parseInt(v))
+      fc
+        .string()
+        .filter((v) => !Number.parseInt(v)),
     );
 
     it("detects date value", () => {
-      fc.assert(
-        fc.property(fc.date(), (v) =>
-          expect(util.types.isDate(v)).toStrictEqual(true)
-        )
-      );
+      fc.assert(fc.property(fc.date(), (v) => expect(util.types.isDate(v)).toStrictEqual(true)));
     });
 
     it("detects non-date value", () => {
       fc.assert(
-        fc.property(invalidValues, (v) =>
-          expect(util.types.isDate(v)).toStrictEqual(false)
-        )
+        fc.property(invalidValues, (v) => expect(util.types.isDate(v)).toStrictEqual(false)),
       );
     });
 
     it("coerces date values", () => {
       fc.assert(
-        fc.property(fc.date(), (v) =>
-          expect(util.types.toDate(v.toISOString())).toStrictEqual(v)
-        )
+        fc.property(fc.date(), (v) => expect(util.types.toDate(v.toISOString())).toStrictEqual(v)),
       );
     });
 
     it("throws when coercing non-date values", () => {
       fc.assert(
         fc.property(invalidValues, (v) =>
-          expect(() => util.types.toDate(v)).toThrow(
-            "cannot be coerced to date"
-          )
-        )
+          expect(() => util.types.toDate(v)).toThrow("cannot be coerced to date"),
+        ),
       );
     });
   });
@@ -368,18 +272,16 @@ describe("util", () => {
         fc.property(
           fc.oneof(
             fc.webUrl(),
-            fc.domain().map((v) => `https://${v}`)
+            fc.domain().map((v) => `https://${v}`),
           ),
-          (v) => expect(util.types.isUrl(v)).toStrictEqual(true)
-        )
+          (v) => expect(util.types.isUrl(v)).toStrictEqual(true),
+        ),
       );
     });
 
     it("detects non-url value", () => {
       fc.assert(
-        fc.property(invalidValues, (v) =>
-          expect(util.types.isUrl(v)).toStrictEqual(false)
-        )
+        fc.property(invalidValues, (v) => expect(util.types.isUrl(v)).toStrictEqual(false)),
       );
     });
   });
@@ -393,7 +295,7 @@ describe("util", () => {
       fc.assert(
         fc.property(payloadTypes, (v) => {
           expect(util.types.isBufferDataPayload(v)).toStrictEqual(true);
-        })
+        }),
       );
     });
 
@@ -402,7 +304,7 @@ describe("util", () => {
       fc.assert(
         fc.property(payloadTypes, (v) => {
           expect(util.types.isBufferDataPayload(v)).toStrictEqual(true);
-        })
+        }),
       );
     });
 
@@ -413,7 +315,7 @@ describe("util", () => {
       fc.assert(
         fc.property(payloadTypes, (v) => {
           expect(util.types.isBufferDataPayload(v)).toStrictEqual(false);
-        })
+        }),
       );
     });
 
@@ -424,7 +326,7 @@ describe("util", () => {
             data: Buffer.from(v, "utf-8"),
             contentType: "text/plain",
           });
-        })
+        }),
       );
     });
 
@@ -435,8 +337,8 @@ describe("util", () => {
           expect(util.types.toBufferDataPayload(v)).toMatchObject({
             data: Buffer.from(JSON.stringify(v), "utf-8"),
             contentType: "application/json",
-          })
-        )
+          }),
+        ),
       );
     });
 
@@ -448,8 +350,8 @@ describe("util", () => {
       });
       fc.assert(
         fc.property(payloadTypes, (v) =>
-          expect(util.types.toBufferDataPayload(v)).toStrictEqual(v)
-        )
+          expect(util.types.toBufferDataPayload(v)).toStrictEqual(v),
+        ),
       );
     });
 
@@ -459,8 +361,8 @@ describe("util", () => {
           expect(util.types.toBufferDataPayload(v)).toMatchObject({
             data: v,
             contentType: "application/octet-stream",
-          })
-        )
+          }),
+        ),
       );
     });
 
@@ -470,8 +372,8 @@ describe("util", () => {
           expect(util.types.toBufferDataPayload(v)).toMatchObject({
             data: Buffer.from(v),
             contentType: "application/octet-stream",
-          })
-        )
+          }),
+        ),
       );
     });
   });
@@ -485,7 +387,7 @@ describe("util", () => {
       fc.assert(
         fc.property(payloadTypes, (v) => {
           expect(util.types.isData(v)).toStrictEqual(true);
-        })
+        }),
       );
     });
 
@@ -496,7 +398,7 @@ describe("util", () => {
             data: Buffer.from(v, "utf-8"),
             contentType: "text/plain",
           });
-        })
+        }),
       );
     });
 
@@ -507,8 +409,8 @@ describe("util", () => {
           expect(util.types.toData(v)).toMatchObject({
             data: Buffer.from(JSON.stringify(v), "utf-8"),
             contentType: "application/json",
-          })
-        )
+          }),
+        ),
       );
     });
 
@@ -518,11 +420,7 @@ describe("util", () => {
         contentType: fc.string(),
         suggestedExtension: fc.oneof(fc.constant(undefined), fc.string()),
       });
-      fc.assert(
-        fc.property(payloadTypes, (v) =>
-          expect(util.types.toData(v)).toStrictEqual(v)
-        )
-      );
+      fc.assert(fc.property(payloadTypes, (v) => expect(util.types.toData(v)).toStrictEqual(v)));
     });
 
     it("returns buffer with unknown content type", () => {
@@ -531,8 +429,8 @@ describe("util", () => {
           expect(util.types.toData(v)).toMatchObject({
             data: v,
             contentType: "application/octet-stream",
-          })
-        )
+          }),
+        ),
       );
     });
 
@@ -542,8 +440,8 @@ describe("util", () => {
           expect(util.types.toData(v)).toMatchObject({
             data: Buffer.from(v),
             contentType: "application/octet-stream",
-          })
-        )
+          }),
+        ),
       );
     });
   });
@@ -563,7 +461,7 @@ describe("util", () => {
       fc.assert(
         fc.property(bufferArbitrary, (v) => {
           expect(util.types.toString(v)).toStrictEqual(v.toString());
-        })
+        }),
       );
     });
 
@@ -571,17 +469,15 @@ describe("util", () => {
       fc.assert(
         fc.property(unknowns(), (v) => {
           expect(util.types.toString(v)).toStrictEqual("");
-        })
+        }),
       );
     });
 
     it("coerces unknown value to given default string", () => {
       fc.assert(
         fc.property(unknowns(), (v) => {
-          expect(util.types.toString(v, "hello, world")).toStrictEqual(
-            "hello, world"
-          );
-        })
+          expect(util.types.toString(v, "hello, world")).toStrictEqual("hello, world");
+        }),
       );
     });
   });
@@ -596,44 +492,32 @@ describe("util", () => {
             { key: "myKey", value: "myValue" },
           ];
           const expectedData = { foo: "bar", myKey: "myValue" };
-          expect(util.types.keyValPairListToObject(fakeData)).toStrictEqual(
-            expectedData
-          );
-        })
+          expect(util.types.keyValPairListToObject(fakeData)).toStrictEqual(expectedData);
+        }),
       );
     });
 
     it.each([undefined, null, ""])("handles invalid values", (value) => {
-      expect(
-        util.types.keyValPairListToObject(value as unknown as any)
-      ).toStrictEqual({});
+      expect(util.types.keyValPairListToObject(value as unknown as any)).toStrictEqual({});
     });
   });
 
   const validJSON = fc.jsonObject().map((x) => JSON.stringify(x));
-  const invalidJSON = fc.constantFrom(
-    "",
-    "['']",
-    "someString",
-    null,
-    undefined
-  );
+  const invalidJSON = fc.constantFrom("", "['']", "someString", null, undefined);
   describe("JSON", () => {
     it("returns true in the case of actual JSON", () => {
       fc.assert(
         fc.property(validJSON, (v) => {
           expect(util.types.isJSON(v)).toStrictEqual(true);
-        })
+        }),
       );
     });
 
     it("returns false in the case of invalid JSON", () => {
       fc.assert(
         fc.property(invalidJSON, (v) => {
-          expect(util.types.isJSON(util.types.toString(v))).toStrictEqual(
-            false
-          );
-        })
+          expect(util.types.isJSON(util.types.toString(v))).toStrictEqual(false);
+        }),
       );
     });
 
@@ -641,43 +525,37 @@ describe("util", () => {
       fc.assert(
         fc.property(validJSON, (v) => {
           expect(() => util.types.toJSON(v)).not.toThrow();
-        })
+        }),
       );
     });
 
     it("serialize JSON with default options", () => {
       const payload = { foo: "bar", baz: "buz" };
-      expect(util.types.toJSON(payload)).toStrictEqual(
-        `{\n  "baz": "buz",\n  "foo": "bar"\n}`
-      );
+      expect(util.types.toJSON(payload)).toStrictEqual(`{\n  "baz": "buz",\n  "foo": "bar"\n}`);
     });
 
     it("serialize JSON with pretty print and retain key order", () => {
       const payload = { foo: "bar", baz: "buz" };
       expect(util.types.toJSON(payload, true, true)).toStrictEqual(
-        `{\n  "foo": "bar",\n  "baz": "buz"\n}`
+        `{\n  "foo": "bar",\n  "baz": "buz"\n}`,
       );
     });
 
     it("serialize JSON without pretty print and retain key order", () => {
       const payload = { foo: "bar", baz: "buz" };
-      expect(util.types.toJSON(payload, false, true)).toStrictEqual(
-        '{"foo":"bar","baz":"buz"}'
-      );
+      expect(util.types.toJSON(payload, false, true)).toStrictEqual('{"foo":"bar","baz":"buz"}');
     });
 
     it("serialize JSON with pretty print and don't retain key order", () => {
       const payload = { foo: "bar", baz: "buz" };
       expect(util.types.toJSON(payload, true, false)).toStrictEqual(
-        `{\n  "baz": "buz",\n  "foo": "bar"\n}`
+        `{\n  "baz": "buz",\n  "foo": "bar"\n}`,
       );
     });
 
     it("serialize JSON without pretty print and don't retain key order", () => {
       const payload = { foo: "bar", baz: "buz" };
-      expect(util.types.toJSON(payload, false, false)).toStrictEqual(
-        '{"baz":"buz","foo":"bar"}'
-      );
+      expect(util.types.toJSON(payload, false, false)).toStrictEqual('{"baz":"buz","foo":"bar"}');
     });
 
     it("removes functions", () => {
@@ -698,9 +576,9 @@ describe("util", () => {
 
   describe("headers", () => {
     it("lowercase headers", () => {
-      expect(
-        util.types.lowerCaseHeaders({ "Content-Type": "Application/Json" })
-      ).toStrictEqual({ "content-type": "Application/Json" });
+      expect(util.types.lowerCaseHeaders({ "Content-Type": "Application/Json" })).toStrictEqual({
+        "content-type": "Application/Json",
+      });
     });
   });
 
@@ -708,17 +586,13 @@ describe("util", () => {
     it("detects valid values", () => {
       const v = [{ object: "foo" }];
       expect(util.types.isObjectSelection(v)).toStrictEqual(true);
-      expect(util.types.isObjectSelection(JSON.stringify(v))).toStrictEqual(
-        true
-      );
+      expect(util.types.isObjectSelection(JSON.stringify(v))).toStrictEqual(true);
     });
 
     it("detects invalid values", () => {
       const v = [{ missingObjectKey: "foo" }];
       expect(util.types.isObjectSelection(v)).toStrictEqual(false);
-      expect(util.types.isObjectSelection(JSON.stringify(v))).toStrictEqual(
-        false
-      );
+      expect(util.types.isObjectSelection(JSON.stringify(v))).toStrictEqual(false);
     });
 
     it("coerces valid values", () => {
@@ -731,9 +605,7 @@ describe("util", () => {
       const v = [{ missingObjectKey: "foo" }];
       const error = "cannot be coerced to ObjectSelection";
       expect(() => util.types.toObjectSelection(v)).toThrow(error);
-      expect(() => util.types.toObjectSelection(JSON.stringify(v))).toThrow(
-        error
-      );
+      expect(() => util.types.toObjectSelection(JSON.stringify(v))).toThrow(error);
     });
   });
 
@@ -741,9 +613,7 @@ describe("util", () => {
     it("detects valid values", () => {
       const v = { fields: [{ field: { key: "foo" } }] };
       expect(util.types.isObjectFieldMap(v)).toStrictEqual(true);
-      expect(util.types.isObjectFieldMap(JSON.stringify(v))).toStrictEqual(
-        true
-      );
+      expect(util.types.isObjectFieldMap(JSON.stringify(v))).toStrictEqual(true);
     });
 
     it("detects invalid values", () => {
@@ -751,17 +621,11 @@ describe("util", () => {
       const v2 = { fields: [{ missingField: { key: "foo" } }] };
       const v3 = { fields: [{ field: { missingKey: "foo" } }] };
       expect(util.types.isObjectFieldMap(v1)).toStrictEqual(false);
-      expect(util.types.isObjectFieldMap(JSON.stringify(v1))).toStrictEqual(
-        false
-      );
+      expect(util.types.isObjectFieldMap(JSON.stringify(v1))).toStrictEqual(false);
       expect(util.types.isObjectFieldMap(v2)).toStrictEqual(false);
-      expect(util.types.isObjectFieldMap(JSON.stringify(v2))).toStrictEqual(
-        false
-      );
+      expect(util.types.isObjectFieldMap(JSON.stringify(v2))).toStrictEqual(false);
       expect(util.types.isObjectFieldMap(v3)).toStrictEqual(false);
-      expect(util.types.isObjectFieldMap(JSON.stringify(v3))).toStrictEqual(
-        false
-      );
+      expect(util.types.isObjectFieldMap(JSON.stringify(v3))).toStrictEqual(false);
     });
 
     it("coerces valid values", () => {
@@ -776,17 +640,11 @@ describe("util", () => {
       const v3 = { fields: [{ field: { missingKey: "foo" } }] };
       const error = "cannot be coerced to ObjectFieldMap";
       expect(() => util.types.toObjectFieldMap(v1)).toThrow(error);
-      expect(() => util.types.toObjectFieldMap(JSON.stringify(v1))).toThrow(
-        error
-      );
+      expect(() => util.types.toObjectFieldMap(JSON.stringify(v1))).toThrow(error);
       expect(() => util.types.toObjectFieldMap(v2)).toThrow(error);
-      expect(() => util.types.toObjectFieldMap(JSON.stringify(v2))).toThrow(
-        error
-      );
+      expect(() => util.types.toObjectFieldMap(JSON.stringify(v2))).toThrow(error);
       expect(() => util.types.toObjectFieldMap(v3)).toThrow(error);
-      expect(() => util.types.toObjectFieldMap(JSON.stringify(v3))).toThrow(
-        error
-      );
+      expect(() => util.types.toObjectFieldMap(JSON.stringify(v3))).toThrow(error);
     });
   });
 

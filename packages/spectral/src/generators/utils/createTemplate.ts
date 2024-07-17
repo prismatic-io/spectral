@@ -26,7 +26,7 @@ export const createTemplate = async ({
     if (path.extname(source) === ".ejs") {
       const render = await renderFile(source, data);
       const formattedRender = [".ts", ".js"].includes(path.extname(destination))
-        ? format(render, {
+        ? await format(render, {
             parser: "typescript",
           })
         : render;
@@ -35,13 +35,9 @@ export const createTemplate = async ({
         console.info("");
         console.info("");
         console.info(`Rendering ${source} to ${destination}`);
-        console.info(
-          "---------------------------- Start ----------------------------"
-        );
+        console.info("---------------------------- Start ----------------------------");
         console.info(formattedRender);
-        console.info(
-          "---------------------------- End ----------------------------"
-        );
+        console.info("---------------------------- End ----------------------------");
         console.info("");
         return;
       }

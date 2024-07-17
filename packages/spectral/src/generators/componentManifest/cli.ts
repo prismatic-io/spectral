@@ -95,7 +95,7 @@ export const runMain = async (process: NodeJS.Process) => {
 
   if (!existsSync(componentDistDir)) {
     console.error(
-      "Component build directory `dist` does not exist. Please verify that the component has been built."
+      "Component build directory `dist` does not exist. Please verify that the component has been built.",
     );
     process.exit(1);
   }
@@ -105,11 +105,7 @@ export const runMain = async (process: NodeJS.Process) => {
   if (
     !component ||
     !isObjectWithTruthyKeys(component, ["key", "display"]) ||
-    !isObjectWithOneTruthyKey(component, [
-      "actions",
-      "connections",
-      "dataSources",
-    ])
+    !isObjectWithOneTruthyKey(component, ["actions", "connections", "dataSources"])
   ) {
     console.error("Component is invalid.");
     process.exit(1);
@@ -125,8 +121,7 @@ export const runMain = async (process: NodeJS.Process) => {
     component,
     dryRun: flags.dry_run.value,
     skipSignatureVerify: flags.skip_signature_verify.value,
-    packageName:
-      flags.name.value ?? `@component-manifests/${kebabCase(component.key)}`,
+    packageName: flags.name.value ?? `@component-manifests/${kebabCase(component.key)}`,
     dependencies: {
       spectral: packageJson.version,
       dependencies: packageJson.dependencies,
@@ -139,9 +134,7 @@ export const runMain = async (process: NodeJS.Process) => {
       : path.join(
           componentDir,
           "..",
-          flags.name.value
-            ? flags.name.value
-            : `${path.basename(componentDir)}-manifest`
+          flags.name.value ? flags.name.value : `${path.basename(componentDir)}-manifest`,
         ),
     registry: flags.registry.value ?? null,
   });

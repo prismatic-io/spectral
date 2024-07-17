@@ -139,8 +139,7 @@ export const componentRegistry = {
     dataSources: {
       jsonFormDataSource: {
         dataSourceType: "jsonForm",
-        perform: (inputs: { bar: string }) =>
-          Promise.resolve<unknown>(inputs.bar),
+        perform: (inputs: { bar: string }) => Promise.resolve<unknown>(inputs.bar),
         inputs: {
           bar: {
             inputType: "string",
@@ -209,8 +208,7 @@ export const componentRegistry = {
     actions: {},
     triggers: {
       hmac: {
-        perform: (inputs: { secret: string; secret2: string }) =>
-          Promise.resolve<unknown>(inputs),
+        perform: (inputs: { secret: string; secret2: string }) => Promise.resolve<unknown>(inputs),
         inputs: {},
       },
     },

@@ -46,7 +46,5 @@ export const addPunctuation = (value: string | undefined): string => {
     return "";
   }
 
-  return value.endsWith(".") || value.endsWith("!") || value.endsWith("?")
-    ? value
-    : value + ".";
+  return value.endsWith(".") || value.endsWith("!") || value.endsWith("?") ? value : `${value}.`;
 };

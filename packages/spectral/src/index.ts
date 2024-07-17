@@ -38,10 +38,8 @@ import { convertIntegration } from "./serverTypes/convertIntegration";
  * @param definition An IntegrationDefinition type object.
  * @returns This function returns an integration object that has the shape the Prismatic API expects.
  */
-export const integration = <
-  T extends IntegrationDefinition = IntegrationDefinition
->(
-  definition: T
+export const integration = <T extends IntegrationDefinition = IntegrationDefinition>(
+  definition: T,
 ): ReturnType<typeof convertIntegration> => {
   const integrationDefinition = convertIntegration(definition);
 
@@ -60,9 +58,9 @@ export const integration = <
  */
 export const flow = <
   TTriggerPayload extends TriggerPayload = TriggerPayload,
-  T extends Flow<TTriggerPayload> = Flow<TTriggerPayload>
+  T extends Flow<TTriggerPayload> = Flow<TTriggerPayload>,
 >(
-  definition: T
+  definition: T,
 ): T => definition;
 
 /**
@@ -71,9 +69,7 @@ export const flow = <
  * @param definition A Config Page type object.
  * @returns This function returns a config page object that has the shape the Prismatic API expects.
  */
-export const configPage = <T extends ConfigPage = ConfigPage>(
-  definition: T
-): T => definition;
+export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T => definition;
 
 /**
  * For information on writing Code Native Integrations, see
@@ -81,8 +77,7 @@ export const configPage = <T extends ConfigPage = ConfigPage>(
  * @param definition A Config Var type object.
  * @returns This function returns a standard config var object that has the shape the Prismatic API expects.
  */
-export const configVar = <T extends StandardConfigVar>(definition: T): T =>
-  definition;
+export const configVar = <T extends StandardConfigVar>(definition: T): T => definition;
 
 /**
  * For information on writing Code Native Integrations, see
@@ -90,10 +85,8 @@ export const configVar = <T extends StandardConfigVar>(definition: T): T =>
  * @param definition A Data Source Config Var type object.
  * @returns This function returns a data source config var object that has the shape the Prismatic API expects.
  */
-export const dataSourceConfigVar = <
-  TDataSourceConfigVar extends DataSourceConfigVar
->(
-  definition: TDataSourceConfigVar
+export const dataSourceConfigVar = <TDataSourceConfigVar extends DataSourceConfigVar>(
+  definition: TDataSourceConfigVar,
 ): TDataSourceConfigVar => definition;
 
 /**
@@ -102,19 +95,15 @@ export const dataSourceConfigVar = <
  * @param definition A Connection Config Var type object.
  * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
  */
-export const connectionConfigVar = <
-  T extends ConnectionConfigVar = ConnectionConfigVar
->(
-  definition: T
+export const connectionConfigVar = <T extends ConnectionConfigVar = ConnectionConfigVar>(
+  definition: T,
 ): T => definition;
 
 /**
  * @param definition A Component Manifest type object.
  * @returns This function returns a component manifest object that has the shape the Prismatic API expects.
  */
-export const componentManifest = <T extends ComponentManifest>(
-  definition: T
-): T => definition;
+export const componentManifest = <T extends ComponentManifest>(definition: T): T => definition;
 
 /**
  * This function creates a component object that can be
@@ -125,7 +114,7 @@ export const componentManifest = <T extends ComponentManifest>(
  * @returns This function returns a component object that has the shape the Prismatic API expects.
  */
 export const component = <TPublic extends boolean, TKey extends string>(
-  definition: ComponentDefinition<TPublic, TKey>
+  definition: ComponentDefinition<TPublic, TKey>,
 ): ReturnType<typeof convertComponent> => convertComponent(definition);
 
 /**
@@ -141,11 +130,10 @@ export const action = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
-  TReturn extends ActionPerformReturn<TAllowsBranching, unknown>
+  TReturn extends ActionPerformReturn<TAllowsBranching, unknown>,
 >(
-  definition: ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>
-): ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn> =>
-  definition;
+  definition: ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>,
+): ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn> => definition;
 
 /**
  * This function creates a trigger object that can be referenced
@@ -160,11 +148,10 @@ export const trigger = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
-  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
 >(
-  definition: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult>
-): TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult> =>
-  definition;
+  definition: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult>,
+): TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult> => definition;
 
 /**
  * This function creates a data source object that can be referenced
@@ -178,9 +165,9 @@ export const trigger = <
 export const dataSource = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  TDataSourceType extends DataSourceType
+  TDataSourceType extends DataSourceType,
 >(
-  definition: DataSourceDefinition<TInputs, TConfigVars, TDataSourceType>
+  definition: DataSourceDefinition<TInputs, TConfigVars, TDataSourceType>,
 ): DataSourceDefinition<TInputs, TConfigVars, TDataSourceType> => definition;
 
 /**
@@ -190,8 +177,7 @@ export const dataSource = <
  * @param definition An InputFieldDefinition object that describes the type of an input for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This function validates the shape of the `definition` object provided, and returns the same input object.
  */
-export const input = <T extends InputFieldDefinition>(definition: T): T =>
-  definition;
+export const input = <T extends InputFieldDefinition>(definition: T): T => definition;
 
 /**
  * For information on writing custom component connections, see
@@ -199,9 +185,7 @@ export const input = <T extends InputFieldDefinition>(definition: T): T =>
  * @param definition A DefaultConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
  */
-export const connection = <T extends DefaultConnectionDefinition>(
-  definition: T
-): T => definition;
+export const connection = <T extends DefaultConnectionDefinition>(definition: T): T => definition;
 
 /**
  * For information on writing custom component connections using on-premise resources, see
@@ -209,9 +193,8 @@ export const connection = <T extends DefaultConnectionDefinition>(
  * @param definition An OnPremConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This function validates the shape of the `definition` object provided and returns the same connection object.
  */
-export const onPremConnection = <T extends OnPremConnectionDefinition>(
-  definition: T
-): T => definition;
+export const onPremConnection = <T extends OnPremConnectionDefinition>(definition: T): T =>
+  definition;
 
 /**
  * For information on writing custom component connections, see
@@ -219,13 +202,11 @@ export const onPremConnection = <T extends OnPremConnectionDefinition>(
  * @param definition An OAuth2ConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
  */
-export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(
-  definition: T
-): T => definition;
+export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(definition: T): T =>
+  definition;
 
-export const componentManifests = <T extends Record<string, ComponentManifest>>(
-  definition: T
-): T => definition;
+export const componentManifests = <T extends Record<string, ComponentManifest>>(definition: T): T =>
+  definition;
 
 export { default as util } from "./util";
 export * from "./types";

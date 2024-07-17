@@ -12,9 +12,9 @@ export type TriggerPerformFunction<
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean | undefined,
-  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
 > = (
   context: ActionContext<TConfigVars>,
   payload: TriggerPayload,
-  params: ActionInputParameters<TInputs>
+  params: ActionInputParameters<TInputs>,
 ) => Promise<TResult>;

@@ -18,19 +18,19 @@ export type ActionPerformFunction<
   TConfigVars extends ConfigVarResultCollection,
   TComponentActions extends Record<string, ComponentManifest["actions"]>,
   TAllowsBranching extends boolean | undefined,
-  TReturn extends ActionPerformReturn<TAllowsBranching, unknown>
+  TReturn extends ActionPerformReturn<TAllowsBranching, unknown>,
 > = (
   context: ActionContext<TConfigVars, TComponentActions>,
-  params: ActionInputParameters<TInputs>
+  params: ActionInputParameters<TInputs>,
 ) => Promise<TReturn>;
 
 /** Context provided to perform method containing helpers and contextual data */
 export type ActionContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
-  TComponentActions extends Record<
+  TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
     string,
     ComponentManifest["actions"]
-  > = Record<string, ComponentManifest["actions"]>
+  >,
 > = {
   /** Logger for permanent logging; console calls are also captured */
   logger: ActionLogger;

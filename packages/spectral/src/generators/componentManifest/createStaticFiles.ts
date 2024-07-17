@@ -90,8 +90,7 @@ export const createStaticFiles = async ({
       dataSource: Object.keys(component.dataSources).length
         ? {
             key: Object.keys(component.dataSources)[0],
-            type: component.dataSources[Object.keys(component.dataSources)[0]]
-              .dataSourceType,
+            type: component.dataSources[Object.keys(component.dataSources)[0]].dataSourceType,
           }
         : null,
     },

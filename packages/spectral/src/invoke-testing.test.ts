@@ -1,10 +1,5 @@
 import { action, trigger, connection, dataSource } from ".";
-import {
-  invoke,
-  invokeTrigger,
-  invokeDataSource,
-  createConnection,
-} from "./testing";
+import { invoke, invokeTrigger, invokeDataSource, createConnection } from "./testing";
 
 const myConnection = connection({
   key: "myConnection",
@@ -43,8 +38,7 @@ const branchingTrigger = trigger({
   scheduleSupport: "invalid",
   synchronousResponseSupport: "invalid",
   inputs: {},
-  perform: async (context, payload) =>
-    Promise.resolve({ payload, branch: "Foo" }),
+  perform: async (context, payload) => Promise.resolve({ payload, branch: "Foo" }),
 });
 
 const basicDataSource = dataSource({

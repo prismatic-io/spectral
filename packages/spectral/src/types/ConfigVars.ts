@@ -14,7 +14,6 @@ import {
   isComponentReference,
   ConfigPage,
   ConfigPages,
-  UserLevelConfigPages,
   ConfigPageElement,
   ComponentRegistryDataSource,
   ComponentRegistryConnection,
@@ -48,7 +47,7 @@ type ConfigVarDataTypeDefaultValueMap<
     objectSelection: ObjectSelection;
     objectFieldMap: ObjectFieldMap;
     jsonForm: JSONForm;
-  }
+  },
 > = TMap;
 
 type ConfigVarDataTypeRuntimeValueMap<
@@ -64,16 +63,13 @@ type ConfigVarDataTypeRuntimeValueMap<
     objectSelection: ObjectSelection;
     objectFieldMap: ObjectFieldMap;
     jsonForm: unknown;
-  }
+  },
 > = TMap;
 
 /** Choices of collection types for multi-value Config Vars. */
 export type CollectionType = "valuelist" | "keyvaluelist";
 
-export type PermissionAndVisibilityType =
-  | "customer"
-  | "embedded"
-  | "organization";
+export type PermissionAndVisibilityType = "customer" | "embedded" | "organization";
 
 type ConfigVarSingleDataType = Extract<
   ConfigVarDataType,
@@ -100,7 +96,7 @@ type BaseConfigVar = {
 
 type GetDynamicProperties<
   TValue,
-  TCollectionType extends CollectionType | undefined
+  TCollectionType extends CollectionType | undefined,
 > = TCollectionType extends undefined
   ? {
       defaultValue?: TValue;
@@ -108,18 +104,16 @@ type GetDynamicProperties<
       collectionType?: undefined;
     }
   : TCollectionType extends "valuelist"
-  ? {
-      defaultValue?: TValue[];
-      /** Optional value to specify the type of collection if the Config Var is multi-value. */
-      collectionType: "valuelist";
-    }
-  : {
-      defaultValue?:
-        | Record<string, TValue>
-        | Array<{ key: string; value: TValue }>;
-      /** Optional value to specify the type of collection if the Config Var is multi-value. */
-      collectionType: "keyvaluelist";
-    };
+    ? {
+        defaultValue?: TValue[];
+        /** Optional value to specify the type of collection if the Config Var is multi-value. */
+        collectionType: "valuelist";
+      }
+    : {
+        defaultValue?: Record<string, TValue> | Array<{ key: string; value: TValue }>;
+        /** Optional value to specify the type of collection if the Config Var is multi-value. */
+        collectionType: "keyvaluelist";
+      };
 
 type StandardConfigVarDynamicProperties<TDataType extends ConfigVarDataType> =
   | CollectionType
@@ -127,24 +121,17 @@ type StandardConfigVarDynamicProperties<TDataType extends ConfigVarDataType> =
   ? TCollectionType extends CollectionType | undefined
     ? TDataType extends ConfigVarSingleDataType
       ? TCollectionType extends undefined
-        ? GetDynamicProperties<
-            ConfigVarDataTypeDefaultValueMap[TDataType],
-            undefined
-          >
+        ? GetDynamicProperties<ConfigVarDataTypeDefaultValueMap[TDataType], undefined>
         : never
-      : GetDynamicProperties<
-          ConfigVarDataTypeDefaultValueMap[TDataType],
-          TCollectionType
-        >
+      : GetDynamicProperties<ConfigVarDataTypeDefaultValueMap[TDataType], TCollectionType>
     : never
   : never;
 
-type CreateStandardConfigVar<TDataType extends ConfigVarDataType> =
-  BaseConfigVar &
-    StandardConfigVarDynamicProperties<TDataType> & {
-      /** The data type of the Config Var. */
-      dataType: TDataType;
-    };
+type CreateStandardConfigVar<TDataType extends ConfigVarDataType> = BaseConfigVar &
+  StandardConfigVarDynamicProperties<TDataType> & {
+    /** The data type of the Config Var. */
+    dataType: TDataType;
+  };
 
 type StringConfigVar = CreateStandardConfigVar<"string">;
 
@@ -194,62 +181,49 @@ export type StandardConfigVar =
   | JsonFormConfigVar;
 
 // Data Source Config Vars
-type BaseDataSourceConfigVar<
-  TDataSourceType extends DataSourceType = DataSourceType
-> = TDataSourceType extends CollectionDataSourceType
-  ? {
-      dataSourceType: TDataSourceType;
-      collectionType?: CollectionType | undefined;
-    } & BaseConfigVar
-  : TDataSourceType extends Exclude<DataSourceType, CollectionDataSourceType>
-  ? BaseConfigVar & {
-      dataSourceType: TDataSourceType;
-      collectionType?: undefined;
-    }
-  :
-      | ({
-          dataSourceType: Extract<CollectionDataSourceType, TDataSourceType>;
-          collectionType: CollectionType;
-        } & BaseConfigVar)
-      | (BaseConfigVar & {
-          dataSourceType: Extract<
-            Exclude<DataSourceType, CollectionDataSourceType>,
-            TDataSourceType
-          >;
+type BaseDataSourceConfigVar<TDataSourceType extends DataSourceType = DataSourceType> =
+  TDataSourceType extends CollectionDataSourceType
+    ? {
+        dataSourceType: TDataSourceType;
+        collectionType?: CollectionType | undefined;
+      } & BaseConfigVar
+    : TDataSourceType extends Exclude<DataSourceType, CollectionDataSourceType>
+      ? BaseConfigVar & {
+          dataSourceType: TDataSourceType;
           collectionType?: undefined;
-        });
+        }
+      :
+          | ({
+              dataSourceType: Extract<CollectionDataSourceType, TDataSourceType>;
+              collectionType: CollectionType;
+            } & BaseConfigVar)
+          | (BaseConfigVar & {
+              dataSourceType: Extract<
+                Exclude<DataSourceType, CollectionDataSourceType>,
+                TDataSourceType
+              >;
+              collectionType?: undefined;
+            });
 
-type DataSourceDefinitionConfigVar =
-  DataSourceType extends infer TDataSourceType
-    ? TDataSourceType extends DataSourceType
-      ? BaseDataSourceConfigVar<TDataSourceType> &
-          Omit<
-            DataSourceDefinition<
-              Inputs,
-              ConfigVarResultCollection,
-              TDataSourceType
-            >,
-            "display" | "inputs" | "examplePayload" | "detailDataSource"
-          >
-      : never
-    : never;
+type DataSourceDefinitionConfigVar = DataSourceType extends infer TDataSourceType
+  ? TDataSourceType extends DataSourceType
+    ? BaseDataSourceConfigVar<TDataSourceType> &
+        Omit<
+          DataSourceDefinition<Inputs, ConfigVarResultCollection, TDataSourceType>,
+          "display" | "inputs" | "examplePayload" | "detailDataSource"
+        >
+    : never
+  : never;
 
 type DataSourceReferenceConfigVar =
-  ComponentRegistryDataSource extends infer TDataSourceReference
-    ? TDataSourceReference extends ComponentRegistryDataSource
-      ? Omit<
-          BaseDataSourceConfigVar<TDataSourceReference["dataSourceType"]>,
-          "dataSourceType"
-        > & {
-          dataSource: TDataSourceReference["reference"];
-        }
-      : never
+  ComponentRegistryDataSource extends infer TDataSourceReference extends ComponentRegistryDataSource
+    ? Omit<BaseDataSourceConfigVar<TDataSourceReference["dataSourceType"]>, "dataSourceType"> & {
+        dataSource: TDataSourceReference["reference"];
+      }
     : never;
 
 /** Defines attributes of a data source Config Var. */
-export type DataSourceConfigVar =
-  | DataSourceDefinitionConfigVar
-  | DataSourceReferenceConfigVar;
+export type DataSourceConfigVar = DataSourceDefinitionConfigVar | DataSourceReferenceConfigVar;
 
 // Connection Config Vars
 
@@ -262,51 +236,44 @@ type ConnectionDefinitionConfigVar = BaseConnectionConfigVar &
 
 type OnPremiseConnectionConfigTypeEnum = "allowed" | "disallowed" | "required";
 
-type ConnectionReferenceConfigVar =
-  ComponentRegistryConnection extends infer TConnectionReference
-    ? TConnectionReference extends ComponentRegistryConnection
-      ? BaseConnectionConfigVar & {
-          connection: TConnectionReference["reference"] &
-            ("onPremAvailable" extends keyof TConnectionReference
-              ? TConnectionReference["onPremAvailable"] extends true
-                ? {
-                    template?: string;
-                    onPremiseConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
-                  }
-                : {
-                    template?: string;
-                    onPremiseConnectionConfig?: undefined;
-                  }
+type ConnectionReferenceConfigVar = ComponentRegistryConnection extends infer TConnectionReference
+  ? TConnectionReference extends ComponentRegistryConnection
+    ? BaseConnectionConfigVar & {
+        connection: TConnectionReference["reference"] &
+          ("onPremAvailable" extends keyof TConnectionReference
+            ? TConnectionReference["onPremAvailable"] extends true
+              ? {
+                  template?: string;
+                  onPremiseConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
+                }
               : {
                   template?: string;
                   onPremiseConnectionConfig?: undefined;
-                });
-        }
-      : never
-    : never;
+                }
+            : {
+                template?: string;
+                onPremiseConnectionConfig?: undefined;
+              });
+      }
+    : never
+  : never;
 
 /** Defines attributes of a Config Var that represents a Connection. */
-export type ConnectionConfigVar =
-  | ConnectionDefinitionConfigVar
-  | ConnectionReferenceConfigVar;
+export type ConnectionConfigVar = ConnectionDefinitionConfigVar | ConnectionReferenceConfigVar;
 
-export type ConfigVar =
-  | StandardConfigVar
-  | DataSourceConfigVar
-  | ConnectionConfigVar;
+export type ConfigVar = StandardConfigVar | DataSourceConfigVar | ConnectionConfigVar;
 
-type WithCollectionType<
-  TValue,
-  TCollectionType extends CollectionType | undefined
-> = undefined | unknown extends TCollectionType
+type WithCollectionType<TValue, TCollectionType extends CollectionType | undefined> =
+  | undefined
+  | unknown extends TCollectionType
   ? TValue
   : TCollectionType extends "valuelist"
-  ? TValue[]
-  : Array<{ key: string; value: TValue }>;
+    ? TValue[]
+    : Array<{ key: string; value: TValue }>;
 
 type GetDataSourceReference<
   TComponent extends DataSourceReference["component"],
-  TKey extends DataSourceReference["key"]
+  TKey extends DataSourceReference["key"],
 > = ComponentRegistryDataSource extends infer TDataSourceReference
   ? TDataSourceReference extends ComponentRegistryDataSource
     ? TComponent extends TDataSourceReference["reference"]["component"]
@@ -325,32 +292,28 @@ type DataSourceToRuntimeType<TElement extends ConfigPageElement> =
         : never
       : never
     : TElement extends DataSourceReferenceConfigVar
-    ? GetDataSourceReference<
-        TElement["dataSource"]["component"],
-        TElement["dataSource"]["key"]
-      >["dataSourceType"] extends infer TType
-      ? TType extends DataSourceType
-        ? ConfigVarDataTypeRuntimeValueMap[TType]
+      ? GetDataSourceReference<
+          TElement["dataSource"]["component"],
+          TElement["dataSource"]["key"]
+        >["dataSourceType"] extends infer TType
+        ? TType extends DataSourceType
+          ? ConfigVarDataTypeRuntimeValueMap[TType]
+          : never
         : never
-      : never
-    : never;
+      : never;
 
-type ElementToRuntimeType<TElement extends ConfigPageElement> =
-  TElement extends ConfigVar
-    ? TElement extends ConnectionConfigVar
-      ? Connection
-      : TElement extends StandardConfigVar
+type ElementToRuntimeType<TElement extends ConfigPageElement> = TElement extends ConfigVar
+  ? TElement extends ConnectionConfigVar
+    ? Connection
+    : TElement extends StandardConfigVar
       ? WithCollectionType<
           ConfigVarDataTypeRuntimeValueMap[TElement["dataType"]],
           TElement["collectionType"]
         >
       : TElement extends DataSourceConfigVar
-      ? WithCollectionType<
-          DataSourceToRuntimeType<TElement>,
-          TElement["collectionType"]
-        >
-      : never
-    : never;
+        ? WithCollectionType<DataSourceToRuntimeType<TElement>, TElement["collectionType"]>
+        : never
+  : never;
 
 type ExtractConfigVars<TConfigPages extends { [key: string]: ConfigPage }> =
   keyof TConfigPages extends infer TPageName
@@ -369,11 +332,7 @@ type ExtractConfigVars<TConfigPages extends { [key: string]: ConfigPage }> =
       : never
     : never;
 
-export type ConfigVars = Prettify<
-  UnionToIntersection<
-    ExtractConfigVars<ConfigPages> | ExtractConfigVars<UserLevelConfigPages>
-  >
->;
+export type ConfigVars = Prettify<UnionToIntersection<ExtractConfigVars<ConfigPages>>>;
 
 export const isCodeConfigVar = (cv: ConfigVar): cv is CodeConfigVar =>
   "dataType" in cv && cv.dataType === "code";
@@ -382,7 +341,7 @@ export const isScheduleConfigVar = (cv: ConfigVar): cv is ScheduleConfigVar =>
   "dataType" in cv && cv.dataType === "schedule";
 
 export const isDataSourceDefinitionConfigVar = (
-  cv: ConfigVar
+  cv: ConfigVar,
 ): cv is DataSourceDefinitionConfigVar =>
   "dataSourceType" in cv && "perform" in cv && typeof cv.perform === "function";
 
@@ -390,7 +349,7 @@ export const isDataSourceReferenceConfigVar = (
   // FIXME: Module augmetation causes this to produce a compile error while
   // running `tsd`. I'm pretty uncertain how this happens but leaving as
   // `unkonwn` is fine for now.
-  cv: unknown
+  cv: unknown,
 ): cv is DataSourceReferenceConfigVar =>
   typeof cv === "object" &&
   cv !== null &&
@@ -398,7 +357,7 @@ export const isDataSourceReferenceConfigVar = (
   isComponentReference((cv as DataSourceReferenceConfigVar).dataSource);
 
 export const isConnectionDefinitionConfigVar = (
-  cv: ConfigVar
+  cv: ConfigVar,
 ): cv is ConnectionDefinitionConfigVar =>
   "dataType" in cv && cv.dataType === "connection" && "inputs" in cv;
 
@@ -406,7 +365,7 @@ export const isConnectionReferenceConfigVar = (
   // FIXME: Module augmetation causes this to produce a compile error while
   // running `tsd`. I'm pretty uncertain how this happens but leaving as
   // `unkonwn` is fine for now.
-  cv: unknown
+  cv: unknown,
 ): cv is ConnectionReferenceConfigVar =>
   typeof cv === "object" &&
   cv !== null &&

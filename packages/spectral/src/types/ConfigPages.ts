@@ -13,8 +13,6 @@ import { UnionToIntersection } from "./utils";
  * ```
  *
  */
-
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IntegrationDefinitionConfigPages {}
 
 /**
@@ -29,7 +27,6 @@ export interface IntegrationDefinitionConfigPages {}
  * ```
  *
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IntegrationDefinitionUserLevelConfigPages {}
 
 export type ConfigPageElement = string | ConfigVar;
@@ -50,8 +47,7 @@ type CreateConfigPages<TIntegrationDefinitionConfigPages> =
       >;
 
 export type ConfigPages = CreateConfigPages<IntegrationDefinitionConfigPages>;
-export type UserLevelConfigPages =
-  CreateConfigPages<IntegrationDefinitionUserLevelConfigPages>;
+export type UserLevelConfigPages = CreateConfigPages<IntegrationDefinitionUserLevelConfigPages>;
 
 /** Defines attributes of a Config Wizard Page used when deploying an Instance of an Integration. */
 export interface ConfigPage {
