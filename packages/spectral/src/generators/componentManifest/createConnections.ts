@@ -46,7 +46,7 @@ export const createConnections = async ({
       const imports = getImports({ inputs });
 
       const onPremAvailable = connection.inputs.some(
-        (input) => input.onPremControlled || input.onPremiseControlled
+        (input) => input.onPremControlled || input.onPremiseControlled,
       );
 
       return await renderConnection({
@@ -63,7 +63,7 @@ export const createConnections = async ({
         sourceDir,
         destinationDir,
       });
-    })
+    }),
   );
 
   if (verbose) {
@@ -129,11 +129,7 @@ const renderConnection = async ({
 }: RenderConnectionProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "connections", "connection.ts.ejs"),
-    destination: path.join(
-      destinationDir,
-      "connections",
-      `${connection.key}.ts`
-    ),
+    destination: path.join(destinationDir, "connections", `${connection.key}.ts`),
     data: {
       connection,
       helpers,

@@ -61,10 +61,10 @@ export interface ActionLogger {
 
 export type ActionContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
-  TComponentActions extends Record<
+  TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
     string,
     ComponentManifest["actions"]
-  > = Record<string, ComponentManifest["actions"]>
+  >,
 > = {
   logger: ActionLogger;
   instanceState: Record<string, unknown>;
@@ -138,22 +138,19 @@ interface TriggerBranchingResult extends TriggerBaseResult {
   branch: string;
 }
 
-export type TriggerResult =
-  | TriggerBranchingResult
-  | TriggerBaseResult
-  | undefined;
+export type TriggerResult = TriggerBranchingResult | TriggerBaseResult | undefined;
 
 export type TriggerPerformFunction = (
   context: ActionContext,
   payload: TriggerPayload,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
 ) => Promise<TriggerResult>;
 
 export type TriggerEventFunctionResult = TriggerEventFunctionReturn | void;
 
 export type TriggerEventFunction = (
   context: ActionContext,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
 ) => Promise<TriggerEventFunctionResult>;
 
 export interface Trigger {
@@ -177,7 +174,7 @@ export interface Trigger {
 }
 
 export interface DataSourceContext<
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
 > {
   logger: ActionLogger;
   configVars: TConfigVars;
@@ -193,7 +190,7 @@ export type DataSourceResult = {
 
 export type DataSourcePerformFunction = (
   context: DataSourceContext,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
 ) => Promise<DataSourceResult>;
 
 export interface DataSource {
@@ -228,13 +225,7 @@ export interface ConnectionValue {
 }
 
 interface ServerPerformDataStructureReturn {
-  data:
-    | boolean
-    | number
-    | string
-    | Record<string, unknown>
-    | unknown[]
-    | unknown;
+  data: boolean | number | string | Record<string, unknown> | unknown[] | unknown;
   contentType?: string;
   statusCode?: number;
   headers?: Record<string, string>;
@@ -259,8 +250,7 @@ interface ServerPerformDataReturn {
   error?: Record<string, unknown>;
 }
 
-interface ServerPerformBranchingDataStructureReturn
-  extends ServerPerformDataStructureReturn {
+interface ServerPerformBranchingDataStructureReturn extends ServerPerformDataStructureReturn {
   branch: string;
 }
 
@@ -277,7 +267,7 @@ export type ActionPerformReturn =
 
 export type ActionPerformFunction = (
   context: ActionContext,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
 ) => Promise<ActionPerformReturn>;
 
 interface InputFieldChoice {

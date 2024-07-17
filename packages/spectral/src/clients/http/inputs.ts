@@ -14,12 +14,7 @@ const supportedMethods: Method[] = [
   "UNLINK",
 ];
 
-const supportedResponseTypes: ResponseType[] = [
-  "arraybuffer",
-  "document",
-  "json",
-  "text",
-];
+const supportedResponseTypes: ResponseType[] = ["arraybuffer", "document", "json", "text"];
 
 export const url = input({
   label: "URL",
@@ -44,8 +39,7 @@ export const timeout = input({
   label: "Timeout",
   type: "string",
   required: false,
-  comments:
-    "The maximum time that a client will await a response to its request",
+  comments: "The maximum time that a client will await a response to its request",
   example: "2000",
   clean: (value) => util.types.toNumber(value),
 });
@@ -99,8 +93,7 @@ export const maxRetries = input({
   placeholder: "Max Retries",
   type: "string",
   required: false,
-  comments:
-    "The maximum number of retries to attempt. Specify 0 for no retries.",
+  comments: "The maximum number of retries to attempt. Specify 0 for no retries.",
   default: "0",
   clean: (value) => util.types.toNumber(value),
 });
@@ -164,8 +157,7 @@ export const fileDataFileNames = input({
   required: false,
   comments:
     "File names to apply to the file data inputs. Keys must match the file data keys above.",
-  clean: (values: any) =>
-    values ? util.types.keyValPairListToObject<string>(values) : undefined,
+  clean: (values: any) => (values ? util.types.keyValPairListToObject<string>(values) : undefined),
 });
 
 export const debugRequest = input({

@@ -1,9 +1,4 @@
-import {
-  Inputs,
-  ActionContext,
-  ActionInputParameters,
-  ConfigVarResultCollection,
-} from ".";
+import { Inputs, ActionContext, ActionInputParameters, ConfigVarResultCollection } from ".";
 
 export type TriggerEventFunctionReturn = {
   /** An optional object, the keys and values of which will be persisted in the flow-specific instanceState and available for subsequent actions and executions */
@@ -19,8 +14,8 @@ export type TriggerEventFunctionReturn = {
 /** Definition of the function to execute when a Trigger Event occurs. */
 export type TriggerEventFunction<
   TInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection
+  TConfigVars extends ConfigVarResultCollection,
 > = (
   context: ActionContext<TConfigVars>,
-  params: ActionInputParameters<TInputs>
-) => Promise<void | TriggerEventFunctionReturn>;
+  params: ActionInputParameters<TInputs>,
+) => Promise<TriggerEventFunctionReturn | void>;

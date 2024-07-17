@@ -13,23 +13,21 @@ import { Prettify, UnionToIntersection } from "./utils";
  * ```
  *
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IntegrationDefinitionComponentRegistry {}
 
-export type ComponentRegistry =
-  keyof IntegrationDefinitionComponentRegistry extends never
-    ? {
-        [key: string]: ComponentManifest;
-      }
-    : UnionToIntersection<
-        keyof IntegrationDefinitionComponentRegistry extends infer TComponentKey
-          ? TComponentKey extends keyof IntegrationDefinitionComponentRegistry
-            ? {
-                [Key in TComponentKey]: IntegrationDefinitionComponentRegistry[TComponentKey];
-              }
-            : never
+export type ComponentRegistry = keyof IntegrationDefinitionComponentRegistry extends never
+  ? {
+      [key: string]: ComponentManifest;
+    }
+  : UnionToIntersection<
+      keyof IntegrationDefinitionComponentRegistry extends infer TComponentKey
+        ? TComponentKey extends keyof IntegrationDefinitionComponentRegistry
+          ? {
+              [Key in TComponentKey]: IntegrationDefinitionComponentRegistry[TComponentKey];
+            }
           : never
-      >;
+        : never
+    >;
 
 export interface ConnectionInputPermissionAndVisibility {
   /**
@@ -62,7 +60,7 @@ type ComponentReferenceTypeValueMap<
     dataSources: ValueExpression<TValue> | ConfigVarExpression;
     connections: (ValueExpression<TValue> | ConfigVarExpression) &
       ConnectionInputPermissionAndVisibility;
-  }
+  },
 > = TMap;
 
 export type ComponentReference<
@@ -80,7 +78,7 @@ export type ComponentReference<
       [key: string]: ValueExpression | ConfigVarExpression;
     };
     template?: string;
-  }
+  },
 > = TComponentReference;
 
 export const isComponentReference = (ref: unknown): ref is ComponentReference =>
@@ -138,18 +136,14 @@ type ComponentRegistryFunctionsByType = UnionToIntersection<
     : never
 >;
 
-export type ComponentRegistryTrigger =
-  ComponentRegistryFunctionsByType["triggers"];
+export type ComponentRegistryTrigger = ComponentRegistryFunctionsByType["triggers"];
 export type TriggerReference = ComponentRegistryTrigger["reference"];
 
-export type ComponentRegistryAction =
-  ComponentRegistryFunctionsByType["actions"];
+export type ComponentRegistryAction = ComponentRegistryFunctionsByType["actions"];
 export type ActionReference = ComponentRegistryAction["reference"];
 
-export type ComponentRegistryDataSource =
-  ComponentRegistryFunctionsByType["dataSources"];
+export type ComponentRegistryDataSource = ComponentRegistryFunctionsByType["dataSources"];
 export type DataSourceReference = ComponentRegistryDataSource["reference"];
 
-export type ComponentRegistryConnection =
-  ComponentRegistryFunctionsByType["connections"];
+export type ComponentRegistryConnection = ComponentRegistryFunctionsByType["connections"];
 export type ConnectionReference = ComponentRegistryConnection["reference"];

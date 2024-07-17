@@ -1,9 +1,5 @@
 import { flow } from ".";
-import {
-  connectionValue,
-  defaultConnectionValueEnvironmentVariable,
-  invokeFlow,
-} from "./testing";
+import { connectionValue, defaultConnectionValueEnvironmentVariable, invokeFlow } from "./testing";
 
 // TODO: This changeset it questionable.
 // We were only using configPages for the types which we no longer need.
@@ -48,8 +44,7 @@ describe("test flow using connections", () => {
       fields: {},
       token: { access_token: accessToken },
     };
-    process.env[defaultConnectionValueEnvironmentVariable] =
-      JSON.stringify(value);
+    process.env[defaultConnectionValueEnvironmentVariable] = JSON.stringify(value);
 
     const { result } = await invokeFlow(connectionFlow, {
       configVars: {

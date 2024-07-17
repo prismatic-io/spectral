@@ -12,9 +12,7 @@ import { inputs } from "./inputs";
 
 export type HttpClient = AxiosInstance;
 
-const toAuthorizationHeaders = (
-  connection: Connection
-): { Authorization: string } => {
+const toAuthorizationHeaders = (connection: Connection): { Authorization: string } => {
   const accessToken = util.types.toString(connection.token?.access_token);
   if (accessToken) {
     return { Authorization: `Bearer ${accessToken}` };
@@ -32,22 +30,20 @@ const toAuthorizationHeaders = (
     return { Authorization: `Basic ${encoded}` };
   }
 
-  throw new Error(
-    `Failed to guess at authorization parameters for Connection: ${connection.key}`
-  );
+  throw new Error(`Failed to guess at authorization parameters for Connection: ${connection.key}`);
 };
 
 const toFormData = (
   formData: KeyValuePair<unknown>[],
   fileData: KeyValuePair<unknown>[],
-  fileDataFileNames: Record<string, string> = {}
+  fileDataFileNames: Record<string, string> = {},
 ): FormData => {
   const form = new FormData();
   (formData || []).map(({ key, value }) => form.append(key, value));
   (fileData || []).map(({ key, value }) =>
     form.append(key, util.types.toBufferDataPayload(value).data, {
       filename: fileDataFileNames?.[key] || key,
-    })
+    }),
   );
   return form;
 };
@@ -70,7 +66,7 @@ export interface ClientProps {
 
 const computeRetryDelay = (
   retryDelay: RetryConfig["retryDelay"],
-  useExponentialBackoff: RetryConfig["useExponentialBackoff"]
+  useExponentialBackoff: RetryConfig["useExponentialBackoff"],
 ): IAxiosRetryConfig["retryDelay"] => {
   if (useExponentialBackoff) {
     return exponentialDelay;
@@ -105,8 +101,8 @@ export const createClient = ({
     headers,
     timeout,
     params,
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity,
+    maxContentLength: Number.POSITIVE_INFINITY,
+    maxBodyLength: Number.POSITIVE_INFINITY,
   });
 
   if (debug) {
@@ -123,13 +119,11 @@ export const createClient = ({
             method,
             timeout,
             data:
-              dataSize > 1024 * 10 || Buffer.isBuffer(data)
-                ? `<data (${dataSize} bytes)>`
-                : data,
+              dataSize > 1024 * 10 || Buffer.isBuffer(data) ? `<data (${dataSize} bytes)>` : data,
           },
           true,
-          true
-        )
+          true,
+        ),
       );
       return request;
     });
@@ -144,13 +138,11 @@ export const createClient = ({
             status,
             statusText,
             data:
-              dataSize > 1024 * 10 || Buffer.isBuffer(data)
-                ? `<data (${dataSize} bytes)>`
-                : data,
+              dataSize > 1024 * 10 || Buffer.isBuffer(data) ? `<data (${dataSize} bytes)>` : data,
           },
           true,
-          true
-        )
+          true,
+        ),
       );
       return response;
     });
@@ -182,7 +174,7 @@ type SendRawRequestValues = ActionInputParameters<typeof inputs>;
 export const sendRawRequest = async (
   baseUrl: string,
   values: SendRawRequestValues,
-  authorizationHeaders: Record<string, string> = {}
+  authorizationHeaders: Record<string, string> = {},
 ): Promise<AxiosResponse> => {
   if (values.data && (!isEmpty(values.formData) || !isEmpty(values.fileData))) {
     throw new Error("Cannot specify both Data and File/Form Data.");
@@ -222,7 +214,7 @@ export const sendRawRequest = async (
 export const buildRawRequestAction = (
   baseUrl: string,
   label = "Raw Request",
-  description = "Issue a raw HTTP request"
+  description = "Issue a raw HTTP request",
 ) =>
   action({
     display: { label, description },
@@ -234,7 +226,7 @@ export const buildRawRequestAction = (
       const { data } = await sendRawRequest(
         baseUrl,
         httpInputValues,
-        toAuthorizationHeaders(connection)
+        toAuthorizationHeaders(connection),
       );
       return { data };
     },

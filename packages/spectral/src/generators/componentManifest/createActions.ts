@@ -26,13 +26,11 @@ export const createActions = async ({
   }
 
   const actionIndex = await renderActionsIndex({
-    actions: Object.entries(component.actions ?? {}).map(
-      ([actionKey, action]) => {
-        return {
-          key: action.key || actionKey,
-        };
-      }
-    ),
+    actions: Object.entries(component.actions ?? {}).map(([actionKey, action]) => {
+      return {
+        key: action.key || actionKey,
+      };
+    }),
     dryRun,
     verbose,
     sourceDir,
@@ -60,7 +58,7 @@ export const createActions = async ({
         sourceDir,
         destinationDir,
       });
-    })
+    }),
   );
 
   if (verbose) {

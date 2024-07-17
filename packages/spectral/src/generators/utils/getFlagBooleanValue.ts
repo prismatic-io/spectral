@@ -3,10 +3,7 @@ interface GetFlagBooleanValueProps {
   flag: string;
 }
 
-export const getFlagBooleanValue = ({
-  args,
-  flag,
-}: GetFlagBooleanValueProps): boolean => {
+export const getFlagBooleanValue = ({ args, flag }: GetFlagBooleanValueProps): boolean => {
   return args.includes(flag);
 };
 
@@ -15,10 +12,7 @@ interface GetFlagsBooleanValueProps {
   flags: string[];
 }
 
-export const getFlagsBooleanValue = ({
-  args,
-  flags,
-}: GetFlagsBooleanValueProps): boolean => {
+export const getFlagsBooleanValue = ({ args, flags }: GetFlagsBooleanValueProps): boolean => {
   return flags.reduce((acc, flag) => {
     const value = getFlagBooleanValue({ args, flag });
 

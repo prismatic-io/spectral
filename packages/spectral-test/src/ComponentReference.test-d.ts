@@ -13,7 +13,7 @@ type AllComponentReferences =
   | ActionReference;
 
 const createRef = <TComponentRef extends AllComponentReferences>(
-  ref: TComponentRef
+  ref: TComponentRef,
 ): TComponentRef => {
   return ref;
 };
@@ -60,9 +60,7 @@ const slackOAuthRef = createRef<ConnectionReference>({
     signingSecret: { value: "sign" },
   },
 });
-expectAssignable<"exampleConnection" | "onPremConnection" | "slackOAuth">(
-  slackOAuthRef.key
-);
+expectAssignable<"exampleConnection" | "onPremConnection" | "slackOAuth">(slackOAuthRef.key);
 const slackChannelsRef = createRef<DataSourceReference>({
   component: "slack",
   key: "selectChannels",
@@ -76,5 +74,5 @@ const slackChannelsRef = createRef<DataSourceReference>({
   },
 });
 expectAssignable<"jsonFormDataSource" | "stringDataSource" | "selectChannels">(
-  slackChannelsRef.key
+  slackChannelsRef.key,
 );

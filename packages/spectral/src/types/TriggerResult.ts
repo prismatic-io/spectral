@@ -31,9 +31,7 @@ export interface TriggerBranchingResult<TPayload extends TriggerPayload>
 /** Required return type of all trigger perform functions */
 export type TriggerResult<
   AllowsBranching extends boolean | undefined,
-  TPayload extends TriggerPayload
+  TPayload extends TriggerPayload,
 > =
-  | (AllowsBranching extends true
-      ? TriggerBranchingResult<TPayload>
-      : TriggerBaseResult<TPayload>)
+  | (AllowsBranching extends true ? TriggerBranchingResult<TPayload> : TriggerBaseResult<TPayload>)
   | undefined;

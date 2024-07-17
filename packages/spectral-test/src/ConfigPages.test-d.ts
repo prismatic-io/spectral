@@ -3,6 +3,7 @@ import {
   integration,
   Connection,
   TriggerPayload,
+  TriggerEventFunctionReturn,
   ObjectSelection,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
@@ -24,9 +25,7 @@ const basicFlow = flow({
     expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
     expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
     expectAssignable<string>(context.configVars["Ref String Data Source"]);
-    expectAssignable<ObjectSelection>(
-      context.configVars["Object Selection Data Source"]
-    );
+    expectAssignable<ObjectSelection>(context.configVars["Object Selection Data Source"]);
     expectAssignable<string>(context.configVars["Fourth Page String"]);
 
     expectAssignable<Record<string, unknown>>(params);
@@ -41,9 +40,7 @@ const basicFlow = flow({
     expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
     expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
     expectAssignable<string>(context.configVars["Ref String Data Source"]);
-    expectAssignable<ObjectSelection>(
-      context.configVars["Object Selection Data Source"]
-    );
+    expectAssignable<ObjectSelection>(context.configVars["Object Selection Data Source"]);
     expectAssignable<string>(context.configVars["Fourth Page String"]);
 
     expectAssignable<TriggerPayload>(params.onTrigger.results);
@@ -58,12 +55,10 @@ const basicFlow = flow({
     expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
     expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
     expectAssignable<string>(context.configVars["Ref String Data Source"]);
-    expectAssignable<ObjectSelection>(
-      context.configVars["Object Selection Data Source"]
-    );
+    expectAssignable<ObjectSelection>(context.configVars["Object Selection Data Source"]);
     expectAssignable<string>(context.configVars["Fourth Page String"]);
 
-    return Promise.resolve();
+    return Promise.resolve<TriggerEventFunctionReturn>({});
   },
   onInstanceDelete: async (context) => {
     expectAssignable<Connection>(context.configVars["A Connection"]);
@@ -73,12 +68,10 @@ const basicFlow = flow({
     expectAssignable<unknown>(context.configVars["JSON Form Data Source"]);
     expectAssignable<unknown>(context.configVars["Ref JSON Form Data Source"]);
     expectAssignable<string>(context.configVars["Ref String Data Source"]);
-    expectAssignable<ObjectSelection>(
-      context.configVars["Object Selection Data Source"]
-    );
+    expectAssignable<ObjectSelection>(context.configVars["Object Selection Data Source"]);
     expectAssignable<string>(context.configVars["Fourth Page String"]);
 
-    return Promise.resolve();
+    return Promise.resolve<TriggerEventFunctionReturn>({});
   },
 });
 

@@ -32,8 +32,7 @@ export interface OnPremConnectionDefinition extends BaseConnectionDefinition {
   };
 }
 
-interface OAuth2AuthorizationCodeConnectionDefinition
-  extends BaseConnectionDefinition {
+interface OAuth2AuthorizationCodeConnectionDefinition extends BaseConnectionDefinition {
   oauth2Type: OAuth2Type.AuthorizationCode;
   /** The PKCE method (S256 or plain) that this OAuth 2.0 connection uses (if any) */
   oauth2PkceMethod?: OAuth2PkceMethod;
@@ -47,8 +46,7 @@ interface OAuth2AuthorizationCodeConnectionDefinition
   };
 }
 
-interface OAuth2ClientCredentialConnectionDefinition
-  extends BaseConnectionDefinition {
+interface OAuth2ClientCredentialConnectionDefinition extends BaseConnectionDefinition {
   oauth2Type: OAuth2Type.ClientCredentials;
   inputs: {
     tokenUrl: ConnectionInput;

@@ -27,13 +27,11 @@ export const createDataSources = async ({
   }
 
   const dataSourceIndex = await renderDataSourcesIndex({
-    dataSources: Object.entries(component.dataSources ?? {}).map(
-      ([dataSourceKey, dataSource]) => {
-        return {
-          key: dataSource.key || dataSourceKey,
-        };
-      }
-    ),
+    dataSources: Object.entries(component.dataSources ?? {}).map(([dataSourceKey, dataSource]) => {
+      return {
+        key: dataSource.key || dataSourceKey,
+      };
+    }),
     dryRun,
     verbose,
     sourceDir,
@@ -41,30 +39,28 @@ export const createDataSources = async ({
   });
 
   const dataSources = await Promise.all(
-    Object.entries(component.dataSources ?? {}).map(
-      async ([dataSourceKey, dataSource]) => {
-        const inputs = getInputs({
-          inputs: dataSource.inputs,
-        });
+    Object.entries(component.dataSources ?? {}).map(async ([dataSourceKey, dataSource]) => {
+      const inputs = getInputs({
+        inputs: dataSource.inputs,
+      });
 
-        const imports = getImports({ inputs });
+      const imports = getImports({ inputs });
 
-        return await renderDataSource({
-          dataSource: {
-            key: dataSource.key || dataSourceKey,
-            label: dataSource.display.label,
-            description: dataSource.display.description,
-            dataSourceType: dataSource.dataSourceType,
-            inputs,
-          },
-          imports,
-          dryRun,
-          verbose,
-          sourceDir,
-          destinationDir,
-        });
-      }
-    )
+      return await renderDataSource({
+        dataSource: {
+          key: dataSource.key || dataSourceKey,
+          label: dataSource.display.label,
+          description: dataSource.display.description,
+          dataSourceType: dataSource.dataSourceType,
+          inputs,
+        },
+        imports,
+        dryRun,
+        verbose,
+        sourceDir,
+        destinationDir,
+      });
+    }),
   );
 
   if (verbose) {
@@ -130,11 +126,7 @@ const renderDataSource = async ({
 }: RenderDataSourceProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "dataSources", "dataSource.ts.ejs"),
-    destination: path.join(
-      destinationDir,
-      "dataSources",
-      `${dataSource.key}.ts`
-    ),
+    destination: path.join(destinationDir, "dataSources", `${dataSource.key}.ts`),
     data: {
       dataSource,
       helpers,

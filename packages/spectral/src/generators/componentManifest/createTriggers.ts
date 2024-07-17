@@ -26,13 +26,11 @@ export const createTriggers = async ({
   }
 
   const triggersIndex = await renderTriggersIndex({
-    triggers: Object.entries(component.triggers ?? {}).map(
-      ([triggerKey, trigger]) => {
-        return {
-          key: trigger.key || triggerKey,
-        };
-      }
-    ),
+    triggers: Object.entries(component.triggers ?? {}).map(([triggerKey, trigger]) => {
+      return {
+        key: trigger.key || triggerKey,
+      };
+    }),
     dryRun,
     verbose,
     sourceDir,
@@ -40,29 +38,27 @@ export const createTriggers = async ({
   });
 
   const triggers = await Promise.all(
-    Object.entries(component.triggers ?? {}).map(
-      async ([triggerKey, trigger]) => {
-        const inputs = getInputs({
-          inputs: trigger.inputs,
-        });
+    Object.entries(component.triggers ?? {}).map(async ([triggerKey, trigger]) => {
+      const inputs = getInputs({
+        inputs: trigger.inputs,
+      });
 
-        const imports = getImports({ inputs });
+      const imports = getImports({ inputs });
 
-        return await renderTrigger({
-          trigger: {
-            key: trigger.key || triggerKey,
-            label: trigger.display.description,
-            description: trigger.display.description,
-            inputs,
-          },
-          dryRun,
-          imports,
-          verbose,
-          sourceDir,
-          destinationDir,
-        });
-      }
-    )
+      return await renderTrigger({
+        trigger: {
+          key: trigger.key || triggerKey,
+          label: trigger.display.description,
+          description: trigger.display.description,
+          inputs,
+        },
+        dryRun,
+        imports,
+        verbose,
+        sourceDir,
+        destinationDir,
+      });
+    }),
   );
 
   if (verbose) {

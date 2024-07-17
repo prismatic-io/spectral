@@ -62,7 +62,7 @@ const connectionValue: ConnectionValue = {
   configVarKey: "testConnection",
   fields: Object.entries(testConnection.inputs).reduce<Record<string, unknown>>(
     (result, [key, { default: value }]) => ({ ...result, [key]: value }),
-    {}
+    {},
   ),
   token: {
     access_token: "access",

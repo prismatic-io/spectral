@@ -13,7 +13,7 @@ import {
 export interface DataSourceDefinition<
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  TDataSourceType extends DataSourceType
+  TDataSourceType extends DataSourceType,
 > {
   /** Defines how the Data Source is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;

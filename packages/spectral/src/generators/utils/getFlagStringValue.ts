@@ -3,10 +3,7 @@ interface GetFlagStringValueProps {
   flag: string;
 }
 
-export const getFlagStringValue = ({
-  args,
-  flag,
-}: GetFlagStringValueProps): string | null => {
+export const getFlagStringValue = ({ args, flag }: GetFlagStringValueProps): string | null => {
   const flagIndex = args.indexOf(flag);
 
   if (flagIndex === -1) {
@@ -27,17 +24,17 @@ interface GetFlagsStringValueProps {
   flags: string[];
 }
 
-export const getFlagsStringValue = ({
-  args,
-  flags,
-}: GetFlagsStringValueProps): string | null => {
-  return flags.reduce((acc, flag) => {
-    const value = getFlagStringValue({ args, flag });
+export const getFlagsStringValue = ({ args, flags }: GetFlagsStringValueProps): string | null => {
+  return flags.reduce(
+    (acc, flag) => {
+      const value = getFlagStringValue({ args, flag });
 
-    if (typeof value === "undefined" || acc) {
-      return acc;
-    }
+      if (typeof value === "undefined" || acc) {
+        return acc;
+      }
 
-    return value;
-  }, "" as string | null);
+      return value;
+    },
+    "" as string | null,
+  );
 };

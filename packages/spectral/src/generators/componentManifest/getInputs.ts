@@ -30,10 +30,7 @@ interface GetInputsProps {
   docBlock?: (input: ServerTypeInput) => string;
 }
 
-export const getInputs = ({
-  inputs,
-  docBlock = DOC_BLOCK_DEFAULT,
-}: GetInputsProps): Input[] => {
+export const getInputs = ({ inputs, docBlock = DOC_BLOCK_DEFAULT }: GetInputsProps): Input[] => {
   return inputs.reduce((acc, input) => {
     if (
       (typeof input.shown === "boolean" && input.shown === false) ||
@@ -50,9 +47,7 @@ export const getInputs = ({
         label: input.label,
         inputType: input.type,
         valueType: getInputValueType(input),
-        required:
-          input.required &&
-          (input.default === undefined || input.default === ""),
+        required: input.required && (input.default === undefined || input.default === ""),
         collection: input.collection,
         onPremControlled: input.onPremiseControlled || input.onPremControlled,
         docBlock: docBlock(input),

@@ -75,12 +75,7 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   /** Specifies the trigger function for this Flow, which returns a payload and optional HTTP response. */
   onTrigger?:
     | TriggerReference
-    | TriggerPerformFunction<
-        Inputs,
-        ConfigVars,
-        false,
-        TriggerResult<false, TTriggerPayload>
-      >;
+    | TriggerPerformFunction<Inputs, ConfigVars, false, TriggerResult<false, TTriggerPayload>>;
   /** Specifies the function to execute when an Instance of this Integration is deployed. */
   onInstanceDeploy?: TriggerEventFunction<Inputs, ConfigVars>;
   /** Specifies the function to execute when an Instance of an Integration is deleted. */
@@ -140,10 +135,7 @@ export type StepErrorConfig = {
 };
 
 /** Choices of Endpoint Types that may be used by Instances of an Integration. */
-export type EndpointType =
-  | "flow_specific"
-  | "instance_specific"
-  | "shared_instance";
+export type EndpointType = "flow_specific" | "instance_specific" | "shared_instance";
 
 /** Choices of Endpoint Security Types that may be used by endpoints of a Flow. */
 export type EndpointSecurityType =
