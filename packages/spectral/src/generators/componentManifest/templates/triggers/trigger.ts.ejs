@@ -7,7 +7,7 @@ export interface <%= helpers.capitalizeFirstLetter(trigger.key) %>Values {
 /**
  * <%= trigger.label %>
  *
- * @description <%= trigger.description %>
+ * @description <%- trigger.description %>
  */
 export const <%= trigger.key %> = {
   perform: <TReturn>(
