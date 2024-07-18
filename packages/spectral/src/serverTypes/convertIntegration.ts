@@ -19,6 +19,7 @@ import {
   PermissionAndVisibilityType,
   CollectionType,
   KeyValuePair,
+  ComponentManifest,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -280,6 +281,10 @@ const convertConfigVarPermissionAndVisibility = ({
 const convertComponentReference = (
   componentReference: ComponentReference,
   componentRegistry: ComponentRegistry,
+  referenceType: Extract<
+    keyof ComponentManifest,
+    "actions" | "triggers" | "dataSources" | "connections"
+  >,
 ): {
   ref: ServerComponentReference;
   inputs: Record<string, ServerInput>;
@@ -301,18 +306,29 @@ const convertComponentReference = (
     key: componentReference.key,
   };
 
-  const inputs = Object.entries(componentReference.values ?? {}).reduce((result, [key, value]) => {
-    if ("value" in value) {
-      const type = value.value instanceof Object ? "complex" : "value";
+  const manifestEntry = manifest[referenceType][componentReference.key];
 
+  const inputs = Object.entries(componentReference.values ?? {}).reduce((result, [key, value]) => {
+    const manifestEntryInput = manifestEntry.inputs[key];
+
+    const type = manifestEntryInput.collection
+      ? "complex"
+      : "value" in value
+        ? "value"
+        : "configVar";
+
+    if ("value" in value) {
       const valueExpr =
-        value.value instanceof Object && !Array.isArray(value.value)
+        manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
           ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
               name: { type: "value", value: k },
               type: "value",
               value: v,
             }))
           : value.value;
+
+      const formattedValue =
+        type === "complex" || typeof valueExpr === "string" ? valueExpr : JSON.stringify(valueExpr);
 
       const meta = convertInputPermissionAndVisibility(
         pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
@@ -321,7 +337,7 @@ const convertComponentReference = (
         },
       );
 
-      return { ...result, [key]: { type: type, value: valueExpr, meta } };
+      return { ...result, [key]: { type: type, value: formattedValue, meta } };
     }
 
     if ("configVar" in value) {
@@ -392,7 +408,11 @@ const convertFlow = (
       component: codeNativeIntegrationComponentReference(referenceKey),
     };
   } else if (isComponentReference(flow.onTrigger)) {
-    const { ref, inputs } = convertComponentReference(flow.onTrigger, componentRegistry);
+    const { ref, inputs } = convertComponentReference(
+      flow.onTrigger,
+      componentRegistry,
+      "triggers",
+    );
     triggerStep.action = ref;
     triggerStep.inputs = inputs;
   } else {
@@ -502,7 +522,11 @@ const convertConfigVar = (
   }
 
   if (isConnectionReferenceConfigVar(configVar)) {
-    const { ref, inputs } = convertComponentReference(configVar.connection, componentRegistry);
+    const { ref, inputs } = convertComponentReference(
+      configVar.connection,
+      componentRegistry,
+      "connections",
+    );
 
     const {
       stableKey = "",
@@ -564,7 +588,11 @@ const convertConfigVar = (
   }
 
   if (isDataSourceReferenceConfigVar(configVar)) {
-    const { ref, inputs } = convertComponentReference(configVar.dataSource, componentRegistry);
+    const { ref, inputs } = convertComponentReference(
+      configVar.dataSource,
+      componentRegistry,
+      "dataSources",
+    );
     result.dataType = componentRegistry[ref.component.key].dataSources[ref.key].dataSourceType;
     result.dataSource = ref;
     result.inputs = inputs;
