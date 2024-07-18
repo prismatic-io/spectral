@@ -1,4 +1,4 @@
 <% inputs.forEach((input) => { -%>
-  <%= input.docBlock -%>
+  <%- input.docBlock -%>
   <%= input.key %><%= input.required ? "" : "?" %>: <%- input.valueType.type ? input.valueType.type : input.valueType %>;
 <% }); -%>

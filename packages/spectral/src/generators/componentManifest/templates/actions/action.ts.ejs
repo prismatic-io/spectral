@@ -7,7 +7,7 @@ export interface <%= helpers.capitalizeFirstLetter(action.key) %>Values {
 /**
  * <%= action.label %>
  *
- * @description <%= action.description %>
+ * @description <%- action.description %>
  */
 export const <%= action.key %> = {
   perform: <TReturn>(

@@ -7,7 +7,7 @@ export interface <%= helpers.capitalizeFirstLetter(dataSource.key) %>Values {
 /**
  * <%= dataSource.label %>
  *
- * @description <%= dataSource.description %>
+ * @description <%- dataSource.description %>
  */
 export const <%= dataSource.key %> = {
   perform: (

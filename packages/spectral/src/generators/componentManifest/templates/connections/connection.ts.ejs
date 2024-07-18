@@ -7,7 +7,7 @@ export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Values {
 /**
  * <%= connection.label %>
  *
- * @comments <%= connection.comments %>
+ * @comments <%- connection.comments %>
  */
 export const <%= connection.key %> = {
   perform: (
