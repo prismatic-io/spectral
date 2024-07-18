@@ -82,7 +82,7 @@ export const createStaticFiles = async ({
             key: Object.keys(component.triggers)[0],
           }
         : null,
-      connection: component.connections.length
+      connection: (component.connections ?? []).length
         ? {
             key: component.connections[0].key,
           }
