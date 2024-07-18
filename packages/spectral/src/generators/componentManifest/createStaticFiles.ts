@@ -72,12 +72,12 @@ export const createStaticFiles = async ({
       label: component.display.label,
       description: component.display.description,
       isPublic: Boolean(component.public),
-      action: Object.keys(component.actions).length
+      action: Object.keys(component.actions ?? {}).length
         ? {
             key: Object.keys(component.actions)[0],
           }
         : null,
-      trigger: Object.keys(component.triggers).length
+      trigger: Object.keys(component.triggers ?? {}).length
         ? {
             key: Object.keys(component.triggers)[0],
           }
@@ -87,7 +87,7 @@ export const createStaticFiles = async ({
             key: component.connections[0].key,
           }
         : null,
-      dataSource: Object.keys(component.dataSources).length
+      dataSource: Object.keys(component.dataSources ?? {}).length
         ? {
             key: Object.keys(component.dataSources)[0],
             type: component.dataSources[Object.keys(component.dataSources)[0]].dataSourceType,
