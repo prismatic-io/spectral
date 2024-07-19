@@ -9,7 +9,6 @@ export type ComponentReference =
       };
       key: string;
       template?: string;
-      onPremiseConnectionConfig?: string;
     }
   | {
       component: {
@@ -19,7 +18,6 @@ export type ComponentReference =
       };
       key: string;
       template?: string;
-      onPremiseConnectionConfig?: string;
     };
 
 export type Input =
@@ -42,6 +40,7 @@ export interface ConnectionRequiredConfigVariable {
   description?: string;
   orgOnly?: boolean;
   dataType: "connection";
+  onPremiseConnectionConfig?: string;
   connection: ComponentReference;
   inputs?: Record<string, Input>;
   meta?: Record<string, unknown>;
