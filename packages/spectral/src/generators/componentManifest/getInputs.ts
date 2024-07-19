@@ -89,7 +89,11 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], ValueType> = {
 
 const getInputValueType = (input: ServerTypeInput) => {
   const valueType = input.model
-    ? input.model.map((choice) => `"${choice.value}"`).join(" | ")
+    ? input.model
+        .map((choice) => {
+          return `\`${choice.value.replaceAll("\r", "\\r").replaceAll("\n", "\\n")}\``;
+        })
+        .join(" | ")
     : INPUT_TYPE_MAP[input.type as InputFieldDefinition["type"]] || "never";
 
   if (input.collection === "keyvaluelist") {
