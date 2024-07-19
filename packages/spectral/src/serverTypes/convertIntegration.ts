@@ -337,7 +337,10 @@ const convertComponentReference = (
         },
       );
 
-      return { ...result, [key]: { type: type, value: formattedValue, meta } };
+      return {
+        ...result,
+        [key]: { type: type, value: formattedValue, meta },
+      };
     }
 
     if ("configVar" in value) {
@@ -539,10 +542,10 @@ const convertConfigVar = (
       description,
       key,
       dataType: "connection",
+      onPremiseConnectionConfig,
       connection: {
         ...ref,
         template,
-        onPremiseConnectionConfig,
       },
       inputs,
       orgOnly,
