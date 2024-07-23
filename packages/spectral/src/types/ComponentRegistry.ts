@@ -112,7 +112,7 @@ type ComponentRegistryFunctionsByType = UnionToIntersection<
                                   > & {
                                     reference: ComponentReference<{
                                       component: TComponentKey;
-                                      key: ComponentRegistry[TComponentKey][TComponentReferenceType][TComponentPropertyKey]["key"];
+                                      key: TComponentPropertyKey;
                                       values: {
                                         [Key in keyof TInputs]: ComponentReferenceTypeValueMap<
                                           TInputs[Key]

@@ -297,24 +297,23 @@ const convertComponentReference = (
     );
   }
 
-  const ref: ServerComponentReference = {
-    component: {
-      key: manifest.key,
-      signature: manifest.signature ?? "",
-      isPublic: manifest.public,
-    },
-    key: componentReference.key,
-  };
-
-  const manifestEntry =
-    Object.values(manifest[referenceType]).find((entry) => entry.key === componentReference.key) ||
-    manifest[referenceType][componentReference.key];
+  const manifestEntry = manifest[referenceType][componentReference.key];
 
   if (!manifestEntry) {
     throw new Error(
       `Component with key "${componentReference.component}" does not have an entry with key "${componentReference.key}" in the component registry.`,
     );
   }
+
+  const ref: ServerComponentReference = {
+    component: {
+      key: manifest.key,
+      signature: manifest.signature ?? "",
+      isPublic: manifest.public,
+    },
+    // older versions of the manifest did not contain a key so we fall back to the componentReference key
+    key: manifestEntry.key ?? componentReference.key,
+  };
 
   const inputs = Object.entries(componentReference.values ?? {}).reduce((result, [key, value]) => {
     const manifestEntryInput = manifestEntry.inputs[key];
@@ -665,7 +664,7 @@ const convertOnExecution =
       ) => {
         const componentActions = Object.entries(actions).reduce<
           Record<string, ComponentManifestAction["perform"]>
-        >((actionsAccumulator, [actionKey, action]) => {
+        >((actionsAccumulator, [registryActionKey, action]) => {
           // Define the method to be called for the action
           const invokeAction: ComponentManifestAction["perform"] = async (values) => {
             // Transform the input values based on the action's inputs
@@ -680,7 +679,6 @@ const convertOnExecution =
               },
               {},
             );
-
             // Invoke the action with the transformed values
             return invoke(
               {
@@ -689,7 +687,8 @@ const convertOnExecution =
                   signature: signature ?? "",
                   isPublic,
                 },
-                key: actionKey,
+                // older versions of manifests did not contain action.key so we fall back to the registry key
+                key: action.key ?? registryActionKey,
               },
               context,
               transformedValues,
@@ -697,7 +696,7 @@ const convertOnExecution =
           };
           return {
             ...actionsAccumulator,
-            [actionKey]: invokeAction,
+            [registryActionKey]: invokeAction,
           };
         }, {});
 
