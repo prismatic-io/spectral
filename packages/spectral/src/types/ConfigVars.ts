@@ -17,6 +17,7 @@ import {
   ConfigPageElement,
   ComponentRegistryDataSource,
   ComponentRegistryConnection,
+  UserLevelConfigPages,
 } from ".";
 import { Prettify, UnionToIntersection } from "./utils";
 
@@ -332,7 +333,8 @@ type ExtractConfigVars<TConfigPages extends { [key: string]: ConfigPage }> =
       : never
     : never;
 
-export type ConfigVars = Prettify<UnionToIntersection<ExtractConfigVars<ConfigPages>>>;
+export type ConfigVars = Prettify<UnionToIntersection<ExtractConfigVars<ConfigPages>>> &
+  Prettify<UnionToIntersection<ExtractConfigVars<UserLevelConfigPages>>>;
 
 export const isCodeConfigVar = (cv: ConfigVar): cv is CodeConfigVar =>
   "dataType" in cv && cv.dataType === "code";
