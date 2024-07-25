@@ -1,7 +1,7 @@
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 
-export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Values {
-<%- include('../partials/performArgs.ejs', { inputs: connection.inputs }) -%>
+export interface <%= connection.typeInterface %>Values {
+<%- include('../partials/performArgs.ejs', { inputs: connection.inputs, helpers }) -%>
 }
 
 /**
@@ -9,14 +9,15 @@ export interface <%= helpers.capitalizeFirstLetter(connection.key) %>Values {
  *
  * @comments <%- connection.comments %>
  */
-export const <%= connection.key %> = {
+export const <%= connection.import %> = {
+  key: "<%= connection.key %>",
   perform: (
-    _values: <%= helpers.capitalizeFirstLetter(connection.key) %>Values
+    _values: <%= connection.typeInterface %>Values
   ): Promise<void> => Promise.resolve(),
   <%_ if (connection.onPremAvailable) { -%>
   onPremAvailable: true,
   <%_ } -%>
   inputs: {
-    <%- include('../partials/inputs.ejs', { inputs: connection.inputs }) -%>
+    <%- include('../partials/inputs.ejs', { inputs: connection.inputs, helpers }) -%>
   }
 } as const;

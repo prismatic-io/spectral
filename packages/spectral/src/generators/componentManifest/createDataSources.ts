@@ -4,6 +4,8 @@ import { type Input, getInputs } from "./getInputs";
 import { type Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
+import { createTypeInterface } from "../utils/createTypeInterface";
+import { createImport } from "../utils/createImport";
 import type { Component } from "../../serverTypes";
 import { DataSourceType } from "../../types";
 
@@ -27,9 +29,9 @@ export const createDataSources = async ({
   }
 
   const dataSourceIndex = await renderDataSourcesIndex({
-    dataSources: Object.entries(component.dataSources ?? {}).map(([dataSourceKey, dataSource]) => {
+    imports: Object.entries(component.dataSources ?? {}).map(([dataSourceKey, dataSource]) => {
       return {
-        key: dataSource.key || dataSourceKey,
+        import: createImport(dataSource.key || dataSourceKey),
       };
     }),
     dryRun,
@@ -48,6 +50,8 @@ export const createDataSources = async ({
 
       return await renderDataSource({
         dataSource: {
+          type: createTypeInterface(dataSource.key || dataSourceKey),
+          import: createImport(dataSource.key || dataSourceKey),
           key: dataSource.key || dataSourceKey,
           label: dataSource.display.label,
           description: dataSource.display.description,
@@ -74,8 +78,8 @@ export const createDataSources = async ({
 };
 
 interface RenderDataSourcesProps {
-  dataSources: {
-    key: string;
+  imports: {
+    import: string;
   }[];
   dryRun: boolean;
   verbose: boolean;
@@ -84,7 +88,7 @@ interface RenderDataSourcesProps {
 }
 
 const renderDataSourcesIndex = async ({
-  dataSources,
+  imports,
   dryRun,
   verbose,
   sourceDir,
@@ -94,7 +98,7 @@ const renderDataSourcesIndex = async ({
     source: path.join(sourceDir, "dataSources", "index.ts.ejs"),
     destination: path.join(destinationDir, "dataSources", "index.ts"),
     data: {
-      dataSources,
+      imports,
     },
     dryRun,
     verbose,
@@ -103,6 +107,8 @@ const renderDataSourcesIndex = async ({
 
 interface RenderDataSourceProps {
   dataSource: {
+    type: string;
+    import: string;
     key: string;
     label: string;
     description: string;
@@ -126,7 +132,7 @@ const renderDataSource = async ({
 }: RenderDataSourceProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "dataSources", "dataSource.ts.ejs"),
-    destination: path.join(destinationDir, "dataSources", `${dataSource.key}.ts`),
+    destination: path.join(destinationDir, "dataSources", `${dataSource.import}.ts`),
     data: {
       dataSource,
       helpers,

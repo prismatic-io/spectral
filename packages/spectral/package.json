@@ -1,8 +1,10 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "9.0.5",
+  "version": "9.0.7",
   "description": "Utility library for building Prismatic components",
-  "keywords": ["prismatic"],
+  "keywords": [
+    "prismatic"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://prismatic.io",
@@ -36,7 +38,9 @@
     "test": "jest",
     "docs": "rm -f sidebars.{js,jse} && typedoc"
   },
-  "files": ["dist/"],
+  "files": [
+    "dist/"
+  ],
   "dependencies": {
     "@jsonforms/core": "3.0.0",
     "axios": "1.6.2",

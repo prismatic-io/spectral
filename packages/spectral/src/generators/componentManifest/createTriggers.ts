@@ -4,6 +4,8 @@ import { type Input, getInputs } from "./getInputs";
 import { type Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
+import { createTypeInterface } from "../utils/createTypeInterface";
+import { createImport } from "../utils/createImport";
 import type { Component } from "../../serverTypes";
 
 interface CreateTriggersProps {
@@ -26,9 +28,9 @@ export const createTriggers = async ({
   }
 
   const triggersIndex = await renderTriggersIndex({
-    triggers: Object.entries(component.triggers ?? {}).map(([triggerKey, trigger]) => {
+    imports: Object.entries(component.triggers ?? {}).map(([triggerKey, trigger]) => {
       return {
-        key: trigger.key || triggerKey,
+        import: createImport(trigger.key || triggerKey),
       };
     }),
     dryRun,
@@ -47,6 +49,8 @@ export const createTriggers = async ({
 
       return await renderTrigger({
         trigger: {
+          typeInterface: createTypeInterface(trigger.key || triggerKey),
+          import: createImport(trigger.key || triggerKey),
           key: trigger.key || triggerKey,
           label: trigger.display.description,
           description: trigger.display.description,
@@ -72,8 +76,8 @@ export const createTriggers = async ({
 };
 
 interface RenderTriggersIndexProps {
-  triggers: {
-    key: string;
+  imports: {
+    import: string;
   }[];
   dryRun: boolean;
   verbose: boolean;
@@ -82,7 +86,7 @@ interface RenderTriggersIndexProps {
 }
 
 const renderTriggersIndex = async ({
-  triggers,
+  imports,
   dryRun,
   verbose,
   sourceDir,
@@ -92,7 +96,7 @@ const renderTriggersIndex = async ({
     source: path.join(sourceDir, "triggers", "index.ts.ejs"),
     destination: path.join(destinationDir, "triggers", "index.ts"),
     data: {
-      triggers,
+      imports,
     },
     dryRun,
     verbose,
@@ -101,6 +105,8 @@ const renderTriggersIndex = async ({
 
 interface RenderTriggerProps {
   trigger: {
+    typeInterface: string;
+    import: string;
     key: string;
     label: string;
     description: string;
@@ -123,7 +129,7 @@ const renderTrigger = async ({
 }: RenderTriggerProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "triggers", "trigger.ts.ejs"),
-    destination: path.join(destinationDir, "triggers", `${trigger.key}.ts`),
+    destination: path.join(destinationDir, "triggers", `${trigger.import}.ts`),
     data: {
       helpers,
       imports,

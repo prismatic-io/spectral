@@ -4,6 +4,8 @@ import { type Input, getInputs } from "./getInputs";
 import { type Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
+import { createTypeInterface } from "../utils/createTypeInterface";
+import { createImport } from "../utils/createImport";
 import type { Component } from "../../serverTypes";
 
 interface CreateConnectionsProps {
@@ -26,9 +28,9 @@ export const createConnections = async ({
   }
 
   const connectionIndex = await renderConnectionsIndex({
-    connections: (component.connections ?? []).map((connection) => {
+    imports: (component.connections ?? []).map((connection) => {
       return {
-        key: connection.key,
+        import: createImport(connection.key),
       };
     }),
     dryRun,
@@ -51,6 +53,8 @@ export const createConnections = async ({
 
       return await renderConnection({
         connection: {
+          typeInterface: createTypeInterface(connection.key),
+          import: createImport(connection.key),
           key: connection.key,
           label: connection.label,
           comments: connection.comments,
@@ -77,8 +81,8 @@ export const createConnections = async ({
 };
 
 interface RenderConnectionsIndexProps {
-  connections: {
-    key: string;
+  imports: {
+    import: string;
   }[];
   dryRun: boolean;
   verbose: boolean;
@@ -87,7 +91,7 @@ interface RenderConnectionsIndexProps {
 }
 
 const renderConnectionsIndex = async ({
-  connections,
+  imports,
   dryRun,
   verbose,
   sourceDir,
@@ -97,7 +101,7 @@ const renderConnectionsIndex = async ({
     source: path.join(sourceDir, "connections", "index.ts.ejs"),
     destination: path.join(destinationDir, "connections", "index.ts"),
     data: {
-      connections,
+      imports,
     },
     dryRun,
     verbose,
@@ -106,6 +110,8 @@ const renderConnectionsIndex = async ({
 
 interface RenderConnectionProps {
   connection: {
+    typeInterface: string;
+    import: string;
     key: string;
     label: string;
     comments?: string;
@@ -129,7 +135,7 @@ const renderConnection = async ({
 }: RenderConnectionProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "connections", "connection.ts.ejs"),
-    destination: path.join(destinationDir, "connections", `${connection.key}.ts`),
+    destination: path.join(destinationDir, "connections", `${connection.import}.ts`),
     data: {
       connection,
       helpers,

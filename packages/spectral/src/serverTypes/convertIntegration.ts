@@ -306,7 +306,15 @@ const convertComponentReference = (
     key: componentReference.key,
   };
 
-  const manifestEntry = manifest[referenceType][componentReference.key];
+  const manifestEntry =
+    Object.values(manifest[referenceType]).find((entry) => entry.key === componentReference.key) ||
+    manifest[referenceType][componentReference.key];
+
+  if (!manifestEntry) {
+    throw new Error(
+      `Component with key "${componentReference.component}" does not have an entry with key "${componentReference.key}" in the component registry.`,
+    );
+  }
 
   const inputs = Object.entries(componentReference.values ?? {}).reduce((result, [key, value]) => {
     const manifestEntryInput = manifestEntry.inputs[key];

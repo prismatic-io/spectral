@@ -1,7 +1,7 @@
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 
-export interface <%= helpers.capitalizeFirstLetter(trigger.key) %>Values {
-<%- include('../partials/performArgs.ejs', { inputs: trigger.inputs }) -%>
+export interface <%= trigger.typeInterface %>Values {
+<%- include('../partials/performArgs.ejs', { inputs: trigger.inputs, helpers }) -%>
 }
 
 /**
@@ -9,11 +9,12 @@ export interface <%= helpers.capitalizeFirstLetter(trigger.key) %>Values {
  *
  * @description <%- trigger.description %>
  */
-export const <%= trigger.key %> = {
+export const <%= trigger.import %> = {
+  key: "<%= trigger.key %>",
   perform: <TReturn>(
-    _values: <%= helpers.capitalizeFirstLetter(trigger.key) %>Values
+    _values: <%= trigger.typeInterface %>Values
   ): Promise<TReturn> => Promise.resolve<TReturn>({} as TReturn),
   inputs: {
-    <%- include('../partials/inputs.ejs', { inputs: trigger.inputs }) -%>
+    <%- include('../partials/inputs.ejs', { inputs: trigger.inputs, helpers }) -%>
   }
 } as const;
