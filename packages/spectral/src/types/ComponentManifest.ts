@@ -18,22 +18,26 @@ interface BaseInput {
 }
 
 export interface ComponentManifestAction {
+  key: string;
   perform: (values: any) => Promise<unknown>;
   inputs: Record<string, BaseInput>;
 }
 
 export interface ComponentManifestTrigger {
+  key: string;
   perform: (values: any) => Promise<unknown>;
   inputs: Record<string, BaseInput>;
 }
 
 export interface ComponentManifestDataSource {
+  key: string;
   perform: (values: any) => Promise<unknown>;
   dataSourceType: DataSourceType;
   inputs: Record<string, BaseInput>;
 }
 
 export interface ComponentManifestConnection {
+  key: string;
   perform: (values: any) => Promise<unknown>;
   onPremAvailable?: boolean;
   inputs: Record<string, BaseInput & { onPremControlled?: boolean }>;

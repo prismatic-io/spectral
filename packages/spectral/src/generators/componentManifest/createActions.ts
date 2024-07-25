@@ -4,6 +4,8 @@ import { type Input, getInputs } from "./getInputs";
 import { type Imports, getImports } from "./getImports";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
+import { createTypeInterface } from "../utils/createTypeInterface";
+import { createImport } from "../utils/createImport";
 import type { Component } from "../../serverTypes";
 
 interface CreateActionsProps {
@@ -26,9 +28,9 @@ export const createActions = async ({
   }
 
   const actionIndex = await renderActionsIndex({
-    actions: Object.entries(component.actions ?? {}).map(([actionKey, action]) => {
+    imports: Object.entries(component.actions ?? {}).map(([actionKey, action]) => {
       return {
-        key: action.key || actionKey,
+        import: createImport(action.key ?? actionKey),
       };
     }),
     dryRun,
@@ -47,6 +49,8 @@ export const createActions = async ({
 
       return await renderAction({
         action: {
+          typeInterface: createTypeInterface(action.key ?? actionKey),
+          import: createImport(action.key ?? actionKey),
           key: action.key || actionKey,
           label: action.display.description,
           description: action.display.description,
@@ -72,8 +76,8 @@ export const createActions = async ({
 };
 
 interface RenderActionsIndexProps {
-  actions: {
-    key: string;
+  imports: {
+    import: string;
   }[];
   dryRun: boolean;
   verbose: boolean;
@@ -82,7 +86,7 @@ interface RenderActionsIndexProps {
 }
 
 const renderActionsIndex = async ({
-  actions,
+  imports,
   dryRun,
   verbose,
   sourceDir,
@@ -92,7 +96,7 @@ const renderActionsIndex = async ({
     source: path.join(sourceDir, "actions", "index.ts.ejs"),
     destination: path.join(destinationDir, "actions", "index.ts"),
     data: {
-      actions,
+      imports,
     },
     dryRun,
     verbose,
@@ -101,6 +105,8 @@ const renderActionsIndex = async ({
 
 interface RenderActionProps {
   action: {
+    typeInterface: string;
+    import: string;
     key: string;
     label: string;
     description: string;
@@ -123,7 +129,7 @@ const renderAction = async ({
 }: RenderActionProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "actions", "action.ts.ejs"),
-    destination: path.join(destinationDir, "actions", `${action.key}.ts`),
+    destination: path.join(destinationDir, "actions", `${action.import}.ts`),
     data: {
       action,
       helpers,

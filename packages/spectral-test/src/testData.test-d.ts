@@ -146,6 +146,7 @@ export const componentRegistry = {
             required: true,
           },
         },
+        key: "jsonFormDataSource",
       },
       stringDataSource: {
         dataSourceType: "string",
@@ -156,17 +157,20 @@ export const componentRegistry = {
             required: true,
           },
         },
+        key: "stringDataSource",
       },
     },
     connections: {
       exampleConnection: {
         perform: (inputs: { foo: string }) => Promise.resolve<unknown>(inputs),
         inputs: {},
+        key: "exampleConnection",
       },
       onPremConnection: {
         perform: (inputs: { foo: string }) => Promise.resolve(inputs),
         inputs: {},
         onPremAvailable: true,
+        key: "onPremConnection",
       },
     },
   }),
@@ -188,6 +192,7 @@ export const componentRegistry = {
           showIdInDropdown: boolean;
         }) => Promise.resolve<unknown>(inputs),
         inputs: {},
+        key: "selectChannels",
       },
     },
     connections: {
@@ -198,6 +203,7 @@ export const componentRegistry = {
           signingSecret: string;
         }) => Promise.resolve<unknown>(inputs),
         inputs: {},
+        key: "slackOAuth",
       },
     },
   }),
@@ -210,6 +216,7 @@ export const componentRegistry = {
       hmac: {
         perform: (inputs: { secret: string; secret2: string }) => Promise.resolve<unknown>(inputs),
         inputs: {},
+        key: "hmac",
       },
     },
     dataSources: {},

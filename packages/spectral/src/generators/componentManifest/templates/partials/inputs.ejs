@@ -1,5 +1,5 @@
 <% inputs.forEach((input) => { -%>
-  <%= input.key %>: {
+  <%- helpers.formatType(input.key) %>: {
     inputType: "<%= input.inputType %>",
     <%_ if (input.collection) { -%>
     collection: "<%= input.collection %>",
