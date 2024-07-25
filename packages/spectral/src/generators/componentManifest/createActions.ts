@@ -30,7 +30,7 @@ export const createActions = async ({
   const actionIndex = await renderActionsIndex({
     imports: Object.entries(component.actions ?? {}).map(([actionKey, action]) => {
       return {
-        import: createImport(action.key || actionKey),
+        import: createImport(action.key ?? actionKey),
       };
     }),
     dryRun,
@@ -49,8 +49,8 @@ export const createActions = async ({
 
       return await renderAction({
         action: {
-          typeInterface: createTypeInterface(action.key || actionKey),
-          import: createImport(action.key || actionKey),
+          typeInterface: createTypeInterface(action.key ?? actionKey),
+          import: createImport(action.key ?? actionKey),
           key: action.key || actionKey,
           label: action.display.description,
           description: action.display.description,
