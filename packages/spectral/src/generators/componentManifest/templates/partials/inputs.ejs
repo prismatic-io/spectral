@@ -6,8 +6,10 @@
     <%_ } else { -%>
     collection: undefined,
     <%_ } -%>
-    <%_ if (input.default) { -%>
-    default: <%= input.default %>,
+    <%_ if (typeof input.default !== 'undefined') { -%>
+    default: `<%- input.default %>`,
+    <%_ } else { -%>
+    default: undefined,
     <%_ } -%>
     <%_ if (input.required) { -%>
     required: <%= input.required %>,
