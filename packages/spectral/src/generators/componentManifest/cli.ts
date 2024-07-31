@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import path from "path";
 import { readJsonSync, existsSync } from "fs-extra";
-import { kebabCase } from "lodash";
 
 import { createComponentManifest } from "./index";
 import { createFlagHelpText } from "../utils/createFlagHelpText";
@@ -121,7 +120,7 @@ export const runMain = async (process: NodeJS.Process) => {
     component,
     dryRun: flags.dry_run.value,
     skipSignatureVerify: flags.skip_signature_verify.value,
-    packageName: flags.name.value ?? `@component-manifests/${kebabCase(component.key)}`,
+    packageName: flags.name.value ?? `@component-manifests/${component.key}`,
     dependencies: {
       spectral: packageJson.version,
       dependencies: packageJson.dependencies,
