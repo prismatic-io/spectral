@@ -36,7 +36,7 @@ export const convertInput = (
     collection === "keyvaluelist" && typeof label === "object" ? label.key : undefined;
 
   return {
-    ...omit(rest, ["onPremControlled"]),
+    ...omit(rest, ["onPremControlled", "permissionAndVisibilityType", "visibleToOrgDeployer"]),
     key,
     type,
     default: defaultValue ?? InputFieldDefaultMap[type],

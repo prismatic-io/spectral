@@ -1,4 +1,4 @@
-import { ConnectionInput, OnPremConnectionInput } from ".";
+import type { ConnectionInput, OnPremConnectionInput } from ".";
 
 export enum OAuth2Type {
   ClientCredentials = "client_credentials",

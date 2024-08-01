@@ -524,6 +524,13 @@ const convertConfigVar = (
           return result;
         }
 
+        const meta = convertInputPermissionAndVisibility(
+          pick(input, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
+            permissionAndVisibilityType?: PermissionAndVisibilityType;
+            visibleToOrgDeployer?: boolean;
+          },
+        );
+
         const defaultValue = input.collection ? [] : "";
 
         return {
@@ -531,6 +538,7 @@ const convertConfigVar = (
           [key]: {
             type: input.collection ? "complex" : "value",
             value: input.default || defaultValue,
+            meta,
           },
         };
       }, {}),
