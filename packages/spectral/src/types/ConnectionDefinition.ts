@@ -32,8 +32,14 @@ export interface OnPremConnectionDefinition extends BaseConnectionDefinition {
   };
 }
 
+interface OAuth2Config {
+  overrideGrantType?: string;
+  allowedTokenParams?: string[];
+}
+
 interface OAuth2AuthorizationCodeConnectionDefinition extends BaseConnectionDefinition {
   oauth2Type: OAuth2Type.AuthorizationCode;
+  oauth2Config?: OAuth2Config;
   /** The PKCE method (S256 or plain) that this OAuth 2.0 connection uses (if any) */
   oauth2PkceMethod?: OAuth2PkceMethod;
   inputs: {
