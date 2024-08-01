@@ -95,7 +95,9 @@ export type ConnectionInput = (
   | TextInputField
   | PasswordInputField
   | BooleanInputField
-) & { shown?: boolean };
+) & {
+  shown?: boolean;
+};
 
 export type OnPremConnectionInput = {
   onPremControlled: true;

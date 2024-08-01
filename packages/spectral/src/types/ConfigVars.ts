@@ -1,25 +1,26 @@
 import {
-  DataSourceDefinition,
-  ConnectionDefinition,
-  Inputs,
-  DataSourceType,
-  Connection,
-  JSONForm,
-  ObjectFieldMap,
-  ObjectSelection,
-  ConfigVarResultCollection,
-  Schedule,
-  CollectionDataSourceType,
-  DataSourceReference,
+  type DataSourceDefinition,
+  type ConnectionDefinition,
+  type Inputs,
+  type DataSourceType,
+  type Connection,
+  type JSONForm,
+  type ObjectFieldMap,
+  type ObjectSelection,
+  type ConfigVarResultCollection,
+  type Schedule,
+  type CollectionDataSourceType,
+  type DataSourceReference,
   isComponentReference,
-  ConfigPage,
-  ConfigPages,
-  ConfigPageElement,
-  ComponentRegistryDataSource,
-  ComponentRegistryConnection,
-  UserLevelConfigPages,
+  type ConfigPage,
+  type ConfigPages,
+  type ConfigPageElement,
+  type ComponentRegistryDataSource,
+  type ComponentRegistryConnection,
+  type UserLevelConfigPages,
+  type ConnectionInput,
 } from ".";
-import { Prettify, UnionToIntersection } from "./utils";
+import type { Prettify, UnionToIntersection } from "./utils";
 
 /** Supported data types for Config Vars. */
 export type ConfigVarDataType =
@@ -70,19 +71,14 @@ type ConfigVarDataTypeRuntimeValueMap<
 /** Choices of collection types for multi-value Config Vars. */
 export type CollectionType = "valuelist" | "keyvaluelist";
 
-export type PermissionAndVisibilityType = "customer" | "embedded" | "organization";
-
 type ConfigVarSingleDataType = Extract<
   ConfigVarDataType,
   "schedule" | "objectSelection" | "objectFieldMap" | "jsonForm"
 >;
 
-/** Common attribute shared by all types of Config Vars. */
-type BaseConfigVar = {
-  /** A unique, unchanging value that is used to maintain identity for the Config Var even if the key changes. */
-  stableKey: string;
-  /** Optional description for this Config Var. */
-  description?: string;
+export type PermissionAndVisibilityType = "customer" | "embedded" | "organization";
+
+export interface ConfigVarVisibility {
   /**
    * Optional value that sets the permission and visibility of the Config Var. @default "customer"
    *
@@ -93,7 +89,28 @@ type BaseConfigVar = {
   permissionAndVisibilityType?: PermissionAndVisibilityType;
   /** Optional value that specifies whether this Config Var is visible to an Organization deployer. @default true */
   visibleToOrgDeployer?: boolean;
-};
+}
+
+interface ConfigVarInputVisibility {
+  /**
+   * Optional value that sets the permission and visibility of the Config Var Input. @default "customer"
+   *
+   * "customer" - Customers can view and edit the Config Var Input.
+   * "embedded" - Customers cannot view or update the Config Var Input as the value will be set programmatically.
+   * "organization" - Customers cannot view or update the Config Var Input as it will always have a default value or be set by the organization.
+   */
+  permissionAndVisibilityType?: PermissionAndVisibilityType;
+  /** Optional value that specifies whether this Config Var Input is visible to an Organization deployer. @default true */
+  visibleToOrgDeployer?: boolean;
+}
+
+/** Common attribute shared by all types of Config Vars. */
+type BaseConfigVar = {
+  /** A unique, unchanging value that is used to maintain identity for the Config Var even if the key changes. */
+  stableKey: string;
+  /** Optional description for this Config Var. */
+  description?: string;
+} & ConfigVarVisibility;
 
 type GetDynamicProperties<
   TValue,
@@ -232,8 +249,18 @@ type BaseConnectionConfigVar = BaseConfigVar & {
   dataType: "connection";
 };
 
-type ConnectionDefinitionConfigVar = BaseConnectionConfigVar &
-  Omit<ConnectionDefinition, "label" | "comments" | "key">;
+type ConnectionDefinitionConfigVar =
+  ConnectionDefinition extends infer TConnectionDefinitionType extends ConnectionDefinition
+    ? TConnectionDefinitionType extends infer TConnectionDefinition extends ConnectionDefinition
+      ? BaseConnectionConfigVar &
+          Omit<TConnectionDefinition, "inputs" | "label" | "comments" | "key"> & {
+            inputs: {
+              [Key in keyof TConnectionDefinition["inputs"]]: TConnectionDefinition["inputs"][Key] &
+                ConfigVarInputVisibility;
+            };
+          }
+      : never
+    : never;
 
 type OnPremiseConnectionConfigTypeEnum = "allowed" | "disallowed" | "required";
 

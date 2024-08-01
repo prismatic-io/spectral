@@ -1,5 +1,5 @@
-import { ComponentManifest, PermissionAndVisibilityType } from ".";
-import { Prettify, UnionToIntersection } from "./utils";
+import type { ComponentManifest, ConfigVarVisibility } from ".";
+import type { Prettify, UnionToIntersection } from "./utils";
 
 /**
  * Root ComponentRegistry type exposed for augmentation.
@@ -29,19 +29,6 @@ export type ComponentRegistry = keyof IntegrationDefinitionComponentRegistry ext
         : never
     >;
 
-export interface ConnectionInputPermissionAndVisibility {
-  /**
-   * Optional value that sets the permission and visibility of the Config Var. @default "customer"
-   *
-   * "customer" - Customers can view and edit the Config Var.
-   * "embedded" - Customers cannot view or update the Config Var as the value will be set programmatically.
-   * "organization" - Customers cannot view or update the Config Var as it will always have a default value or be set by the organization.
-   */
-  permissionAndVisibilityType?: PermissionAndVisibilityType;
-  /** Optional value that specifies whether this Config Var is visible to an Organization deployer. @default true */
-  visibleToOrgDeployer?: boolean;
-}
-
 export type ConfigVarExpression = { configVar: string };
 export type ValueExpression<TValueType = unknown> = {
   value: TValueType;
@@ -58,8 +45,7 @@ type ComponentReferenceTypeValueMap<
     actions: ValueExpression<TValue>;
     triggers: ValueExpression<TValue> | ConfigVarExpression;
     dataSources: ValueExpression<TValue> | ConfigVarExpression;
-    connections: (ValueExpression<TValue> | ConfigVarExpression) &
-      ConnectionInputPermissionAndVisibility;
+    connections: (ValueExpression<TValue> | ConfigVarExpression) & ConfigVarVisibility;
   },
 > = TMap;
 
