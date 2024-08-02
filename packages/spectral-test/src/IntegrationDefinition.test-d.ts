@@ -1,4 +1,8 @@
-import { integration } from "@prismatic-io/spectral";
+import {
+  integration,
+  FlowExecutionContext,
+  FlowExecutionContextActions,
+} from "@prismatic-io/spectral";
 import { Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable } from "tsd";
 
@@ -23,6 +27,9 @@ const basicDefinition = integration({
         });
       },
       onExecution: async (context, params) => {
+        expectAssignable<(inputs: { connection: string; channel: string }) => Promise<any>>(
+          context.components.slack.postMessage,
+        );
         console.log(`Action context: ${JSON.stringify(context)}`);
         console.log(`Action params: ${JSON.stringify(params)}`);
         return Promise.resolve({
@@ -33,3 +40,11 @@ const basicDefinition = integration({
   ],
 });
 expectAssignable<Component>(basicDefinition);
+expectAssignable<Parameters<FlowExecutionContext["components"]["slack"]["postMessage"]>[0]>({
+  connection: "testConnection",
+  channel: "testChannel",
+});
+expectAssignable<Parameters<FlowExecutionContextActions["slack"]["postMessage"]>[0]>({
+  connection: "testConnection",
+  channel: "testChannel",
+});

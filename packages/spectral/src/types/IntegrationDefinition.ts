@@ -13,6 +13,7 @@ import {
   UserLevelConfigPages,
   ValueExpression,
   ConfigVarExpression,
+  ActionContext,
 } from ".";
 
 /** Defines attributes of a Code-Native Integration. */
@@ -48,6 +49,31 @@ export type IntegrationDefinition = {
   componentRegistry?: ComponentRegistry;
 };
 
+export type FlowOnExecution<TTriggerPayload extends TriggerPayload> = ActionPerformFunction<
+  {
+    onTrigger: {
+      type: "data";
+      label: string;
+      clean: (value: unknown) => { results: TTriggerPayload };
+    };
+  },
+  ConfigVars,
+  {
+    [Key in keyof ComponentRegistry]: ComponentRegistry[Key]["actions"];
+  },
+  false,
+  ActionPerformReturn<false, unknown>
+>;
+
+export type FlowExecutionContext = ActionContext<
+  ConfigVars,
+  {
+    [Key in keyof ComponentRegistry]: ComponentRegistry[Key]["actions"];
+  }
+>;
+
+export type FlowExecutionContextActions = FlowExecutionContext["components"];
+
 /** Defines attributes of a Flow of a Code-Native Integration. */
 export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   /** The unique name for this Flow. */
@@ -81,21 +107,7 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   /** Specifies the function to execute when an Instance of an Integration is deleted. */
   onInstanceDelete?: TriggerEventFunction<Inputs, ConfigVars>;
   /** Specifies the main function for this Flow */
-  onExecution: ActionPerformFunction<
-    {
-      onTrigger: {
-        type: "data";
-        label: string;
-        clean: (value: unknown) => { results: TTriggerPayload };
-      };
-    },
-    ConfigVars,
-    {
-      [Key in keyof ComponentRegistry]: ComponentRegistry[Key]["actions"];
-    },
-    false,
-    ActionPerformReturn<false, unknown>
-  >;
+  onExecution: FlowOnExecution<TTriggerPayload>;
 }
 
 /** Defines attributes of a Preprocess Flow Configuration used by a Flow of an Integration. */
