@@ -178,7 +178,22 @@ export const componentRegistry = {
     key: "slack",
     public: true,
     signature: "slack-signature" as const,
-    actions: {},
+    actions: {
+      postMessage: {
+        perform: (inputs: { connection: string; channel: string }) =>
+          Promise.resolve<unknown>(inputs),
+        inputs: {
+          connection: {
+            inputType: "connection",
+            required: true,
+          },
+          channel: {
+            inputType: "string",
+            required: true,
+          },
+        },
+      },
+    },
     triggers: {},
     dataSources: {
       selectChannels: {

@@ -38,6 +38,7 @@ expectAssignable<
   | "onPremConnection"
   | "slackOAuth"
   | "selectChannels"
+  | "postMessage"
   | "hmac"
 >(slackRef.key);
 
