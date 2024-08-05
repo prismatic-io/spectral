@@ -14,6 +14,7 @@ export interface Input {
   valueType: ValueType;
   docBlock: string;
   required: boolean | undefined;
+  default: ServerTypeInput["default"];
 }
 
 export type ValueType = string | { type: string; module: string };
@@ -29,6 +30,18 @@ interface GetInputsProps {
   inputs: ServerTypeInput[];
   docBlock?: (input: ServerTypeInput) => string;
 }
+
+const getDefaultValue = (value: ServerTypeInput["default"]) => {
+  if (value === undefined || value === "") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return JSON.stringify(value);
+};
 
 export const getInputs = ({ inputs, docBlock = DOC_BLOCK_DEFAULT }: GetInputsProps): Input[] => {
   return inputs.reduce((acc, input) => {
@@ -51,6 +64,7 @@ export const getInputs = ({ inputs, docBlock = DOC_BLOCK_DEFAULT }: GetInputsPro
         collection: input.collection,
         onPremControlled: input.onPremiseControlled || input.onPremControlled,
         docBlock: docBlock(input),
+        default: getDefaultValue(input.default),
       },
     ];
   }, [] as Input[]);

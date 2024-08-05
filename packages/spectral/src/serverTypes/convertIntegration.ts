@@ -315,50 +315,58 @@ const convertComponentReference = (
     key: manifestEntry.key ?? componentReference.key,
   };
 
-  const inputs = Object.entries(componentReference.values ?? {}).reduce((result, [key, value]) => {
-    const manifestEntryInput = manifestEntry.inputs[key];
-
-    const type = manifestEntryInput.collection
-      ? "complex"
-      : "value" in value
-        ? "value"
-        : "configVar";
-
-    if ("value" in value) {
-      const valueExpr =
-        manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
-          ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
-              name: { type: "value", value: k },
-              type: "value",
-              value: v,
-            }))
-          : value.value;
-
-      const formattedValue =
-        type === "complex" || typeof valueExpr === "string" ? valueExpr : JSON.stringify(valueExpr);
-
-      const meta = convertInputPermissionAndVisibility(
-        pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-          permissionAndVisibilityType?: PermissionAndVisibilityType;
-          visibleToOrgDeployer?: boolean;
-        },
-      );
-
-      return {
-        ...result,
-        [key]: { type: type, value: formattedValue, meta },
+  const inputs = Object.entries(manifestEntry.inputs).reduce(
+    (result, [key, manifestEntryInput]) => {
+      // Retrieve the input value or default to the manifest's default value
+      const value = componentReference.values?.[key] ?? {
+        value: manifestEntryInput.default ?? "",
       };
-    }
 
-    if ("configVar" in value) {
-      return {
-        ...result,
-        [key]: { type: "configVar", value: value.configVar },
-      };
-    }
+      const type = manifestEntryInput.collection
+        ? "complex"
+        : "value" in value
+          ? "value"
+          : "configVar";
 
-    return result;
-  }, {});
+      if ("value" in value) {
+        const valueExpr =
+          manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
+            ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
+                name: { type: "value", value: k },
+                type: "value",
+                value: JSON.stringify(v),
+              }))
+            : value.value;
+
+        const formattedValue =
+          type === "complex" || typeof valueExpr === "string"
+            ? valueExpr
+            : JSON.stringify(valueExpr);
+
+        const meta = convertInputPermissionAndVisibility(
+          pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
+            permissionAndVisibilityType?: PermissionAndVisibilityType;
+            visibleToOrgDeployer?: boolean;
+          },
+        );
+
+        return {
+          ...result,
+          [key]: { type: type, value: formattedValue, meta },
+        };
+      }
+
+      if ("configVar" in value) {
+        return {
+          ...result,
+          [key]: { type: "configVar", value: value.configVar },
+        };
+      }
+
+      return result;
+    },
+    {},
+  );
 
   return {
     ref,
@@ -665,20 +673,24 @@ const convertOnExecution =
         const componentActions = Object.entries(actions).reduce<
           Record<string, ComponentManifestAction["perform"]>
         >((actionsAccumulator, [registryActionKey, action]) => {
+          const manifestActions = componentRegistry[componentKey].actions[registryActionKey];
+
           // Define the method to be called for the action
           const invokeAction: ComponentManifestAction["perform"] = async (values) => {
-            // Transform the input values based on the action's inputs
-            const transformedValues = Object.entries(values).reduce<Record<string, any>>(
-              (transformedAccumulator, [inputKey, inputValue]) => {
-                const { collection } = action.inputs[inputKey];
+            // Apply defaults directly within the transformation process
+            const transformedValues = Object.entries(manifestActions.inputs).reduce<
+              Record<string, any>
+            >((transformedAccumulator, [inputKey, inputValueBase]) => {
+              const inputValue = values[inputKey] ?? inputValueBase.default;
 
-                return {
-                  ...transformedAccumulator,
-                  [inputKey]: convertInputValue(inputValue, collection),
-                };
-              },
-              {},
-            );
+              const { collection } = inputValueBase;
+
+              return {
+                ...transformedAccumulator,
+                [inputKey]: convertInputValue(inputValue, collection),
+              };
+            }, {});
+
             // Invoke the action with the transformed values
             return invoke(
               {
