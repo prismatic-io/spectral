@@ -7,6 +7,8 @@ export type ServerTypeInput = InputBase & {
   shown?: boolean;
 };
 
+type ValueType = string | { type: string; import: string; module: string };
+
 export interface Input {
   key: string;
   label: string;
@@ -17,26 +19,13 @@ export interface Input {
   default: ServerTypeInput["default"];
 }
 
-export type ValueType = string | { type: string; module: string };
-
-export type DocBlock = {
-  inputKey?: string;
-  propertyKey: keyof ServerTypeInput;
-  propertyValue?: unknown;
-  output?: string;
-}[];
-
 interface GetInputsProps {
   inputs: ServerTypeInput[];
   docBlock?: (input: ServerTypeInput) => string;
 }
 
 const getDefaultValue = (value: ServerTypeInput["default"]) => {
-  if (value === undefined || value === "") {
-    return value;
-  }
-
-  if (typeof value === "string") {
+  if (value === undefined || value === "" || typeof value === "string") {
     return value;
   }
 
@@ -70,7 +59,9 @@ export const getInputs = ({ inputs, docBlock = DOC_BLOCK_DEFAULT }: GetInputsPro
   }, [] as Input[]);
 };
 
-export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], ValueType> = {
+type InputType = string | { type: string; module: string };
+
+export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   string: "string",
   data: "string",
   text: "string",
@@ -78,44 +69,59 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], ValueType> = {
   boolean: "boolean",
   code: "string",
   conditional: {
-    type: "ConditionalExpression",
     module: "@prismatic-io/spectral",
+    type: "ConditionalExpression",
   },
   connection: {
-    type: "Connection",
     module: "@prismatic-io/spectral",
+    type: "Connection",
   },
   objectSelection: {
-    type: "ObjectSelection",
     module: "@prismatic-io/spectral",
+    type: "ObjectSelection",
   },
   objectFieldMap: {
-    type: "ObjectFieldMap",
     module: "@prismatic-io/spectral",
+    type: "ObjectFieldMap",
   },
   jsonForm: {
-    type: "JSONForm",
     module: "@prismatic-io/spectral",
+    type: "JSONForm",
   },
   dynamicObjectSelection: "string",
   dynamicFieldSelection: "string",
 };
 
-const getInputValueType = (input: ServerTypeInput) => {
+const getInputValueType = (input: ServerTypeInput): ValueType => {
+  const inputType = INPUT_TYPE_MAP[input.type as InputFieldDefinition["type"]];
   const valueType = input.model
     ? input.model
         .map((choice) => {
           return `\`${choice.value.replaceAll("\r", "\\r").replaceAll("\n", "\\n")}\``;
         })
         .join(" | ")
-    : INPUT_TYPE_MAP[input.type as InputFieldDefinition["type"]] || "never";
+    : inputType
+      ? typeof inputType === "string"
+        ? inputType
+        : {
+            ...inputType,
+            import: inputType.type,
+          }
+      : "never";
 
   if (input.collection === "keyvaluelist") {
-    return `Record<string, ${valueType}> | Array<{key: string, value: ${valueType}}>`;
+    return typeof valueType === "string"
+      ? `Record<string, ${valueType}> | Array<{key: string, value: ${valueType}}>`
+      : {
+          ...valueType,
+          type: `Record<string, ${valueType.type}> | Array<{key: string, value: ${valueType.type}}>`,
+        };
   }
 
   if (input.collection === "valuelist") {
-    return `${valueType}[]`;
+    return typeof valueType === "string"
+      ? `${valueType}[]`
+      : { ...valueType, type: `${valueType.type}[]` };
   }
 
   return valueType;
