@@ -15,10 +15,10 @@ export const getImports = ({ inputs }: GetImportsProps) => {
     return {
       ...acc,
       [input.valueType.module]: acc[input.valueType.module]
-        ? !acc[input.valueType.module].includes(input.valueType.type)
-          ? [...acc[input.valueType.module], input.valueType.type]
+        ? !acc[input.valueType.module].includes(input.valueType.import)
+          ? [...acc[input.valueType.module], input.valueType.import]
           : acc[input.valueType.module]
-        : [input.valueType.type],
+        : [input.valueType.import],
     };
   }, {} as Imports);
 };
