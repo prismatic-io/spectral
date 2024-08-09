@@ -20,6 +20,7 @@ import {
   CollectionType,
   KeyValuePair,
   ComponentManifest,
+  isJsonFormConfigVar,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -603,6 +604,13 @@ const convertConfigVar = (
 
   if (isScheduleConfigVar(configVar)) {
     result.scheduleType = "custom";
+  }
+
+  if (isJsonFormConfigVar(configVar)) {
+    result.meta = {
+      ...result.meta,
+      validationMode: configVar?.validationMode ?? "ValidateAndShow",
+    };
   }
 
   if (isDataSourceDefinitionConfigVar(configVar)) {

@@ -1,3 +1,4 @@
+import { ValidationMode } from "@jsonforms/core";
 import {
   type DataSourceDefinition,
   type ConnectionDefinition,
@@ -183,7 +184,9 @@ type ObjectSelectionConfigVar = CreateStandardConfigVar<"objectSelection">;
 
 type ObjectFieldMapConfigVar = CreateStandardConfigVar<"objectFieldMap">;
 
-type JsonFormConfigVar = CreateStandardConfigVar<"jsonForm">;
+type JsonFormConfigVar = CreateStandardConfigVar<"jsonForm"> & {
+  validationMode?: ValidationMode;
+};
 
 export type StandardConfigVar =
   | StringConfigVar
@@ -368,6 +371,9 @@ export const isCodeConfigVar = (cv: ConfigVar): cv is CodeConfigVar =>
 
 export const isScheduleConfigVar = (cv: ConfigVar): cv is ScheduleConfigVar =>
   "dataType" in cv && cv.dataType === "schedule";
+
+export const isJsonFormConfigVar = (cv: ConfigVar): cv is JsonFormConfigVar =>
+  "dataType" in cv && cv.dataType === "jsonForm";
 
 export const isDataSourceDefinitionConfigVar = (
   cv: ConfigVar,
