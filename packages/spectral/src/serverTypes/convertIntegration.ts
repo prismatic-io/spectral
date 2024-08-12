@@ -681,7 +681,8 @@ const convertOnExecution =
         const componentActions = Object.entries(actions).reduce<
           Record<string, ComponentManifestAction["perform"]>
         >((actionsAccumulator, [registryActionKey, action]) => {
-          const manifestActions = componentRegistry[componentKey].actions[registryActionKey];
+          const manifestActions =
+            componentRegistry[registryComponentKey].actions[registryActionKey];
 
           // Define the method to be called for the action
           const invokeAction: ComponentManifestAction["perform"] = async (values) => {
