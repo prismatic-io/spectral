@@ -39,7 +39,7 @@
   "files": ["dist/"],
   "dependencies": {
     "@jsonforms/core": "3.0.0",
-    "axios": "1.6.2",
+    "axios": "1.7.4",
     "axios-retry": "3.9.1",
     "date-fns": "2.30.0",
     "ejs": "^3.1.10",
