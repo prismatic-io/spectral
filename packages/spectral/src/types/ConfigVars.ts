@@ -188,6 +188,10 @@ type JsonFormConfigVar = CreateStandardConfigVar<"jsonForm"> & {
   validationMode?: ValidationMode;
 };
 
+type JsonFormDataSourceDefinitionConfigVar = DataSourceDefinitionConfigVar & {
+  validationMode?: ValidationMode;
+};
+
 export type StandardConfigVar =
   | StringConfigVar
   | DateConfigVar
@@ -209,10 +213,17 @@ type BaseDataSourceConfigVar<TDataSourceType extends DataSourceType = DataSource
         collectionType?: CollectionType | undefined;
       } & BaseConfigVar
     : TDataSourceType extends Exclude<DataSourceType, CollectionDataSourceType>
-      ? BaseConfigVar & {
-          dataSourceType: TDataSourceType;
-          collectionType?: undefined;
-        }
+      ? TDataSourceType extends Extract<DataSourceType, "jsonForm">
+        ? BaseConfigVar & {
+            dataSourceType: Extract<DataSourceType, "jsonForm">;
+            dataSource?: never;
+            collectionType?: undefined;
+            validationMode?: ValidationMode;
+          }
+        : BaseConfigVar & {
+            dataSourceType: TDataSourceType;
+            collectionType?: undefined;
+          }
       :
           | ({
               dataSourceType: Extract<CollectionDataSourceType, TDataSourceType>;
@@ -240,6 +251,7 @@ type DataSourceReferenceConfigVar =
   ComponentRegistryDataSource extends infer TDataSourceReference extends ComponentRegistryDataSource
     ? Omit<BaseDataSourceConfigVar<TDataSourceReference["dataSourceType"]>, "dataSourceType"> & {
         dataSource: TDataSourceReference["reference"];
+        validationMode?: ValidationMode;
       }
     : never;
 
@@ -374,6 +386,11 @@ export const isScheduleConfigVar = (cv: ConfigVar): cv is ScheduleConfigVar =>
 
 export const isJsonFormConfigVar = (cv: ConfigVar): cv is JsonFormConfigVar =>
   "dataType" in cv && cv.dataType === "jsonForm";
+
+export const isJsonFormDataSourceConfigVar = (
+  cv: ConfigVar,
+): cv is JsonFormDataSourceDefinitionConfigVar =>
+  "dataSourceType" in cv && cv.dataSourceType === "jsonForm";
 
 export const isDataSourceDefinitionConfigVar = (
   cv: ConfigVar,

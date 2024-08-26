@@ -1,11 +1,12 @@
 import type {
+  ConfigVar,
   DataSourceConfigVar,
   ConfigPages,
   ConfigVars,
   Connection,
 } from "@prismatic-io/spectral";
 import { ValueOf } from "@prismatic-io/spectral/dist/types/utils";
-import { expectAssignable } from "tsd";
+import { expectAssignable, expectNotType } from "tsd";
 
 type RawConnectionElems = ValueOf<ConfigPages>["elements"];
 expectAssignable<"A Connection" | "Ref Connection">(null as unknown as keyof RawConnectionElems);
@@ -15,6 +16,54 @@ expectAssignable<"A Connection" | "Ref Connection">(null as unknown as keyof Con
 
 expectAssignable<Connection>(null as unknown as ConfigVars["A Connection"]);
 expectAssignable<Connection>(null as unknown as ConfigVars["Ref Connection"]);
+
+// Having both a dataSource & dataSourceType in a DataSourceConfigVar is invalid
+expectNotType<DataSourceConfigVar>({
+  stableKey: "jsonFormDataSourceConfigVar",
+  dataSource: {
+    component: "example",
+    key: "jsonFormDataSource",
+    values: { bar: { configVar: "" } },
+  },
+  dataSourceType: "jsonForm",
+  perform: () =>
+    Promise.resolve({
+      result: { uiSchema: { type: "" }, schema: {}, data: {} },
+    }),
+});
+
+// validationMode should only be accepted by jsonForm and component reference config vars
+expectAssignable<ConfigVar>({
+  stableKey: "jsonFormConfigVar",
+  dataType: "jsonForm",
+  validationMode: "ValidateAndHide",
+});
+
+expectAssignable<DataSourceConfigVar>({
+  stableKey: "jsonFormDataSourceConfigVar",
+  dataSourceType: "jsonForm",
+  perform: () =>
+    Promise.resolve({
+      result: { uiSchema: { type: "" }, schema: {}, data: {} },
+    }),
+  validationMode: "NoValidation",
+});
+
+expectAssignable<DataSourceConfigVar>({
+  stableKey: "componentRefConfigVar",
+  dataSource: {
+    component: "example",
+    key: "jsonFormDataSource",
+    values: { bar: { configVar: "" } },
+  },
+  validationMode: "NoValidation",
+});
+
+expectNotType<DataSourceConfigVar>({
+  dataSourceType: "boolean",
+  stableKey: "booleanConfigVar",
+  validationMode: "NoValidation",
+});
 
 // Subset of data source types support collections.
 expectAssignable<DataSourceConfigVar>({
