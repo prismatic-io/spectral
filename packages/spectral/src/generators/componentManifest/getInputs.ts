@@ -1,5 +1,6 @@
 import type { Input as InputBase } from "../../serverTypes";
 import type { InputFieldDefinition } from "../../types/Inputs";
+import { escapeSpecialCharacters } from "../utils/escapeSpecialCharacters";
 import { DOC_BLOCK_DEFAULT } from "./docBlock";
 
 export type ServerTypeInput = InputBase & {
@@ -25,11 +26,12 @@ interface GetInputsProps {
 }
 
 const getDefaultValue = (value: ServerTypeInput["default"]) => {
-  if (value === undefined || value === "" || typeof value === "string") {
+  if (value === undefined || value === "") {
     return value;
   }
 
-  return JSON.stringify(value);
+  const stringValue = typeof value === "string" ? value : JSON.stringify(value);
+  return escapeSpecialCharacters(stringValue);
 };
 
 export const getInputs = ({ inputs, docBlock = DOC_BLOCK_DEFAULT }: GetInputsProps): Input[] => {

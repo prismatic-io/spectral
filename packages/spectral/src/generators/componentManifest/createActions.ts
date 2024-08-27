@@ -52,7 +52,7 @@ export const createActions = async ({
           typeInterface: createTypeInterface(action.key ?? actionKey),
           import: createImport(action.key ?? actionKey),
           key: action.key || actionKey,
-          label: action.display.description,
+          label: action.display.label,
           description: action.display.description,
           inputs,
         },
