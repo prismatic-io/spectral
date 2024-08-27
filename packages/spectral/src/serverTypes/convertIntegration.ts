@@ -20,6 +20,8 @@ import {
   CollectionType,
   KeyValuePair,
   ComponentManifest,
+  isJsonFormConfigVar,
+  isJsonFormDataSourceConfigVar,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -605,6 +607,13 @@ const convertConfigVar = (
     result.scheduleType = "custom";
   }
 
+  if (isJsonFormConfigVar(configVar) || isJsonFormDataSourceConfigVar(configVar)) {
+    result.meta = {
+      ...result.meta,
+      validationMode: configVar?.validationMode ?? "ValidateAndShow",
+    };
+  }
+
   if (isDataSourceDefinitionConfigVar(configVar)) {
     result.dataType = configVar.dataSourceType;
     result.dataSource = {
@@ -622,6 +631,13 @@ const convertConfigVar = (
     result.dataType = componentRegistry[ref.component.key].dataSources[ref.key].dataSourceType;
     result.dataSource = ref;
     result.inputs = inputs;
+
+    if (configVar.validationMode) {
+      result.meta = {
+        ...result.meta,
+        validationMode: configVar.validationMode,
+      };
+    }
   }
 
   return result;
