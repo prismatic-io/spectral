@@ -1,3 +1,4 @@
+import { escapeSpecialCharacters } from "../utils/escapeSpecialCharacters";
 import { ServerTypeInput } from "./getInputs";
 
 export const DOC_BLOCK_DEFAULT = (input: ServerTypeInput): string => {
@@ -34,9 +35,11 @@ export const addLine = ({ key, value, raw }: AddLineProps) => {
     return "";
   }
 
-  const sanitizedValue = JSON.stringify(value)
-    .replace(/(^"|"$)|(^'|'$)/g, "")
-    .trim();
+  const sanitizedValue = escapeSpecialCharacters(
+    JSON.stringify(value)
+      .replace(/(^"|"$)|(^'|'$)/g, "")
+      .trim(),
+  );
 
   return ` * ${key ? `@${key} ${sanitizedValue}` : sanitizedValue}\n`;
 };
