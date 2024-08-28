@@ -1,4 +1,5 @@
-import { flow } from ".";
+import { connectionConfigVar, flow } from ".";
+import { convertConfigVar } from "./serverTypes/convertIntegration";
 import { connectionValue, defaultConnectionValueEnvironmentVariable, invokeFlow } from "./testing";
 
 // TODO: This changeset it questionable.
@@ -52,5 +53,82 @@ describe("test flow using connections", () => {
       },
     });
     expect(result).toMatchObject({ data: { "A Connection": value } });
+  });
+});
+
+describe("test input conversion", () => {
+  const defaultKeyValuePairs = [
+    { key: "defaultKey1", value: "my first default value" },
+    { key: "defaultKey2", value: "my second default value" },
+  ];
+  const defaultValues = ["string 1", "string 2"];
+
+  const configVar = connectionConfigVar({
+    stableKey: "my-test-connection",
+    dataType: "connection",
+    inputs: {
+      "My Key Value List": {
+        label: "This is a collection of key-value pairs.",
+        type: "string",
+        collection: "keyvaluelist",
+        default: defaultKeyValuePairs,
+      },
+      "My Regular Value List": {
+        label: "This is a collection of strings.",
+        type: "string",
+        collection: "valuelist",
+        default: defaultValues,
+      },
+    },
+  });
+
+  it("converts default keyvaluelist & valuelist config var definitions into the correct shape", async () => {
+    const convertedConfigVar = convertConfigVar(
+      "my-config-var",
+      configVar,
+      "fake-component-reference-key",
+      {},
+    );
+
+    expect(convertedConfigVar.inputs).toMatchObject({
+      "My Key Value List": {
+        type: "complex",
+        value: [
+          {
+            name: defaultKeyValuePairs[0].key,
+            type: "value",
+            value: defaultKeyValuePairs[0].value,
+          },
+          {
+            name: defaultKeyValuePairs[1].key,
+            type: "value",
+            value: defaultKeyValuePairs[1].value,
+          },
+        ],
+        meta: {
+          orgOnly: false,
+          visibleToCustomerDeployer: true,
+          visibleToOrgDeployer: true,
+        },
+      },
+      "My Regular Value List": {
+        type: "complex",
+        value: [
+          {
+            type: "value",
+            value: defaultValues[0],
+          },
+          {
+            type: "value",
+            value: defaultValues[1],
+          },
+        ],
+        meta: {
+          orgOnly: false,
+          visibleToCustomerDeployer: true,
+          visibleToOrgDeployer: true,
+        },
+      },
+    });
   });
 });

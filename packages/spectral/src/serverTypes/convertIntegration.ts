@@ -499,7 +499,7 @@ const convertInputValue = (value: unknown, collectionType: CollectionType | unde
 };
 
 /** Converts a Config Var into the structure necessary for YAML generation. */
-const convertConfigVar = (
+export const convertConfigVar = (
   key: string,
   configVar: ConfigVar,
   referenceKey: string,
@@ -533,13 +533,28 @@ const convertConfigVar = (
           },
         );
 
-        const defaultValue = input.collection ? [] : "";
+        const defaultValue = input.collection
+          ? (input.default || []).map((defaultValue) => {
+              if (typeof defaultValue === "string") {
+                return {
+                  type: "value",
+                  value: defaultValue,
+                };
+              }
+
+              return {
+                name: defaultValue.key,
+                type: "value",
+                value: defaultValue.value,
+              };
+            })
+          : input.default || "";
 
         return {
           ...result,
           [key]: {
             type: input.collection ? "complex" : "value",
-            value: input.default || defaultValue,
+            value: defaultValue,
             meta,
           },
         };
