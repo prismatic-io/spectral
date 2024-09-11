@@ -1,5 +1,5 @@
-import { connectionConfigVar, flow } from ".";
-import { convertConfigVar } from "./serverTypes/convertIntegration";
+import { connectionConfigVar, flow, TriggerBaseResult, TriggerPayload } from ".";
+import { convertConfigVar, convertFlow } from "./serverTypes/convertIntegration";
 import { connectionValue, defaultConnectionValueEnvironmentVariable, invokeFlow } from "./testing";
 
 // TODO: This changeset it questionable.
@@ -129,6 +129,124 @@ describe("test input conversion", () => {
           visibleToOrgDeployer: true,
         },
       },
+    });
+  });
+});
+
+describe("test convert flow", () => {
+  describe("with onInstanceDeploy and onInstanceDelete behavior defined", () => {
+    const baseTestFlowInput = {
+      name: "Test Flow",
+      stableKey: "my-test-flow",
+      description: "This is a test flow, nothing special",
+      onInstanceDeploy: async () => Promise.resolve({ executionState: { test: 123 } }),
+      onInstanceDelete: async () => Promise.resolve({ executionState: { test: 456 } }),
+      onExecution: async () => {
+        return { data: 123 };
+      },
+    };
+
+    const baseExpectedFlowOutput = {
+      description: "This is a test flow, nothing special",
+      name: "Test Flow",
+      stableKey: "my-test-flow",
+      steps: [
+        {
+          action: {
+            component: {
+              isPublic: false,
+              key: "test-reference-key",
+              version: "LATEST",
+            },
+            key: "testFlow_onTrigger",
+          },
+          description: "The function that will be executed by the flow to return an HTTP response.",
+          isTrigger: true,
+          name: "On Trigger",
+          stableKey: "my-test-flow-onTrigger",
+        },
+        {
+          action: {
+            component: {
+              isPublic: false,
+              key: "test-reference-key",
+              version: "LATEST",
+            },
+            key: "testFlow_onExecution",
+          },
+          description: "The function that will be executed by the flow.",
+          name: "On Execution",
+          stableKey: "my-test-flow-onExecution",
+        },
+      ],
+      supplementalComponents: [],
+    };
+
+    it("creates a custom trigger component and returns the expected converted flow object", async () => {
+      const testFlow = flow({
+        ...baseTestFlowInput,
+        onTrigger: async (context, payload, params) => {
+          const result: TriggerBaseResult<TriggerPayload> = {
+            payload,
+          };
+
+          result.response = {
+            statusCode: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ myTest: "abc" }),
+          };
+
+          return Promise.resolve(result);
+        },
+      });
+
+      expect(convertFlow(testFlow, {}, "test-reference-key")).toMatchObject({
+        ...baseExpectedFlowOutput,
+        supplementalComponents: [],
+      });
+    });
+
+    it("wraps default webhook trigger in a custom component and populates the supplemental components block", async () => {
+      const testFlow = flow({
+        ...baseTestFlowInput,
+        onTrigger: undefined,
+      });
+
+      const supplementalComponents = [
+        {
+          isPublic: true,
+          key: "webhook-triggers",
+          version: "LATEST",
+        },
+      ];
+
+      expect(convertFlow(testFlow, {}, "test-reference-key")).toMatchObject({
+        ...baseExpectedFlowOutput,
+        supplementalComponents,
+      });
+    });
+
+    it("wraps default schedule trigger in a custom component and populates the supplemental components block", async () => {
+      const testFlow = flow({
+        ...baseTestFlowInput,
+        schedule: {
+          value: "20 10 * * *",
+          timeZone: "America/Chicago",
+        },
+      });
+
+      const supplementalComponents = [
+        {
+          isPublic: true,
+          key: "schedule-triggers",
+          version: "LATEST",
+        },
+      ];
+
+      expect(convertFlow(testFlow, {}, "test-reference-key")).toMatchObject({
+        ...baseExpectedFlowOutput,
+        supplementalComponents,
+      });
     });
   });
 });

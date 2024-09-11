@@ -22,6 +22,8 @@ import {
   ComponentManifest,
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
+  TriggerReference,
+  TriggerEventFunctionReturn,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -34,6 +36,8 @@ import {
   TriggerEventFunction,
   ActionPerformFunction,
   ActionContext,
+  TriggerPayload,
+  TriggerResult,
 } from ".";
 import { convertInput } from "./convertComponent";
 import {
@@ -44,6 +48,7 @@ import {
   ConfigPage as ServerConfigPage,
   ComponentReference as ServerComponentReference,
 } from "./integration";
+import { merge } from "lodash";
 
 export const convertIntegration = (definition: IntegrationDefinition): ServerComponent => {
   // Generate a unique reference key that will be used to reference the
@@ -378,12 +383,26 @@ const convertComponentReference = (
 
 const convertComponentRegistry = (
   componentRegistry: ComponentRegistry,
-): Array<ServerComponentReference["component"]> =>
-  Object.values(componentRegistry).map(({ key, public: isPublic, signature }) => ({
+  publicSupplementalComponent?: "webhook" | "schedule",
+): Array<ServerComponentReference["component"]> => {
+  const convertedRegistry: Array<ServerComponentReference["component"]> = Object.values(
+    componentRegistry,
+  ).map(({ key, public: isPublic, signature }) => ({
     key,
     signature: signature ?? "",
     isPublic,
   }));
+
+  if (publicSupplementalComponent) {
+    convertedRegistry.push({
+      key: `${publicSupplementalComponent}-triggers`,
+      isPublic: true,
+      version: "LATEST",
+    });
+  }
+
+  return convertedRegistry;
+};
 
 /**
  * Create a reference to the private component built as part of this CNI.
@@ -397,8 +416,17 @@ const codeNativeIntegrationComponentReference = (referenceKey: string) => ({
   isPublic: false,
 });
 
+/* A flow's trigger gets wrapped in a custom component if there's a defined
+ * onTrigger function, or if any custom onInstance behavior is defined.
+ * */
+const flowUsesWrapperTrigger = (
+  flow: Pick<Flow, "onTrigger" | "onInstanceDelete" | "onInstanceDeploy">,
+) => {
+  return typeof flow.onTrigger === "function" || flow.onInstanceDelete || flow.onInstanceDeploy;
+};
+
 /** Converts a Flow into the structure necessary for YAML generation. */
-const convertFlow = (
+export const convertFlow = (
   flow: Flow,
   componentRegistry: ComponentRegistry,
   referenceKey: string,
@@ -414,6 +442,8 @@ const convertFlow = (
   result.preprocessFlowConfig = undefined;
   result.errorConfig = undefined;
 
+  let publicSupplementalComponent: "webhook" | "schedule" | undefined;
+
   const triggerStep: Record<string, unknown> = {
     name: "On Trigger",
     stableKey: `${flow.stableKey}-onTrigger`,
@@ -422,12 +452,9 @@ const convertFlow = (
     errorConfig: "errorConfig" in flow ? { ...flow.errorConfig } : undefined,
   };
 
-  if (typeof flow.onTrigger === "function") {
-    triggerStep.action = {
-      key: flowFunctionKey(flow.name, "onTrigger"),
-      component: codeNativeIntegrationComponentReference(referenceKey),
-    };
-  } else if (isComponentReference(flow.onTrigger)) {
+  const useWrapperTrigger = flowUsesWrapperTrigger(flow);
+
+  if (isComponentReference(flow.onTrigger) && !useWrapperTrigger) {
     const { ref, inputs } = convertComponentReference(
       flow.onTrigger,
       componentRegistry,
@@ -435,6 +462,15 @@ const convertFlow = (
     );
     triggerStep.action = ref;
     triggerStep.inputs = inputs;
+  } else if (useWrapperTrigger) {
+    if (!flow.onTrigger) {
+      publicSupplementalComponent = flow.schedule ? "schedule" : "webhook";
+    }
+
+    triggerStep.action = {
+      key: flowFunctionKey(flow.name, "onTrigger"),
+      component: codeNativeIntegrationComponentReference(referenceKey),
+    };
   } else {
     const hasSchedule = "schedule" in flow && typeof flow.schedule === "object";
     const key = hasSchedule ? "schedule" : "webhook";
@@ -477,7 +513,10 @@ const convertFlow = (
 
   result.steps = [triggerStep, actionStep];
 
-  result.supplementalComponents = convertComponentRegistry(componentRegistry);
+  result.supplementalComponents = convertComponentRegistry(
+    componentRegistry,
+    publicSupplementalComponent,
+  );
 
   return result;
 };
@@ -681,6 +720,106 @@ const flowFunctionKey = (flowName: string, functionName: "onExecution" | "onTrig
   return `${flowKey}_${functionName}`;
 };
 
+/* Generates component argument for invokeTrigger calls */
+const invokeTriggerComponentInput = (
+  componentRef: ServerComponentReference,
+  onTrigger: TriggerReference | undefined,
+  eventName: "perform" | "onInstanceDeploy" | "onInstanceDelete",
+) => {
+  const { component } = componentRef;
+  const inputComponent =
+    "signature" in componentRef.component
+      ? {
+          key: component.key,
+          signature:
+            "signature" in component &&
+            component.signature !== null &&
+            component.signature !== void 0
+              ? component.signature
+              : "",
+          isPublic: component.isPublic,
+        }
+      : component;
+  return {
+    component: inputComponent,
+    key: onTrigger ? onTrigger.key : componentRef.key,
+    triggerEventFunctionName: eventName,
+  };
+};
+
+/* Generates a wrapper function that calls an existing component trigger's perform */
+const generateTriggerPerformFn = (
+  componentRef: ServerComponentReference | undefined,
+  onTrigger: TriggerReference | TriggerPerformFunction | undefined,
+): TriggerPerformFunction => {
+  const performFn: TriggerPerformFunction =
+    componentRef && typeof onTrigger !== "function"
+      ? async (context, payload, params) => {
+          // @ts-expect-error: _components isn't part of the public API
+          const { _components } = context;
+          const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
+
+          return await invokeTrigger(
+            invokeTriggerComponentInput(componentRef, onTrigger, "perform"),
+            context,
+            payload,
+            params,
+          );
+        }
+      : (onTrigger as TriggerPerformFunction);
+
+  return performFn;
+};
+
+type TriggerActionInvokeFunction = (
+  ref: {
+    component: ServerComponentReference["component"];
+    key: string;
+    triggerEventFunctionName: "perform" | "onInstanceDeploy" | "onInstanceDelete";
+  },
+  context: ActionContext,
+  payload: TriggerPayload | null,
+  params: Record<string, unknown>,
+) => Promise<TriggerResult>;
+
+/** Generates a wrapper function that calls an existing component's onInstanceDeploy
+ * or onInstanceDelete, then calls the flow-defined version if it exists.
+ * Returns the deep-merged results of the two, prioritizing the custom response
+ * if there's a conflict. */
+const generateOnInstanceWrapperFn = (
+  componentRef: ServerComponentReference | undefined,
+  onTrigger: TriggerReference | TriggerPerformFunction | undefined,
+  eventName: "onInstanceDeploy" | "onInstanceDelete",
+  customFn?: TriggerEventFunction,
+): TriggerEventFunction | undefined => {
+  const onInstanceFn: TriggerEventFunction | undefined =
+    componentRef && typeof onTrigger !== "function"
+      ? async (context, params) => {
+          // @ts-expect-error: _components isn't part of the public API
+          const { _components } = context;
+          const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
+
+          const invokeResponse =
+            (await invokeTrigger(
+              invokeTriggerComponentInput(componentRef, onTrigger, eventName),
+              context,
+              null,
+              params,
+            )) || {};
+
+          let customResponse: TriggerEventFunctionReturn = {};
+
+          if (customFn) {
+            customResponse = (await customFn(context, params)) || {};
+          }
+
+          return merge(invokeResponse, customResponse);
+        }
+      : customFn;
+
+  return onInstanceFn;
+};
+
 type ComponentActionInvokeFunction = <TValues extends Record<string, any>>(
   ref: ServerComponentReference,
   context: ActionContext,
@@ -793,12 +932,42 @@ const codeNativeIntegrationComponent = (
   );
 
   const convertedTriggers = flows.reduce<Record<string, ServerTrigger>>(
-    (result, { name, onTrigger, onInstanceDeploy, onInstanceDelete }) => {
-      if (typeof onTrigger !== "function") {
+    (result, { name, onTrigger, onInstanceDeploy, onInstanceDelete, schedule }) => {
+      if (!flowUsesWrapperTrigger({ onTrigger, onInstanceDelete, onInstanceDeploy })) {
+        // In this scenario, the user has defined an existing component trigger
+        // without any custom behavior, so we don't need to wrap anything.
         return result;
       }
 
       const key = flowFunctionKey(name, "onTrigger");
+      const defaultComponentKey = schedule && typeof schedule === "object" ? "schedule" : "webhook";
+      const defaultComponentRef: ServerComponentReference = {
+        component: {
+          key: `${defaultComponentKey}-triggers`,
+          version: "LATEST",
+          isPublic: true,
+        },
+        key: defaultComponentKey,
+      };
+
+      // The component ref here is undefined if onTrigger is a function.
+      const { ref } = isComponentReference(onTrigger)
+        ? convertComponentReference(onTrigger as TriggerReference, componentRegistry, "triggers")
+        : { ref: onTrigger ? undefined : defaultComponentRef };
+
+      const performFn: TriggerPerformFunction = generateTriggerPerformFn(ref, onTrigger);
+      const deleteFn: TriggerEventFunction | undefined = generateOnInstanceWrapperFn(
+        ref,
+        onTrigger,
+        "onInstanceDelete",
+        onInstanceDelete,
+      );
+      const deployFn: TriggerEventFunction | undefined = generateOnInstanceWrapperFn(
+        ref,
+        onTrigger,
+        "onInstanceDeploy",
+        onInstanceDeploy,
+      );
 
       return {
         ...result,
@@ -809,11 +978,11 @@ const codeNativeIntegrationComponent = (
             description:
               "The function that will be executed by the flow to return an HTTP response.",
           },
-          perform: onTrigger as TriggerPerformFunction,
-          onInstanceDeploy: onInstanceDeploy as TriggerEventFunction,
-          hasOnInstanceDeploy: !!onInstanceDeploy,
-          onInstanceDelete: onInstanceDelete as TriggerEventFunction,
-          hasOnInstanceDelete: !!onInstanceDelete,
+          perform: performFn,
+          onInstanceDeploy: deployFn,
+          hasOnInstanceDeploy: !!deployFn,
+          onInstanceDelete: deleteFn,
+          hasOnInstanceDelete: !!deleteFn,
           inputs: [],
           scheduleSupport: "valid",
           synchronousResponseSupport: "valid",
