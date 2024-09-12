@@ -695,11 +695,8 @@ const convertOnExecution =
     componentRegistry: ComponentRegistry,
   ): ServerActionPerformFunction =>
   (context, params) => {
-    const {
-      // @ts-expect-error _components isn't part of the public API
-      _components,
-      ...remainingContext
-    } = context;
+    // @ts-expect-error _components isn't part of the public API
+    const { _components } = context;
 
     const invoke = (_components as { invoke: ComponentActionInvokeFunction }).invoke;
 
@@ -760,7 +757,7 @@ const convertOnExecution =
       {},
     );
 
-    return onExecution({ ...remainingContext, components: componentMethods }, params);
+    return onExecution({ ...context, components: componentMethods }, params);
   };
 
 /** Creates the structure necessary to import a Component as part of a
