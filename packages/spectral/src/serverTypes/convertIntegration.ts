@@ -22,6 +22,7 @@ import {
   ComponentManifest,
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
+  isOrganizationActivatedConnectionConfigVar,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -51,6 +52,7 @@ export const convertIntegration = (definition: IntegrationDefinition): ServerCom
   // inline as part of the integration definition.
   const referenceKey = uuid();
 
+  const scopedConfigVars = definition.scopedConfigVars ?? {};
   const configVars: Record<string, ConfigVar> = Object.values({
     configPages: definition.configPages ?? {},
     userLevelConfigPages: definition.userLevelConfigPages ?? {},
@@ -66,7 +68,7 @@ export const convertIntegration = (definition: IntegrationDefinition): ServerCom
                 return acc;
               }
 
-              if (key in acc) {
+              if (key in acc || key in scopedConfigVars) {
                 throw new Error(`Duplicate config var key: "${key}"`);
               }
 
@@ -132,6 +134,7 @@ const codeNativeIntegrationYaml = (
     flows,
     configPages,
     userLevelConfigPages,
+    scopedConfigVars,
     componentRegistry = {},
   }: IntegrationDefinition,
   referenceKey: string,
@@ -162,6 +165,24 @@ const codeNativeIntegrationYaml = (
     );
   }
 
+  const configVarMap = Object.entries(scopedConfigVars ?? {}).reduce(
+    (acc, [key, value]) => {
+      if (typeof value === "string") {
+        return acc;
+      }
+
+      return {
+        ...acc,
+        [key]: value,
+      };
+    },
+    { ...(configVars ?? {}) },
+  );
+
+  const requiredConfigVars = Object.entries(configVarMap).map(([key, configVar]) =>
+    convertConfigVar(key, configVar, referenceKey, componentRegistry),
+  );
+
   // Transform the IntegrationDefinition into the structure that is appropriate
   // for generating YAML, which will then be used by the Prismatic API to import
   // the integration as a Code Native Integration.
@@ -174,9 +195,7 @@ const codeNativeIntegrationYaml = (
     documentation,
     version,
     labels,
-    requiredConfigVars: Object.entries(configVars || {}).map(([key, configVar]) =>
-      convertConfigVar(key, configVar, referenceKey, componentRegistry),
-    ),
+    requiredConfigVars,
     endpointType,
     preprocessFlowName: hasPreprocessFlow ? preprocessFlows[0].name : undefined,
     externalCustomerIdField: fieldNameToReferenceInput(
@@ -505,6 +524,18 @@ export const convertConfigVar = (
   referenceKey: string,
   componentRegistry: ComponentRegistry,
 ): ServerRequiredConfigVariable => {
+  if (isOrganizationActivatedConnectionConfigVar(configVar)) {
+    const { stableKey } = pick(configVar, ["stableKey"]);
+
+    return {
+      key,
+      stableKey,
+      dataType: "connection",
+      orgOnly: false,
+      useScopedConfigVar: stableKey,
+    };
+  }
+
   const { orgOnly, meta } = convertConfigVarPermissionAndVisibility(
     pick(configVar, ["permissionAndVisibilityType", "visibleToOrgDeployer"]),
   );
