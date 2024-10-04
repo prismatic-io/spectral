@@ -9,6 +9,7 @@ import {
   componentManifest,
   ObjectSelection,
   JSONForm,
+  organizationActivatedConnection,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 
@@ -236,5 +237,11 @@ export const componentRegistry = {
     },
     dataSources: {},
     connections: {},
+  }),
+};
+
+export const scopedConfigVars = {
+  "My Customer Connection": organizationActivatedConnection({
+    stableKey: "my-customer-connection-stable-key",
   }),
 };

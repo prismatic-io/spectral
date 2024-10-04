@@ -20,6 +20,8 @@ import {
   type ComponentRegistryConnection,
   type UserLevelConfigPages,
   type ConnectionInput,
+  type OrganizationActivatedConnectionConfigVar,
+  type ScopedConfigVarMap,
 } from ".";
 import type { Prettify, UnionToIntersection } from "./utils";
 
@@ -304,7 +306,11 @@ type ConnectionReferenceConfigVar = ComponentRegistryConnection extends infer TC
 /** Defines attributes of a Config Var that represents a Connection. */
 export type ConnectionConfigVar = ConnectionDefinitionConfigVar | ConnectionReferenceConfigVar;
 
-export type ConfigVar = StandardConfigVar | DataSourceConfigVar | ConnectionConfigVar;
+export type ConfigVar =
+  | StandardConfigVar
+  | DataSourceConfigVar
+  | ConnectionConfigVar
+  | OrganizationActivatedConnectionConfigVar;
 
 type WithCollectionType<TValue, TCollectionType extends CollectionType | undefined> =
   | undefined
@@ -375,8 +381,27 @@ type ExtractConfigVars<TConfigPages extends { [key: string]: ConfigPage }> =
       : never
     : never;
 
+type ExtractScopedConfigVars<
+  TScopedConfigVarMap extends { [key: string]: string | OrganizationActivatedConnectionConfigVar },
+> = keyof TScopedConfigVarMap extends infer TScopedConfigVarName
+  ? TScopedConfigVarName extends keyof TScopedConfigVarMap
+    ? TScopedConfigVarMap[TScopedConfigVarName] extends infer TScopedConfigVar
+      ? TScopedConfigVar extends OrganizationActivatedConnectionConfigVar
+        ? {
+            [Key in keyof TScopedConfigVarMap as Key extends string
+              ? TScopedConfigVarMap[Key] extends OrganizationActivatedConnectionConfigVar
+                ? Key
+                : never
+              : never]: Connection;
+          }
+        : never
+      : never
+    : never
+  : never;
+
 export type ConfigVars = Prettify<UnionToIntersection<ExtractConfigVars<ConfigPages>>> &
-  Prettify<UnionToIntersection<ExtractConfigVars<UserLevelConfigPages>>>;
+  Prettify<UnionToIntersection<ExtractConfigVars<UserLevelConfigPages>>> &
+  Prettify<UnionToIntersection<ExtractScopedConfigVars<ScopedConfigVarMap>>>;
 
 export const isCodeConfigVar = (cv: ConfigVar): cv is CodeConfigVar =>
   "dataType" in cv && cv.dataType === "code";

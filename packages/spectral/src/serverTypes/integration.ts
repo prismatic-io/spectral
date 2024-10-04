@@ -74,9 +74,18 @@ export interface DefaultRequiredConfigVariable {
   meta?: Record<string, unknown>;
 }
 
+export interface OrganizationActivatedConnectionRequiredConfigVariable {
+  key: string;
+  dataType: "connection";
+  orgOnly: false;
+  inputs?: never;
+  useScopedConfigVar: string;
+}
+
 export type RequiredConfigVariable =
   | DefaultRequiredConfigVariable
-  | ConnectionRequiredConfigVariable;
+  | ConnectionRequiredConfigVariable
+  | OrganizationActivatedConnectionRequiredConfigVariable;
 
 export interface ConfigPage {
   name: string;
