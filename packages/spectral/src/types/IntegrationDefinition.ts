@@ -14,6 +14,7 @@ import {
   ValueExpression,
   ConfigVarExpression,
   ActionContext,
+  ScopedConfigVarMap,
 } from ".";
 
 /** Defines attributes of a Code-Native Integration. */
@@ -45,6 +46,8 @@ export type IntegrationDefinition = {
   configPages?: ConfigPages;
   /** User Level Config Wizard Pages for this Integration. */
   userLevelConfigPages?: UserLevelConfigPages;
+  /** Scoped ConfigVars for this Integration. */
+  scopedConfigVars?: ScopedConfigVarMap;
 
   componentRegistry?: ComponentRegistry;
 };

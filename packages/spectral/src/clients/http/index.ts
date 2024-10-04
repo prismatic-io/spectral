@@ -107,13 +107,14 @@ export const createClient = ({
 
   if (debug) {
     client.interceptors.request.use((request) => {
-      const { baseURL, headers, method, timeout, url, data } = request;
+      const { baseURL, headers, method, timeout, url, data, params } = request;
       const dataSize = objectSizeof(data);
       console.log(
         util.types.toJSON(
           {
             type: "request",
             baseURL,
+            params,
             url,
             headers,
             method,

@@ -26,6 +26,7 @@ import {
   DataSourceConfigVar,
   OnPremConnectionDefinition,
   ComponentManifest,
+  OrganizationActivatedConnectionConfigVar,
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
@@ -98,6 +99,18 @@ export const dataSourceConfigVar = <TDataSourceConfigVar extends DataSourceConfi
 export const connectionConfigVar = <T extends ConnectionConfigVar = ConnectionConfigVar>(
   definition: T,
 ): T => definition;
+
+/**
+ * For information on writing Code Native Integrations, see
+ * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
+ * @param definition A Customer Connection Config Var type object.
+ * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
+ */
+export const organizationActivatedConnection = <T extends { stableKey: string }>(
+  definition: T,
+): OrganizationActivatedConnectionConfigVar => {
+  return { ...definition, dataType: "connection" };
+};
 
 /**
  * @param definition A Component Manifest type object.
