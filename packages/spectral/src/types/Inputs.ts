@@ -97,6 +97,7 @@ export type ConnectionInput = (
   | BooleanInputField
 ) & {
   shown?: boolean;
+  writeOnly?: true;
 };
 
 export type OnPremConnectionInput = {

@@ -596,12 +596,17 @@ export const convertConfigVar = (
           return result;
         }
 
-        const meta = convertInputPermissionAndVisibility(
-          pick(input, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-            permissionAndVisibilityType?: PermissionAndVisibilityType;
-            visibleToOrgDeployer?: boolean;
-          },
-        );
+        const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
+          convertInputPermissionAndVisibility(
+            pick(input, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
+              permissionAndVisibilityType?: PermissionAndVisibilityType;
+              visibleToOrgDeployer?: boolean;
+            },
+          );
+
+        if (input.writeOnly) {
+          meta.writeOnly = input.writeOnly;
+        }
 
         const defaultValue = input.collection
           ? (input.default || []).map((defaultValue) => {
