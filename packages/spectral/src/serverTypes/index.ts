@@ -213,6 +213,7 @@ export interface Connection {
   comments?: string;
   oauth2Type?: OAuth2Type;
   iconPath?: string;
+  avatarIconPath?: string;
   inputs: (Input & { shown?: boolean; onPremControlled?: boolean })[];
 }
 

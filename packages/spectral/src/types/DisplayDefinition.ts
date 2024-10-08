@@ -36,3 +36,13 @@ export interface ActionDisplayDefinition extends DisplayDefinition {
   /** Indicate that this Action is important and/or commonly used from the parent Component. Should be enabled sparingly. */
   important?: boolean;
 }
+
+/** Connection-specific Display attributes. */
+export interface ConnectionDisplayDefinition extends DisplayDefinition {
+  icons?: {
+    /** Path to icon to use for this Connection. Path should be relative to the built component source. */
+    avatarPath?: string;
+    /** Path to icon to use for this Connection's "Connect" button. Path should be relative to the built component source. */
+    oauth2ConnectionIconPath?: string;
+  };
+}
