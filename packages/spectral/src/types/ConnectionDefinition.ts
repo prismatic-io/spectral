@@ -1,4 +1,4 @@
-import type { ConnectionInput, OnPremConnectionInput } from ".";
+import type { ConnectionDisplayDefinition, ConnectionInput, OnPremConnectionInput } from ".";
 
 export enum OAuth2Type {
   ClientCredentials = "client_credentials",
@@ -12,9 +12,7 @@ export enum OAuth2PkceMethod {
 
 interface BaseConnectionDefinition {
   key: string;
-  label: string;
-  comments?: string;
-  iconPath?: string;
+  display: ConnectionDisplayDefinition;
   oauth2Type?: OAuth2Type;
 }
 

@@ -6,7 +6,10 @@ import util from "./util";
 
 const testConnection = connection({
   key: "connection",
-  label: "Test Connection",
+  display: {
+    label: "Test Connection",
+    description: "",
+  },
   oauth2Type: OAuth2Type.AuthorizationCode,
   inputs: {
     authorizeUrl: {

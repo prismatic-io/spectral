@@ -3,7 +3,10 @@ import { expectAssignable, expectNotAssignable } from "tsd";
 
 const valid = onPremConnection({
   key: "basic",
-  label: "Basic Connection",
+  display: {
+    label: "Basic Connection",
+    description: "",
+  },
   inputs: {
     host: {
       label: "Host",
@@ -43,7 +46,10 @@ expectAssignable<OnPremConnectionDefinition>(valid);
 
 const invalid = {
   key: "basic",
-  label: "Basic Connection",
+  display: {
+    label: "Basic Connection",
+    description: "",
+  },
   inputs: {
     username: {
       label: "Username",

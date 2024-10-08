@@ -3,8 +3,10 @@ import { invoke, invokeTrigger, invokeDataSource, createConnection } from "./tes
 
 const myConnection = connection({
   key: "myConnection",
-  label: "My Connection",
-  comments: "This is my connection",
+  display: {
+    label: "My Connection",
+    description: "This is my connection",
+  },
   inputs: {
     username: {
       label: "Username",
