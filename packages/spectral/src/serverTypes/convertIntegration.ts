@@ -369,12 +369,19 @@ const convertComponentReference = (
             ? valueExpr
             : JSON.stringify(valueExpr);
 
-        const meta = convertInputPermissionAndVisibility(
-          pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-            permissionAndVisibilityType?: PermissionAndVisibilityType;
-            visibleToOrgDeployer?: boolean;
-          },
-        );
+        const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
+          convertInputPermissionAndVisibility(
+            pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
+              permissionAndVisibilityType?: PermissionAndVisibilityType;
+              visibleToOrgDeployer?: boolean;
+            },
+          );
+
+        const { writeOnly } = pick(value, ["writeOnly"]) as { writeOnly?: true };
+
+        if (writeOnly) {
+          meta.writeOnly = writeOnly;
+        }
 
         return {
           ...result,

@@ -45,7 +45,8 @@ type ComponentReferenceTypeValueMap<
     actions: ValueExpression<TValue>;
     triggers: ValueExpression<TValue> | ConfigVarExpression;
     dataSources: ValueExpression<TValue> | ConfigVarExpression;
-    connections: (ValueExpression<TValue> | ConfigVarExpression) & ConfigVarVisibility;
+    connections: (ValueExpression<TValue> | ConfigVarExpression) &
+      ConfigVarVisibility & { writeOnly?: true };
   },
 > = TMap;
 
