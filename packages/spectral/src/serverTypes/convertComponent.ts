@@ -19,8 +19,9 @@ import {
   Input as ServerInput,
   DataSource as ServerDataSource,
 } from ".";
-import { InputCleaners, createPerform } from "./perform";
+import { InputCleaners, PerformFn, createPerform, createPollingPerform } from "./perform";
 import { omit } from "lodash";
+import { PollingTriggerDefinition } from "../types/PollingTriggerDefinition";
 
 export const convertInput = (
   key: string,
@@ -82,7 +83,7 @@ const convertTrigger = (
     onInstanceDeploy,
     onInstanceDelete,
     ...trigger
-  }: TriggerDefinition<Inputs, any, boolean, any>,
+  }: TriggerDefinition<Inputs, any, boolean, any> | PollingTriggerDefinition<Inputs, any, any, any>,
   hooks?: ComponentHooks,
 ): ServerTrigger => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
@@ -90,15 +91,36 @@ const convertTrigger = (
     (result, [key, { clean }]) => ({ ...result, [key]: clean }),
     {},
   );
+  const isPollingTrigger = "action" in trigger;
+  let triggerPerform: PerformFn;
 
-  const result: ServerTrigger = {
+  if (isPollingTrigger) {
+    triggerPerform = perform
+      ? createPerform(perform, {
+          inputCleaners,
+          errorHandler: hooks?.error,
+        })
+      : createPollingPerform(trigger, {
+          inputCleaners,
+          errorHandler: hooks?.error,
+        });
+  } else if (perform) {
+    triggerPerform = createPerform(perform, {
+      inputCleaners,
+      errorHandler: hooks?.error,
+    });
+  } else {
+    throw new Error("No perform method was provided for this trigger.");
+  }
+
+  const result: ServerTrigger & { action?: ActionDefinition } = {
     ...trigger,
     key: triggerKey,
     inputs: convertedInputs,
-    perform: createPerform(perform, {
-      inputCleaners,
-      errorHandler: hooks?.error,
-    }),
+    perform: triggerPerform,
+    scheduleSupport: "action" in trigger ? "required" : trigger?.scheduleSupport ?? "invalid",
+    synchronousResponseSupport:
+      "synchronousResponseSupport" in trigger ? trigger.synchronousResponseSupport : "valid",
   };
 
   if (onInstanceDeploy) {
@@ -117,7 +139,12 @@ const convertTrigger = (
     result.hasOnInstanceDelete = true;
   }
 
-  return result;
+  const { action, ...resultTrigger } = result;
+  return {
+    ...resultTrigger,
+    allowsBranching: isPollingTrigger ? true : resultTrigger.allowsBranching,
+    staticBranchNames: isPollingTrigger ? ["No Results", "Results"] : undefined,
+  };
 };
 
 const convertDataSource = (

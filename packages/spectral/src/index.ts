@@ -30,6 +30,7 @@ import {
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
+import { PolledResource, PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
 
 /**
  * This function creates a Integration object that can be
@@ -165,6 +166,23 @@ export const trigger = <
 >(
   definition: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult>,
 ): TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult> => definition;
+
+/**
+ * @TODO: Documentation.
+ * This function creates a polling trigger object that can be referenced
+ * by a custom component.
+ * @param definition PollingTriggerDefinition definition here
+ * @returns This function validates the shape of the `definition` object provided, and returns the same trigger object.
+ */
+export const pollingTrigger = <
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TAllowsBranching extends boolean,
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
+  TResource extends PolledResource,
+>(
+  definition: PollingTriggerDefinition<TInputs, TConfigVars, TResult, TResource>,
+): PollingTriggerDefinition<TInputs, TConfigVars, TResult, TResource> => definition;
 
 /**
  * This function creates a data source object that can be referenced
