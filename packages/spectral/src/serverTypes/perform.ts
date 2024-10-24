@@ -1,6 +1,12 @@
-import { ErrorHandler } from "../types";
+import type { ErrorHandler, Inputs } from "../types";
+import type {
+  PollingTriggerDefinition,
+  PollingTriggerFilterableValue,
+} from "../types/PollingTriggerDefinition";
+import { Input } from ".";
+import { merge } from "lodash";
 
-type PerformFn = (...args: any[]) => Promise<any>;
+export type PerformFn = (...args: any[]) => Promise<any>;
 export type CleanFn = (...args: any[]) => any;
 
 export type InputCleaners = Record<string, CleanFn | undefined>;
@@ -36,6 +42,89 @@ export const createPerform = (
 
       const [context, payload, params] = args;
       return await performFn(context, payload, cleanParams(params, inputCleaners));
+    } catch (error) {
+      throw errorHandler ? errorHandler(error) : error;
+    }
+  };
+};
+
+export const createPollingPerform = (
+  trigger: PollingTriggerDefinition<Inputs, any, any, any, any>,
+  { inputCleaners, errorHandler }: CreatePerformProps,
+  triggerPerform?: PerformFn,
+): PerformFn => {
+  return async (context, payload, params): Promise<any> => {
+    try {
+      // Perform action with mapped & cleaned inputs
+      const { pollAction, filterBy } = trigger;
+      const { action, inputMap = {} } = pollAction;
+
+      const mappedInputs = Object.entries(inputMap).reduce<{ [key: string]: unknown }>(
+        (accum, [key, getValue]) => {
+          if (getValue) {
+            const resolvedValue = getValue(context, payload, params);
+            accum[key] = resolvedValue;
+          }
+          return accum;
+        },
+        {},
+      );
+
+      const pollActionResponse: { data: unknown } = await action.perform(
+        context,
+        cleanParams(merge(params, mappedInputs), inputCleaners),
+      );
+
+      if (triggerPerform) {
+        const triggerResponse = await triggerPerform(
+          context,
+          {
+            ...payload,
+            body: {
+              ...payload.body,
+              ...pollActionResponse,
+            },
+          },
+          params,
+        );
+
+        context.instanceState.__prismatic_internal_poll_filter_value =
+          triggerResponse.comparisonValue;
+
+        return triggerResponse;
+      }
+
+      const polledData = Array.isArray(pollActionResponse.data)
+        ? pollActionResponse.data
+        : [pollActionResponse.data];
+
+      // Filter
+      const currentFilterValue: PollingTriggerFilterableValue =
+        context.instanceState.__prismatic_internal_poll_filter_value || 0;
+      let nextFilterValue: PollingTriggerFilterableValue = currentFilterValue;
+
+      const filteredData = polledData.filter((data) => {
+        const filterValue = filterBy(data);
+        if (filterValue > nextFilterValue) {
+          nextFilterValue = filterValue;
+        }
+        return filterValue > currentFilterValue;
+      });
+
+      const branch = filteredData.length > 0 ? "Results" : "No Results";
+      context.instanceState.__prismatic_internal_poll_filter_value = nextFilterValue;
+
+      // Respond w/ filtered items
+      return Promise.resolve({
+        branch,
+        payload: {
+          ...payload,
+          body: {
+            ...pollActionResponse,
+            data: filteredData,
+          },
+        },
+      });
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
     }

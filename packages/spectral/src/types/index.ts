@@ -35,4 +35,5 @@ export * from "./FlowAttributes";
 export * from "./IntegrationDefinition";
 export * from "./ComponentManifest";
 export * from "./ScopedConfigVars";
+export * from "./PollingTriggerDefinition";
 export * as serverTypes from "../serverTypes";

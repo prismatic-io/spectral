@@ -19,8 +19,13 @@ import {
   Input as ServerInput,
   DataSource as ServerDataSource,
 } from ".";
-import { InputCleaners, createPerform } from "./perform";
-import { omit } from "lodash";
+import { InputCleaners, PerformFn, createPerform, createPollingPerform } from "./perform";
+import { merge, omit } from "lodash";
+import {
+  isPollingTriggerDefinition,
+  PollingActionDefinition,
+  PollingTriggerDefinition,
+} from "../types/PollingTriggerDefinition";
 
 export const convertInput = (
   key: string,
@@ -76,34 +81,86 @@ const convertAction = (
 
 const convertTrigger = (
   triggerKey: string,
-  {
-    inputs = {},
-    perform,
-    onInstanceDeploy,
-    onInstanceDelete,
-    ...trigger
-  }: TriggerDefinition<Inputs, any, boolean, any>,
+  trigger:
+    | TriggerDefinition<Inputs, any, boolean, any>
+    | PollingTriggerDefinition<Inputs, any, any, any, PollingActionDefinition<Inputs, any, any>>,
   hooks?: ComponentHooks,
 ): ServerTrigger => {
-  const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
-  const inputCleaners = Object.entries(inputs).reduce<InputCleaners>(
+  const { inputs = {}, perform, onInstanceDeploy, onInstanceDelete } = trigger;
+
+  const convertedTriggerInputs = Object.entries(inputs).map(([key, value]) => {
+    const triggerInputKey = `${triggerKey}_input_${key}`;
+    return convertInput(triggerInputKey, value);
+  });
+
+  let convertedActionInputs: Array<ServerInput> = [];
+
+  const triggerInputCleaners = Object.entries(inputs).reduce<InputCleaners>(
     (result, [key, { clean }]) => ({ ...result, [key]: clean }),
     {},
   );
 
-  const result: ServerTrigger = {
+  const isPollingTrigger = isPollingTriggerDefinition(trigger);
+  const triggerPerform = trigger.perform
+    ? createPerform(trigger.perform, {
+        inputCleaners: triggerInputCleaners,
+        errorHandler: hooks?.error,
+      })
+    : undefined;
+  let performToUse: PerformFn;
+
+  if (isPollingTrigger) {
+    // Pull inputs up from the action and make them available on the trigger
+    const { pollAction } = trigger;
+    const { action, inputMap = {} } = pollAction;
+
+    convertedActionInputs = Object.entries(action.inputs).reduce<Array<ServerInput>>(
+      (accum, [key, value]) => {
+        if (!(key in inputMap)) {
+          // Only show the input at the top level if its value is not already populated by the inputMap
+          accum.push(convertInput(key, value));
+        }
+        return accum;
+      },
+      [],
+    );
+
+    const actionInputCleaners = Object.entries(action.inputs).reduce<InputCleaners>(
+      (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+      {},
+    );
+
+    performToUse = createPollingPerform(
+      trigger,
+      {
+        inputCleaners: actionInputCleaners,
+        errorHandler: hooks?.error,
+      },
+      triggerPerform,
+    );
+  } else if (triggerPerform) {
+    performToUse = triggerPerform;
+  } else {
+    throw new Error(
+      `Triggers require either a defined perform function or a pollAction. Trigger ${triggerKey} has defined neither.`,
+    );
+  }
+
+  const result: ServerTrigger & {
+    pollAction?: PollingTriggerDefinition<Inputs, any, any, any, any>["pollAction"];
+  } = {
     ...trigger,
     key: triggerKey,
-    inputs: convertedInputs,
-    perform: createPerform(perform, {
-      inputCleaners,
-      errorHandler: hooks?.error,
-    }),
+    inputs: convertedTriggerInputs.concat(convertedActionInputs),
+    perform: performToUse,
+    scheduleSupport: isPollingTrigger ? "required" : trigger?.scheduleSupport ?? "invalid",
+    synchronousResponseSupport:
+      "synchronousResponseSupport" in trigger ? trigger.synchronousResponseSupport : "valid",
   };
 
   if (onInstanceDeploy) {
     result.onInstanceDeploy = createPerform(onInstanceDeploy, {
-      inputCleaners,
+      inputCleaners: triggerInputCleaners,
       errorHandler: hooks?.error,
     });
     result.hasOnInstanceDeploy = true;
@@ -111,13 +168,19 @@ const convertTrigger = (
 
   if (onInstanceDelete) {
     result.onInstanceDelete = createPerform(onInstanceDelete, {
-      inputCleaners,
+      inputCleaners: triggerInputCleaners,
       errorHandler: hooks?.error,
     });
     result.hasOnInstanceDelete = true;
   }
 
-  return result;
+  const { pollAction, ...resultTrigger } = result;
+
+  return {
+    ...resultTrigger,
+    allowsBranching: isPollingTrigger ? true : resultTrigger.allowsBranching,
+    staticBranchNames: isPollingTrigger ? ["No Results", "Results"] : undefined,
+  };
 };
 
 const convertDataSource = (
