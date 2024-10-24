@@ -49,13 +49,12 @@ export const createPerform = (
 };
 
 export const createPollingPerform = (
-  trigger: PollingTriggerDefinition<Inputs, any, any, any>,
+  trigger: PollingTriggerDefinition<Inputs, any, any, any, any>,
   { inputCleaners, errorHandler }: CreatePerformProps,
+  triggerPerform?: PerformFn,
 ): PerformFn => {
   return async (context, payload, params): Promise<any> => {
     try {
-      context.logger.info("trigger params", params);
-
       // Perform action with mapped & cleaned inputs
       const { pollAction, filterBy } = trigger;
       const { action, inputMap = {} } = pollAction;
@@ -71,13 +70,33 @@ export const createPollingPerform = (
         {},
       );
 
-      const pollActionReturn: { data: unknown } = await action.perform(
+      const pollActionResponse: { data: unknown } = await action.perform(
         context,
         cleanParams(merge(params, mappedInputs), inputCleaners),
       );
-      const polledData = Array.isArray(pollActionReturn.data)
-        ? pollActionReturn.data
-        : [pollActionReturn.data];
+
+      if (triggerPerform) {
+        const triggerResponse = await triggerPerform(
+          context,
+          {
+            ...payload,
+            body: {
+              ...payload.body,
+              ...pollActionResponse,
+            },
+          },
+          params,
+        );
+
+        context.instanceState.__prismatic_internal_poll_filter_value =
+          triggerResponse.comparisonValue;
+
+        return triggerResponse;
+      }
+
+      const polledData = Array.isArray(pollActionResponse.data)
+        ? pollActionResponse.data
+        : [pollActionResponse.data];
 
       // Filter
       const currentFilterValue: PollingTriggerFilterableValue =
@@ -100,8 +119,10 @@ export const createPollingPerform = (
         branch,
         payload: {
           ...payload,
-          ...pollActionReturn,
-          data: filteredData,
+          body: {
+            ...pollActionResponse,
+            data: filteredData,
+          },
         },
       });
     } catch (error) {

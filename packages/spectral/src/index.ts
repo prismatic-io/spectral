@@ -33,6 +33,7 @@ import { convertIntegration } from "./serverTypes/convertIntegration";
 import {
   PollingActionDefinition,
   PollingTriggerDefinition,
+  PollingTriggerPayload,
   PollingTriggerResult,
 } from "./types/PollingTriggerDefinition";
 
@@ -186,11 +187,12 @@ export const trigger = <
 export const pollingTrigger = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  TResult extends PollingTriggerResult<TriggerPayload>,
+  TPayload extends PollingTriggerPayload,
+  TResult extends PollingTriggerResult<TPayload>,
   const TPollingAction extends PollingActionDefinition<Inputs, TConfigVars, any>,
 >(
-  definition: PollingTriggerDefinition<TInputs, TConfigVars, TResult, TPollingAction>,
-): PollingTriggerDefinition<TInputs, TConfigVars, TResult, TPollingAction> => definition;
+  definition: PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TPollingAction>,
+): PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TPollingAction> => definition;
 
 /**
  * This function creates a data source object that can be referenced

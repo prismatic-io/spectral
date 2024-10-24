@@ -83,7 +83,7 @@ const convertTrigger = (
   triggerKey: string,
   trigger:
     | TriggerDefinition<Inputs, any, boolean, any>
-    | PollingTriggerDefinition<Inputs, any, any, PollingActionDefinition<Inputs, any, any>>,
+    | PollingTriggerDefinition<Inputs, any, any, any, PollingActionDefinition<Inputs, any, any>>,
   hooks?: ComponentHooks,
 ): ServerTrigger => {
   const { inputs = {}, perform, onInstanceDeploy, onInstanceDelete } = trigger;
@@ -101,7 +101,13 @@ const convertTrigger = (
   );
 
   const isPollingTrigger = isPollingTriggerDefinition(trigger);
-  let triggerPerform: PerformFn;
+  const triggerPerform = trigger.perform
+    ? createPerform(trigger.perform, {
+        inputCleaners: triggerInputCleaners,
+        errorHandler: hooks?.error,
+      })
+    : undefined;
+  let performToUse: PerformFn;
 
   if (isPollingTrigger) {
     // Pull inputs up from the action and make them available on the trigger
@@ -124,21 +130,16 @@ const convertTrigger = (
       {},
     );
 
-    // Create a default perform fn if one is not already defined
-    triggerPerform = perform
-      ? createPerform(perform, {
-          inputCleaners: triggerInputCleaners,
-          errorHandler: hooks?.error,
-        })
-      : createPollingPerform(trigger, {
-          inputCleaners: actionInputCleaners,
-          errorHandler: hooks?.error,
-        });
-  } else if (perform) {
-    triggerPerform = createPerform(perform, {
-      inputCleaners: triggerInputCleaners,
-      errorHandler: hooks?.error,
-    });
+    performToUse = createPollingPerform(
+      trigger,
+      {
+        inputCleaners: actionInputCleaners,
+        errorHandler: hooks?.error,
+      },
+      triggerPerform,
+    );
+  } else if (triggerPerform) {
+    performToUse = triggerPerform;
   } else {
     throw new Error(
       `Triggers require either a defined perform function or a pollAction. Trigger ${triggerKey} has defined neither.`,
@@ -146,12 +147,12 @@ const convertTrigger = (
   }
 
   const result: ServerTrigger & {
-    pollAction?: PollingTriggerDefinition<Inputs, any, any, any>["pollAction"];
+    pollAction?: PollingTriggerDefinition<Inputs, any, any, any, any>["pollAction"];
   } = {
     ...trigger,
     key: triggerKey,
     inputs: convertedTriggerInputs.concat(convertedActionInputs),
-    perform: triggerPerform,
+    perform: performToUse,
     scheduleSupport: isPollingTrigger ? "required" : trigger?.scheduleSupport ?? "invalid",
     synchronousResponseSupport:
       "synchronousResponseSupport" in trigger ? trigger.synchronousResponseSupport : "valid",

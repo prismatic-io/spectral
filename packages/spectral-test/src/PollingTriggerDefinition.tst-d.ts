@@ -2,8 +2,8 @@ import {
   Inputs,
   PollingActionDefinition,
   PollingTriggerDefinition,
+  PollingTriggerPayload,
   PollingTriggerResult,
-  TriggerPayload,
   action,
   pollingTrigger,
 } from "@prismatic-io/spectral";
@@ -64,7 +64,8 @@ type ValidPollingActionDefinition = PollingActionDefinition<any, any, any>;
 type ValidPollingTriggerDefinition = PollingTriggerDefinition<
   Inputs,
   any,
-  PollingTriggerResult<TriggerPayload>,
+  any,
+  PollingTriggerResult<PollingTriggerPayload>,
   ValidPollingActionDefinition
 >;
 

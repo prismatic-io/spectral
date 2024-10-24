@@ -8,6 +8,8 @@ import type {
   TriggerPayload,
   ActionDefinition,
   ActionPerformReturn,
+  ActionContext,
+  ActionInputParameters,
 } from ".";
 
 export type PollingTriggerFilterableValue = Date | number;
@@ -30,12 +32,30 @@ export type PollingTriggerFilterBy<TPollingAction extends ActionDefinition<any, 
       ) => PollingTriggerFilterableValue
     : never;
 
-export type PollingTriggerResult<TPayload extends TriggerPayload> = TriggerResult<
+export type PollingTriggerPayload = TriggerPayload & {
+  body: {
+    data: ActionPerformReturn<false, unknown>;
+    contentType?: string;
+  };
+};
+
+export type PollingTriggerResult<TPayload extends PollingTriggerPayload> = TriggerResult<
   false,
   TPayload
 > & {
   comparisonValue: PollingTriggerFilterableValue;
 };
+
+export type PollingTriggerPerformFunction<
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TPayload extends PollingTriggerPayload,
+  TResult extends PollingTriggerResult<TPayload>,
+> = (
+  context: ActionContext<TConfigVars>,
+  payload: TPayload,
+  params: ActionInputParameters<TInputs>,
+) => Promise<TResult>;
 
 /**
  * PollingTriggerDefinition is the type of the object that is passed in to `pollingTrigger` function to
@@ -44,7 +64,8 @@ export type PollingTriggerResult<TPayload extends TriggerPayload> = TriggerResul
 export interface PollingTriggerDefinition<
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  TResult extends PollingTriggerResult<TriggerPayload>,
+  TPayload extends PollingTriggerPayload,
+  TResult extends PollingTriggerResult<TPayload>,
   TPollingAction extends PollingActionDefinition<Inputs, TConfigVars, any>,
 > {
   /** Defines how the Trigger is displayed in the Prismatic interface. */
@@ -59,7 +80,7 @@ export interface PollingTriggerDefinition<
   /** The return value of the filterBy will be used by polling trigger's default filter methods. */
   filterBy: PollingTriggerFilterBy<TPollingAction>;
   /** Function to perform when this Trigger is invoked. A default perform will be provided for most polling triggers but defining this allows for custom behavior. */
-  perform?: TriggerPerformFunction<TInputs, TConfigVars, false, TResult>;
+  perform?: PollingTriggerPerformFunction<TInputs, TConfigVars, TPayload, TResult>;
   /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deployed. */
   onInstanceDeploy?: TriggerEventFunction<TInputs, TConfigVars>;
   /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deleted. */
@@ -70,5 +91,10 @@ export interface PollingTriggerDefinition<
 
 export const isPollingTriggerDefinition = (
   ref: unknown,
-): ref is PollingTriggerDefinition<Inputs, any, any, PollingActionDefinition<Inputs, any, any>> =>
-  typeof ref === "object" && ref !== null && "pollAction" in ref;
+): ref is PollingTriggerDefinition<
+  Inputs,
+  any,
+  any,
+  any,
+  PollingActionDefinition<Inputs, any, any>
+> => typeof ref === "object" && ref !== null && "pollAction" in ref;
