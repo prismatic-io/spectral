@@ -187,7 +187,7 @@ export const pollingTrigger = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
   TResult extends PollingTriggerResult<TriggerPayload>,
-  const TPollingAction extends PollingActionDefinition<any, TConfigVars, any>,
+  const TPollingAction extends PollingActionDefinition<Inputs, TConfigVars, any>,
 >(
   definition: PollingTriggerDefinition<TInputs, TConfigVars, TResult, TPollingAction>,
 ): PollingTriggerDefinition<TInputs, TConfigVars, TResult, TPollingAction> => definition;

@@ -26,7 +26,9 @@ const myPollingTrigger = pollingTrigger({
     description: "My Polling Trigger Description",
   },
   filterBy: (resource) => resource.id,
-  pollAction: myAction,
+  pollAction: {
+    action: myAction,
+  },
   inputs: {},
 });
 
@@ -51,9 +53,10 @@ const myPollingTriggerWithBranchingAction = pollingTrigger({
     label: "My Polling Trigger",
     description: "My Polling Trigger Description",
   },
-
-  // @ts-expect-error
-  pollAction: myBranchingAction,
+  pollAction: {
+    // @ts-expect-error
+    action: myBranchingAction,
+  },
   inputs: {},
 });
 

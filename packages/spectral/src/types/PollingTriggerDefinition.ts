@@ -45,12 +45,17 @@ export interface PollingTriggerDefinition<
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
   TResult extends PollingTriggerResult<TriggerPayload>,
-  TPollingAction extends PollingActionDefinition<any, TConfigVars, any>,
+  TPollingAction extends PollingActionDefinition<Inputs, TConfigVars, any>,
 > {
   /** Defines how the Trigger is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
   /** The action that this trigger will poll with. */
-  pollAction: TPollingAction;
+  pollAction: {
+    action: TPollingAction;
+    inputMap?: Partial<{
+      [K in keyof TPollingAction["inputs"]]: (context: any, payload: any, params: any) => unknown;
+    }>;
+  };
   /** The return value of the filterBy will be used by polling trigger's default filter methods. */
   filterBy: PollingTriggerFilterBy<TPollingAction>;
   /** Function to perform when this Trigger is invoked. A default perform will be provided for most polling triggers but defining this allows for custom behavior. */

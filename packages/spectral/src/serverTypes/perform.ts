@@ -4,6 +4,7 @@ import type {
   PollingTriggerFilterableValue,
 } from "../types/PollingTriggerDefinition";
 import { Input } from ".";
+import { merge } from "lodash";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
 export type CleanFn = (...args: any[]) => any;
@@ -49,18 +50,30 @@ export const createPerform = (
 
 export const createPollingPerform = (
   trigger: PollingTriggerDefinition<Inputs, any, any, any>,
-  inputs: Input[],
   { inputCleaners, errorHandler }: CreatePerformProps,
 ): PerformFn => {
   return async (context, payload, params): Promise<any> => {
     try {
       context.logger.info("trigger params", params);
 
-      // Perform action with cleaned inputs
+      // Perform action with mapped & cleaned inputs
       const { pollAction, filterBy } = trigger;
-      const pollActionReturn: { data: unknown } = await pollAction.perform(
+      const { action, inputMap = {} } = pollAction;
+
+      const mappedInputs = Object.entries(inputMap).reduce<{ [key: string]: unknown }>(
+        (accum, [key, getValue]) => {
+          if (getValue) {
+            const resolvedValue = getValue(context, payload, params);
+            accum[key] = resolvedValue;
+          }
+          return accum;
+        },
+        {},
+      );
+
+      const pollActionReturn: { data: unknown } = await action.perform(
         context,
-        cleanParams(params, inputCleaners),
+        cleanParams(merge(params, mappedInputs), inputCleaners),
       );
       const polledData = Array.isArray(pollActionReturn.data)
         ? pollActionReturn.data

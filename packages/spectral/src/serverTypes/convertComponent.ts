@@ -106,10 +106,20 @@ const convertTrigger = (
   if (isPollingTrigger) {
     // Pull inputs up from the action and make them available on the trigger
     const { pollAction } = trigger;
-    convertedActionInputs = Object.entries(pollAction.inputs).map(([key, value]) => {
-      return convertInput(key, value);
-    });
-    const actionInputCleaners = Object.entries(pollAction.inputs).reduce<InputCleaners>(
+    const { action, inputMap = {} } = pollAction;
+
+    convertedActionInputs = Object.entries(action.inputs).reduce<Array<ServerInput>>(
+      (accum, [key, value]) => {
+        if (!(key in inputMap)) {
+          // Only show the input at the top level if its value is not already populated by the inputMap
+          accum.push(convertInput(key, value));
+        }
+        return accum;
+      },
+      [],
+    );
+
+    const actionInputCleaners = Object.entries(action.inputs).reduce<InputCleaners>(
       (result, [key, { clean }]) => ({ ...result, [key]: clean }),
       {},
     );
@@ -120,7 +130,7 @@ const convertTrigger = (
           inputCleaners: triggerInputCleaners,
           errorHandler: hooks?.error,
         })
-      : createPollingPerform(trigger, convertedActionInputs, {
+      : createPollingPerform(trigger, {
           inputCleaners: actionInputCleaners,
           errorHandler: hooks?.error,
         });
@@ -135,10 +145,12 @@ const convertTrigger = (
     );
   }
 
-  const result: ServerTrigger & { pollAction?: PollingActionDefinition<any, any, any> } = {
+  const result: ServerTrigger & {
+    pollAction?: PollingTriggerDefinition<Inputs, any, any, any>["pollAction"];
+  } = {
     ...trigger,
     key: triggerKey,
-    inputs: merge(convertedTriggerInputs, convertedActionInputs),
+    inputs: convertedTriggerInputs.concat(convertedActionInputs),
     perform: triggerPerform,
     scheduleSupport: isPollingTrigger ? "required" : trigger?.scheduleSupport ?? "invalid",
     synchronousResponseSupport:
