@@ -30,7 +30,11 @@ import {
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
-import { PolledResource, PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
+import {
+  PollingActionDefinition,
+  PollingTriggerDefinition,
+  PollingTriggerResult,
+} from "./types/PollingTriggerDefinition";
 
 /**
  * This function creates a Integration object that can be
@@ -145,9 +149,15 @@ export const action = <
   TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
   TReturn extends ActionPerformReturn<TAllowsBranching, unknown>,
+  const TActionDefinition extends ActionDefinition<
+    TInputs,
+    TConfigVars,
+    TAllowsBranching,
+    TReturn
+  > = ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>,
 >(
-  definition: ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>,
-): ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn> => definition;
+  definition: TActionDefinition,
+): TActionDefinition => definition;
 
 /**
  * This function creates a trigger object that can be referenced
@@ -168,21 +178,19 @@ export const trigger = <
 ): TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult> => definition;
 
 /**
- * @TODO: Documentation.
  * This function creates a polling trigger object that can be referenced
  * by a custom component.
- * @param definition PollingTriggerDefinition definition here
- * @returns This function validates the shape of the `definition` object provided, and returns the same trigger object.
+ * @param definition A PollingTriggerDefinition is similar to a TriggerDefinition, except it requires a pollAction instead of a perform. The pollAction, which can be any action defined in the component, will be polled on the defined schedule.
+ * @returns This function validates the shape of the `definition` object provided, and returns the same polling trigger object.
  */
 export const pollingTrigger = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  TAllowsBranching extends boolean,
-  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
-  TResource extends PolledResource,
+  TResult extends PollingTriggerResult<TriggerPayload>,
+  const TPollingAction extends PollingActionDefinition<any, TConfigVars, any>,
 >(
-  definition: PollingTriggerDefinition<TInputs, TConfigVars, TResult, TResource>,
-): PollingTriggerDefinition<TInputs, TConfigVars, TResult, TResource> => definition;
+  definition: PollingTriggerDefinition<TInputs, TConfigVars, TResult, TPollingAction>,
+): PollingTriggerDefinition<TInputs, TConfigVars, TResult, TPollingAction> => definition;
 
 /**
  * This function creates a data source object that can be referenced

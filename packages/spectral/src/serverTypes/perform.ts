@@ -1,9 +1,9 @@
 import type { ErrorHandler, Inputs } from "../types";
 import type {
-  PolledResource,
   PollingTriggerDefinition,
   PollingTriggerFilterableValue,
 } from "../types/PollingTriggerDefinition";
+import { Input } from ".";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
 export type CleanFn = (...args: any[]) => any;
@@ -49,28 +49,27 @@ export const createPerform = (
 
 export const createPollingPerform = (
   trigger: PollingTriggerDefinition<Inputs, any, any, any>,
+  inputs: Input[],
   { inputCleaners, errorHandler }: CreatePerformProps,
 ): PerformFn => {
-  return async (...args: any[]): Promise<any> => {
+  return async (context, payload, params): Promise<any> => {
     try {
+      context.logger.info("trigger params", params);
+
       // Perform action with cleaned inputs
-      const [context, params] = args;
-      const { action, filterBy, getPolledResources } = trigger;
-
-      const actionReturn = await action.perform(context, cleanParams(params, inputCleaners));
-      const polledData = getPolledResources
-        ? getPolledResources(actionReturn)
-        : actionReturn?.data ?? [];
-
-      if (!Array.isArray(polledData)) {
-        throw new Error(`Polled data was not an array: ${polledData}`);
-      }
+      const { pollAction, filterBy } = trigger;
+      const pollActionReturn: { data: unknown } = await pollAction.perform(
+        context,
+        cleanParams(params, inputCleaners),
+      );
+      const polledData = Array.isArray(pollActionReturn.data)
+        ? pollActionReturn.data
+        : [pollActionReturn.data];
 
       // Filter
       const currentFilterValue: PollingTriggerFilterableValue =
         context.instanceState.__prismatic_internal_poll_filter_value || 0;
-      let nextFilterValue: PollingTriggerFilterableValue =
-        context.instanceState.__prismatic_internal_poll_filter_value || 0;
+      let nextFilterValue: PollingTriggerFilterableValue = currentFilterValue;
 
       const filteredData = polledData.filter((data) => {
         const filterValue = filterBy(data);
@@ -81,13 +80,14 @@ export const createPollingPerform = (
       });
 
       const branch = filteredData.length > 0 ? "Results" : "No Results";
-      context.instance.__prismatic_internal_poll_filter_value = nextFilterValue;
+      context.instanceState.__prismatic_internal_poll_filter_value = nextFilterValue;
 
       // Respond w/ filtered items
       return Promise.resolve({
         branch,
         payload: {
-          ...actionReturn,
+          ...payload,
+          ...pollActionReturn,
           data: filteredData,
         },
       });
