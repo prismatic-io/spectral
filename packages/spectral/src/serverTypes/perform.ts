@@ -58,6 +58,7 @@ export const createPollingPerform = (
       // Perform action with mapped & cleaned inputs
       const { pollAction, filterBy } = trigger;
       const { action, inputMap = {} } = pollAction;
+      const currentFlowState = context.instanceState.__prismaticInternal ?? {};
 
       const mappedInputs = Object.entries(inputMap).reduce<{ [key: string]: unknown }>(
         (accum, [key, getValue]) => {
@@ -88,8 +89,7 @@ export const createPollingPerform = (
           params,
         );
 
-        context.instanceState.__prismatic_internal_poll_filter_value =
-          triggerResponse.comparisonValue;
+        currentFlowState.pollComparisonValue = triggerResponse.pollComparisonValue;
 
         return triggerResponse;
       }
@@ -100,7 +100,7 @@ export const createPollingPerform = (
 
       // Filter
       const currentFilterValue: PollingTriggerFilterableValue =
-        context.instanceState.__prismatic_internal_poll_filter_value || 0;
+        currentFlowState.pollComparisonValue || 0;
       let nextFilterValue: PollingTriggerFilterableValue = currentFilterValue;
 
       const filteredData = polledData.filter((data) => {
@@ -108,11 +108,14 @@ export const createPollingPerform = (
         if (filterValue > nextFilterValue) {
           nextFilterValue = filterValue;
         }
+
         return filterValue > currentFilterValue;
       });
 
       const branch = filteredData.length > 0 ? "Results" : "No Results";
-      context.instanceState.__prismatic_internal_poll_filter_value = nextFilterValue;
+      context.instanceState.__prismaticInternal = Object.assign(currentFlowState, {
+        pollComparisonValue: nextFilterValue,
+      });
 
       // Respond w/ filtered items
       return Promise.resolve({
