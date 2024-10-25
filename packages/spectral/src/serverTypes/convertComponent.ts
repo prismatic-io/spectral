@@ -26,6 +26,7 @@ import {
   PollingActionDefinition,
   PollingTriggerDefinition,
 } from "../types/PollingTriggerDefinition";
+import { input, util } from "..";
 
 export const convertInput = (
   key: string,
@@ -87,22 +88,32 @@ const convertTrigger = (
   hooks?: ComponentHooks,
 ): ServerTrigger => {
   const { inputs = {}, perform, onInstanceDeploy, onInstanceDelete } = trigger;
+  const isPollingTrigger = isPollingTriggerDefinition(trigger);
 
+  if (isPollingTrigger && trigger.pollAction.firstStartingValueInputType) {
+    const startingInputType = trigger.pollAction.firstStartingValueInputType;
+    inputs.__prismatic_first_starting_value = input({
+      label: "First starting value",
+      comments: `The ${startingInputType} that this flow will begin polling with. Once the flow has run or been tested, this value will be ignored in favor of the most recently polled ${startingInputType} value.`,
+      type: "string",
+      clean: startingInputType === "date" ? util.types.toDate : util.types.toNumber,
+    });
+  }
+
+  const triggerInputKeys = Object.keys(inputs);
   const convertedTriggerInputs = Object.entries(inputs).map(([key, value]) => {
-    const triggerInputKey = `${triggerKey}_input_${key}`;
-    return convertInput(triggerInputKey, value);
+    return convertInput(key, value);
   });
-
-  let convertedActionInputs: Array<ServerInput> = [];
 
   const triggerInputCleaners = Object.entries(inputs).reduce<InputCleaners>(
     (result, [key, { clean }]) => ({ ...result, [key]: clean }),
     {},
   );
 
-  const isPollingTrigger = isPollingTriggerDefinition(trigger);
-  const triggerPerform = trigger.perform
-    ? createPerform(trigger.perform, {
+  let convertedActionInputs: Array<ServerInput> = [];
+
+  const triggerPerform = perform
+    ? createPerform(perform, {
         inputCleaners: triggerInputCleaners,
         errorHandler: hooks?.error,
       })
@@ -116,6 +127,12 @@ const convertTrigger = (
 
     convertedActionInputs = Object.entries(action.inputs).reduce<Array<ServerInput>>(
       (accum, [key, value]) => {
+        if (triggerInputKeys.includes(key)) {
+          throw new Error(
+            `Error: The pollingTrigger "${trigger.display.label}" was defined with an input with the key of ${key}. This key duplicates an keyed input needed on the associated "${action.display.label}" action. Please rename the trigger input with a different key.`,
+          );
+        }
+
         if (!(key in inputMap)) {
           // Only show the input at the top level if its value is not already populated by the inputMap
           accum.push(convertInput(key, value));

@@ -103,7 +103,10 @@ export const createPollingPerform = (
       // Filter
       if (filterBy) {
         const currentFilterValue: PollingTriggerFilterableValue =
-          currentFlowState.pollComparisonValue || 0;
+          currentFlowState.pollComparisonValue
+            ? currentFlowState.pollComparisonValue
+            : params.__prismatic_first_starting_value ?? 0;
+
         let nextFilterValue: PollingTriggerFilterableValue = currentFilterValue;
 
         filteredData = polledData.filter((data) => {

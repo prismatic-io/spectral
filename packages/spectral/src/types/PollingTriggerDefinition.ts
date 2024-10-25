@@ -43,7 +43,7 @@ export type PollingTriggerResult<TPayload extends PollingTriggerPayload> = Trigg
   false,
   TPayload
 > & {
-  comparisonValue: PollingTriggerFilterableValue;
+  pollComparisonValue?: PollingTriggerFilterableValue;
 };
 
 export type PollingTriggerPerformFunction<
@@ -62,7 +62,7 @@ export type PollingTriggerPerformFunction<
  * define a component trigger.
  */
 export interface PollingTriggerDefinition<
-  TInputs extends Inputs,
+  TInputs extends Inputs & { __prismatic_first_starting_value?: never },
   TConfigVars extends ConfigVarResultCollection,
   TPayload extends PollingTriggerPayload,
   TResult extends PollingTriggerResult<TPayload>,
@@ -70,14 +70,18 @@ export interface PollingTriggerDefinition<
 > {
   /** Defines how the Trigger is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
-  /** The action that this trigger will poll with. */
+  /** Defines your trigger's polling behavior. */
   pollAction: {
+    /** The action that this trigger will be running every poll. */
     action: TPollingAction;
+    /** Defining this map will allow you to pipe through values from the trigger context, payload, or params, through to the action inputs. */
     inputMap?: Partial<{
       [K in keyof TPollingAction["inputs"]]: (context: any, payload: any, params: any) => unknown;
     }>;
     /** The return value of the filterBy will be used by polling trigger's default filter methods. If left blank, the response of the action will not be filtered. */
     filterBy?: PollingTriggerFilterBy<TPollingAction>;
+    /** If defined, the trigger will be created with an input that will allow users to define the starting value to begin polling by. This value is not needed if you plan to define your own perform.*/
+    firstStartingValueInputType?: "date" | "number";
   };
   /** Function to perform when this Trigger is invoked. A default perform will be provided for most polling triggers but defining this allows for custom behavior. */
   perform?: PollingTriggerPerformFunction<TInputs, TConfigVars, TPayload, TResult>;
