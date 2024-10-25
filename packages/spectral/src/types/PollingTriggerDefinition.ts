@@ -76,9 +76,9 @@ export interface PollingTriggerDefinition<
     inputMap?: Partial<{
       [K in keyof TPollingAction["inputs"]]: (context: any, payload: any, params: any) => unknown;
     }>;
+    /** The return value of the filterBy will be used by polling trigger's default filter methods. If left blank, the response of the action will not be filtered. */
+    filterBy?: PollingTriggerFilterBy<TPollingAction>;
   };
-  /** The return value of the filterBy will be used by polling trigger's default filter methods. */
-  filterBy: PollingTriggerFilterBy<TPollingAction>;
   /** Function to perform when this Trigger is invoked. A default perform will be provided for most polling triggers but defining this allows for custom behavior. */
   perform?: PollingTriggerPerformFunction<TInputs, TConfigVars, TPayload, TResult>;
   /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deployed. */

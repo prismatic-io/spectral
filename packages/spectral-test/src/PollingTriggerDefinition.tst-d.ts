@@ -25,9 +25,9 @@ const myPollingTrigger = pollingTrigger({
     label: "My Polling Trigger",
     description: "My Polling Trigger Description",
   },
-  filterBy: (resource) => resource.id,
   pollAction: {
     action: myAction,
+    filterBy: (resource) => resource.id,
   },
   inputs: {},
 });

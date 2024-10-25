@@ -56,8 +56,8 @@ export const createPollingPerform = (
   return async (context, payload, params): Promise<any> => {
     try {
       // Perform action with mapped & cleaned inputs
-      const { pollAction, filterBy } = trigger;
-      const { action, inputMap = {} } = pollAction;
+      const { pollAction } = trigger;
+      const { action, inputMap = {}, filterBy } = pollAction;
       const currentFlowState = context.instanceState.__prismaticInternal ?? {};
 
       const mappedInputs = Object.entries(inputMap).reduce<{ [key: string]: unknown }>(
@@ -98,24 +98,31 @@ export const createPollingPerform = (
         ? pollActionResponse.data
         : [pollActionResponse.data];
 
+      let filteredData: Array<unknown> = [];
+
       // Filter
-      const currentFilterValue: PollingTriggerFilterableValue =
-        currentFlowState.pollComparisonValue || 0;
-      let nextFilterValue: PollingTriggerFilterableValue = currentFilterValue;
+      if (filterBy) {
+        const currentFilterValue: PollingTriggerFilterableValue =
+          currentFlowState.pollComparisonValue || 0;
+        let nextFilterValue: PollingTriggerFilterableValue = currentFilterValue;
 
-      const filteredData = polledData.filter((data) => {
-        const filterValue = filterBy(data);
-        if (filterValue > nextFilterValue) {
-          nextFilterValue = filterValue;
-        }
+        filteredData = polledData.filter((data) => {
+          const filterValue = filterBy(data);
+          if (filterValue > nextFilterValue) {
+            nextFilterValue = filterValue;
+          }
 
-        return filterValue > currentFilterValue;
-      });
+          return filterValue > currentFilterValue;
+        });
+
+        context.instanceState.__prismaticInternal = Object.assign(currentFlowState, {
+          pollComparisonValue: nextFilterValue,
+        });
+      } else {
+        filteredData = polledData;
+      }
 
       const branch = filteredData.length > 0 ? "Results" : "No Results";
-      context.instanceState.__prismaticInternal = Object.assign(currentFlowState, {
-        pollComparisonValue: nextFilterValue,
-      });
 
       // Respond w/ filtered items
       return Promise.resolve({
