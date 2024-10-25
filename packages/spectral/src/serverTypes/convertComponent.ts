@@ -23,6 +23,8 @@ import { InputCleaners, PerformFn, createPerform, createPollingPerform } from ".
 import { merge, omit } from "lodash";
 import {
   isPollingTriggerDefinition,
+  isPollingTriggerCustomDefinition,
+  isPollingTriggerDefaultDefinition,
   PollingActionDefinition,
   PollingTriggerDefinition,
 } from "../types/PollingTriggerDefinition";
@@ -87,7 +89,7 @@ const convertTrigger = (
     | PollingTriggerDefinition<Inputs, any, any, any, PollingActionDefinition<Inputs, any, any>>,
   hooks?: ComponentHooks,
 ): ServerTrigger => {
-  const { inputs = {}, perform, onInstanceDeploy, onInstanceDelete } = trigger;
+  const { inputs = {}, onInstanceDeploy, onInstanceDelete } = trigger;
   const isPollingTrigger = isPollingTriggerDefinition(trigger);
 
   if (isPollingTrigger && trigger.pollAction.firstStartingValueInputType) {
@@ -112,8 +114,8 @@ const convertTrigger = (
 
   let convertedActionInputs: Array<ServerInput> = [];
 
-  const triggerPerform = perform
-    ? createPerform(perform, {
+  const triggerPerform = trigger.perform
+    ? createPerform(trigger.perform, {
         inputCleaners: triggerInputCleaners,
         errorHandler: hooks?.error,
       })

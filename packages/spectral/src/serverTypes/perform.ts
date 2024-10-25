@@ -1,7 +1,8 @@
 import type { ErrorHandler, Inputs } from "../types";
-import type {
-  PollingTriggerDefinition,
-  PollingTriggerFilterableValue,
+import {
+  isPollingTriggerDefaultDefinition,
+  type PollingTriggerDefinition,
+  type PollingTriggerFilterableValue,
 } from "../types/PollingTriggerDefinition";
 import { Input } from ".";
 import { merge } from "lodash";
@@ -57,7 +58,7 @@ export const createPollingPerform = (
     try {
       // Perform action with mapped & cleaned inputs
       const { pollAction } = trigger;
-      const { action, inputMap = {}, filterBy } = pollAction;
+      const { action, inputMap = {} } = pollAction;
       const currentFlowState = context.instanceState.__prismaticInternal ?? {};
 
       const mappedInputs = Object.entries(inputMap).reduce<{ [key: string]: unknown }>(
@@ -76,6 +77,7 @@ export const createPollingPerform = (
         cleanParams(merge(params, mappedInputs), inputCleaners),
       );
 
+      // If given a custom perform, we need to pass the action response to it
       if (triggerPerform) {
         const triggerResponse = await triggerPerform(
           context,
@@ -94,14 +96,16 @@ export const createPollingPerform = (
         return triggerResponse;
       }
 
+      // Moving forward with the default polling perform behavior
       const polledData = Array.isArray(pollActionResponse.data)
         ? pollActionResponse.data
         : [pollActionResponse.data];
 
       let filteredData: Array<unknown> = [];
+      const filterBy = "filterBy" in pollAction ? pollAction.filterBy : undefined;
 
       // Filter
-      if (filterBy) {
+      if (isPollingTriggerDefaultDefinition(trigger) && filterBy) {
         const currentFilterValue: PollingTriggerFilterableValue =
           currentFlowState.pollComparisonValue
             ? currentFlowState.pollComparisonValue

@@ -61,15 +61,32 @@ export type PollingTriggerPerformFunction<
  * PollingTriggerDefinition is the type of the object that is passed in to `pollingTrigger` function to
  * define a component trigger.
  */
-export interface PollingTriggerDefinition<
-  TInputs extends Inputs & { __prismatic_first_starting_value?: never },
+export type PollingTriggerDefinition<
+  TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
   TPayload extends PollingTriggerPayload,
   TResult extends PollingTriggerResult<TPayload>,
   TPollingAction extends PollingActionDefinition<Inputs, TConfigVars, any>,
+> =
+  | PollingTriggerDefaultDefinition<TInputs, TConfigVars, TPollingAction>
+  | PollingTriggerCustomDefinition<TInputs, TConfigVars, TPayload, TResult, TPollingAction>;
+
+interface PollingTriggerBaseDefinition<
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
 > {
   /** Defines how the Trigger is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
+  /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deployed. */
+  onInstanceDeploy?: TriggerEventFunction<TInputs, TConfigVars>;
+  /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deleted. */
+  onInstanceDelete?: TriggerEventFunction<TInputs, TConfigVars>;
+}
+export type PollingTriggerDefaultDefinition<
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TPollingAction extends PollingActionDefinition<Inputs, TConfigVars, any>,
+> = PollingTriggerBaseDefinition<TInputs, TConfigVars> & {
   /** Defines your trigger's polling behavior. */
   pollAction: {
     /** The action that this trigger will be running every poll. */
@@ -83,15 +100,40 @@ export interface PollingTriggerDefinition<
     /** If defined, the trigger will be created with an input that will allow users to define the starting value to begin polling by. This value is not needed if you plan to define your own perform.*/
     firstStartingValueInputType?: "date" | "number";
   };
+  /** Not relevant to polling triggers using default behavior. */
+  perform?: never;
+  inputs?: never;
+};
+export type PollingTriggerCustomDefinition<
+  TInputs extends Inputs & { __prismatic_first_starting_value?: never },
+  TConfigVars extends ConfigVarResultCollection,
+  TPayload extends PollingTriggerPayload,
+  TResult extends PollingTriggerResult<TPayload>,
+  TPollingAction extends PollingActionDefinition<Inputs, TConfigVars, any>,
+> = PollingTriggerBaseDefinition<TInputs, TConfigVars> & {
+  /** Defines how the Trigger is displayed in the Prismatic interface. */
+  display: ActionDisplayDefinition;
+  /** Defines your trigger's polling behavior. */
+  pollAction: {
+    /** The action that this trigger will be running every poll. */
+    action: TPollingAction;
+    /** Defining this map will allow you to pipe through values from the trigger context, payload, or params, through to the action inputs. */
+    inputMap?: Partial<{
+      [K in keyof TPollingAction["inputs"]]: (context: any, payload: any, params: any) => unknown;
+    }>;
+    /** Not relevant to polling triggers using custom behavior. */
+    filterBy?: never;
+    firstStartingValueInputType?: never;
+  };
   /** Function to perform when this Trigger is invoked. A default perform will be provided for most polling triggers but defining this allows for custom behavior. */
-  perform?: PollingTriggerPerformFunction<TInputs, TConfigVars, TPayload, TResult>;
+  perform: PollingTriggerPerformFunction<TInputs, TConfigVars, TPayload, TResult>;
   /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deployed. */
   onInstanceDeploy?: TriggerEventFunction<TInputs, TConfigVars>;
   /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deleted. */
   onInstanceDelete?: TriggerEventFunction<TInputs, TConfigVars>;
   /** InputFields to present in the Prismatic interface for configuration of this Trigger. */
   inputs?: TInputs;
-}
+};
 
 export const isPollingTriggerDefinition = (
   ref: unknown,
@@ -102,3 +144,18 @@ export const isPollingTriggerDefinition = (
   any,
   PollingActionDefinition<Inputs, any, any>
 > => typeof ref === "object" && ref !== null && "pollAction" in ref;
+
+export const isPollingTriggerCustomDefinition = (
+  ref: unknown,
+): ref is PollingTriggerCustomDefinition<
+  Inputs,
+  any,
+  any,
+  any,
+  PollingActionDefinition<Inputs, any, any>
+> => typeof ref === "object" && ref !== null && "pollAction" in ref && "perform" in ref;
+
+export const isPollingTriggerDefaultDefinition = (
+  ref: unknown,
+): ref is PollingTriggerDefaultDefinition<Inputs, any, PollingActionDefinition<Inputs, any, any>> =>
+  typeof ref === "object" && ref !== null && "pollAction" in ref && !("perform" in ref);

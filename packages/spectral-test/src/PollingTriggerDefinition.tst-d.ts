@@ -2,12 +2,10 @@ import {
   Inputs,
   PollingActionDefinition,
   PollingTriggerDefinition,
-  PollingTriggerPayload,
-  PollingTriggerResult,
   action,
   pollingTrigger,
 } from "@prismatic-io/spectral";
-import { expectNotType, expectAssignable } from "tsd";
+import { expectNotType, expectAssignable, expectNotAssignable } from "tsd";
 
 const myAction = action({
   display: {
@@ -29,7 +27,6 @@ const myPollingTrigger = pollingTrigger({
     action: myAction,
     filterBy: (resource) => resource.id,
   },
-  inputs: {},
 });
 
 const myBranchingAction = action({
@@ -60,17 +57,61 @@ const myPollingTriggerWithBranchingAction = pollingTrigger({
   inputs: {},
 });
 
-type ValidPollingActionDefinition = PollingActionDefinition<any, any, any>;
-type ValidPollingTriggerDefinition = PollingTriggerDefinition<
-  Inputs,
-  any,
-  any,
-  PollingTriggerResult<PollingTriggerPayload>,
-  ValidPollingActionDefinition
->;
-
-expectAssignable<ValidPollingTriggerDefinition>(myPollingTrigger);
+expectAssignable<PollingTriggerDefinition<Inputs, any, any, any, typeof myAction>>(
+  myPollingTrigger,
+);
 
 // Polling triggers cannot reference branching actions as their pollAction.
-expectNotType<ValidPollingActionDefinition>(myBranchingAction);
-expectNotType<ValidPollingTriggerDefinition>(myPollingTriggerWithBranchingAction);
+expectNotType<PollingActionDefinition>(myBranchingAction);
+expectNotType<PollingTriggerDefinition<Inputs, any, any, any, PollingActionDefinition>>(
+  myPollingTriggerWithBranchingAction,
+);
+
+const myDefaultPollingTrigger = pollingTrigger({
+  display: {
+    label: "My Default Polling Trigger",
+    description: "My Default Trigger Description",
+  },
+  pollAction: {
+    action: myAction,
+    filterBy: (resource) => resource.id,
+  },
+});
+
+const myCustomPollingTrigger = pollingTrigger({
+  display: {
+    label: "My Custom Polling Trigger",
+    description: "My Custom Trigger Description",
+  },
+  pollAction: {
+    action: myAction,
+  },
+  perform: async (context, payload, params) => {
+    return Promise.resolve({ payload });
+  },
+  inputs: {},
+});
+
+// @ts-expect-error
+const myInvalidTrigger = pollingTrigger({
+  display: {
+    label: "My Invalid Polling Trigger",
+    description: "My Invalid Trigger Description",
+  },
+  pollAction: {
+    action: myAction,
+    filterBy: (object) => object.id,
+  },
+  perform: async (context, payload, params) => {
+    return Promise.resolve({ payload });
+  },
+  inputs: {},
+});
+
+expectAssignable<PollingTriggerDefinition<Inputs, any, any, any, typeof myAction>>(
+  myDefaultPollingTrigger,
+);
+expectAssignable<PollingTriggerDefinition<Inputs, any, any, any, typeof myAction>>(
+  myCustomPollingTrigger,
+);
+expectNotAssignable<PollingActionDefinition>(myInvalidTrigger);
