@@ -973,7 +973,13 @@ const codeNativeIntegrationComponent = (
 
   const convertedTriggers = flows.reduce<Record<string, ServerTrigger>>(
     (result, { name, onTrigger, onInstanceDeploy, onInstanceDelete, schedule }) => {
-      if (!flowUsesWrapperTrigger({ onTrigger, onInstanceDelete, onInstanceDeploy })) {
+      if (
+        !flowUsesWrapperTrigger({
+          onTrigger,
+          onInstanceDelete,
+          onInstanceDeploy,
+        })
+      ) {
         // In this scenario, the user has defined an existing component trigger
         // without any custom behavior, so we don't need to wrap anything.
         return result;
@@ -1067,12 +1073,16 @@ const codeNativeIntegrationComponent = (
         convertInput(key, value),
       );
 
-      const connection = pick(configVar, ["oauth2Type", "iconPath"]);
+      const connection = pick(configVar, ["oauth2Type"]);
+      const { avatarPath: avatarIconPath, oauth2ConnectionIconPath: iconPath } =
+        configVar.icons ?? {};
 
       return [
         ...result,
         {
           ...connection,
+          iconPath,
+          avatarIconPath,
           inputs: convertedInputs,
           key: camelCase(key),
           label: key,

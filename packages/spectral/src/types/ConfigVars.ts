@@ -270,7 +270,8 @@ type ConnectionDefinitionConfigVar =
   ConnectionDefinition extends infer TConnectionDefinitionType extends ConnectionDefinition
     ? TConnectionDefinitionType extends infer TConnectionDefinition extends ConnectionDefinition
       ? BaseConnectionConfigVar &
-          Omit<TConnectionDefinition, "inputs" | "label" | "comments" | "key"> & {
+          Omit<TConnectionDefinition, "inputs" | "display" | "key"> & {
+            icons?: TConnectionDefinition["display"]["icons"];
             inputs: {
               [Key in keyof TConnectionDefinition["inputs"]]: TConnectionDefinition["inputs"][Key] &
                 ConfigVarInputVisibility;
@@ -382,7 +383,9 @@ type ExtractConfigVars<TConfigPages extends { [key: string]: ConfigPage }> =
     : never;
 
 type ExtractScopedConfigVars<
-  TScopedConfigVarMap extends { [key: string]: string | OrganizationActivatedConnectionConfigVar },
+  TScopedConfigVarMap extends {
+    [key: string]: string | OrganizationActivatedConnectionConfigVar;
+  },
 > = keyof TScopedConfigVarMap extends infer TScopedConfigVarName
   ? TScopedConfigVarName extends keyof TScopedConfigVarMap
     ? TScopedConfigVarMap[TScopedConfigVarName] extends infer TScopedConfigVar

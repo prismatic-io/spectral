@@ -228,14 +228,23 @@ const convertDataSource = (
   };
 };
 
-const convertConnection = ({
+export const convertConnection = ({
   inputs = {},
   ...connection
 }: ConnectionDefinition): ServerConnection => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
 
+  const {
+    display: { label, icons, description: comments },
+    ...remaining
+  } = connection;
+
   return {
-    ...connection,
+    ...remaining,
+    label,
+    comments,
+    iconPath: icons?.oauth2ConnectionIconPath,
+    avatarIconPath: icons?.avatarPath,
     inputs: convertedInputs,
   };
 };
