@@ -1,5 +1,6 @@
 import type { ErrorHandler, Inputs } from "../types";
 import {
+  isPollingTriggerCustomDefinition,
   isPollingTriggerDefaultDefinition,
   type PollingTriggerDefinition,
   type PollingTriggerFilterableValue,
@@ -91,30 +92,39 @@ export const createPollingPerform = (
           params,
         );
 
-        currentFlowState.pollComparisonValue = triggerResponse.pollComparisonValue;
+        context.instanceState.__prismaticInternal = Object.assign(currentFlowState, {
+          pollComparisonValue: triggerResponse.pollComparisonValue,
+        });
 
         return triggerResponse;
       }
 
       // Moving forward with the default polling perform behavior
-      const polledData = Array.isArray(pollActionResponse.data)
-        ? pollActionResponse.data
-        : [pollActionResponse.data];
+      const getResults = "getResults" in pollAction ? pollAction.getResults : undefined;
+      const unwrappedData = getResults
+        ? getResults(pollActionResponse.data as Record<string, unknown>)
+        : pollActionResponse.data;
+      const polledData = Array.isArray(unwrappedData) ? unwrappedData : [unwrappedData];
 
       let filteredData: Array<unknown> = [];
       const filterBy = "filterBy" in pollAction ? pollAction.filterBy : undefined;
 
       // Filter
       if (isPollingTriggerDefaultDefinition(trigger) && filterBy) {
-        const currentFilterValue: PollingTriggerFilterableValue =
-          currentFlowState.pollComparisonValue
-            ? currentFlowState.pollComparisonValue
-            : params.__prismatic_first_starting_value ?? 0;
+        const unformattedFilterValue =
+          (currentFlowState.pollComparisonValue || params.__prismatic_first_starting_value) ?? 0;
 
+        const valueType = trigger.pollAction.filterValueType;
+        const currentFilterValue: PollingTriggerFilterableValue =
+          trigger.pollAction.filterValueType === "date"
+            ? new Date(unformattedFilterValue)
+            : unformattedFilterValue;
         let nextFilterValue: PollingTriggerFilterableValue = currentFilterValue;
 
         filteredData = polledData.filter((data) => {
-          const filterValue = filterBy(data);
+          const rawValue = filterBy(data);
+          const filterValue = valueType === "date" ? new Date(rawValue) : rawValue;
+
           if (filterValue > nextFilterValue) {
             nextFilterValue = filterValue;
           }

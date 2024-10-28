@@ -31,6 +31,7 @@ import {
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
 import {
+  isPollingTriggerDefaultDefinition,
   PollingActionDefinition,
   PollingTriggerDefinition,
   PollingTriggerPayload,
@@ -150,15 +151,15 @@ export const action = <
   TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
   TReturn extends ActionPerformReturn<TAllowsBranching, unknown>,
-  const TActionDefinition extends ActionDefinition<
-    TInputs,
-    TConfigVars,
-    TAllowsBranching,
-    TReturn
-  > = ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>,
+  // const TActionDefinition extends ActionDefinition<
+  //   TInputs,
+  //   TConfigVars,
+  //   TAllowsBranching,
+  //   TReturn
+  // > = ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>,
 >(
-  definition: TActionDefinition,
-): TActionDefinition => definition;
+  definition: ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>,
+): ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn> => definition;
 
 /**
  * This function creates a trigger object that can be referenced
@@ -192,7 +193,15 @@ export const pollingTrigger = <
   const TPollingAction extends PollingActionDefinition<Inputs, TConfigVars, any>,
 >(
   definition: PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TPollingAction>,
-): PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TPollingAction> => definition;
+): PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TPollingAction> => {
+  if (isPollingTriggerDefaultDefinition(definition)) {
+    definition.pollAction.filterValueType = definition.pollAction.filterValueType ?? "date";
+  }
+
+  definition.scheduleSupport = "valid";
+
+  return definition;
+};
 
 /**
  * This function creates a data source object that can be referenced

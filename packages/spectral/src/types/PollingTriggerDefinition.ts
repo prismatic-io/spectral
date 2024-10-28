@@ -81,6 +81,8 @@ interface PollingTriggerBaseDefinition<
   onInstanceDeploy?: TriggerEventFunction<TInputs, TConfigVars>;
   /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deleted. */
   onInstanceDelete?: TriggerEventFunction<TInputs, TConfigVars>;
+  /** Enables schedule input in the designer. */
+  scheduleSupport?: "valid";
 }
 export type PollingTriggerDefaultDefinition<
   TInputs extends Inputs,
@@ -95,10 +97,14 @@ export type PollingTriggerDefaultDefinition<
     inputMap?: Partial<{
       [K in keyof TPollingAction["inputs"]]: (context: any, payload: any, params: any) => unknown;
     }>;
+    /** getResults takes the result of the polling action and should return the results to be iterated over. By default this will be resultData.data */
+    getResults?: (resultData: Record<string, unknown>) => unknown;
     /** The return value of the filterBy will be used by polling trigger's default filter methods. If left blank, the response of the action will not be filtered. */
     filterBy?: PollingTriggerFilterBy<TPollingAction>;
+    /** By default this is a date. This allows the user to determine what kind of comparison we do in the filtering step. */
+    filterValueType?: "date" | "number";
     /** If defined, the trigger will be created with an input that will allow users to define the starting value to begin polling by. This value is not needed if you plan to define your own perform.*/
-    firstStartingValueInputType?: "date" | "number";
+    includeStartingInput?: boolean;
   };
   /** Not relevant to polling triggers using default behavior. */
   perform?: never;
@@ -123,7 +129,8 @@ export type PollingTriggerCustomDefinition<
     }>;
     /** Not relevant to polling triggers using custom behavior. */
     filterBy?: never;
-    firstStartingValueInputType?: never;
+    filterValueType?: never;
+    includeStartingInput?: never;
   };
   /** Function to perform when this Trigger is invoked. A default perform will be provided for most polling triggers but defining this allows for custom behavior. */
   perform: PollingTriggerPerformFunction<TInputs, TConfigVars, TPayload, TResult>;

@@ -90,10 +90,10 @@ const convertTrigger = (
   hooks?: ComponentHooks,
 ): ServerTrigger => {
   const { inputs = {}, onInstanceDeploy, onInstanceDelete } = trigger;
-  const isPollingTrigger = isPollingTriggerDefinition(trigger);
+  const isPollingTrigger = isPollingTriggerDefaultDefinition(trigger);
 
-  if (isPollingTrigger && trigger.pollAction.firstStartingValueInputType) {
-    const startingInputType = trigger.pollAction.firstStartingValueInputType;
+  if (isPollingTrigger && trigger.pollAction.includeStartingInput) {
+    const startingInputType = trigger.pollAction.filterValueType;
     inputs.__prismatic_first_starting_value = input({
       label: "First starting value",
       comments: `The ${startingInputType} that this flow will begin polling with. Once the flow has run or been tested, this value will be ignored in favor of the most recently polled ${startingInputType} value.`,
@@ -165,6 +165,8 @@ const convertTrigger = (
     );
   }
 
+  const scheduleSupport = isPollingTrigger ? "required" : trigger?.scheduleSupport ?? "invalid";
+
   const result: ServerTrigger & {
     pollAction?: PollingTriggerDefinition<Inputs, any, any, any, any>["pollAction"];
   } = {
@@ -172,9 +174,13 @@ const convertTrigger = (
     key: triggerKey,
     inputs: convertedTriggerInputs.concat(convertedActionInputs),
     perform: performToUse,
-    scheduleSupport: isPollingTrigger ? "required" : trigger?.scheduleSupport ?? "invalid",
+    scheduleSupport,
     synchronousResponseSupport:
-      "synchronousResponseSupport" in trigger ? trigger.synchronousResponseSupport : "valid",
+      "synchronousResponseSupport" in trigger
+        ? trigger.synchronousResponseSupport
+        : scheduleSupport === "invalid"
+          ? "valid"
+          : "invalid",
   };
 
   if (onInstanceDeploy) {

@@ -226,9 +226,7 @@ export const buildRawRequestAction = (
     perform: async (context, { connection, ...httpInputValues }) => {
       const { data } = await sendRawRequest(
         baseUrl,
-        // @ts-expect-error: @TODO
         httpInputValues,
-        // @ts-expect-error: @TODO
         toAuthorizationHeaders(connection),
       );
       return { data };
