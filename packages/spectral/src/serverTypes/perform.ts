@@ -1,6 +1,5 @@
 import type { ErrorHandler, Inputs } from "../types";
 import {
-  isPollingTriggerCustomDefinition,
   isPollingTriggerDefaultDefinition,
   type PollingTriggerDefinition,
   type PollingTriggerFilterableValue,
@@ -51,7 +50,7 @@ export const createPerform = (
 };
 
 export const createPollingPerform = (
-  trigger: PollingTriggerDefinition<Inputs, any, any, any, any>,
+  trigger: PollingTriggerDefinition<Inputs, any, any, any, any, any>,
   { inputCleaners, errorHandler }: CreatePerformProps,
   triggerPerform?: PerformFn,
 ): PerformFn => {
@@ -73,10 +72,19 @@ export const createPollingPerform = (
         {},
       );
 
-      const pollActionResponse: { data: unknown } = await action.perform(
+      const pollActionResponse = await action.perform(
         context,
         cleanParams(merge(params, mappedInputs), inputCleaners),
       );
+
+      const unformattedFilterValue =
+        (currentFlowState.pollComparisonValue || params.__prismatic_first_starting_value) ?? 0;
+
+      const valueType = trigger.pollAction.filterValueType;
+      const currentFilterValue: PollingTriggerFilterableValue =
+        trigger.pollAction.filterValueType === "number"
+          ? unformattedFilterValue
+          : new Date(unformattedFilterValue);
 
       // If given a custom perform, we need to pass the action response to it
       if (triggerPerform) {
@@ -85,16 +93,19 @@ export const createPollingPerform = (
           {
             ...payload,
             body: {
-              ...payload.body,
-              ...pollActionResponse,
+              data: {
+                pollComparisonValue: currentFilterValue,
+                actionResponse: pollActionResponse,
+              },
             },
           },
           params,
         );
 
-        context.instanceState.__prismaticInternal = Object.assign(currentFlowState, {
+        const internalState = Object.assign({}, currentFlowState, {
           pollComparisonValue: triggerResponse.pollComparisonValue,
         });
+        context.instanceState.__prismaticInternal = internalState;
 
         return triggerResponse;
       }
@@ -111,14 +122,6 @@ export const createPollingPerform = (
 
       // Filter
       if (isPollingTriggerDefaultDefinition(trigger) && filterBy) {
-        const unformattedFilterValue =
-          (currentFlowState.pollComparisonValue || params.__prismatic_first_starting_value) ?? 0;
-
-        const valueType = trigger.pollAction.filterValueType;
-        const currentFilterValue: PollingTriggerFilterableValue =
-          trigger.pollAction.filterValueType === "date"
-            ? new Date(unformattedFilterValue)
-            : unformattedFilterValue;
         let nextFilterValue: PollingTriggerFilterableValue = currentFilterValue;
 
         filteredData = polledData.filter((data) => {
@@ -132,9 +135,10 @@ export const createPollingPerform = (
           return filterValue > currentFilterValue;
         });
 
-        context.instanceState.__prismaticInternal = Object.assign(currentFlowState, {
+        const internalState = Object.assign({}, currentFlowState, {
           pollComparisonValue: nextFilterValue,
         });
+        context.instanceState.__prismaticInternal = internalState;
       } else {
         filteredData = polledData;
       }

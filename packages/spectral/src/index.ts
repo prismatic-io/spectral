@@ -34,7 +34,7 @@ import {
   isPollingTriggerDefaultDefinition,
   PollingActionDefinition,
   PollingTriggerDefinition,
-  PollingTriggerPayload,
+  PollingTriggerPerformPayload,
   PollingTriggerResult,
 } from "./types/PollingTriggerDefinition";
 
@@ -188,12 +188,27 @@ export const trigger = <
 export const pollingTrigger = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  TPayload extends PollingTriggerPayload,
+  TPayload extends TriggerPayload,
   TResult extends PollingTriggerResult<TPayload>,
+  TPerformPayload extends PollingTriggerPerformPayload,
   const TPollingAction extends PollingActionDefinition<Inputs, TConfigVars, any>,
 >(
-  definition: PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TPollingAction>,
-): PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TPollingAction> => {
+  definition: PollingTriggerDefinition<
+    TInputs,
+    TConfigVars,
+    TPayload,
+    TResult,
+    TPerformPayload,
+    TPollingAction
+  >,
+): PollingTriggerDefinition<
+  TInputs,
+  TConfigVars,
+  TPayload,
+  TResult,
+  TPerformPayload,
+  TPollingAction
+> => {
   if (isPollingTriggerDefaultDefinition(definition)) {
     definition.pollAction.filterValueType = definition.pollAction.filterValueType ?? "date";
   }

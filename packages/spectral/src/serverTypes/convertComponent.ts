@@ -86,13 +86,21 @@ const convertTrigger = (
   triggerKey: string,
   trigger:
     | TriggerDefinition<Inputs, any, boolean, any>
-    | PollingTriggerDefinition<Inputs, any, any, any, PollingActionDefinition<Inputs, any, any>>,
+    | PollingTriggerDefinition<
+        Inputs,
+        any,
+        any,
+        any,
+        any,
+        PollingActionDefinition<Inputs, any, any>
+      >,
   hooks?: ComponentHooks,
 ): ServerTrigger => {
   const { inputs = {}, onInstanceDeploy, onInstanceDelete } = trigger;
-  const isPollingTrigger = isPollingTriggerDefaultDefinition(trigger);
+  const isPollingTrigger = isPollingTriggerDefinition(trigger);
+  const isDefaultPollingTrigger = isPollingTriggerDefaultDefinition(trigger);
 
-  if (isPollingTrigger && trigger.pollAction.includeStartingInput) {
+  if (isDefaultPollingTrigger && trigger.pollAction.includeStartingInput) {
     const startingInputType = trigger.pollAction.filterValueType;
     inputs.__prismatic_first_starting_value = input({
       label: "First starting value",
@@ -168,7 +176,7 @@ const convertTrigger = (
   const scheduleSupport = isPollingTrigger ? "required" : trigger?.scheduleSupport ?? "invalid";
 
   const result: ServerTrigger & {
-    pollAction?: PollingTriggerDefinition<Inputs, any, any, any, any>["pollAction"];
+    pollAction?: PollingTriggerDefinition<Inputs, any, any, any, any, any>["pollAction"];
   } = {
     ...trigger,
     key: triggerKey,
@@ -203,8 +211,8 @@ const convertTrigger = (
 
   return {
     ...resultTrigger,
-    allowsBranching: isPollingTrigger ? true : resultTrigger.allowsBranching,
-    staticBranchNames: isPollingTrigger ? ["No Results", "Results"] : undefined,
+    allowsBranching: isDefaultPollingTrigger ? true : resultTrigger.allowsBranching,
+    staticBranchNames: isDefaultPollingTrigger ? ["No Results", "Results"] : undefined,
   };
 };
 
