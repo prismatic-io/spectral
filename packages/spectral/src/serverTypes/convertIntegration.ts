@@ -642,7 +642,10 @@ export const convertConfigVar = (
         };
       }, {}),
       orgOnly,
-      meta,
+      meta: {
+        ...meta,
+        ...("oauth2Config" in configVar ? configVar.oauth2Config ?? {} : {}),
+      },
     };
   }
 
@@ -671,7 +674,10 @@ export const convertConfigVar = (
       },
       inputs,
       orgOnly,
-      meta,
+      meta: {
+        ...meta,
+        ...("oauth2Config" in configVar ? configVar.oauth2Config ?? {} : {}),
+      },
     };
   }
 
