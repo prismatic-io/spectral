@@ -59,8 +59,6 @@ export interface ActionLogger {
   error: ActionLoggerFunction;
 }
 
-type ContextInstanceState = Record<string, unknown> & { __prismaticInternal?: never };
-
 export type ActionContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
@@ -69,7 +67,7 @@ export type ActionContext<
   >,
 > = {
   logger: ActionLogger;
-  instanceState: ContextInstanceState;
+  instanceState: Record<string, unknown>;
   crossFlowState: Record<string, unknown>;
   executionState: Record<string, unknown>;
   integrationState: Record<string, unknown>;
@@ -128,7 +126,7 @@ interface HttpResponse {
 interface TriggerBaseResult {
   payload: TriggerPayload;
   response?: HttpResponse;
-  instanceState?: ContextInstanceState;
+  instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
   integrationState?: Record<string, unknown>;
@@ -232,7 +230,7 @@ interface ServerPerformDataStructureReturn {
   contentType?: string;
   statusCode?: number;
   headers?: Record<string, string>;
-  instanceState?: ContextInstanceState;
+  instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
   integrationState?: Record<string, unknown>;
@@ -245,7 +243,7 @@ interface ServerPerformDataReturn {
   contentType: string;
   statusCode?: number;
   headers?: Record<string, string>;
-  instanceState?: ContextInstanceState;
+  instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
   executionState?: Record<string, unknown>;
   integrationState?: Record<string, unknown>;

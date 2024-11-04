@@ -10,6 +10,7 @@ import {
   DataSourceDefinition,
   ConfigVarResultCollection,
   OnPremConnectionInput,
+  TriggerOptionChoice,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -20,12 +21,9 @@ import {
   DataSource as ServerDataSource,
 } from ".";
 import { InputCleaners, PerformFn, createPerform, createPollingPerform } from "./perform";
-import { merge, omit } from "lodash";
+import { omit } from "lodash";
 import {
   isPollingTriggerDefinition,
-  isPollingTriggerCustomDefinition,
-  isPollingTriggerDefaultDefinition,
-  PollingActionDefinition,
   PollingTriggerDefinition,
 } from "../types/PollingTriggerDefinition";
 import { input, util } from "..";
@@ -84,31 +82,11 @@ const convertAction = (
 
 const convertTrigger = (
   triggerKey: string,
-  trigger:
-    | TriggerDefinition<Inputs, any, boolean, any>
-    | PollingTriggerDefinition<
-        Inputs,
-        any,
-        any,
-        any,
-        any,
-        PollingActionDefinition<Inputs, any, any>
-      >,
+  trigger: TriggerDefinition<Inputs, any, boolean, any> | PollingTriggerDefinition,
   hooks?: ComponentHooks,
 ): ServerTrigger => {
   const { inputs = {}, onInstanceDeploy, onInstanceDelete } = trigger;
   const isPollingTrigger = isPollingTriggerDefinition(trigger);
-  const isDefaultPollingTrigger = isPollingTriggerDefaultDefinition(trigger);
-
-  if (isDefaultPollingTrigger && trigger.pollAction.includeStartingInput) {
-    const startingInputType = trigger.pollAction.filterValueType;
-    inputs.__prismatic_first_starting_value = input({
-      label: "First starting value",
-      comments: `The ${startingInputType} that this flow will begin polling with. Once the flow has run or been tested, this value will be ignored in favor of the most recently polled ${startingInputType} value.`,
-      type: "string",
-      clean: startingInputType === "date" ? util.types.toDate : util.types.toNumber,
-    });
-  }
 
   const triggerInputKeys = Object.keys(inputs);
   const convertedTriggerInputs = Object.entries(inputs).map(([key, value]) => {
@@ -120,63 +98,54 @@ const convertTrigger = (
     {},
   );
 
+  let scheduleSupport: TriggerOptionChoice =
+    "scheduleSupport" in trigger ? trigger.scheduleSupport : "invalid";
   let convertedActionInputs: Array<ServerInput> = [];
-
-  const triggerPerform = trigger.perform
-    ? createPerform(trigger.perform, {
-        inputCleaners: triggerInputCleaners,
-        errorHandler: hooks?.error,
-      })
-    : undefined;
   let performToUse: PerformFn;
 
   if (isPollingTrigger) {
     // Pull inputs up from the action and make them available on the trigger
-    const { pollAction } = trigger;
-    const { action, inputMap = {} } = pollAction;
+    const { pollAction: action } = trigger;
+    let actionInputCleaners: InputCleaners = {};
+    scheduleSupport = "required";
 
-    convertedActionInputs = Object.entries(action.inputs).reduce<Array<ServerInput>>(
-      (accum, [key, value]) => {
-        if (triggerInputKeys.includes(key)) {
-          throw new Error(
-            `Error: The pollingTrigger "${trigger.display.label}" was defined with an input with the key of ${key}. This key duplicates an keyed input needed on the associated "${action.display.label}" action. Please rename the trigger input with a different key.`,
-          );
-        }
+    if (action) {
+      convertedActionInputs = Object.entries(action.inputs).reduce<Array<ServerInput>>(
+        (accum, [key, value]) => {
+          if (triggerInputKeys.includes(key)) {
+            throw new Error(
+              `Error: The pollingTrigger "${trigger.display.label}" was defined with an input with the key: ${key}. This key duplicates an input on the associated "${action.display.label}" action. Please assign the trigger input a different key.`,
+            );
+          }
 
-        if (!(key in inputMap)) {
-          // Only show the input at the top level if its value is not already populated by the inputMap
           accum.push(convertInput(key, value));
-        }
-        return accum;
-      },
-      [],
-    );
+          return accum;
+        },
+        [],
+      );
 
-    const actionInputCleaners = Object.entries(action.inputs).reduce<InputCleaners>(
-      (result, [key, { clean }]) => ({ ...result, [key]: clean }),
-      {},
-    );
+      actionInputCleaners = Object.entries(action.inputs).reduce<InputCleaners>(
+        (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+        {},
+      );
+    }
 
-    performToUse = createPollingPerform(
-      trigger,
-      {
-        inputCleaners: actionInputCleaners,
-        errorHandler: hooks?.error,
-      },
-      triggerPerform,
-    );
-  } else if (triggerPerform) {
-    performToUse = triggerPerform;
+    const combinedCleaners = Object.assign({}, actionInputCleaners, triggerInputCleaners);
+
+    performToUse = createPollingPerform(trigger, {
+      inputCleaners: combinedCleaners,
+      errorHandler: hooks?.error,
+    });
   } else {
-    throw new Error(
-      `Triggers require either a defined perform function or a pollAction. Trigger ${triggerKey} has defined neither.`,
-    );
+    performToUse = createPerform(trigger.perform, {
+      inputCleaners: triggerInputCleaners,
+      errorHandler: hooks?.error,
+    });
   }
 
-  const scheduleSupport = isPollingTrigger ? "required" : trigger?.scheduleSupport ?? "invalid";
-
   const result: ServerTrigger & {
-    pollAction?: PollingTriggerDefinition<Inputs, any, any, any, any, any>["pollAction"];
+    pollAction?: PollingTriggerDefinition["pollAction"];
+    triggerType?: string;
   } = {
     ...trigger,
     key: triggerKey,
@@ -207,13 +176,9 @@ const convertTrigger = (
     result.hasOnInstanceDelete = true;
   }
 
-  const { pollAction, ...resultTrigger } = result;
+  const { pollAction, triggerType, ...resultTrigger } = result;
 
-  return {
-    ...resultTrigger,
-    allowsBranching: isDefaultPollingTrigger ? true : resultTrigger.allowsBranching,
-    staticBranchNames: isDefaultPollingTrigger ? ["No Results", "Results"] : undefined,
-  };
+  return resultTrigger;
 };
 
 const convertDataSource = (

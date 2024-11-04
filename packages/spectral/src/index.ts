@@ -30,13 +30,7 @@ import {
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
-import {
-  isPollingTriggerDefaultDefinition,
-  PollingActionDefinition,
-  PollingTriggerDefinition,
-  PollingTriggerPerformPayload,
-  PollingTriggerResult,
-} from "./types/PollingTriggerDefinition";
+import { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
 
 /**
  * This function creates a Integration object that can be
@@ -151,12 +145,6 @@ export const action = <
   TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
   TReturn extends ActionPerformReturn<TAllowsBranching, unknown>,
-  // const TActionDefinition extends ActionDefinition<
-  //   TInputs,
-  //   TConfigVars,
-  //   TAllowsBranching,
-  //   TReturn
-  // > = ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>,
 >(
   definition: ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>,
 ): ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn> => definition;
@@ -189,33 +177,12 @@ export const pollingTrigger = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
   TPayload extends TriggerPayload,
-  TResult extends PollingTriggerResult<TPayload>,
-  TPerformPayload extends PollingTriggerPerformPayload,
-  const TPollingAction extends PollingActionDefinition<Inputs, TConfigVars, any>,
+  TResult extends TriggerResult<boolean, TPayload>,
+  TActionInputs extends Inputs,
 >(
-  definition: PollingTriggerDefinition<
-    TInputs,
-    TConfigVars,
-    TPayload,
-    TResult,
-    TPerformPayload,
-    TPollingAction
-  >,
-): PollingTriggerDefinition<
-  TInputs,
-  TConfigVars,
-  TPayload,
-  TResult,
-  TPerformPayload,
-  TPollingAction
-> => {
-  if (isPollingTriggerDefaultDefinition(definition)) {
-    definition.pollAction.filterValueType = definition.pollAction.filterValueType ?? "date";
-  }
-
-  definition.scheduleSupport = "valid";
-
-  return definition;
+  definition: PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TActionInputs>,
+): PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TActionInputs> => {
+  return { ...definition, triggerType: "polling" };
 };
 
 /**
