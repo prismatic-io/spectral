@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "10.0.0",
+  "version": "10.1.0",
   "description": "Utility library for building Prismatic components and code-native integrations",
   "keywords": ["prismatic"],
   "main": "dist/index.js",
