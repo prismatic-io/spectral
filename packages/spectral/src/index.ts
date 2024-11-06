@@ -30,6 +30,7 @@ import {
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
+import { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
 
 /**
  * This function creates a Integration object that can be
@@ -165,6 +166,24 @@ export const trigger = <
 >(
   definition: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult>,
 ): TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult> => definition;
+
+/**
+ * This function creates a polling trigger object that can be referenced
+ * by a custom component.
+ * @param definition A PollingTriggerDefinition is similar to a TriggerDefinition, except it requires a pollAction instead of a perform. The pollAction, which can be any action defined in the component, will be polled on the defined schedule.
+ * @returns This function validates the shape of the `definition` object provided, and returns the same polling trigger object.
+ */
+export const pollingTrigger = <
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TPayload extends TriggerPayload,
+  TResult extends TriggerResult<boolean, TPayload>,
+  TActionInputs extends Inputs,
+>(
+  definition: PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TActionInputs>,
+): PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TActionInputs> => {
+  return { ...definition, triggerType: "polling" };
+};
 
 /**
  * This function creates a data source object that can be referenced

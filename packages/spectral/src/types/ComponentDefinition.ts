@@ -5,6 +5,7 @@ import {
   TriggerDefinition,
   DataSourceDefinition,
 } from ".";
+import { PollingTriggerDefinition } from "./PollingTriggerDefinition";
 
 export type ErrorHandler = (error: unknown) => unknown;
 
@@ -24,7 +25,11 @@ export type ComponentDefinition<TPublic extends boolean, TKey extends string> = 
   /** Specifies the supported Actions of this Component. */
   actions?: Record<string, ActionDefinition<any, any, boolean, any>>;
   /** Specifies the supported Triggers of this Component. */
-  triggers?: Record<string, TriggerDefinition<any, any, boolean, any>>;
+  triggers?: Record<
+    string,
+    | TriggerDefinition<any, any, boolean, any>
+    | PollingTriggerDefinition<any, any, any, any, any, any>
+  >;
   /** Specifies the supported Data Sources of this Component. */
   dataSources?: Record<string, DataSourceDefinition<any, any, any>>;
   /** Specifies the supported Connections of this Component. */
