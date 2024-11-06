@@ -78,7 +78,7 @@ export const createPollingPerform = (
     try {
       const { pollAction } = trigger;
 
-      const pollingContext: PollingContext = {
+      const pollingContext: Partial<PollingContext> = {
         polling: {
           reinvokeFlow: async (data, config) => {
             return await axios.post(context.invokeUrl, data, config);

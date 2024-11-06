@@ -11,7 +11,10 @@ import type {
   ActionInputParameters,
 } from ".";
 
-export type PollingContext<TInputs extends Inputs = Inputs> = {
+export interface PollingContext<
+  TInputs extends Inputs = Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+> extends ActionContext<TConfigVars> {
   polling: {
     reinvokeFlow: (
       data?: Record<string, unknown>,
@@ -21,7 +24,7 @@ export type PollingContext<TInputs extends Inputs = Inputs> = {
     getState: () => Record<string, unknown>;
     setState: (newState: Record<string, unknown>) => void;
   };
-};
+}
 
 export type PollingTriggerPerformFunction<
   TInputs extends Inputs,
