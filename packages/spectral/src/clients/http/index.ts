@@ -1,7 +1,11 @@
 import { isEmpty } from "lodash";
 import axios, { AxiosResponse } from "axios";
 import { AxiosInstance, AxiosRequestConfig } from "axios";
-import axiosRetry, { IAxiosRetryConfig, exponentialDelay } from "axios-retry";
+import axiosRetry, {
+  IAxiosRetryConfig,
+  exponentialDelay,
+  isNetworkOrIdempotentRequestError,
+} from "axios-retry";
 import FormData from "form-data";
 import objectSizeof from "object-sizeof";
 
@@ -83,7 +87,11 @@ const toAxiosRetryConfig = ({
 }: RetryConfig): IAxiosRetryConfig => ({
   ...rest,
   retryDelay: computeRetryDelay(retryDelay, useExponentialBackoff),
-  retryCondition: retryAllErrors ? () => true : retryCondition,
+  retryCondition: retryAllErrors
+    ? () => true
+    : typeof retryCondition === "function"
+      ? retryCondition
+      : isNetworkOrIdempotentRequestError,
 });
 
 export const createClient = ({
