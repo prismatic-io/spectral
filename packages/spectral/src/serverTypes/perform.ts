@@ -9,6 +9,7 @@ import type {
   PollingTriggerPerformFunction,
 } from "../types";
 import { type PollingTriggerDefinition } from "../types/PollingTriggerDefinition";
+import { uniq } from "lodash";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
 export type CleanFn = (...args: any[]) => any;
@@ -20,14 +21,17 @@ interface CreatePerformProps {
   errorHandler?: ErrorHandler;
 }
 
-const cleanParams = (
+export const cleanParams = (
   params: Record<string, unknown>,
   cleaners: InputCleaners,
-): Record<string, any> =>
-  Object.entries(params).reduce<Record<string, any>>((result, [key, value]) => {
+): Record<string, any> => {
+  const keys = uniq([...Object.keys(params), ...Object.keys(cleaners)]);
+  return keys.reduce<Record<string, any>>((result, key) => {
+    const value = params[key];
     const cleanFn = cleaners[key];
     return { ...result, [key]: cleanFn ? cleanFn(value) : value };
   }, {});
+};
 
 export const createPerform = (
   performFn: PerformFn,
