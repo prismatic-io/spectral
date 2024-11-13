@@ -19,6 +19,8 @@ export interface TriggerBaseResult<TPayload extends TriggerPayload> {
   failed?: boolean;
   /** A field populated by the Prismatic platform which may refer to an object that contains data about any error that resulted in failure. */
   error?: Record<string, unknown>;
+  /** An optional field that component authors can use to denote their CNI trigger result as having a polling response. */
+  polledNewChanges?: boolean;
 }
 
 /** Represents the result of a Trigger action that uses branching. */

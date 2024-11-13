@@ -9,6 +9,7 @@ import type {
   ActionDefinition,
   ActionContext,
   ActionInputParameters,
+  TriggerBaseResult,
 } from ".";
 
 export interface PollingContext<
@@ -26,12 +27,17 @@ export interface PollingContext<
   };
 }
 
+export interface PollingTriggerResult<TPayload extends TriggerPayload = TriggerPayload>
+  extends TriggerBaseResult<TPayload> {
+  polledNewChanges: boolean;
+}
+
 export type PollingTriggerPerformFunction<
   TInputs extends Inputs,
   TActionInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
-  TResult extends TriggerResult<boolean, TPayload> = TriggerResult<boolean, TPayload>,
+  TResult extends PollingTriggerResult = PollingTriggerResult,
 > = (
   context: ActionContext<TConfigVars> & PollingContext<TActionInputs>,
   payload: TPayload,
@@ -46,7 +52,7 @@ export type PollingTriggerDefinition<
   TInputs extends Inputs = Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
-  TResult extends TriggerResult<boolean, TPayload> = TriggerResult<boolean, TPayload>,
+  TResult extends PollingTriggerResult<TPayload> = PollingTriggerResult<TPayload>,
   TActionInputs extends Inputs = Inputs,
   TAction extends ActionDefinition<TActionInputs> = ActionDefinition<TActionInputs>,
   TCombinedInputs extends TInputs & TActionInputs = TInputs & TActionInputs,
