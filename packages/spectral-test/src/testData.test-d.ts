@@ -1,10 +1,12 @@
 import {
   configVar,
-  connectionConfigVar,
+  connectionDefinitionConfigVar,
+  connectionReferenceConfigVar,
   OAuth2Type,
   input,
   configPage,
-  dataSourceConfigVar,
+  dataSourceDefinitionConfigVar,
+  dataSourceReferenceConfigVar,
   ConfigVarResultCollection,
   componentManifest,
   ObjectSelection,
@@ -16,7 +18,7 @@ import { expectAssignable } from "tsd";
 export const configPages = {
   "First Page": configPage({
     elements: {
-      "A Connection": connectionConfigVar({
+      "A Connection": connectionDefinitionConfigVar({
         dataType: "connection",
         stableKey: "a-connection",
         oauth2Type: OAuth2Type.AuthorizationCode,
@@ -28,7 +30,7 @@ export const configPages = {
           // more inputs
         },
       }),
-      "Ref Connection": connectionConfigVar({
+      "Ref Connection": connectionReferenceConfigVar({
         dataType: "connection",
         stableKey: "ref-connection",
         connection: {
@@ -37,7 +39,7 @@ export const configPages = {
           values: { foo: { value: "bar" } },
         },
       }),
-      "On Prem Connection": connectionConfigVar({
+      "On Prem Connection": connectionReferenceConfigVar({
         dataType: "connection",
         stableKey: "on-prem-connection",
         connection: {
@@ -64,7 +66,7 @@ export const configPages = {
   }),
   "Third Page": configPage({
     elements: {
-      "JSON Form Data Source": dataSourceConfigVar({
+      "JSON Form Data Source": dataSourceDefinitionConfigVar({
         stableKey: "json-form-data-source",
         dataSourceType: "jsonForm",
         perform: async (context) => {
@@ -81,7 +83,7 @@ export const configPages = {
           });
         },
       }),
-      "Object Selection Data Source": dataSourceConfigVar({
+      "Object Selection Data Source": dataSourceDefinitionConfigVar({
         stableKey: "object-selection-data-source",
         dataSourceType: "objectSelection",
         perform: async (context) => {
@@ -102,7 +104,7 @@ export const configPages = {
           });
         },
       }),
-      "Ref JSON Form Data Source": dataSourceConfigVar({
+      "Ref JSON Form Data Source": dataSourceReferenceConfigVar({
         stableKey: "ref-data-source",
         dataSource: {
           component: "example",
@@ -110,7 +112,7 @@ export const configPages = {
           values: { bar: { value: "foo" } },
         },
       }),
-      "Ref String Data Source": dataSourceConfigVar({
+      "Ref String Data Source": dataSourceReferenceConfigVar({
         stableKey: "ref-picklist-source",
         dataSource: {
           component: "example",

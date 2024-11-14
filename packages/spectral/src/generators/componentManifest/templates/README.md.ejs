@@ -74,12 +74,12 @@ export default flow({
 **Example:**
 
 ```typescript
-import { configPage, dataSourceConfigVar } from "@prismatic-io/spectral";
+import { configPage, dataSourceDefinitionConfigVar, dataSourceReferenceConfigVar } from "@prismatic-io/spectral";
 
 export const configPages = {
   "Data Sources": configPage({
     elements: {
-      "Custom Data Source": dataSourceConfigVar({
+      "Custom Data Source Reference": dataSourceReferenceConfigVar({
         dataType: "<%= component.dataSource.type  %>",
         stableKey: "custom-data-source",
         dataSource: {
@@ -90,7 +90,14 @@ export const configPages = {
             ...
           },
         }
-      })
+      }),
+      "Custom Data Source Definition": dataSourceDefinitionConfigVar({
+        dataType: "<%= component.dataSource.type  %>",
+        stableKey: "custom-data-source",
+        perform: async (context) => {
+          return { results: [] };
+        }
+      }),
     },
   }),
 };
@@ -103,23 +110,31 @@ export const configPages = {
 **Example:**
 
 ```typescript
-import { configPage, connectionConfigVar } from "@prismatic-io/spectral";
+import { configPage, connectionDefinitionConfigVar, connectionReferenceConfigVar } from "@prismatic-io/spectral";
 
 export const configPages = {
   Connections: configPage({
     elements: {
-      "Custom Connection": connectionConfigVar({
+      "Connection Definition": connectionDefinitionConfigVar({
         dataType: "connection",
-        stableKey: "custom-connection"
+        stableKey: "custom-connection",
+        inputs: {
+          // ...
+        },
+      }),
+      "Connection Reference": connectionReferenceConfigVar({
+        dataType: "connection",
+        stableKey: "custom-connection",
         connection: {
           key: "<%= component.connection.key %>",
           component: "<%= component.key %>",
           isPublic: <%= component.isPublic %>,
           values: {
-            ...
+            // ...
           },
         },
-    }),
+      }),
+    },
   }),
 };
 ```

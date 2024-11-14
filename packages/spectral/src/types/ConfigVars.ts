@@ -94,7 +94,7 @@ export interface ConfigVarVisibility {
   visibleToOrgDeployer?: boolean;
 }
 
-interface ConfigVarInputVisibility {
+export interface ConfigVarInputVisibility {
   /**
    * Optional value that sets the permission and visibility of the Config Var Input. @default "customer"
    *
@@ -239,7 +239,7 @@ type BaseDataSourceConfigVar<TDataSourceType extends DataSourceType = DataSource
               collectionType?: undefined;
             });
 
-type DataSourceDefinitionConfigVar = DataSourceType extends infer TDataSourceType
+export type DataSourceDefinitionConfigVar = DataSourceType extends infer TDataSourceType
   ? TDataSourceType extends DataSourceType
     ? BaseDataSourceConfigVar<TDataSourceType> &
         Omit<
@@ -249,7 +249,7 @@ type DataSourceDefinitionConfigVar = DataSourceType extends infer TDataSourceTyp
     : never
   : never;
 
-type DataSourceReferenceConfigVar =
+export type DataSourceReferenceConfigVar =
   ComponentRegistryDataSource extends infer TDataSourceReference extends ComponentRegistryDataSource
     ? Omit<BaseDataSourceConfigVar<TDataSourceReference["dataSourceType"]>, "dataSourceType"> & {
         dataSource: TDataSourceReference["reference"];
@@ -266,7 +266,7 @@ type BaseConnectionConfigVar = BaseConfigVar & {
   dataType: "connection";
 };
 
-type ConnectionDefinitionConfigVar =
+export type ConnectionDefinitionConfigVar =
   ConnectionDefinition extends infer TConnectionDefinitionType extends ConnectionDefinition
     ? TConnectionDefinitionType extends infer TConnectionDefinition extends ConnectionDefinition
       ? BaseConnectionConfigVar &
@@ -282,27 +282,28 @@ type ConnectionDefinitionConfigVar =
 
 type OnPremiseConnectionConfigTypeEnum = "allowed" | "disallowed" | "required";
 
-type ConnectionReferenceConfigVar = ComponentRegistryConnection extends infer TConnectionReference
-  ? TConnectionReference extends ComponentRegistryConnection
-    ? BaseConnectionConfigVar & {
-        connection: TConnectionReference["reference"] &
-          ("onPremAvailable" extends keyof TConnectionReference
-            ? TConnectionReference["onPremAvailable"] extends true
-              ? {
-                  template?: string;
-                  onPremiseConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
-                }
+export type ConnectionReferenceConfigVar =
+  ComponentRegistryConnection extends infer TConnectionReference
+    ? TConnectionReference extends ComponentRegistryConnection
+      ? BaseConnectionConfigVar & {
+          connection: TConnectionReference["reference"] &
+            ("onPremAvailable" extends keyof TConnectionReference
+              ? TConnectionReference["onPremAvailable"] extends true
+                ? {
+                    template?: string;
+                    onPremiseConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
+                  }
+                : {
+                    template?: string;
+                    onPremiseConnectionConfig?: undefined;
+                  }
               : {
                   template?: string;
                   onPremiseConnectionConfig?: undefined;
-                }
-            : {
-                template?: string;
-                onPremiseConnectionConfig?: undefined;
-              });
-      }
-    : never
-  : never;
+                });
+        }
+      : never
+    : never;
 
 /** Defines attributes of a Config Var that represents a Connection. */
 export type ConnectionConfigVar = ConnectionDefinitionConfigVar | ConnectionReferenceConfigVar;

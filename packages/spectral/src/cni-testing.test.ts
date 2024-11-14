@@ -1,4 +1,4 @@
-import { connectionConfigVar, flow, TriggerBaseResult, TriggerPayload } from ".";
+import { connectionDefinitionConfigVar, flow, TriggerBaseResult, TriggerPayload } from ".";
 import { convertConfigVar, convertFlow } from "./serverTypes/convertIntegration";
 import { connectionValue, defaultConnectionValueEnvironmentVariable, invokeFlow } from "./testing";
 
@@ -63,7 +63,7 @@ describe("test input conversion", () => {
   ];
   const defaultValues = ["string 1", "string 2"];
 
-  const configVar = connectionConfigVar({
+  const configVar = connectionDefinitionConfigVar({
     stableKey: "my-test-connection",
     dataType: "connection",
     inputs: {
