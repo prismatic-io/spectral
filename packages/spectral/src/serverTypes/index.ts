@@ -32,6 +32,7 @@ export interface Component {
   dataSources: Record<string, DataSource>;
   connections: Connection[];
   codeNativeIntegrationYAML?: string;
+  codeNativeIntegrationStableKey?: string;
 }
 
 export interface Action {

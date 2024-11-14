@@ -55,7 +55,7 @@ export const convertIntegration = (definition: IntegrationDefinition): ServerCom
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
   // inline as part of the integration definition.
-  const referenceKey = uuid();
+  const referenceKey = `${definition.stableKey}_cni_component`;
 
   const scopedConfigVars = definition.scopedConfigVars ?? {};
   const configVars: Record<string, ConfigVar> = Object.values({
@@ -97,6 +97,7 @@ export const convertIntegration = (definition: IntegrationDefinition): ServerCom
   return {
     ...cniComponent,
     codeNativeIntegrationYAML: cniYaml,
+    codeNativeIntegrationStableKey: definition.stableKey,
   };
 };
 
@@ -128,6 +129,7 @@ const convertConfigPages = (
 
 const codeNativeIntegrationYaml = (
   {
+    stableKey,
     name,
     description,
     category,
@@ -194,6 +196,7 @@ const codeNativeIntegrationYaml = (
   const result = {
     definitionVersion: DefinitionVersion,
     isCodeNative: true,
+    stableKey,
     name,
     description,
     category,

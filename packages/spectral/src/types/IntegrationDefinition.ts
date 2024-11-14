@@ -19,6 +19,8 @@ import {
 
 /** Defines attributes of a Code-Native Integration. */
 export type IntegrationDefinition = {
+  /** A unique, unchanging value that is used to maintain identity for the Integration even if the name changes. */
+  stableKey: string;
   /** The unique name for this Integration. */
   name: string;
   /** Optional description for this Integration. */

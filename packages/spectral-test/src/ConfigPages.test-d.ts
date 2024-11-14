@@ -95,6 +95,7 @@ const triggerFlow = flow({
 });
 
 integration({
+  stableKey: "config-pages-integration",
   name: "Config Pages",
   flows: [basicFlow, triggerFlow],
   configPages,

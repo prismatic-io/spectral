@@ -7,6 +7,7 @@ import { Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable } from "tsd";
 
 const basicDefinition = integration({
+  stableKey: "basic-test-integration",
   name: "Basic Code Native Integration",
   description: "This is a basic Code Native Integration",
   category: "Basic",
