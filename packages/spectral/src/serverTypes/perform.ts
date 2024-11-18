@@ -7,6 +7,8 @@ import type {
   Inputs,
   PollingContext,
   PollingTriggerPerformFunction,
+  TriggerResult,
+  TriggerResultType,
 } from "../types";
 import { type PollingTriggerDefinition } from "../types/PollingTriggerDefinition";
 import { uniq } from "lodash";
@@ -78,7 +80,7 @@ export const createPollingPerform = (
   trigger: PollingTriggerDefinition,
   { inputCleaners, errorHandler }: CreatePerformProps,
 ): PollingTriggerPerformFunction<Inputs, Inputs> => {
-  return async (context, payload, params): Promise<any> => {
+  return async (context, payload, params): Promise<TriggerResult<boolean, any>> => {
     try {
       const { pollAction } = trigger;
 
@@ -115,9 +117,12 @@ export const createPollingPerform = (
 
       const combinedContext = Object.assign({}, context, pollingContext);
 
-      const triggerResponse = await triggerPerform(combinedContext, payload, params);
+      const { polledNoChanges, ...rest } = await triggerPerform(combinedContext, payload, params);
 
-      return triggerResponse;
+      return {
+        ...rest,
+        returnType: polledNoChanges ? "polled_no_changes" : "completed",
+      };
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
     }

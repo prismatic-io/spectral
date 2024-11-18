@@ -1,6 +1,8 @@
 import { TriggerPayload } from "./TriggerPayload";
 import { HttpResponse } from "./HttpResponse";
 
+export type TriggerResultType = "completed" | "polled_no_changes";
+
 /** Represents the result of a Trigger action. */
 export interface TriggerBaseResult<TPayload extends TriggerPayload> {
   /** The payload in the request that invoked the Integration, which is returned as a result for later use. */
@@ -19,8 +21,10 @@ export interface TriggerBaseResult<TPayload extends TriggerPayload> {
   failed?: boolean;
   /** A field populated by the Prismatic platform which may refer to an object that contains data about any error that resulted in failure. */
   error?: Record<string, unknown>;
+  /** A field populated by the Prismatic platform which labels the trigger's return type. */
+  returnType?: TriggerResultType;
   /** An optional field that component authors can use to denote their CNI trigger result as having a polling response. */
-  polledNewChanges?: boolean;
+  polledNoChanges?: boolean;
 }
 
 /** Represents the result of a Trigger action that uses branching. */

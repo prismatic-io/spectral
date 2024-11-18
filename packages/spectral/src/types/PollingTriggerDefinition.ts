@@ -3,13 +3,13 @@ import type {
   ActionDisplayDefinition,
   TriggerEventFunction,
   Inputs,
-  TriggerResult,
   ConfigVarResultCollection,
   TriggerPayload,
   ActionDefinition,
   ActionContext,
   ActionInputParameters,
-  TriggerBaseResult,
+  ActionPerformReturn,
+  TriggerResult,
 } from ".";
 
 export interface PollingContext<
@@ -21,15 +21,12 @@ export interface PollingContext<
       data?: Record<string, unknown>,
       config?: AxiosRequestConfig<any>,
     ) => Promise<AxiosResponse<any, any>>;
-    invokeAction: (params: ActionInputParameters<TInputs>) => Promise<any>;
+    invokeAction: (
+      params: ActionInputParameters<TInputs>,
+    ) => Promise<ActionPerformReturn<boolean, any>>;
     getState: () => Record<string, unknown>;
     setState: (newState: Record<string, unknown>) => void;
   };
-}
-
-export interface PollingTriggerResult<TPayload extends TriggerPayload = TriggerPayload>
-  extends TriggerBaseResult<TPayload> {
-  polledNewChanges: boolean;
 }
 
 export type PollingTriggerPerformFunction<
@@ -37,7 +34,11 @@ export type PollingTriggerPerformFunction<
   TActionInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
-  TResult extends PollingTriggerResult = PollingTriggerResult,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
 > = (
   context: ActionContext<TConfigVars> & PollingContext<TActionInputs>,
   payload: TPayload,
@@ -52,7 +53,11 @@ export type PollingTriggerDefinition<
   TInputs extends Inputs = Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
-  TResult extends PollingTriggerResult<TPayload> = PollingTriggerResult<TPayload>,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
   TActionInputs extends Inputs = Inputs,
   TAction extends ActionDefinition<TActionInputs> = ActionDefinition<TActionInputs>,
   TCombinedInputs extends TInputs & TActionInputs = TInputs & TActionInputs,
@@ -68,6 +73,7 @@ export type PollingTriggerDefinition<
     TActionInputs,
     TConfigVars,
     TPayload,
+    TAllowsBranching,
     TResult
   >;
   /** Function to execute when an Instance of an Integration with a Flow that uses this Trigger is deployed. */
@@ -76,6 +82,8 @@ export type PollingTriggerDefinition<
   onInstanceDelete?: TriggerEventFunction<TInputs, TConfigVars>;
   /** InputFields to present in the Prismatic interface for configuration of this Trigger. */
   inputs?: TInputs;
+  /** Determines whether this Trigger allows Conditional Branching. */
+  allowsBranching?: TAllowsBranching;
 };
 
 export const isPollingTriggerDefinition = (ref: unknown): ref is PollingTriggerDefinition =>

@@ -30,7 +30,7 @@ import {
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
-import { PollingTriggerDefinition, PollingTriggerResult } from "./types/PollingTriggerDefinition";
+import { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
 
 /**
  * This function creates a Integration object that can be
@@ -177,11 +177,26 @@ export const pollingTrigger = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
   TPayload extends TriggerPayload,
-  TResult extends PollingTriggerResult<TPayload>,
+  TAllowsBranching extends boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload>,
   TActionInputs extends Inputs,
 >(
-  definition: PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TActionInputs>,
-): PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TActionInputs> => {
+  definition: PollingTriggerDefinition<
+    TInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult,
+    TActionInputs
+  >,
+): PollingTriggerDefinition<
+  TInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult,
+  TActionInputs
+> => {
   return { ...definition, triggerType: "polling" };
 };
 
