@@ -121,7 +121,7 @@ export const createPollingPerform = (
 
       return {
         ...rest,
-        returnType: polledNoChanges ? "polled_no_changes" : "completed",
+        resultType: polledNoChanges ? "polled_no_changes" : "completed",
       };
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
