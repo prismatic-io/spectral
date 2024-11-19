@@ -177,11 +177,26 @@ export const pollingTrigger = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
   TPayload extends TriggerPayload,
-  TResult extends TriggerResult<boolean, TPayload>,
+  TAllowsBranching extends boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload>,
   TActionInputs extends Inputs,
 >(
-  definition: PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TActionInputs>,
-): PollingTriggerDefinition<TInputs, TConfigVars, TPayload, TResult, TActionInputs> => {
+  definition: PollingTriggerDefinition<
+    TInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult,
+    TActionInputs
+  >,
+): PollingTriggerDefinition<
+  TInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult,
+  TActionInputs
+> => {
   return { ...definition, triggerType: "polling" };
 };
 
