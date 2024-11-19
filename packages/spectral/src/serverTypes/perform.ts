@@ -8,7 +8,6 @@ import type {
   PollingContext,
   PollingTriggerPerformFunction,
   TriggerResult,
-  TriggerResultType,
 } from "../types";
 import { type PollingTriggerDefinition } from "../types/PollingTriggerDefinition";
 import { uniq } from "lodash";

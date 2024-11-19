@@ -49,7 +49,7 @@ export type PollingTriggerPerformFunction<
  * PollingTriggerDefinition is the type of the object that is passed in to `pollingTrigger` function to
  * define a component trigger.
  */
-export type PollingTriggerDefinition<
+export interface PollingTriggerDefinition<
   TInputs extends Inputs = Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
@@ -61,7 +61,7 @@ export type PollingTriggerDefinition<
   TActionInputs extends Inputs = Inputs,
   TAction extends ActionDefinition<TActionInputs> = ActionDefinition<TActionInputs>,
   TCombinedInputs extends TInputs & TActionInputs = TInputs & TActionInputs,
-> = {
+> {
   triggerType?: "polling";
   /** Defines how the Action is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
@@ -84,7 +84,9 @@ export type PollingTriggerDefinition<
   inputs?: TInputs;
   /** Determines whether this Trigger allows Conditional Branching. */
   allowsBranching?: TAllowsBranching;
-};
+  /** An example of the payload outputted by this Trigger. */
+  examplePayload?: Awaited<ReturnType<this["perform"]>>;
+}
 
 export const isPollingTriggerDefinition = (ref: unknown): ref is PollingTriggerDefinition =>
   typeof ref === "object" && ref !== null && "triggerType" in ref && ref.triggerType === "polling";
