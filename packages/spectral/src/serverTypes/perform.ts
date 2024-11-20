@@ -85,9 +85,6 @@ export const createPollingPerform = (
 
       const pollingContext: Partial<PollingContext> = {
         polling: {
-          reinvokeFlow: async (data, config) => {
-            return await axios.post(context.invokeUrl, data, config);
-          },
           invokeAction: createInvokePollAction(context, pollAction, {
             inputCleaners,
             errorHandler,

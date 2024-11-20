@@ -17,10 +17,6 @@ export interface PollingContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
 > extends ActionContext<TConfigVars> {
   polling: {
-    reinvokeFlow: (
-      data?: Record<string, unknown>,
-      config?: AxiosRequestConfig<any>,
-    ) => Promise<AxiosResponse<any, any>>;
     invokeAction: (
       params: ActionInputParameters<TInputs>,
     ) => Promise<ActionPerformReturn<boolean, any>>;
