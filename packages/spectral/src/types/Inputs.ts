@@ -341,3 +341,10 @@ export type ConfigVarResultCollection = Record<
   string,
   string | Schedule | Connection | unknown | ObjectSelection | ObjectFieldMap
 >;
+
+export type FlowInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "flow";
+  /** Clean function */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
