@@ -391,13 +391,17 @@ const keyValPairListToObject = <TValue = unknown>(
   kvpList: KeyValuePair<unknown>[],
   valueConverter?: (value: unknown) => TValue,
 ): Record<string, TValue> => {
-  return (kvpList || []).reduce(
-    (result, { key, value }) => ({
-      ...result,
-      [key]: valueConverter ? valueConverter(value) : value,
-    }),
-    {},
-  );
+  try {
+    return (kvpList || []).reduce(
+      (result, { key, value }) => ({
+        ...result,
+        [key]: valueConverter ? valueConverter(value) : value,
+      }),
+      {},
+    );
+  } catch {
+    return {};
+  }
 };
 
 /**
