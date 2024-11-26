@@ -1079,7 +1079,7 @@ const codeNativeIntegrationComponent = (
         convertInput(key, value),
       );
 
-      const connection = pick(configVar, ["oauth2Type"]);
+      const connection = pick(configVar, ["oauth2Type", "oauth2PkceMethod"]);
       const { avatarPath: avatarIconPath, oauth2ConnectionIconPath: iconPath } =
         configVar.icons ?? {};
 
