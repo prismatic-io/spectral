@@ -1,9 +1,10 @@
-import axios from "axios";
-import { ActionContext } from ".";
+import axios, { AxiosRequestConfig } from "axios";
 import type {
+  ActionContext,
   ActionDefinition,
   ActionInputParameters,
   ErrorHandler,
+  FlowInvoker,
   Inputs,
   PollingContext,
   PollingTriggerPerformFunction,
@@ -34,6 +35,48 @@ export const cleanParams = (
   }, {});
 };
 
+export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
+  context: ActionContext,
+  // _flows: TFlows,
+  options: { isCNI?: boolean } = {},
+): FlowInvoker<TFlows> => {
+  if (options.isCNI) {
+    return async (
+      flowName: TFlows[number],
+      data?: Record<string, unknown>,
+      config?: AxiosRequestConfig,
+      source?: string,
+    ) => {
+      return await axios.post(context.webhookUrls[flowName], data, {
+        ...config,
+        headers: {
+          ...(config?.headers ?? {}),
+          // @TODO: header keys TBD, default text TBD
+          "prismatic-pointer-customSource": source ?? "",
+        },
+      });
+    };
+  }
+
+  return async (
+    flowName: TFlows[number],
+    data?: Record<string, unknown>,
+    config?: AxiosRequestConfig,
+    _source?: string,
+  ) => {
+    return await axios.post(context.webhookUrls[flowName], data, {
+      ...config,
+      headers: {
+        ...(config?.headers ?? {}),
+        // @TODO - formatting the headers in some way (e.g. prismatic-pointer-stepName)
+        ...context.pointer,
+        // @TODO - remove, just for testing purposes
+        "prismatic-testHeaderInsert": "test-header-data",
+      },
+    });
+  };
+};
+
 export const createPerform = (
   performFn: PerformFn,
   { inputCleaners, errorHandler }: CreatePerformProps,
@@ -44,13 +87,27 @@ export const createPerform = (
         const [params] = args;
         return await performFn(cleanParams(params, inputCleaners));
       }
+
       if (args.length === 2) {
         const [context, params] = args;
-        return await performFn(context, cleanParams(params, inputCleaners));
+        return await performFn(
+          {
+            ...context,
+            invokeFlow: createInvokeFlow(context),
+          },
+          cleanParams(params, inputCleaners),
+        );
       }
 
       const [context, payload, params] = args;
-      return await performFn(context, payload, cleanParams(params, inputCleaners));
+      return await performFn(
+        {
+          ...context,
+          invokeFlow: createInvokeFlow(context),
+        },
+        payload,
+        cleanParams(params, inputCleaners),
+      );
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
     }
@@ -84,6 +141,7 @@ export const createPollingPerform = (
       const { pollAction } = trigger;
 
       const pollingContext: Partial<PollingContext> = {
+        invokeFlow: createInvokeFlow(context),
         polling: {
           invokeAction: createInvokePollAction(context, pollAction, {
             inputCleaners,

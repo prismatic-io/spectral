@@ -5,6 +5,7 @@
  * https://prismatic.io/docs/custom-components/writing-custom-components/#testing-a-component
  */
 
+import { AxiosRequestConfig, AxiosResponse } from "axios";
 import {
   TriggerPayload,
   TriggerResult,
@@ -12,13 +13,13 @@ import {
   ActionLogger,
   ActionLoggerFunction,
   Component,
-  ActionContext,
   ActionPerformReturn,
   DataSourceResult,
   Input,
   DataSourceContext,
 } from "./serverTypes";
 import {
+  ActionContext,
   ConnectionDefinition,
   ActionDefinition,
   TriggerDefinition,
@@ -77,6 +78,14 @@ export const loggerMock = (): ActionLogger => ({
   error: spyOn(console, "error") as unknown as ActionLoggerFunction,
 });
 
+async function invokeFlowTest(
+  flowName: string,
+  data?: Record<string, unknown>,
+  config?: AxiosRequestConfig<any>,
+) {
+  return Promise.resolve({} as AxiosResponse<any, any>);
+}
+
 const createActionContext = <
   TConfigVars extends ConfigVarResultCollection,
   TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
@@ -129,6 +138,14 @@ const createActionContext = <
       name: "Flow 1",
     },
     startedAt: new Date().toISOString(),
+    invokeFlow: invokeFlowTest,
+    pointer: {
+      componentActionKey: "my-component-action-key",
+      executionId: "abc-123",
+      executionStartedAt: "",
+      stepName: "some-step",
+      loopPath: "",
+    },
     ...context,
   };
 };
