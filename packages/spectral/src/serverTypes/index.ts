@@ -13,7 +13,7 @@ import {
   ConfigVarResultCollection,
   ComponentManifest,
   FlowInvoker,
-  Lineage,
+  ExecutionFrame,
 } from "../types";
 
 interface DisplayDefinition {
@@ -95,7 +95,7 @@ export type ActionContext<
   flow: FlowAttributes;
   startedAt: string;
   invokeFlow: FlowInvoker<TFlows>;
-  pointer: Lineage;
+  executionFrame: ExecutionFrame;
 };
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";

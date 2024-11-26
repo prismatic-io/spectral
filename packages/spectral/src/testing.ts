@@ -139,7 +139,7 @@ const createActionContext = <
     },
     startedAt: new Date().toISOString(),
     invokeFlow: invokeFlowTest,
-    pointer: {
+    executionFrame: {
       componentActionKey: "my-component-action-key",
       executionId: "abc-123",
       executionStartedAt: "",

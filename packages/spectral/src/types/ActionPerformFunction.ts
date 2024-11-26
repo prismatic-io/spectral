@@ -25,7 +25,7 @@ interface CustomLineage {
   customSource: string;
 }
 
-export type Lineage = ExecutionLineage | CustomLineage;
+export type ExecutionFrame = ExecutionLineage | CustomLineage;
 
 export type FlowInvoker<TFlows extends Readonly<string[]> | undefined> = (
   flowName: TFlows extends Readonly<string[]> ? TFlows[number] : string,
@@ -98,5 +98,5 @@ export type ActionContext<
   /** @TODO: Description */
   invokeFlow: FlowInvoker<TFlows>;
   /** @TODO: Description */
-  pointer: Lineage;
+  executionFrame: ExecutionFrame;
 };

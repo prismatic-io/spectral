@@ -69,7 +69,7 @@ export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
       headers: {
         ...(config?.headers ?? {}),
         // @TODO - formatting the headers in some way (e.g. prismatic-pointer-stepName)
-        ...context.pointer,
+        ...context.executionFrame,
         // @TODO - remove, just for testing purposes
         "prismatic-testHeaderInsert": "test-header-data",
       },
