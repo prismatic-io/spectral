@@ -4,6 +4,7 @@ import type {
   ActionDefinition,
   ActionInputParameters,
   ErrorHandler,
+  ExecutionFrame,
   FlowInvoker,
   Inputs,
   PollingContext,
@@ -35,6 +36,11 @@ export const cleanParams = (
   }, {});
 };
 
+function formatExecutionFrameHeaders(frame: ExecutionFrame) {
+  // @TODO: format keys and values as needed
+  return frame;
+}
+
 export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
   context: ActionContext,
   // _flows: TFlows,
@@ -51,6 +57,7 @@ export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
         ...config,
         headers: {
           ...(config?.headers ?? {}),
+          ...formatExecutionFrameHeaders(context.executionFrame),
           // @TODO: header keys TBD, default text TBD
           "prismatic-pointer-customSource": source ?? "",
         },
@@ -68,10 +75,7 @@ export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
       ...config,
       headers: {
         ...(config?.headers ?? {}),
-        // @TODO - formatting the headers in some way (e.g. prismatic-pointer-stepName)
-        ...context.executionFrame,
-        // @TODO - remove, just for testing purposes
-        "prismatic-testHeaderInsert": "test-header-data",
+        ...formatExecutionFrameHeaders(context.executionFrame),
       },
     });
   };
