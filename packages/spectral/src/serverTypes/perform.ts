@@ -36,7 +36,7 @@ export const cleanParams = (
   }, {});
 };
 
-function formatExecutionFrameHeaders(frame: ExecutionFrame) {
+function formatExecutionFrameHeaders(frame: ExecutionFrame, _source?: string) {
   // @TODO: format keys and values as needed
   return frame;
 }
@@ -57,9 +57,7 @@ export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
         ...config,
         headers: {
           ...(config?.headers ?? {}),
-          ...formatExecutionFrameHeaders(context.executionFrame),
-          // @TODO: header keys TBD, default text TBD
-          "prismatic-pointer-customSource": source ?? "",
+          ...formatExecutionFrameHeaders(context.executionFrame, source),
         },
       });
     };
