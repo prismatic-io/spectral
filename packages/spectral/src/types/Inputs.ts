@@ -85,6 +85,8 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = 
   jsonForm: undefined,
   dynamicObjectSelection: "",
   dynamicFieldSelection: "",
+  date: "",
+  timestamp: "",
 };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -117,7 +119,9 @@ export type InputFieldDefinition =
   | ObjectFieldMapInputField
   | JSONFormInputField
   | DynamicObjectSelectionInputField
-  | DynamicFieldSelectionInputField;
+  | DynamicFieldSelectionInputField
+  | DateInputField
+  | DateTimeInputField;
 
 export type InputCleanFunction<TValue, TResult = TValue> = (value: TValue) => TResult;
 
@@ -325,6 +329,24 @@ export interface DynamicFieldSelectionInputField extends BaseInputField {
   clean?: InputCleanFunction<this["default"]>;
 }
 
+export type DateInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "date";
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
+
+export type DateTimeInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "timestamp";
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
+
 /** Defines a single Choice option for a InputField. */
 export interface InputFieldChoice {
   /** Label to display for this Choice. */
@@ -341,3 +363,10 @@ export type ConfigVarResultCollection = Record<
   string,
   string | Schedule | Connection | unknown | ObjectSelection | ObjectFieldMap
 >;
+
+export type FlowInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "flow";
+  /** Clean function */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;

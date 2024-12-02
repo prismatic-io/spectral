@@ -92,6 +92,8 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   },
   dynamicObjectSelection: "string",
   dynamicFieldSelection: "string",
+  date: "string",
+  timestamp: "string",
 };
 
 const getInputValueType = (input: ServerTypeInput): ValueType => {
