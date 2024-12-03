@@ -11,6 +11,7 @@ import {
   ConfigVarResultCollection,
   OnPremConnectionInput,
   TriggerOptionChoice,
+  TriggerPayload,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -80,12 +81,15 @@ const convertAction = (
   };
 };
 
-const convertTrigger = (
+export const convertTrigger = (
   triggerKey: string,
-  trigger: TriggerDefinition<Inputs, any, boolean, any> | PollingTriggerDefinition,
+  trigger:
+    | TriggerDefinition<any>
+    | PollingTriggerDefinition<any, ConfigVarResultCollection, TriggerPayload, boolean, any, any>,
   hooks?: ComponentHooks,
 ): ServerTrigger => {
-  const { inputs = {}, onInstanceDeploy, onInstanceDelete } = trigger;
+  const { onInstanceDeploy, onInstanceDelete } = trigger;
+  const inputs: Inputs = trigger.inputs as Inputs;
   const isPollingTrigger = isPollingTriggerDefinition(trigger);
 
   const triggerInputKeys = Object.keys(inputs);
@@ -114,7 +118,7 @@ const convertTrigger = (
         (accum, [key, value]) => {
           if (triggerInputKeys.includes(key)) {
             throw new Error(
-              `Error: The pollingTrigger "${trigger.display.label}" was defined with an input with the key: ${key}. This key duplicates an input on the associated "${action.display.label}" action. Please assign the trigger input a different key.`,
+              `The pollingTrigger "${trigger.display.label}" was defined with an input with the key: ${key}. This key duplicates an input on the associated "${action.display.label}" action. Please assign the trigger input a different key.`,
             );
           }
 
