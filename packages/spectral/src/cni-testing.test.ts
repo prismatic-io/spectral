@@ -2,9 +2,6 @@ import { connectionConfigVar, flow, TriggerBaseResult, TriggerPayload } from "."
 import { convertConfigVar, convertFlow } from "./serverTypes/convertIntegration";
 import { connectionValue, defaultConnectionValueEnvironmentVariable, invokeFlow } from "./testing";
 
-// TODO: This changeset it questionable.
-// We were only using configPages for the types which we no longer need.
-// It seems fine to remove but not sure.
 describe("default onTrigger", () => {
   const basicFlow = flow({
     name: "Basic Flow",
