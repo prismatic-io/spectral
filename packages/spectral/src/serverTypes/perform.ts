@@ -36,9 +36,17 @@ export const cleanParams = (
   }, {});
 };
 
-function formatExecutionFrameHeaders(frame: ExecutionFrame, _source?: string) {
-  // @TODO: format keys and values as needed
-  return frame;
+function formatExecutionFrameHeaders(frame: ExecutionFrame, source?: string) {
+  let frameToUse = frame;
+
+  if (source) {
+    frameToUse = {
+      ...frame,
+      customSource: source,
+    };
+  }
+
+  return JSON.stringify(frameToUse);
 }
 
 export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
@@ -57,7 +65,7 @@ export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
         ...config,
         headers: {
           ...(config?.headers ?? {}),
-          ...formatExecutionFrameHeaders(context.executionFrame, source),
+          "prismatic-invoked-by": formatExecutionFrameHeaders(context.executionFrame, source),
         },
       });
     };
@@ -73,7 +81,7 @@ export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
       ...config,
       headers: {
         ...(config?.headers ?? {}),
-        ...formatExecutionFrameHeaders(context.executionFrame),
+        "prismatic-invoked-by": formatExecutionFrameHeaders(context.executionFrame),
       },
     });
   };

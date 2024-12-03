@@ -13,7 +13,7 @@ import {
   ComponentManifest,
 } from ".";
 
-interface ExecutionLineage {
+interface StandardLineage {
   componentActionKey: string;
   executionId: string;
   executionStartedAt: string;
@@ -25,7 +25,15 @@ interface CustomLineage {
   customSource: string;
 }
 
-export type ExecutionFrame = ExecutionLineage | CustomLineage;
+export type ExecutionFrame =
+  | ({
+      invokedByExecutionJWT: string;
+      invokedByExecutionStartedAt: string;
+    } & StandardLineage)
+  | ({
+      invokedByExecutionJWT: string;
+      invokedByExecutionStartedAt: string;
+    } & CustomLineage);
 
 export type FlowInvoker<TFlows extends Readonly<string[]> | undefined> = (
   flowName: TFlows extends Readonly<string[]> ? TFlows[number] : string,

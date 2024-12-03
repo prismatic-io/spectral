@@ -140,6 +140,8 @@ const createActionContext = <
     startedAt: new Date().toISOString(),
     invokeFlow: invokeFlowTest,
     executionFrame: {
+      invokedByExecutionJWT: "some-jwt",
+      invokedByExecutionStartedAt: "00-00-0000",
       componentActionKey: "my-component-action-key",
       executionId: "abc-123",
       executionStartedAt: "",
