@@ -1,3 +1,4 @@
+import { AxiosRequestConfig, AxiosResponse } from "axios";
 import {
   Inputs,
   ConfigVarResultCollection,
@@ -11,6 +12,35 @@ import {
   FlowAttributes,
   ComponentManifest,
 } from ".";
+
+interface StandardLineage {
+  componentActionKey: string;
+  executionId: string;
+  executionStartedAt: string;
+  stepName: string;
+  loopPath: string;
+}
+
+interface CustomLineage {
+  customSource: string;
+}
+
+export type ExecutionFrame =
+  | ({
+      invokedByExecutionJWT: string;
+      invokedByExecutionStartedAt: string;
+    } & StandardLineage)
+  | ({
+      invokedByExecutionJWT: string;
+      invokedByExecutionStartedAt: string;
+    } & CustomLineage);
+
+export type FlowInvoker<TFlows extends Readonly<string[]> | undefined> = (
+  flowName: TFlows extends Readonly<string[]> ? TFlows[number] : string,
+  data?: Record<string, unknown>,
+  config?: AxiosRequestConfig<any>,
+  source?: string,
+) => Promise<AxiosResponse<any, any>>;
 
 /** Definition of the function to perform when an Action is invoked. */
 export type ActionPerformFunction<
@@ -31,6 +61,7 @@ export type ActionContext<
     string,
     ComponentManifest["actions"]
   >,
+  TFlows extends string[] = string[],
 > = {
   /** Logger for permanent logging; console calls are also captured */
   logger: ActionLogger;
@@ -72,4 +103,8 @@ export type ActionContext<
   flow: FlowAttributes;
   /** The time in UTC that execution started. */
   startedAt: string;
+  /** Function to invoke an execution of another flow.. */
+  invokeFlow: FlowInvoker<TFlows>;
+  /** Reference to the current execution and, when applicable, the current step. */
+  executionFrame: ExecutionFrame;
 };

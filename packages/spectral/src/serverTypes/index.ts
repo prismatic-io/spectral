@@ -1,3 +1,6 @@
+/* Types used to describe the format the platform expects for
+ * component and integration definitions. */
+
 import {
   InstanceAttributes,
   CustomerAttributes,
@@ -9,6 +12,8 @@ import {
   FlowAttributes,
   ConfigVarResultCollection,
   ComponentManifest,
+  FlowInvoker,
+  ExecutionFrame,
 } from "../types";
 
 interface DisplayDefinition {
@@ -65,6 +70,7 @@ export type ActionContext<
     string,
     ComponentManifest["actions"]
   >,
+  TFlows extends string[] = string[],
 > = {
   logger: ActionLogger;
   instanceState: Record<string, unknown>;
@@ -88,6 +94,8 @@ export type ActionContext<
   integration: IntegrationAttributes;
   flow: FlowAttributes;
   startedAt: string;
+  invokeFlow: FlowInvoker<TFlows>;
+  executionFrame: ExecutionFrame;
 };
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";
