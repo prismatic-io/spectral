@@ -103,8 +103,8 @@ export type ActionContext<
   flow: FlowAttributes;
   /** The time in UTC that execution started. */
   startedAt: string;
-  /** @TODO: Description */
+  /** Function to invoke an execution of another flow.. */
   invokeFlow: FlowInvoker<TFlows>;
-  /** @TODO: Description */
+  /** Reference to the current execution and, when applicable, the current step. */
   executionFrame: ExecutionFrame;
 };
