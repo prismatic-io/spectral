@@ -51,37 +51,20 @@ function formatExecutionFrameHeaders(frame: ExecutionFrame, source?: string) {
 
 export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
   context: ActionContext,
-  // _flows: TFlows,
   options: { isCNI?: boolean } = {},
 ): FlowInvoker<TFlows> => {
-  if (options.isCNI) {
-    return async (
-      flowName: TFlows[number],
-      data?: Record<string, unknown>,
-      config?: AxiosRequestConfig,
-      source?: string,
-    ) => {
-      return await axios.post(context.webhookUrls[flowName], data, {
-        ...config,
-        headers: {
-          ...(config?.headers ?? {}),
-          "prismatic-invoked-by": formatExecutionFrameHeaders(context.executionFrame, source),
-        },
-      });
-    };
-  }
-
   return async (
     flowName: TFlows[number],
     data?: Record<string, unknown>,
     config?: AxiosRequestConfig,
-    _source?: string,
+    source?: string,
   ) => {
+    const sourceToUse = options.isCNI ? source : undefined;
     return await axios.post(context.webhookUrls[flowName], data, {
       ...config,
       headers: {
         ...(config?.headers ?? {}),
-        "prismatic-invoked-by": formatExecutionFrameHeaders(context.executionFrame),
+        "prismatic-invoked-by": formatExecutionFrameHeaders(context.executionFrame, sourceToUse),
       },
     });
   };
