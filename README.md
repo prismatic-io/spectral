@@ -1,43 +1,48 @@
-# spectral
+<div align="center">
+  <img src="https://prismatic.io/favicon-48x48.png" />
+  <h1>@prismatic-io/spectral</h1>
+</div>
 
-This monorepo contains packages to build custom Prismatic components using Typescript.
+This monorepo contains packages to build custom Prismatic connectors and code-native integrations using Typescript.
 
 ## Building Locally
 
 You will need `yarn` and `node` installed.
 Run `yarn turbo run build` to build and `yarn turbo run test` to run the test suites. `yarn pack` and `yarn link` are both useful for testing changes locally.
 
-
 ## What is Prismatic?
 
-Prismatic is the integration platform for B2B software companies. It's the quickest way to build integrations to the other apps your customers use and to add a native integration marketplace to your product.
+Prismatic is the leading embedded iPaaS, enabling B2B SaaS teams to ship product integrations faster and with less dev time. The only embedded iPaaS that empowers both developers and non-developers with tools for the complete integration lifecycle, Prismatic includes low-code and code-native building options, deployment and management tooling, and self-serve customer tools.
 
-Prismatic significantly reduces overall integration effort and enables non-dev teams to take on more of the integration workload, so that you can deliver integrations faster and spend more time on core product innovation.
+Prismatic's unparalleled versatility lets teams deliver any integration from simple to complex in one powerful platform. SaaS companies worldwide, from startups to Fortune 500s, trust Prismatic to help connect their products to the other products their customers use.
 
 With Prismatic, you can:
 
-- Build reusable [integrations](https://prismatic.io/docs/integrations) in a low-code integration designer that's tailored for your product
-- Use [pre-built components](https://prismatic.io/docs/components/component-catalog) to handle most of your integrations' functionality, and write [custom components](https://prismatic.io/docs/custom-components/writing-custom-components) when needed
-- Quickly add an [integration marketplace](https://prismatic.io/docs/integration-marketplace) to your product so customers can explore, activate, and monitor integrations
-- Easily deploy customer-specific integration [instances](https://prismatic.io/docs/instances) with unique configurations and connections
-- Provide better support with tools like [logging](https://prismatic.io/docs/logging) and [alerting](https://prismatic.io/docs/monitoring-and-alerting)
-- Run your integrations in a purpose-built environment designed for security and scalability
-- Use powerful dev tools to mold the platform to your product, industry, and the way you build software
+- Build [integrations](https://prismatic.io/docs/integrations/) using our [intuitive low-code designer](https://prismatic.io/docs/integrations/low-code-integration-designer/) or [code-native](https://prismatic.io/docs/integrations/code-native/) approach in your preferred IDE
+- Leverage pre-built [connectors](https://prismatic.io/docs/components/) for common integration tasks, or develop custom connectors using our TypeScript SDK
+- Embed a native [integration marketplace](https://prismatic.io/docs/embed/) in your product for customer self-service
+- Configure and deploy customer-specific integration instances with powerful configuration tools
+- Support customers efficiently with comprehensive [logging, monitoring, and alerting](https://prismatic.io/docs/monitor-instances/)
+- Run integrations in a secure, scalable infrastructure designed for B2B SaaS
+- Customize the platform to fit your product, industry, and development workflows
 
 ## Who uses Prismatic?
 
-Prismatic is for B2B (business-to-business) software companies, meaning software companies that provide applications used by businesses. It's a good fit for products/teams ranging from early-stage and growing SaaS startups to large, established software companies looking to improve the way they do integrations.
+Prismatic is built for B2B software companies that need to provide integrations to their customers. Whether you're a growing SaaS startup or an established enterprise, Prismatic's platform scales with your integration needs.
 
-Many B2B software teams serve customers in niche vertical markets, and we designed Prismatic with that in mind. We provide powerful and flexible tools so you can build exactly the integrations your customers need, no matter who your customers are, no matter what systems you need to connect to, no matter how "non-standard" your integration scenario.
+Our platform is particularly powerful for teams serving specialized vertical markets. We provide the flexibility and tools to build exactly the integrations your customers need, regardless of the systems you're connecting to or how unique your integration requirements may be.
 
 ## What kind of integrations can you build using Prismatic?
 
-Prismatic supports integrations ranging from simple and standard to complex, bespoke, and vertical-specific.
-Teams use it to build integrations between applications of all kinds, SaaS or legacy, with or without a modern API, regardless of protocol or data format.
-Here are some example use cases:
+Prismatic supports integrations of any complexity - from simple data syncs to sophisticated, industry-specific solutions. Teams use it to build integrations between any type of system, whether modern SaaS or legacy with standard or custom protocols. Here are some example use cases:
 
-- Use job data from your system to create invoices in your customers' ERP.
-- Import and process data from third-party forms that vary significantly from customer to customer.
-- Email activity summary reports with parameters and intervals defined on a per-customer basis.
+- Connect your product with customers' ERPs, CRMs, and other business systems
+- Process data from multiple sources with customer-specific transformation requirements
+- Automate workflows with customizable triggers, actions, and schedules
+- Handle complex authentication flows and data mapping scenarios
 
-For information on the Prismatic platform, check out our [website](https://prismatic.io) and [docs](https://prismatic.io/docs).
+For information on the Prismatic platform, check out our [website](https://prismatic.io/) and [docs](https://prismatic.io/docs/).
+
+## License
+
+This repository is MIT licensed.
