@@ -1,7 +1,7 @@
 {
   "name": "@prismatic-io/eslint-config-spectral",
   "version": "2.0.2",
-  "description": "ESLint config for building Prismatic components and code-native integrations",
+  "description": "ESLint config for building Prismatic connectors and code-native integrations",
   "keywords": [
     "prismatic",
     "eslint"
