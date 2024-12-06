@@ -65,7 +65,7 @@ export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
       headers: {
         ...(config?.headers ?? {}),
         "prismatic-invoked-by": formatExecutionFrameHeaders(context.executionFrame, sourceToUse),
-        "prismatic-invoke-type": "CROSS_FLOW",
+        "prismatic-invoke-type": "Cross Flow",
       },
     });
   };
