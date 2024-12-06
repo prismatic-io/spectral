@@ -3,7 +3,7 @@
   <h1>@prismatic-io/spectral</h1>
 </div>
 
-This monorepo contains packages to build custom Prismatic connectors and code-native integrations using Typescript.
+This monorepo contains packages to build custom Prismatic connectors and code-native integrations using TypeScript.
 
 ## Building Locally
 
