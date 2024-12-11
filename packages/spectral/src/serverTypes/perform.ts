@@ -64,8 +64,14 @@ export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
       ...config,
       headers: {
         ...(config?.headers ?? {}),
+        ...(context.webhookApiKeys[flowName]?.length > 0
+          ? {
+              "Api-Key": context.webhookApiKeys[flowName][0],
+            }
+          : {}),
         "prismatic-invoked-by": formatExecutionFrameHeaders(context.executionFrame, sourceToUse),
         "prismatic-invoke-type": "Cross Flow",
+        "prismatic-executionid": context.executionId,
       },
     });
   };
