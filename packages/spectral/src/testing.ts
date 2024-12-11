@@ -91,13 +91,13 @@ async function invokeFlowTest(
  * Creates basic mocks of component actions that are available in the CNI's registry.
  * You may pass mock overrides in the second argument, e.g.:
  *
- * createComponentActionMocks(myManifest, {
+ * createMockContextComponents(myManifest, {
  *   myComponentName: {
  *     myComponentAction: () => Promise.resolve({ data: "my test data "}),
  *   },
  * });
  */
-export const createComponentActionMocks = <TMockAction extends () => Promise<any>>(
+export const createMockContextComponents = <TMockAction extends () => Promise<any>>(
   registry: Record<string, { actions: ComponentManifest["actions"] }>,
   mocks: Record<string, Record<string, TMockAction>> = {},
 ) => {
