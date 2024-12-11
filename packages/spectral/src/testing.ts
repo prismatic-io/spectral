@@ -7,19 +7,20 @@
 
 import { AxiosRequestConfig, AxiosResponse } from "axios";
 import {
+  ActionPerformReturn as ServerActionPerformReturn,
   TriggerPayload,
   TriggerResult,
   ConnectionValue,
   ActionLogger,
   ActionLoggerFunction,
   Component,
-  ActionPerformReturn,
   DataSourceResult,
   Input,
   DataSourceContext,
 } from "./serverTypes";
 import {
   ActionContext,
+  ActionPerformReturn,
   ConnectionDefinition,
   ActionDefinition,
   TriggerDefinition,
@@ -85,6 +86,44 @@ async function invokeFlowTest(
 ) {
   return Promise.resolve({} as AxiosResponse<any, any>);
 }
+
+/**
+ * Creates basic component mocks based on the CNI's component registry.
+ * You may pass mock overrides in the second argument, e.g.:
+ *
+ * createMockContextComponents(myManifest, {
+ *   actions: {
+ *     myComponentName: {
+ *        myComponentAction: () => Promise.resolve({ data: "my test data "}),
+ *     }
+ *   },
+ * });
+ */
+export const createMockContextComponents = <TMockAction extends () => Promise<any>>(
+  registry: Record<string, { actions: ComponentManifest["actions"] }>,
+  mocks: {
+    actions: Record<string, Record<string, TMockAction>>;
+  } = { actions: {} },
+) => {
+  const components = Object.keys(registry).reduce<Record<string, Record<string, TMockAction>>>(
+    (accum, componentKey) => {
+      const mockActions = Object.keys(registry[componentKey].actions).reduce<
+        Record<string, TMockAction>
+      >((actionAccum, actionKey) => {
+        actionAccum[actionKey] = (() => {
+          return Promise.resolve({ data: null });
+        }) as TMockAction;
+        return actionAccum;
+      }, {});
+
+      accum[componentKey] = { ...mockActions, ...(mocks.actions[componentKey] ?? {}) };
+      return accum;
+    },
+    {},
+  );
+
+  return components;
+};
 
 const createActionContext = <
   TConfigVars extends ConfigVarResultCollection,
@@ -468,7 +507,7 @@ export class ComponentTestHarness<TComponent extends Component> {
     key: string,
     params?: Record<string, unknown>,
     context?: Partial<ActionContext<TConfigVars>>,
-  ): Promise<ActionPerformReturn> {
+  ): Promise<ServerActionPerformReturn> {
     const action = this.component.actions[key];
     return action.perform(createActionContext(context), this.buildParams(action.inputs, params));
   }
