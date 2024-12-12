@@ -87,6 +87,7 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = 
   dynamicFieldSelection: "",
   date: "",
   timestamp: "",
+  flow: "",
 };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -121,7 +122,8 @@ export type InputFieldDefinition =
   | DynamicObjectSelectionInputField
   | DynamicFieldSelectionInputField
   | DateInputField
-  | DateTimeInputField;
+  | DateTimeInputField
+  | FlowInputField;
 
 export type InputCleanFunction<TValue, TResult = TValue> = (value: TValue) => TResult;
 

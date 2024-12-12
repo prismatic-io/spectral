@@ -6,10 +6,10 @@ import type {
   ConfigVarResultCollection,
   TriggerPayload,
   ActionDefinition,
-  ActionContext,
   ActionInputParameters,
   ActionPerformReturn,
   TriggerResult,
+  ActionContext,
 } from ".";
 
 export interface PollingContext<

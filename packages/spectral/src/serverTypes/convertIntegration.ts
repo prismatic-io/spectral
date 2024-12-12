@@ -50,6 +50,7 @@ import {
   ComponentReference as ServerComponentReference,
 } from "./integration";
 import { merge } from "lodash";
+import { createInvokeFlow } from "./perform";
 
 export const convertIntegration = (definition: IntegrationDefinition): ServerComponent => {
   // Generate a unique reference key that will be used to reference the
@@ -945,7 +946,14 @@ const convertOnExecution =
       {},
     );
 
-    return onExecution({ ...context, components: componentMethods }, params);
+    return onExecution(
+      {
+        ...context,
+        components: componentMethods,
+        invokeFlow: createInvokeFlow(context, { isCNI: true }),
+      },
+      params,
+    );
   };
 
 /** Creates the structure necessary to import a Component as part of a
