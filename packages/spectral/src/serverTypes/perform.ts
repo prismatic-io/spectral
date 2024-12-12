@@ -3,15 +3,17 @@ import type {
   ActionContext,
   ActionDefinition,
   ActionInputParameters,
+  ConfigVarResultCollection,
   ErrorHandler,
   ExecutionFrame,
   FlowInvoker,
   Inputs,
   PollingContext,
+  PollingTriggerDefinition,
   PollingTriggerPerformFunction,
+  TriggerPayload,
   TriggerResult,
 } from "../types";
-import { type PollingTriggerDefinition } from "../types/PollingTriggerDefinition";
 import { uniq } from "lodash";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
@@ -133,7 +135,14 @@ const createInvokePollAction = <TInputs extends Inputs>(
 };
 
 export const createPollingPerform = (
-  trigger: PollingTriggerDefinition,
+  trigger: PollingTriggerDefinition<
+    any,
+    ConfigVarResultCollection,
+    TriggerPayload,
+    boolean,
+    any,
+    any
+  >,
   { inputCleaners, errorHandler }: CreatePerformProps,
 ): PollingTriggerPerformFunction<Inputs, Inputs> => {
   return async (context, payload, params): Promise<TriggerResult<boolean, any>> => {
