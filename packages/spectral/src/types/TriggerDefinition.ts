@@ -19,10 +19,13 @@ export const TriggerOptionChoices: TriggerOptionChoice[] = [...optionChoices];
  * define a component trigger.
  */
 export interface TriggerDefinition<
-  TInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection,
-  TAllowsBranching extends boolean,
-  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
+  TInputs extends Inputs = Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload> = TriggerResult<
+    TAllowsBranching,
+    TriggerPayload
+  >,
 > {
   /** Defines how the Trigger is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;

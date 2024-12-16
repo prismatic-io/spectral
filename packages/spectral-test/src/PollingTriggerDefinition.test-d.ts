@@ -19,7 +19,7 @@ const myPollingTrigger = pollingTrigger({
   },
   pollAction: myAction,
   perform: async (context, payload, params) => {
-    return Promise.resolve({ payload });
+    return Promise.resolve({ payload, polledNoChanges: true });
   },
 });
 
@@ -29,7 +29,7 @@ const pollingTriggerWithoutAction = pollingTrigger({
     description: "My Polling Trigger Description",
   },
   perform: async (context, payload, params) => {
-    return Promise.resolve({ payload });
+    return Promise.resolve({ payload, polledNoChanges: true });
   },
 });
 

@@ -1,14 +1,19 @@
-import axios from "axios";
-import { ActionContext } from ".";
+import axios, { AxiosRequestConfig } from "axios";
 import type {
+  ActionContext,
   ActionDefinition,
   ActionInputParameters,
+  ConfigVarResultCollection,
   ErrorHandler,
+  ExecutionFrame,
+  FlowInvoker,
   Inputs,
   PollingContext,
+  PollingTriggerDefinition,
   PollingTriggerPerformFunction,
+  TriggerPayload,
+  TriggerResult,
 } from "../types";
-import { type PollingTriggerDefinition } from "../types/PollingTriggerDefinition";
 import { uniq } from "lodash";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
@@ -33,6 +38,47 @@ export const cleanParams = (
   }, {});
 };
 
+function formatExecutionFrameHeaders(frame: ExecutionFrame, source?: string) {
+  let frameToUse = frame;
+
+  if (source) {
+    frameToUse = {
+      ...frame,
+      customSource: source,
+    };
+  }
+
+  return JSON.stringify(frameToUse);
+}
+
+export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
+  context: ActionContext,
+  options: { isCNI?: boolean } = {},
+): FlowInvoker<TFlows> => {
+  return async (
+    flowName: TFlows[number],
+    data?: Record<string, unknown>,
+    config?: AxiosRequestConfig,
+    source?: string,
+  ) => {
+    const sourceToUse = options.isCNI ? source : undefined;
+    return await axios.post(context.webhookUrls[flowName], data, {
+      ...config,
+      headers: {
+        ...(config?.headers ?? {}),
+        ...(context.webhookApiKeys[flowName]?.length > 0
+          ? {
+              "Api-Key": context.webhookApiKeys[flowName][0],
+            }
+          : {}),
+        "prismatic-invoked-by": formatExecutionFrameHeaders(context.executionFrame, sourceToUse),
+        "prismatic-invoke-type": "Cross Flow",
+        "prismatic-executionid": context.executionId,
+      },
+    });
+  };
+};
+
 export const createPerform = (
   performFn: PerformFn,
   { inputCleaners, errorHandler }: CreatePerformProps,
@@ -43,13 +89,27 @@ export const createPerform = (
         const [params] = args;
         return await performFn(cleanParams(params, inputCleaners));
       }
+
       if (args.length === 2) {
         const [context, params] = args;
-        return await performFn(context, cleanParams(params, inputCleaners));
+        return await performFn(
+          {
+            ...context,
+            invokeFlow: createInvokeFlow(context),
+          },
+          cleanParams(params, inputCleaners),
+        );
       }
 
       const [context, payload, params] = args;
-      return await performFn(context, payload, cleanParams(params, inputCleaners));
+      return await performFn(
+        {
+          ...context,
+          invokeFlow: createInvokeFlow(context),
+        },
+        payload,
+        cleanParams(params, inputCleaners),
+      );
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
     }
@@ -75,18 +135,23 @@ const createInvokePollAction = <TInputs extends Inputs>(
 };
 
 export const createPollingPerform = (
-  trigger: PollingTriggerDefinition,
+  trigger: PollingTriggerDefinition<
+    any,
+    ConfigVarResultCollection,
+    TriggerPayload,
+    boolean,
+    any,
+    any
+  >,
   { inputCleaners, errorHandler }: CreatePerformProps,
 ): PollingTriggerPerformFunction<Inputs, Inputs> => {
-  return async (context, payload, params): Promise<any> => {
+  return async (context, payload, params): Promise<TriggerResult<boolean, any>> => {
     try {
       const { pollAction } = trigger;
 
       const pollingContext: Partial<PollingContext> = {
+        invokeFlow: createInvokeFlow(context),
         polling: {
-          reinvokeFlow: async (data, config) => {
-            return await axios.post(context.invokeUrl, data, config);
-          },
           invokeAction: createInvokePollAction(context, pollAction, {
             inputCleaners,
             errorHandler,
@@ -115,9 +180,12 @@ export const createPollingPerform = (
 
       const combinedContext = Object.assign({}, context, pollingContext);
 
-      const triggerResponse = await triggerPerform(combinedContext, payload, params);
+      const { polledNoChanges, ...rest } = await triggerPerform(combinedContext, payload, params);
 
-      return triggerResponse;
+      return {
+        ...rest,
+        resultType: polledNoChanges ? "polled_no_changes" : "completed",
+      };
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
     }

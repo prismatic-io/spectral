@@ -1,10 +1,19 @@
-import { connectionDefinitionConfigVar, flow, TriggerBaseResult, TriggerPayload } from ".";
+import {
+  configPage,
+  configVar,
+  connectionConfigVar,
+  dataSourceConfigVar,
+  flow,
+  integration,
+  IntegrationDefinition,
+  OAuth2PkceMethod,
+  OAuth2Type,
+  TriggerBaseResult,
+  TriggerPayload,
+} from ".";
 import { convertConfigVar, convertFlow } from "./serverTypes/convertIntegration";
 import { connectionValue, defaultConnectionValueEnvironmentVariable, invokeFlow } from "./testing";
 
-// TODO: This changeset it questionable.
-// We were only using configPages for the types which we no longer need.
-// It seems fine to remove but not sure.
 describe("default onTrigger", () => {
   const basicFlow = flow({
     name: "Basic Flow",
@@ -248,5 +257,178 @@ describe("test convert flow", () => {
         supplementalComponents,
       });
     });
+  });
+});
+
+describe("test convert CNI component", () => {
+  const myIntegrationDefinition: IntegrationDefinition = {
+    name: "My integration",
+    description: "This is the description for my test integration",
+    flows: [
+      flow({
+        name: "My flow 1",
+        onTrigger: async (context, payload, params) => {
+          return Promise.resolve({ payload: { ...payload, body: { data: "from onTrigger" } } });
+        },
+        onExecution: async (context, params) => {
+          return Promise.resolve({ data: "from onExecution" });
+        },
+        stableKey: "my-flow-1",
+        onInstanceDeploy: async (context, params) => Promise.resolve({}),
+        onInstanceDelete: async (context, params) => Promise.resolve({}),
+      }),
+    ],
+    configPages: {
+      "My Config Page": configPage({
+        elements: {
+          myConnection: connectionConfigVar({
+            stableKey: "basic-inline-connection",
+            dataType: "connection",
+            inputs: {
+              username: {
+                label: "Username",
+                type: "string",
+                required: true,
+              },
+              signingSecret: {
+                label: "Password",
+                type: "password",
+                required: true,
+              },
+            },
+          }),
+          myOauth2Connection: connectionConfigVar({
+            stableKey: "basic-inline-oauth2-connection",
+            dataType: "connection",
+            oauth2Config: {
+              oAuthFailureRedirectUri: "https://prismatic.io/fake-fail-redirect-uri",
+              oAuthSuccessRedirectUri: "https://prismatic.io/fake-success-redirect-uri",
+            },
+            oauth2Type: OAuth2Type.AuthorizationCode,
+            oauth2PkceMethod: OAuth2PkceMethod.S256,
+            inputs: {
+              username: {
+                label: "Username",
+                type: "string",
+                required: true,
+              },
+              password: {
+                label: "Password",
+                type: "password",
+                required: true,
+              },
+            },
+          }),
+          myStringConfigVar: configVar({
+            stableKey: "string-config-var",
+            dataType: "string",
+          }),
+          myDataSource: dataSourceConfigVar({
+            stableKey: "ds-config-var",
+            dataSourceType: "picklist",
+            perform: async (context, params) => {
+              return Promise.resolve({
+                result: ["item 1", "item 2"],
+              });
+            },
+          }),
+        },
+      }),
+    },
+
+    version: "0.0.0",
+  };
+
+  // NOTE: Key, display, and definition YAML are not included for now.
+  // Re-introduce them once integration stableKeys are in.
+  const expected = {
+    connections: [
+      {
+        inputs: [
+          {
+            required: true,
+            key: "username",
+            type: "string",
+            default: "",
+            label: "Username",
+          },
+          {
+            required: true,
+            key: "signingSecret",
+            type: "password",
+            default: "",
+            label: "Password",
+          },
+        ],
+        key: "myConnection",
+        label: "myConnection",
+      },
+      {
+        oauth2Type: "authorization_code",
+        oauth2PkceMethod: "S256",
+        inputs: [
+          {
+            required: true,
+            key: "username",
+            type: "string",
+            default: "",
+            label: "Username",
+          },
+          {
+            required: true,
+            key: "password",
+            type: "password",
+            default: "",
+            label: "Password",
+          },
+        ],
+        key: "myOauth2Connection",
+        label: "myOauth2Connection",
+      },
+    ],
+    actions: {
+      myFlow1_onExecution: {
+        key: "myFlow1_onExecution",
+        display: {
+          label: "My flow 1 - onExecution",
+          description: "The function that will be executed by the flow.",
+        },
+        inputs: [],
+      },
+    },
+    triggers: {
+      myFlow1_onTrigger: {
+        key: "myFlow1_onTrigger",
+        display: {
+          label: "My flow 1 - onTrigger",
+          description: "The function that will be executed by the flow to return an HTTP response.",
+        },
+        hasOnInstanceDeploy: true,
+        hasOnInstanceDelete: true,
+        inputs: [],
+        scheduleSupport: "valid",
+        synchronousResponseSupport: "valid",
+      },
+    },
+    dataSources: {
+      myDataSource: {
+        dataSourceType: "picklist",
+        key: "myDataSource",
+        display: { label: "myDataSource", description: "myDataSource" },
+        inputs: [],
+      },
+    },
+  };
+
+  it("creates a CNI component from an integration definition", () => {
+    const convertedIntegration = integration(myIntegrationDefinition);
+
+    // Check that performs were created
+    expect(convertedIntegration.actions.myFlow1_onExecution.perform).toBeTruthy();
+    expect(convertedIntegration.triggers.myFlow1_onTrigger.perform).toBeTruthy();
+    expect(convertedIntegration.dataSources.myDataSource.perform).toBeTruthy();
+
+    // Check everything else
+    expect(convertedIntegration).toMatchObject(expected);
   });
 });
