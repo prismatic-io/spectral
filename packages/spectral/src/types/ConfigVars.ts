@@ -19,7 +19,6 @@ import {
   type ComponentRegistryDataSource,
   type ComponentRegistryConnection,
   type UserLevelConfigPages,
-  type ConnectionInput,
   type OrganizationActivatedConnectionConfigVar,
   type ScopedConfigVarMap,
 } from ".";
@@ -94,7 +93,7 @@ export interface ConfigVarVisibility {
   visibleToOrgDeployer?: boolean;
 }
 
-interface ConfigVarInputVisibility {
+export interface ConfigVarInputVisibility {
   /**
    * Optional value that sets the permission and visibility of the Config Var Input. @default "customer"
    *
@@ -239,7 +238,7 @@ type BaseDataSourceConfigVar<TDataSourceType extends DataSourceType = DataSource
               collectionType?: undefined;
             });
 
-type DataSourceDefinitionConfigVar = DataSourceType extends infer TDataSourceType
+export type DataSourceDefinitionConfigVar = DataSourceType extends infer TDataSourceType
   ? TDataSourceType extends DataSourceType
     ? BaseDataSourceConfigVar<TDataSourceType> &
         Omit<
@@ -249,13 +248,27 @@ type DataSourceDefinitionConfigVar = DataSourceType extends infer TDataSourceTyp
     : never
   : never;
 
-type DataSourceReferenceConfigVar =
+export type DataSourceReferenceConfigVar =
   ComponentRegistryDataSource extends infer TDataSourceReference extends ComponentRegistryDataSource
     ? Omit<BaseDataSourceConfigVar<TDataSourceReference["dataSourceType"]>, "dataSourceType"> & {
         dataSource: TDataSourceReference["reference"];
         validationMode?: ValidationMode;
       }
     : never;
+
+export type DataSourceReferenceConfigVarMap = UnionToIntersection<
+  DataSourceReferenceConfigVar extends infer T
+    ? T extends DataSourceReferenceConfigVar
+      ? {
+          [TComponentKey in T["dataSource"]["component"]]: {
+            [TDataSourceKey in T["dataSource"]["component"] extends TComponentKey
+              ? T["dataSource"]["key"]
+              : T["dataSource"]["key"]]: T["dataSource"]["component"];
+          };
+        }
+      : never
+    : never
+>;
 
 /** Defines attributes of a data source Config Var. */
 export type DataSourceConfigVar = DataSourceDefinitionConfigVar | DataSourceReferenceConfigVar;
@@ -266,7 +279,7 @@ type BaseConnectionConfigVar = BaseConfigVar & {
   dataType: "connection";
 };
 
-type ConnectionDefinitionConfigVar =
+export type ConnectionDefinitionConfigVar =
   ConnectionDefinition extends infer TConnectionDefinitionType extends ConnectionDefinition
     ? TConnectionDefinitionType extends infer TConnectionDefinition extends ConnectionDefinition
       ? BaseConnectionConfigVar &
@@ -282,27 +295,42 @@ type ConnectionDefinitionConfigVar =
 
 type OnPremiseConnectionConfigTypeEnum = "allowed" | "disallowed" | "required";
 
-type ConnectionReferenceConfigVar = ComponentRegistryConnection extends infer TConnectionReference
-  ? TConnectionReference extends ComponentRegistryConnection
-    ? BaseConnectionConfigVar & {
-        connection: TConnectionReference["reference"] &
-          ("onPremAvailable" extends keyof TConnectionReference
-            ? TConnectionReference["onPremAvailable"] extends true
-              ? {
-                  template?: string;
-                  onPremiseConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
-                }
+export type ConnectionReferenceConfigVar =
+  ComponentRegistryConnection extends infer TConnectionReference
+    ? TConnectionReference extends ComponentRegistryConnection
+      ? BaseConnectionConfigVar & {
+          connection: TConnectionReference["reference"] &
+            ("onPremAvailable" extends keyof TConnectionReference
+              ? TConnectionReference["onPremAvailable"] extends true
+                ? {
+                    template?: string;
+                    onPremiseConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
+                  }
+                : {
+                    template?: string;
+                    onPremiseConnectionConfig?: undefined;
+                  }
               : {
                   template?: string;
                   onPremiseConnectionConfig?: undefined;
-                }
-            : {
-                template?: string;
-                onPremiseConnectionConfig?: undefined;
-              });
-      }
+                });
+        }
+      : never
+    : never;
+
+export type ConnectionReferenceConfigVarMap = UnionToIntersection<
+  ConnectionReferenceConfigVar extends infer T
+    ? T extends ConnectionReferenceConfigVar
+      ? {
+          [TComponentKey in T["connection"]["component"]]: {
+            [TConnectionKey in T["connection"]["component"] extends TComponentKey
+              ? T["connection"]["key"]
+              : never]: T;
+          };
+        }
+      : never
     : never
-  : never;
+>;
 
 /** Defines attributes of a Config Var that represents a Connection. */
 export type ConnectionConfigVar = ConnectionDefinitionConfigVar | ConnectionReferenceConfigVar;

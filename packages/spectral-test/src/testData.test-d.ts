@@ -1,22 +1,94 @@
 import {
   configVar,
-  connectionConfigVar,
+  connectionDefinitionConfigVar,
+  connectionReferenceConfigVar,
   OAuth2Type,
   input,
   configPage,
-  dataSourceConfigVar,
+  dataSourceDefinitionConfigVar,
+  dataSourceReferenceConfigVar,
   ConfigVarResultCollection,
   componentManifest,
   ObjectSelection,
   JSONForm,
   organizationActivatedConnection,
 } from "@prismatic-io/spectral";
+import { ConnectionReferenceConfigVar, DataSourceReferenceConfigVar, DataSourceReferenceConfigVarMap } from "@prismatic-io/spectral/dist/types/ConfigVars";
+import { ConnectionReferenceConfigVarMap } from "@prismatic-io/spectral/dist/types/ConfigVars";
 import { expectAssignable } from "tsd";
+
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I,
+) => void
+  ? I
+  : never;
+
+type DataSourceComponentKeys = DataSourceReferenceConfigVarMap["example"]["jsonFormDataSource"]
+
+// type DataSourceReferenceConfigVarMap2 = UnionToIntersection<
+//   DataSourceReferenceConfigVar extends infer T
+//     ? T extends DataSourceReferenceConfigVar
+//       ? {
+//           [TComponentKey in T["dataSource"]["component"]]: {
+//             [TDataSourceKey in T["dataSource"]["component"] extends TComponentKey
+//               ? T["dataSource"]["key"]
+//               : T["dataSource"]["key"]]: {
+//                 tcomponentKey: TComponentKey,
+//                 tdataSourceKey: TDataSourceKey,
+//                 component: T["dataSource"]["component"],
+//                 ds: T["dataSource"],
+//                 extendsCheck: TDataSourceKey extends TComponentKey ? true : false,
+//               };
+//           };
+//         }
+//       : never
+//     : never
+// >;
+
+export type DataSourceReferenceConfigVarMap2 = UnionToIntersection<
+	DataSourceReferenceConfigVar extends infer T
+		? T extends DataSourceReferenceConfigVar
+			? {
+					[TComponentKey in T["dataSource"]["component"]]: {
+						[TDataSourceKey in Extract<
+							T["dataSource"]["component"],
+							TComponentKey
+						> extends TComponentKey
+							? T["dataSource"]["key"]
+							: never]: T;
+					};
+				}
+			: never
+		: never
+>;
+
+type a = DataSourceReferenceConfigVarMap2["example"][""]
+
+type ConnectionReferenceConfigVarMap2 = UnionToIntersection<
+  ConnectionReferenceConfigVar extends infer T
+    ? T extends ConnectionReferenceConfigVar
+      ? {
+          [TComponentKey in T["connection"]["component"]]: {
+            [TConnectionKey in T["connection"]["component"] extends TComponentKey
+              ? T["connection"]["key"]
+              : T["connection"]["key"]]: {
+                tcomponentKey: TComponentKey,
+                tConnectionKey: TConnectionKey,
+                component: T["connection"]["component"],
+                connection: T["connection"],
+              };
+          };
+        }
+      : never
+    : never
+>;
+
+type test3 = ConnectionReferenceConfigVarMap2["slack"][""]
 
 export const configPages = {
   "First Page": configPage({
     elements: {
-      "A Connection": connectionConfigVar({
+      "A Connection": connectionDefinitionConfigVar({
         dataType: "connection",
         stableKey: "a-connection",
         oauth2Type: OAuth2Type.AuthorizationCode,
@@ -28,21 +100,15 @@ export const configPages = {
           // more inputs
         },
       }),
-      "Ref Connection": connectionConfigVar({
-        dataType: "connection",
+      "Ref Connection": connectionReferenceConfigVar("example", "exampleConnection", {
         stableKey: "ref-connection",
         connection: {
-          component: "example",
-          key: "exampleConnection",
           values: { foo: { value: "bar" } },
         },
       }),
-      "On Prem Connection": connectionConfigVar({
-        dataType: "connection",
+      "On Prem Connection": connectionReferenceConfigVar("example", "onPremConnection", {
         stableKey: "on-prem-connection",
         connection: {
-          component: "example",
-          key: "onPremConnection",
           onPremiseConnectionConfig: "allowed",
           values: { foo: { value: "bar" } },
         },
@@ -64,7 +130,7 @@ export const configPages = {
   }),
   "Third Page": configPage({
     elements: {
-      "JSON Form Data Source": dataSourceConfigVar({
+      "JSON Form Data Source": dataSourceDefinitionConfigVar({
         stableKey: "json-form-data-source",
         dataSourceType: "jsonForm",
         perform: async (context) => {
@@ -81,7 +147,7 @@ export const configPages = {
           });
         },
       }),
-      "Object Selection Data Source": dataSourceConfigVar({
+      "Object Selection Data Source": dataSourceDefinitionConfigVar({
         stableKey: "object-selection-data-source",
         dataSourceType: "objectSelection",
         perform: async (context) => {
@@ -102,19 +168,15 @@ export const configPages = {
           });
         },
       }),
-      "Ref JSON Form Data Source": dataSourceConfigVar({
+      "Ref JSON Form Data Source": dataSourceReferenceConfigVar("example", "jsonFormDataSource", {
         stableKey: "ref-data-source",
         dataSource: {
-          component: "example",
-          key: "jsonFormDataSource",
           values: { bar: { value: "foo" } },
         },
       }),
-      "Ref String Data Source": dataSourceConfigVar({
+      "Ref String Data Source": dataSourceReferenceConfigVar("slack", "", {
         stableKey: "ref-picklist-source",
         dataSource: {
-          component: "example",
-          key: "stringDataSource",
           values: { bar: { value: "foo" } },
         },
       }),
