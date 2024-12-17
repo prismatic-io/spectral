@@ -30,21 +30,15 @@ export const configPages = {
           // more inputs
         },
       }),
-      "Ref Connection": connectionReferenceConfigVar({
-        dataType: "connection",
+      "Ref Connection": connectionReferenceConfigVar("example", "exampleConnection", {
         stableKey: "ref-connection",
         connection: {
-          component: "example",
-          key: "exampleConnection",
           values: { foo: { value: "bar" } },
         },
       }),
-      "On Prem Connection": connectionReferenceConfigVar({
-        dataType: "connection",
+      "On Prem Connection": connectionReferenceConfigVar("example", "onPremConnection", {
         stableKey: "on-prem-connection",
         connection: {
-          component: "example",
-          key: "onPremConnection",
           onPremiseConnectionConfig: "allowed",
           values: { foo: { value: "bar" } },
         },
@@ -104,19 +98,17 @@ export const configPages = {
           });
         },
       }),
-      "Ref JSON Form Data Source": dataSourceReferenceConfigVar({
+      // @ts-expect-error: TODO - Not sure why this hinting doesn't work here but does in test CNI
+      "Ref JSON Form Data Source": dataSourceReferenceConfigVar("example", "jsonFormDataSource", {
         stableKey: "ref-data-source",
         dataSource: {
-          component: "example",
-          key: "jsonFormDataSource",
           values: { bar: { value: "foo" } },
         },
       }),
-      "Ref String Data Source": dataSourceReferenceConfigVar({
+      // @ts-expect-error: TODO - Not sure why this hinting doesn't work here but does in test CNI
+      "Ref String Data Source": dataSourceReferenceConfigVar("example", "stringDataSource", {
         stableKey: "ref-picklist-source",
         dataSource: {
-          component: "example",
-          key: "stringDataSource",
           values: { bar: { value: "foo" } },
         },
       }),

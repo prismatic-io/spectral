@@ -31,6 +31,8 @@ import {
   OrganizationActivatedConnectionConfigVar,
   DataSourceDefinitionConfigVar,
   DataSourceReferenceConfigVar,
+  ConnectionReferenceConfigVarMap,
+  DataSourceReferenceConfigVarMap,
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
@@ -114,10 +116,29 @@ export const dataSourceDefinitionConfigVar = <
  * @returns This function returns a data source reference config var object that has the shape the Prismatic API expects.
  */
 export const dataSourceReferenceConfigVar = <
-  TDataSourceConfigVar extends DataSourceReferenceConfigVar,
+  TComponentKey extends keyof DataSourceReferenceConfigVarMap,
+  TDataSourceKey extends keyof DataSourceReferenceConfigVarMap[TComponentKey],
+  TDefinition extends DataSourceReferenceConfigVarMap[TComponentKey][TDataSourceKey],
 >(
-  definition: TDataSourceConfigVar,
-): TDataSourceConfigVar => definition;
+  componentKey: TComponentKey,
+  dataSourceKey: TDataSourceKey,
+  definition: Omit<TDefinition, "dataSource"> & {
+    dataSource: Omit<DataSourceReferenceConfigVar["dataSource"], "component" | "key">;
+  },
+): TDefinition => {
+  const baseDefinition = {
+    ...definition,
+  } as TDefinition;
+
+  return {
+    ...baseDefinition,
+    connection: {
+      ...definition.dataSource,
+      component: componentKey,
+      key: dataSourceKey,
+    },
+  };
+};
 
 /**
  * @deprecated Prefer to use connectionDefinitionConfigVar or connectionReferenceConfigVar instead.
@@ -143,11 +164,36 @@ export const connectionDefinitionConfigVar = <T extends ConnectionDefinitionConf
  * For information on writing Code Native Integrations, see
  * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
  * @param definition A Connection Reference Config Var type object.
- * @returns This function returns a connection reference onfig var object that has the shape the Prismatic API expects.
+ * @returns This function returns a connection reference config var object that has the shape the Prismatic API expects.
  */
-export const connectionReferenceConfigVar = <T extends ConnectionReferenceConfigVar>(
-  definition: T,
-): T => definition;
+export const connectionReferenceConfigVar = <
+  TComponentKey extends keyof ConnectionReferenceConfigVarMap,
+  TConnectionKey extends keyof ConnectionReferenceConfigVarMap[TComponentKey],
+  TDefinition extends ConnectionReferenceConfigVarMap[TComponentKey][TConnectionKey],
+>(
+  componentKey: TComponentKey,
+  connectionKey: TConnectionKey,
+  // definition: TDefinition,
+  definition: Omit<TDefinition, "dataType" | "connection"> & {
+    connection: Omit<ConnectionReferenceConfigVar["connection"], "component" | "key">;
+  },
+): TDefinition => {
+  const baseDefinition = {
+    ...definition,
+    dataType: "connection",
+  } as TDefinition;
+  // };
+
+  return {
+    ...baseDefinition,
+    dataType: "connection",
+    connection: {
+      ...definition.connection,
+      component: componentKey,
+      key: connectionKey,
+    },
+  };
+};
 
 /**
  * For information on writing Code Native Integrations, see

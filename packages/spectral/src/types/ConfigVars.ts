@@ -19,7 +19,6 @@ import {
   type ComponentRegistryDataSource,
   type ComponentRegistryConnection,
   type UserLevelConfigPages,
-  type ConnectionInput,
   type OrganizationActivatedConnectionConfigVar,
   type ScopedConfigVarMap,
 } from ".";
@@ -257,6 +256,20 @@ export type DataSourceReferenceConfigVar =
       }
     : never;
 
+export type DataSourceReferenceConfigVarMap = UnionToIntersection<
+  DataSourceReferenceConfigVar extends infer T
+    ? T extends DataSourceReferenceConfigVar
+      ? {
+          [TComponentKey in T["dataSource"]["component"]]: {
+            [TDataSourceKey in T["dataSource"]["component"] extends TComponentKey
+              ? T["dataSource"]["key"]
+              : never]: T;
+          };
+        }
+      : never
+    : never
+>;
+
 /** Defines attributes of a data source Config Var. */
 export type DataSourceConfigVar = DataSourceDefinitionConfigVar | DataSourceReferenceConfigVar;
 
@@ -304,6 +317,20 @@ export type ConnectionReferenceConfigVar =
         }
       : never
     : never;
+
+export type ConnectionReferenceConfigVarMap = UnionToIntersection<
+  ConnectionReferenceConfigVar extends infer T
+    ? T extends ConnectionReferenceConfigVar
+      ? {
+          [TComponentKey in T["connection"]["component"]]: {
+            [TConnectionKey in T["connection"]["component"] extends TComponentKey
+              ? T["connection"]["key"]
+              : never]: T;
+          };
+        }
+      : never
+    : never
+>;
 
 /** Defines attributes of a Config Var that represents a Connection. */
 export type ConnectionConfigVar = ConnectionDefinitionConfigVar | ConnectionReferenceConfigVar;
