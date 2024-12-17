@@ -5,13 +5,12 @@ import {
   OAuth2Type,
   input,
   configPage,
-  dataSourceDefinitionConfigVar,
-  dataSourceReferenceConfigVar,
   ConfigVarResultCollection,
   componentManifest,
   ObjectSelection,
   JSONForm,
   organizationActivatedConnection,
+  dataSourceConfigVar,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 
@@ -30,21 +29,15 @@ export const configPages = {
           // more inputs
         },
       }),
-      "Ref Connection": connectionReferenceConfigVar({
-        dataType: "connection",
+      "Ref Connection": connectionReferenceConfigVar("example", "exampleConnection", {
         stableKey: "ref-connection",
         connection: {
-          component: "example",
-          key: "exampleConnection",
           values: { foo: { value: "bar" } },
         },
       }),
-      "On Prem Connection": connectionReferenceConfigVar({
-        dataType: "connection",
+      "On Prem Connection": connectionReferenceConfigVar("example", "onPremConnection", {
         stableKey: "on-prem-connection",
         connection: {
-          component: "example",
-          key: "onPremConnection",
           onPremiseConnectionConfig: "allowed",
           values: { foo: { value: "bar" } },
         },
@@ -66,7 +59,7 @@ export const configPages = {
   }),
   "Third Page": configPage({
     elements: {
-      "JSON Form Data Source": dataSourceDefinitionConfigVar({
+      "JSON Form Data Source": dataSourceConfigVar({
         stableKey: "json-form-data-source",
         dataSourceType: "jsonForm",
         perform: async (context) => {
@@ -83,7 +76,7 @@ export const configPages = {
           });
         },
       }),
-      "Object Selection Data Source": dataSourceDefinitionConfigVar({
+      "Object Selection Data Source": dataSourceConfigVar({
         stableKey: "object-selection-data-source",
         dataSourceType: "objectSelection",
         perform: async (context) => {
@@ -104,7 +97,7 @@ export const configPages = {
           });
         },
       }),
-      "Ref JSON Form Data Source": dataSourceReferenceConfigVar({
+      "Ref JSON Form Data Source": dataSourceConfigVar({
         stableKey: "ref-data-source",
         dataSource: {
           component: "example",
@@ -112,7 +105,7 @@ export const configPages = {
           values: { bar: { value: "foo" } },
         },
       }),
-      "Ref String Data Source": dataSourceReferenceConfigVar({
+      "Ref String Data Source": dataSourceConfigVar({
         stableKey: "ref-picklist-source",
         dataSource: {
           component: "example",

@@ -74,12 +74,12 @@ export default flow({
 **Example:**
 
 ```typescript
-import { configPage, dataSourceDefinitionConfigVar, dataSourceReferenceConfigVar } from "@prismatic-io/spectral";
+import { configPage, dataSourceConfigVar } from "@prismatic-io/spectral";
 
 export const configPages = {
   "Data Sources": configPage({
     elements: {
-      "Custom Data Source Reference": dataSourceReferenceConfigVar({
+      "Custom Data Source Reference": dataSourceConfigVar({
         dataType: "<%= component.dataSource.type  %>",
         stableKey: "custom-data-source",
         dataSource: {
@@ -91,7 +91,7 @@ export const configPages = {
           },
         }
       }),
-      "Custom Data Source Definition": dataSourceDefinitionConfigVar({
+      "Custom Data Source Definition": dataSourceConfigVar({
         dataType: "<%= component.dataSource.type  %>",
         stableKey: "custom-data-source",
         perform: async (context) => {

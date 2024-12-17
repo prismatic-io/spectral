@@ -2,6 +2,7 @@ import {
   configPage,
   configVar,
   connectionConfigVar,
+  connectionDefinitionConfigVar,
   dataSourceConfigVar,
   flow,
   integration,
@@ -281,7 +282,7 @@ describe("test convert CNI component", () => {
     configPages: {
       "My Config Page": configPage({
         elements: {
-          myConnection: connectionConfigVar({
+          myConnection: connectionDefinitionConfigVar({
             stableKey: "basic-inline-connection",
             dataType: "connection",
             inputs: {
@@ -297,7 +298,7 @@ describe("test convert CNI component", () => {
               },
             },
           }),
-          myOauth2Connection: connectionConfigVar({
+          myOauth2Connection: connectionDefinitionConfigVar({
             stableKey: "basic-inline-oauth2-connection",
             dataType: "connection",
             oauth2Config: {
