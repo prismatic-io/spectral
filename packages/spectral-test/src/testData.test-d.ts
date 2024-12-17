@@ -13,7 +13,77 @@ import {
   JSONForm,
   organizationActivatedConnection,
 } from "@prismatic-io/spectral";
+import { ConnectionReferenceConfigVar, DataSourceReferenceConfigVar, DataSourceReferenceConfigVarMap } from "@prismatic-io/spectral/dist/types/ConfigVars";
+import { ConnectionReferenceConfigVarMap } from "@prismatic-io/spectral/dist/types/ConfigVars";
 import { expectAssignable } from "tsd";
+
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I,
+) => void
+  ? I
+  : never;
+
+type DataSourceComponentKeys = DataSourceReferenceConfigVarMap["example"]["jsonFormDataSource"]
+
+// type DataSourceReferenceConfigVarMap2 = UnionToIntersection<
+//   DataSourceReferenceConfigVar extends infer T
+//     ? T extends DataSourceReferenceConfigVar
+//       ? {
+//           [TComponentKey in T["dataSource"]["component"]]: {
+//             [TDataSourceKey in T["dataSource"]["component"] extends TComponentKey
+//               ? T["dataSource"]["key"]
+//               : T["dataSource"]["key"]]: {
+//                 tcomponentKey: TComponentKey,
+//                 tdataSourceKey: TDataSourceKey,
+//                 component: T["dataSource"]["component"],
+//                 ds: T["dataSource"],
+//                 extendsCheck: TDataSourceKey extends TComponentKey ? true : false,
+//               };
+//           };
+//         }
+//       : never
+//     : never
+// >;
+
+export type DataSourceReferenceConfigVarMap2 = UnionToIntersection<
+	DataSourceReferenceConfigVar extends infer T
+		? T extends DataSourceReferenceConfigVar
+			? {
+					[TComponentKey in T["dataSource"]["component"]]: {
+						[TDataSourceKey in Extract<
+							T["dataSource"]["component"],
+							TComponentKey
+						> extends TComponentKey
+							? T["dataSource"]["key"]
+							: never]: T;
+					};
+				}
+			: never
+		: never
+>;
+
+type a = DataSourceReferenceConfigVarMap2["example"][""]
+
+type ConnectionReferenceConfigVarMap2 = UnionToIntersection<
+  ConnectionReferenceConfigVar extends infer T
+    ? T extends ConnectionReferenceConfigVar
+      ? {
+          [TComponentKey in T["connection"]["component"]]: {
+            [TConnectionKey in T["connection"]["component"] extends TComponentKey
+              ? T["connection"]["key"]
+              : T["connection"]["key"]]: {
+                tcomponentKey: TComponentKey,
+                tConnectionKey: TConnectionKey,
+                component: T["connection"]["component"],
+                connection: T["connection"],
+              };
+          };
+        }
+      : never
+    : never
+>;
+
+type test3 = ConnectionReferenceConfigVarMap2["slack"][""]
 
 export const configPages = {
   "First Page": configPage({
@@ -98,15 +168,13 @@ export const configPages = {
           });
         },
       }),
-      // @ts-expect-error: TODO - Not sure why this hinting doesn't work here but does in test CNI
       "Ref JSON Form Data Source": dataSourceReferenceConfigVar("example", "jsonFormDataSource", {
         stableKey: "ref-data-source",
         dataSource: {
           values: { bar: { value: "foo" } },
         },
       }),
-      // @ts-expect-error: TODO - Not sure why this hinting doesn't work here but does in test CNI
-      "Ref String Data Source": dataSourceReferenceConfigVar("example", "stringDataSource", {
+      "Ref String Data Source": dataSourceReferenceConfigVar("slack", "", {
         stableKey: "ref-picklist-source",
         dataSource: {
           values: { bar: { value: "foo" } },

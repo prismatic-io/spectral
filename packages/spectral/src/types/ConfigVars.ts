@@ -263,7 +263,7 @@ export type DataSourceReferenceConfigVarMap = UnionToIntersection<
           [TComponentKey in T["dataSource"]["component"]]: {
             [TDataSourceKey in T["dataSource"]["component"] extends TComponentKey
               ? T["dataSource"]["key"]
-              : never]: T;
+              : T["dataSource"]["key"]]: T["dataSource"]["component"];
           };
         }
       : never
