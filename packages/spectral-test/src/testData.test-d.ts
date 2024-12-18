@@ -1,22 +1,23 @@
 import {
   configVar,
-  connectionConfigVar,
+  connectionDefinitionConfigVar,
+  connectionReferenceConfigVar,
   OAuth2Type,
   input,
   configPage,
-  dataSourceConfigVar,
   ConfigVarResultCollection,
   componentManifest,
   ObjectSelection,
   JSONForm,
   organizationActivatedConnection,
+  dataSourceConfigVar,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 
 export const configPages = {
   "First Page": configPage({
     elements: {
-      "A Connection": connectionConfigVar({
+      "A Connection": connectionDefinitionConfigVar({
         dataType: "connection",
         stableKey: "a-connection",
         oauth2Type: OAuth2Type.AuthorizationCode,
@@ -28,21 +29,15 @@ export const configPages = {
           // more inputs
         },
       }),
-      "Ref Connection": connectionConfigVar({
-        dataType: "connection",
+      "Ref Connection": connectionReferenceConfigVar("example", "exampleConnection", {
         stableKey: "ref-connection",
         connection: {
-          component: "example",
-          key: "exampleConnection",
           values: { foo: { value: "bar" } },
         },
       }),
-      "On Prem Connection": connectionConfigVar({
-        dataType: "connection",
+      "On Prem Connection": connectionReferenceConfigVar("example", "onPremConnection", {
         stableKey: "on-prem-connection",
         connection: {
-          component: "example",
-          key: "onPremConnection",
           onPremiseConnectionConfig: "allowed",
           values: { foo: { value: "bar" } },
         },
