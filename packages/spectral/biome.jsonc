@@ -36,6 +36,16 @@
       },
       "performance": {
         "noAccumulatingSpread": "off"
+      },
+      "nursery": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "lodash": "Import from lodash/{package}"
+            }
+          }
+        }
       }
     }
   }

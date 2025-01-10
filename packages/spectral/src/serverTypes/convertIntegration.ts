@@ -1,6 +1,8 @@
 import YAML from "yaml";
 import { v4 as uuid } from "uuid";
-import { assign, camelCase, pick } from "lodash";
+import assign from "lodash/assign";
+import camelCase from "lodash/camelCase";
+import pick from "lodash/pick";
 import {
   IntegrationDefinition,
   ConfigVar,
@@ -49,7 +51,7 @@ import {
   ConfigPage as ServerConfigPage,
   ComponentReference as ServerComponentReference,
 } from "./integration";
-import { merge } from "lodash";
+import merge from "lodash/merge";
 import { createInvokeFlow } from "./perform";
 
 export const convertIntegration = (definition: IntegrationDefinition): ServerComponent => {
@@ -378,7 +380,9 @@ const convertComponentReference = (
             },
           );
 
-        const { writeOnly } = pick(value, ["writeOnly"]) as { writeOnly?: true };
+        const { writeOnly } = pick(value, ["writeOnly"]) as {
+          writeOnly?: true;
+        };
 
         if (writeOnly) {
           meta.writeOnly = writeOnly;

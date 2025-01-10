@@ -1,4 +1,4 @@
-import { isEmpty } from "lodash";
+import isEmpty from "lodash/isEmpty";
 import axios, { AxiosResponse } from "axios";
 import { AxiosInstance, AxiosRequestConfig } from "axios";
 import axiosRetry, {

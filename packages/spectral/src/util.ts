@@ -9,7 +9,7 @@ import parseISODate from "date-fns/parseISO";
 import dateIsValid from "date-fns/isValid";
 import dateIsDate from "date-fns/isDate";
 import fromUnixTime from "date-fns/fromUnixTime";
-import { omitBy } from "lodash";
+import omitBy from "lodash/omitBy";
 import { configure } from "safe-stable-stringify";
 import { isWebUri } from "valid-url";
 import {

@@ -7,7 +7,8 @@ import {
   BinaryOperator,
 } from "./types";
 import { isBefore, isAfter, parse, parseISO, isValid, isEqual as isDateEqual } from "date-fns";
-import _ from "lodash";
+import _isEqualWith from "lodash/isEqualWith";
+import _isEqual from "lodash/isEqual";
 import util from "../util";
 
 export type ValidationResult = [boolean] | [boolean, string];
@@ -102,7 +103,7 @@ export const parseDate = (value: unknown): Date => {
 
 const isEqual = (left: unknown, right: unknown): boolean =>
   left == right ||
-  _.isEqualWith(left, right, (objectA, objectB) => {
+  _isEqualWith(left, right, (objectA, objectB) => {
     if (typeof objectA === "object" || typeof objectB === "object") {
       /**
        * `undefined` will fall back to the default isEqual behavior.
@@ -229,9 +230,9 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
         case BinaryOperator.notIn:
           return !contains(right, leftTerm);
         case BinaryOperator.exactlyMatches:
-          return left === right || _.isEqual(left, right);
+          return left === right || _isEqual(left, right);
         case BinaryOperator.doesNotExactlyMatch:
-          return !(left === right || _.isEqual(left, right));
+          return !(left === right || _isEqual(left, right));
         case BinaryOperator.startsWith:
           return `${right}`.startsWith(`${left}`);
         case BinaryOperator.doesNotStartWith:

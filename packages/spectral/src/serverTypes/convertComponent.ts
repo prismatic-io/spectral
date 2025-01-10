@@ -22,7 +22,7 @@ import {
   DataSource as ServerDataSource,
 } from ".";
 import { InputCleaners, PerformFn, createPerform, createPollingPerform } from "./perform";
-import { omit } from "lodash";
+import omit from "lodash/omit";
 import {
   isPollingTriggerDefinition,
   PollingTriggerDefinition,
