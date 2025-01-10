@@ -22,31 +22,19 @@ import {
   Element,
 } from "./types";
 
-export const isObjectWithOneTruthyKey = (
-  value: unknown,
-  keys: string[]
-): boolean => {
+export const isObjectWithOneTruthyKey = (value: unknown, keys: string[]): boolean => {
   return (
     value !== null &&
     typeof value === "object" &&
-    keys.some(
-      (key) =>
-        key in value && Boolean((value as Record<string, unknown>)?.[key])
-    )
+    keys.some((key) => key in value && Boolean((value as Record<string, unknown>)?.[key]))
   );
 };
 
-export const isObjectWithTruthyKeys = (
-  value: unknown,
-  keys: string[]
-): boolean => {
+export const isObjectWithTruthyKeys = (value: unknown, keys: string[]): boolean => {
   return (
     value !== null &&
     typeof value === "object" &&
-    keys.every(
-      (key) =>
-        key in value && Boolean((value as Record<string, unknown>)?.[key])
-    )
+    keys.every((key) => key in value && Boolean((value as Record<string, unknown>)?.[key]))
   );
 };
 
@@ -56,8 +44,7 @@ export const isObjectWithTruthyKeys = (
  * @param value The variable to test.
  * @returns This function returns true or false, depending on if `value` is an Element.
  */
-const isElement = (value: unknown): value is Element =>
-  isObjectWithTruthyKeys(value, ["key"]);
+const isElement = (value: unknown): value is Element => isObjectWithTruthyKeys(value, ["key"]);
 
 /**
  * @param value The value to test
@@ -68,10 +55,7 @@ const isObjectSelection = (value: unknown): value is ObjectSelection => {
     return isObjectSelection(JSON.parse(value));
   }
 
-  return (
-    Array.isArray(value) &&
-    value.every((item) => isObjectWithTruthyKeys(item, ["object"]))
-  );
+  return Array.isArray(value) && value.every((item) => isObjectWithTruthyKeys(item, ["object"]));
 };
 
 /**
@@ -91,7 +75,7 @@ const toObjectSelection = (value: unknown): ObjectSelection => {
   throw new Error(
     `Value '${
       typeof value === "string" ? value : JSON.stringify(value)
-    }' cannot be coerced to ObjectSelection.`
+    }' cannot be coerced to ObjectSelection.`,
   );
 };
 
@@ -111,7 +95,7 @@ const isObjectFieldMap = (value: unknown): value is ObjectFieldMap => {
       fields.every(
         (item) =>
           isObjectWithTruthyKeys(item, ["field"]) &&
-          isElement((item as Record<string, unknown>)?.field)
+          isElement((item as Record<string, unknown>)?.field),
       )
     );
   }
@@ -136,7 +120,7 @@ const toObjectFieldMap = (value: unknown): ObjectFieldMap => {
   throw new Error(
     `Value '${
       typeof value === "string" ? value : JSON.stringify(value)
-    }' cannot be coerced to ObjectFieldMap.`
+    }' cannot be coerced to ObjectFieldMap.`,
   );
 };
 
@@ -169,7 +153,7 @@ const toJSONForm = (value: unknown): JSONForm => {
   throw new Error(
     `Value '${
       typeof value === "string" ? value : JSON.stringify(value)
-    }' cannot be coerced to JSONForm.`
+    }' cannot be coerced to JSONForm.`,
   );
 };
 
@@ -182,8 +166,7 @@ const toJSONForm = (value: unknown): JSONForm => {
  * @param value The variable to test.
  * @returns True if the value is a boolean, or false otherwise.
  */
-const isBool = (value: unknown): value is boolean =>
-  value === true || value === false;
+const isBool = (value: unknown): value is boolean => value === true || value === false;
 
 /**
  * Convert truthy (true, "t", "true", "y", "yes") values to boolean `true`,
@@ -392,8 +375,7 @@ const isPicklist = (value: unknown): boolean =>
  * @param value The variable to test.
  * @returns This function returns true if `value` is a valid schedule.
  */
-const isSchedule = (value: unknown): boolean =>
-  isObjectWithTruthyKeys(value, ["value"]);
+const isSchedule = (value: unknown): boolean => isObjectWithTruthyKeys(value, ["value"]);
 
 /**
  * This function helps to transform key-value lists to objects.
@@ -407,14 +389,14 @@ const isSchedule = (value: unknown): boolean =>
  */
 const keyValPairListToObject = <TValue = unknown>(
   kvpList: KeyValuePair<unknown>[],
-  valueConverter?: (value: unknown) => TValue
+  valueConverter?: (value: unknown) => TValue,
 ): Record<string, TValue> => {
   return (kvpList || []).reduce(
     (result, { key, value }) => ({
       ...result,
       [key]: valueConverter ? valueConverter(value) : value,
     }),
-    {}
+    {},
   );
 };
 
@@ -521,8 +503,7 @@ const isString = (value: unknown): value is string =>
  * @param defaultValue A default value to return if `value` is undefined or an empty string.
  * @returns This function returns the stringified version fo `value`, or `defaultValue` in the case that `value` is undefined or an empty string.
  */
-const toString = (value: unknown, defaultValue = ""): string =>
-  `${value ?? defaultValue}`;
+const toString = (value: unknown, defaultValue = ""): string => `${value ?? defaultValue}`;
 
 /**
  * This function checks if value is a valid connection.
@@ -539,20 +520,12 @@ const isConnection = (value: unknown): value is ConnectionDefinition => {
 
     if (isObjectWithTruthyKeys(value, ["key", "label", "oauth2Type"])) {
       return (
-        isObjectWithTruthyKeys(inputs, [
-          "authorizeUrl",
-          "tokenUrl",
-          "clientId",
-          "clientSecret",
-        ]) ||
+        isObjectWithTruthyKeys(inputs, ["authorizeUrl", "tokenUrl", "clientId", "clientSecret"]) ||
         isObjectWithTruthyKeys(inputs, ["tokenUrl", "clientId", "clientSecret"])
       );
     }
 
-    return (
-      isObjectWithTruthyKeys(value, ["key", "label"]) &&
-      typeof inputs === "object"
-    );
+    return isObjectWithTruthyKeys(value, ["key", "label"]) && typeof inputs === "object";
   }
 
   return false;
@@ -586,11 +559,7 @@ const isJSON = (value: string): boolean => {
  * @param retainKeyOrder When true, the order of keys in the JSON output will be the same as the order in the input object.
  * @returns JSON serialized text that can be safely logged.
  */
-const toJSON = (
-  value: unknown,
-  prettyPrint = true,
-  retainKeyOrder = false
-): string => {
+const toJSON = (value: unknown, prettyPrint = true, retainKeyOrder = false): string => {
   const stringify = configure({
     circularValue: undefined,
     deterministic: !retainKeyOrder,
@@ -607,9 +576,7 @@ const toJSON = (
  * @param headers The headers to convert to lower case
  * @returns This function returns a header object
  * */
-export const lowerCaseHeaders = (
-  headers: Record<string, string>
-): Record<string, string> =>
+export const lowerCaseHeaders = (headers: Record<string, string>): Record<string, string> =>
   Object.entries(headers).reduce((result, [key, val]) => {
     return { ...result, [key.toLowerCase()]: val };
   }, {});
@@ -644,10 +611,9 @@ export const toObject = (value: unknown): object => {
  */
 const cleanObject = (
   obj: Record<string, unknown>,
-  predicate?: (v: any) => boolean
+  predicate?: (v: any) => boolean,
 ): Record<string, unknown> => {
-  const defaultPredicate = (v: any) =>
-    v === undefined || v === null || v === "";
+  const defaultPredicate = (v: any) => v === undefined || v === null || v === "";
   return omitBy(obj, predicate || defaultPredicate);
 };
 

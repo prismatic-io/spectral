@@ -21,12 +21,7 @@ import {
   Input as ServerInput,
   DataSource as ServerDataSource,
 } from ".";
-import {
-  InputCleaners,
-  PerformFn,
-  createPerform,
-  createPollingPerform,
-} from "./perform";
+import { InputCleaners, PerformFn, createPerform, createPollingPerform } from "./perform";
 import omit from "lodash/omit";
 import {
   isPollingTriggerDefinition,
@@ -42,12 +37,10 @@ export const convertInput = (
     label,
     collection,
     ...rest
-  }: InputFieldDefinition | OnPremConnectionInput
+  }: InputFieldDefinition | OnPremConnectionInput,
 ): ServerInput => {
   const keyLabel =
-    collection === "keyvaluelist" && typeof label === "object"
-      ? label.key
-      : undefined;
+    collection === "keyvaluelist" && typeof label === "object" ? label.key : undefined;
 
   return {
     ...omit(rest, [
@@ -62,26 +55,19 @@ export const convertInput = (
     collection,
     label: typeof label === "string" ? label : label.value,
     keyLabel,
-    onPremiseControlled:
-      ("onPremControlled" in rest && rest.onPremControlled) || undefined,
+    onPremiseControlled: ("onPremControlled" in rest && rest.onPremControlled) || undefined,
   };
 };
 
 const convertAction = (
   actionKey: string,
-  {
-    inputs = {},
-    perform,
-    ...action
-  }: ActionDefinition<Inputs, any, boolean, any>,
-  hooks?: ComponentHooks
+  { inputs = {}, perform, ...action }: ActionDefinition<Inputs, any, boolean, any>,
+  hooks?: ComponentHooks,
 ): ServerAction => {
-  const convertedInputs = Object.entries(inputs).map(([key, value]) =>
-    convertInput(key, value)
-  );
+  const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
   const inputCleaners = Object.entries(inputs).reduce<InputCleaners>(
     (result, [key, { clean }]) => ({ ...result, [key]: clean }),
-    {}
+    {},
   );
 
   return {
@@ -99,15 +85,8 @@ export const convertTrigger = (
   triggerKey: string,
   trigger:
     | TriggerDefinition<any>
-    | PollingTriggerDefinition<
-        any,
-        ConfigVarResultCollection,
-        TriggerPayload,
-        boolean,
-        any,
-        any
-      >,
-  hooks?: ComponentHooks
+    | PollingTriggerDefinition<any, ConfigVarResultCollection, TriggerPayload, boolean, any, any>,
+  hooks?: ComponentHooks,
 ): ServerTrigger => {
   const { onInstanceDeploy, onInstanceDelete } = trigger;
   const inputs: Inputs = trigger.inputs as Inputs;
@@ -120,7 +99,7 @@ export const convertTrigger = (
 
   const triggerInputCleaners = Object.entries(inputs).reduce<InputCleaners>(
     (result, [key, { clean }]) => ({ ...result, [key]: clean }),
-    {}
+    {},
   );
 
   let scheduleSupport: TriggerOptionChoice =
@@ -135,30 +114,27 @@ export const convertTrigger = (
     scheduleSupport = "required";
 
     if (action) {
-      convertedActionInputs = Object.entries(action.inputs).reduce<
-        Array<ServerInput>
-      >((accum, [key, value]) => {
-        if (triggerInputKeys.includes(key)) {
-          throw new Error(
-            `The pollingTrigger "${trigger.display.label}" was defined with an input with the key: ${key}. This key duplicates an input on the associated "${action.display.label}" action. Please assign the trigger input a different key.`
-          );
-        }
+      convertedActionInputs = Object.entries(action.inputs).reduce<Array<ServerInput>>(
+        (accum, [key, value]) => {
+          if (triggerInputKeys.includes(key)) {
+            throw new Error(
+              `The pollingTrigger "${trigger.display.label}" was defined with an input with the key: ${key}. This key duplicates an input on the associated "${action.display.label}" action. Please assign the trigger input a different key.`,
+            );
+          }
 
-        accum.push(convertInput(key, value));
-        return accum;
-      }, []);
+          accum.push(convertInput(key, value));
+          return accum;
+        },
+        [],
+      );
 
       actionInputCleaners = Object.entries(action.inputs).reduce<InputCleaners>(
         (result, [key, { clean }]) => ({ ...result, [key]: clean }),
-        {}
+        {},
       );
     }
 
-    const combinedCleaners = Object.assign(
-      {},
-      actionInputCleaners,
-      triggerInputCleaners
-    );
+    const combinedCleaners = Object.assign({}, actionInputCleaners, triggerInputCleaners);
 
     performToUse = createPollingPerform(trigger, {
       inputCleaners: combinedCleaners,
@@ -184,8 +160,8 @@ export const convertTrigger = (
       "synchronousResponseSupport" in trigger
         ? trigger.synchronousResponseSupport
         : scheduleSupport === "invalid"
-        ? "valid"
-        : "invalid",
+          ? "valid"
+          : "invalid",
   };
 
   if (onInstanceDeploy) {
@@ -216,14 +192,12 @@ const convertDataSource = (
     perform,
     ...dataSource
   }: DataSourceDefinition<Inputs, ConfigVarResultCollection, any>,
-  hooks?: ComponentHooks
+  hooks?: ComponentHooks,
 ): ServerDataSource => {
-  const convertedInputs = Object.entries(inputs).map(([key, value]) =>
-    convertInput(key, value)
-  );
+  const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
   const inputCleaners = Object.entries(inputs).reduce<InputCleaners>(
     (result, [key, { clean }]) => ({ ...result, [key]: clean }),
-    {}
+    {},
   );
 
   return {
@@ -241,9 +215,7 @@ export const convertConnection = ({
   inputs = {},
   ...connection
 }: ConnectionDefinition): ServerConnection => {
-  const convertedInputs = Object.entries(inputs).map(([key, value]) =>
-    convertInput(key, value)
-  );
+  const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
 
   const {
     display: { label, icons, description: comments },
@@ -273,7 +245,7 @@ export const convertComponent = <TPublic extends boolean, TKey extends string>({
       ...result,
       [actionKey]: convertAction(actionKey, action, hooks),
     }),
-    {}
+    {},
   );
 
   const convertedTriggers = Object.entries(triggers).reduce(
@@ -281,7 +253,7 @@ export const convertComponent = <TPublic extends boolean, TKey extends string>({
       ...result,
       [triggerKey]: convertTrigger(triggerKey, trigger, hooks),
     }),
-    {}
+    {},
   );
 
   const convertedDataSources = Object.entries(dataSources).reduce(
@@ -289,7 +261,7 @@ export const convertComponent = <TPublic extends boolean, TKey extends string>({
       ...result,
       [dataSourceKey]: convertDataSource(dataSourceKey, dataSource, hooks),
     }),
-    {}
+    {},
   );
 
   return {

@@ -6,23 +6,14 @@ import {
   UnaryOperator,
   BinaryOperator,
 } from "./types";
-import {
-  isBefore,
-  isAfter,
-  parse,
-  parseISO,
-  isValid,
-  isEqual as isDateEqual,
-} from "date-fns";
+import { isBefore, isAfter, parse, parseISO, isValid, isEqual as isDateEqual } from "date-fns";
 import _isEqualWith from "lodash/isEqualWith";
 import _isEqual from "lodash/isEqual";
 import util from "../util";
 
 export type ValidationResult = [boolean] | [boolean, string];
 
-export const validate = (
-  expression: ConditionalExpression
-): ValidationResult => {
+export const validate = (expression: ConditionalExpression): ValidationResult => {
   if (!Array.isArray(expression)) {
     return [false, `Invalid expression syntax: '${expression}'`];
   }
@@ -42,7 +33,7 @@ export const validate = (
 
           return previous;
         },
-        [true] as ValidationResult
+        [true] as ValidationResult,
       );
     }
 
@@ -74,10 +65,7 @@ export const contains = (container: unknown, containee: unknown): boolean => {
   if (typeof container === "object" && container !== null) {
     if (Array.isArray(container)) {
       // Array member check.
-      return (
-        container.includes(containee) ||
-        container.includes(parseValue(containee))
-      );
+      return container.includes(containee) || container.includes(parseValue(containee));
     }
     // Object attribute check (set membership).
     return Object.prototype.hasOwnProperty.call(container, `${containee}`);
@@ -213,11 +201,7 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
     // otherwise fall back to original value
     if (
       operator in
-      [
-        BinaryOperator.dateTimeAfter,
-        BinaryOperator.dateTimeBefore,
-        BinaryOperator.dateTimeSame,
-      ]
+      [BinaryOperator.dateTimeAfter, BinaryOperator.dateTimeBefore, BinaryOperator.dateTimeSame]
     ) {
       left = parseDate(leftTerm);
       right = parseDate(rightTerm);
