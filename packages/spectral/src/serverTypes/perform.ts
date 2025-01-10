@@ -14,7 +14,7 @@ import type {
   TriggerPayload,
   TriggerResult,
 } from "../types";
-import { uniq } from "lodash";
+import uniq from "lodash/uniq";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
 export type CleanFn = (...args: any[]) => any;
