@@ -950,14 +950,10 @@ const convertOnExecution =
       {},
     );
 
-    return onExecution(
-      {
-        ...context,
-        components: componentMethods,
-        invokeFlow: createInvokeFlow(context, { isCNI: true }),
-      },
-      params,
-    );
+    context.components = componentMethods;
+    context.invokeFlow = createInvokeFlow(context, { isCNI: true });
+
+    return onExecution(context, params);
   };
 
 /** Creates the structure necessary to import a Component as part of a
