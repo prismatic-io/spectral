@@ -107,4 +107,6 @@ export type ActionContext<
   invokeFlow: FlowInvoker<TFlows>;
   /** Reference to the current execution and, when applicable, the current step. */
   executionFrame: ExecutionFrame;
+  /** Denotes whether code should be executed in debug mode. */
+  globalDebug: boolean;
 };

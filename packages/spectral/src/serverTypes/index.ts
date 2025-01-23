@@ -96,6 +96,7 @@ export type ActionContext<
   startedAt: string;
   invokeFlow: FlowInvoker<TFlows>;
   executionFrame: ExecutionFrame;
+  globalDebug: boolean;
 };
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";
