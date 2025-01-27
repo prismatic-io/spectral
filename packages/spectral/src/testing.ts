@@ -187,6 +187,7 @@ const createActionContext = <
       stepName: "some-step",
       loopPath: "",
     },
+    globalDebug: false,
     ...context,
   };
 };
