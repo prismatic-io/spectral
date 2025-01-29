@@ -950,14 +950,26 @@ const convertOnExecution =
       {},
     );
 
-    return onExecution(
-      {
-        ...context,
-        components: componentMethods,
-        invokeFlow: createInvokeFlow(context, { isCNI: true }),
+    const actionContext = {
+      ...context,
+      components: componentMethods,
+      invokeFlow: createInvokeFlow(context, { isCNI: true }),
+      debug: {
+        enabled: Boolean(context.globalDebug),
+        timeElapsed: {
+          start: (label: string) => {},
+          end: (label: string) => {},
+        },
+        memoryUsage: (label: string, showDetail: boolean) => {},
+        runnerAllocatedMemoryMb: Number(context.runnerAllocatedMemoryMb),
+        results: {
+          timeElapsed: [],
+          memoryUsage: [],
+        },
       },
-      params,
-    );
+    };
+
+    return onExecution(actionContext, params);
   };
 
 /** Creates the structure necessary to import a Component as part of a

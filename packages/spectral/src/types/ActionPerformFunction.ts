@@ -25,6 +25,40 @@ interface CustomLineage {
   customSource: string;
 }
 
+export interface DebugContext {
+  /** Denotes whether code should be executed in debug mode. */
+  enabled: boolean;
+  /** Helper methods for measuring how long a process takes between a start and end mark. Only runs if debug.enabled is true. */
+  timeElapsed: {
+    start: (label: string) => void;
+    end: (label: string) => void;
+  };
+  /** Measures memory usage up until that point in the process. Only runs if debug.enabled is true. */
+  memoryUsage: (label: string, showDetail: boolean) => void;
+  /** Memory limit in MB */
+  runnerAllocatedMemoryMb: number;
+  /** Resulting debug measurements that can be logged or saved. */
+  results: DebugResult;
+}
+
+interface DebugResult {
+  timeElapsed: Array<{
+    marks: Array<string>;
+    duration: number;
+  }>;
+  memoryUsage: Array<{
+    mark: string;
+    rss: number;
+    detail?: {
+      rss: number;
+      heapTotal: number;
+      heapUsed: number;
+      external: number;
+      arrayBuffers: number;
+    };
+  }>;
+}
+
 export type ExecutionFrame =
   | ({
       invokedByExecutionJWT: string;
@@ -44,11 +78,17 @@ export type FlowInvoker<TFlows extends Readonly<string[]> | undefined> = (
 
 /** Definition of the function to perform when an Action is invoked. */
 export type ActionPerformFunction<
-  TInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection,
-  TComponentActions extends Record<string, ComponentManifest["actions"]>,
-  TAllowsBranching extends boolean | undefined,
-  TReturn extends ActionPerformReturn<TAllowsBranching, unknown>,
+  TInputs extends Inputs = Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
+    string,
+    ComponentManifest["actions"]
+  >,
+  TAllowsBranching extends boolean | undefined = undefined,
+  TReturn extends ActionPerformReturn<TAllowsBranching, unknown> = ActionPerformReturn<
+    TAllowsBranching,
+    unknown
+  >,
 > = (
   context: ActionContext<TConfigVars, TComponentActions>,
   params: ActionInputParameters<TInputs>,
@@ -103,10 +143,10 @@ export type ActionContext<
   flow: FlowAttributes;
   /** The time in UTC that execution started. */
   startedAt: string;
-  /** Function to invoke an execution of another flow.. */
+  /** Function to invoke an execution of another flow. */
   invokeFlow: FlowInvoker<TFlows>;
   /** Reference to the current execution and, when applicable, the current step. */
   executionFrame: ExecutionFrame;
-  /** Denotes whether code should be executed in debug mode. */
-  globalDebug: boolean;
+  /** Contains methods, flags, and data to support debug modes. */
+  debug: DebugContext;
 };
