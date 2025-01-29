@@ -961,7 +961,7 @@ const convertOnExecution =
           end: (label: string) => {},
         },
         memoryUsage: (label: string, showDetail: boolean) => {},
-        runnerAllocatedMemoryMb: Number(context.runnerAllocatedMemoryMb),
+        allowedMemory: Number(context.runnerAllocatedMemoryMb),
         results: {
           timeElapsed: [],
           memoryUsage: [],

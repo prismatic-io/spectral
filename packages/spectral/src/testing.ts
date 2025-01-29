@@ -194,7 +194,7 @@ const createActionContext = <
         end: (label: string) => {},
       },
       memoryUsage: (label: string, showDetail: boolean) => {},
-      runnerAllocatedMemoryMb: 1024,
+      allowedMemory: 1024,
       results: {
         timeElapsed: [],
         memoryUsage: [],
