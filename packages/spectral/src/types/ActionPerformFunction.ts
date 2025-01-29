@@ -36,7 +36,7 @@ export interface DebugContext {
   /** Measures memory usage up until that point in the process. Only runs if debug.enabled is true. */
   memoryUsage: (label: string, showDetail: boolean) => void;
   /** Memory limit in MB */
-  runnerAllocatedMemoryMb: number;
+  allowedMemory: number;
   /** Resulting debug measurements that can be logged or saved. */
   results: DebugResult;
 }
