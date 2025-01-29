@@ -187,7 +187,19 @@ const createActionContext = <
       stepName: "some-step",
       loopPath: "",
     },
-    globalDebug: false,
+    debug: {
+      enabled: false,
+      timeElapsed: {
+        start: (label: string) => {},
+        end: (label: string) => {},
+      },
+      memoryUsage: (label: string, showDetail: boolean) => {},
+      allowedMemory: 1024,
+      results: {
+        timeElapsed: [],
+        memoryUsage: [],
+      },
+    },
     ...context,
   };
 };
