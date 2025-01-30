@@ -69,6 +69,12 @@ export const runMain = async (process: NodeJS.Process) => {
       description:
         "This skips the signature verification process, always returning a component signature in the component manifest.",
     },
+    version: {
+      flag: ["--version"],
+      value: getFlagsBooleanValue({ args, flags: ["--version"] }),
+      description:
+        "Display the version of @prismatic-io/spectral this component manifest generator uses.",
+    },
     help: {
       flag: ["--help", "-h"],
       value: getFlagsBooleanValue({
@@ -78,6 +84,12 @@ export const runMain = async (process: NodeJS.Process) => {
       description: "Show this help message.",
     },
   };
+
+  if (flags.version.value) {
+    const { version } = require("../../../package.json");
+    console.log(version);
+    process.exit(0);
+  }
 
   if (flags.help.value) {
     createFlagHelpText({
