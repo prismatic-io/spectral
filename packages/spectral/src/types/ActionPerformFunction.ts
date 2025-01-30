@@ -26,29 +26,44 @@ interface CustomLineage {
 }
 
 export interface DebugContext {
-  /** Denotes whether code should be executed in debug mode. */
+  /** READ-ONLY: Denotes whether code should be executed in debug mode. */
   enabled: boolean;
-  /** Helper methods for measuring how long a process takes between a start and end mark. Only runs if debug.enabled is true. */
+  /** Helper methods for measuring how long a process takes between marks. Only runs if debug.enabled is true. */
   timeElapsed: {
-    start: (label: string) => void;
-    end: (label: string) => void;
+    /** Creates a mark for measuring time in your process. */
+    mark: (context: ActionContext, label: string) => void;
+    /** Measures the time spent between two marks. The label should be a unique descriptor of this duration. */
+    measure: (context: ActionContext, label: string, marks: { start: string; end: string }) => void;
   };
-  /** Measures memory usage up until that point in the process. Only runs if debug.enabled is true. */
-  memoryUsage: (label: string, showDetail: boolean) => void;
-  /** Memory limit in MB */
-  allowedMemory: number;
+  /** Measures memory usage up until that point in the process. showDetail will run slower but show the full output of process.memoryUsage().
+   * Only runs if debug.enabled is true. */
+  memoryUsage: (context: ActionContext, label: string, showDetail?: boolean) => void;
   /** Resulting debug measurements that can be logged or saved. */
   results: DebugResult;
 }
 
 interface DebugResult {
-  timeElapsed: Array<{
-    marks: Array<string>;
-    duration: number;
-  }>;
+  /** Resulting data about time measurements. */
+  timeElapsed: {
+    /** The set of recorded marks and their measured start times. */
+    marks: Record<string, number>;
+    /** The set of measured durations based on the difference in marked times. */
+    measurements: Record<
+      string,
+      {
+        marks: { start: string; end: string };
+        duration: number;
+      }
+    >;
+  };
+  /** Memory limit in MB */
+  allowedMemory: number;
+  /** Resulting data bout memory usage. */
   memoryUsage: Array<{
     mark: string;
+    /* Memory usage in MB up until the marked point. */
     rss: number;
+    /* The full result of process.memoryUsage(). Measured in bytes */
     detail?: {
       rss: number;
       heapTotal: number;

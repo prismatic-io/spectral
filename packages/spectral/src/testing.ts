@@ -190,14 +190,18 @@ const createActionContext = <
     debug: {
       enabled: false,
       timeElapsed: {
-        start: (label: string) => {},
-        end: (label: string) => {},
+        mark: (context: ActionContext, label: string) => {},
+        measure: (
+          context: ActionContext,
+          label: string,
+          marks: { start: string; end: string },
+        ) => {},
       },
-      memoryUsage: (label: string, showDetail: boolean) => {},
-      allowedMemory: 1024,
+      memoryUsage: (context: ActionContext, label: string, showDetail?: boolean) => {},
       results: {
-        timeElapsed: [],
+        timeElapsed: { marks: {}, measurements: {} },
         memoryUsage: [],
+        allowedMemory: 1024,
       },
     },
     ...context,
