@@ -8,7 +8,6 @@ import { createFlagHelpText } from "../utils/createFlagHelpText";
 import { getFlagsStringValue } from "../utils/getFlagStringValue";
 import { getFlagsBooleanValue } from "../utils/getFlagBooleanValue";
 import { isObjectWithOneTruthyKey, isObjectWithTruthyKeys } from "../../util";
-import { getSpectralVersion } from "../utils/getSpectralVersion";
 
 export const runMain = async (process: NodeJS.Process) => {
   const componentDir = process.cwd();
@@ -87,7 +86,8 @@ export const runMain = async (process: NodeJS.Process) => {
   };
 
   if (flags.version.value) {
-    console.log(getSpectralVersion());
+    const { version } = require("../../../package.json");
+    console.log(version);
     process.exit(0);
   }
 
