@@ -125,8 +125,8 @@ const getInputValueType = (input: ServerTypeInput): ValueType => {
 
   if (input.collection === "valuelist") {
     return typeof valueType === "string"
-      ? `${valueType}[]`
-      : { ...valueType, type: `${valueType.type}[]` };
+      ? `Array<${valueType}>`
+      : { ...valueType, type: `Array<${valueType.type}>` };
   }
 
   return valueType;
