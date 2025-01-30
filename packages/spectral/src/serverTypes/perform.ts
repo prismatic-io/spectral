@@ -15,6 +15,7 @@ import type {
   TriggerResult,
 } from "../types";
 import uniq from "lodash/uniq";
+import { createDebugContext } from "./context";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
 export type CleanFn = (...args: any[]) => any;
@@ -95,6 +96,7 @@ export const createPerform = (
         return await performFn(
           {
             ...context,
+            debug: createDebugContext(context),
             invokeFlow: createInvokeFlow(context),
           },
           cleanParams(params, inputCleaners),
@@ -105,6 +107,7 @@ export const createPerform = (
       return await performFn(
         {
           ...context,
+          debug: createDebugContext(context),
           invokeFlow: createInvokeFlow(context),
         },
         payload,
