@@ -106,20 +106,18 @@ export const createPerform = (
         return result;
       }
 
-      if (args.length === 3) {
-        const [context, payload, params] = args;
-        const actionContext = {
-          ...context,
-          debug: createDebugContext(context),
-          invokeFlow: createInvokeFlow(context),
-        };
+      const [context, payload, params] = args;
+      const actionContext = {
+        ...context,
+        debug: createDebugContext(context),
+        invokeFlow: createInvokeFlow(context),
+      };
 
-        const result = await performFn(actionContext, payload, cleanParams(params, inputCleaners));
+      const result = await performFn(actionContext, payload, cleanParams(params, inputCleaners));
 
-        logDebugResults(actionContext);
+      logDebugResults(actionContext);
 
-        return result;
-      }
+      return result;
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
     }
