@@ -366,7 +366,9 @@ const convertComponentReference = (
                 type: "value",
                 value: JSON.stringify(v),
               }))
-            : value.value;
+            : manifestEntryInput.collection === "valuelist" && Array.isArray(value.value)
+              ? value.value.map((v) => ({ type: "value", value: v }))
+              : value.value;
 
         const formattedValue =
           type === "complex" || typeof valueExpr === "string"
