@@ -48,3 +48,9 @@ export function createDebugContext(context: ServerActionContext): DebugContext {
     },
   };
 }
+
+export function logDebugResults(context: ActionContext) {
+  if (context.debug.enabled) {
+    context.logger.metric(context.debug.results);
+  }
+}

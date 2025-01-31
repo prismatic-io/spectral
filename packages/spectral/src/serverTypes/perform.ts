@@ -15,7 +15,7 @@ import type {
   TriggerResult,
 } from "../types";
 import uniq from "lodash/uniq";
-import { createDebugContext } from "./context";
+import { createDebugContext, logDebugResults } from "./context";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
 export type CleanFn = (...args: any[]) => any;
@@ -93,26 +93,33 @@ export const createPerform = (
 
       if (args.length === 2) {
         const [context, params] = args;
-        return await performFn(
-          {
-            ...context,
-            debug: createDebugContext(context),
-            invokeFlow: createInvokeFlow(context),
-          },
-          cleanParams(params, inputCleaners),
-        );
-      }
-
-      const [context, payload, params] = args;
-      return await performFn(
-        {
+        const actionContext = {
           ...context,
           debug: createDebugContext(context),
           invokeFlow: createInvokeFlow(context),
-        },
-        payload,
-        cleanParams(params, inputCleaners),
-      );
+        };
+
+        const result = await performFn(actionContext, cleanParams(params, inputCleaners));
+
+        logDebugResults(actionContext);
+
+        return result;
+      }
+
+      if (args.length === 3) {
+        const [context, payload, params] = args;
+        const actionContext = {
+          ...context,
+          debug: createDebugContext(context),
+          invokeFlow: createInvokeFlow(context),
+        };
+
+        const result = await performFn(actionContext, payload, cleanParams(params, inputCleaners));
+
+        logDebugResults(actionContext);
+
+        return result;
+      }
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
     }

@@ -53,7 +53,7 @@ import {
 } from "./integration";
 import merge from "lodash/merge";
 import { createInvokeFlow } from "./perform";
-import { createDebugContext } from "./context";
+import { createDebugContext, logDebugResults } from "./context";
 
 export const convertIntegration = (definition: IntegrationDefinition): ServerComponent => {
   // Generate a unique reference key that will be used to reference the
@@ -960,9 +960,7 @@ const convertOnExecution =
 
     const result = await onExecution(actionContext, params);
 
-    if (context.globalDebug) {
-      context.logger.metric(actionContext.debug.results);
-    }
+    logDebugResults(actionContext);
 
     return result;
   };
