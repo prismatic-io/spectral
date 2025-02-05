@@ -14,6 +14,7 @@ import {
   ComponentManifest,
   FlowInvoker,
   ExecutionFrame,
+  DebugContext,
 } from "../types";
 
 interface DisplayDefinition {
@@ -78,11 +79,6 @@ export type ActionContext<
   executionState: Record<string, unknown>;
   integrationState: Record<string, unknown>;
   configVars: TConfigVars;
-  components: {
-    [K in keyof TComponentActions]: {
-      [A in keyof TComponentActions[K]]: TComponentActions[K][A]["perform"];
-    };
-  };
   stepId: string;
   executionId: string;
   webhookUrls: Record<string, string>;
@@ -94,9 +90,20 @@ export type ActionContext<
   integration: IntegrationAttributes;
   flow: FlowAttributes;
   startedAt: string;
-  invokeFlow: FlowInvoker<TFlows>;
   executionFrame: ExecutionFrame;
-  globalDebug: boolean;
+
+  // @TODO - Hidden from the user-facing ActionContext.
+  globalDebug?: boolean;
+  runnerAllocatedMemoryMb?: number;
+
+  // @TODO - Added by the Spectral layer. Separate these out eventually
+  components: {
+    [K in keyof TComponentActions]: {
+      [A in keyof TComponentActions[K]]: TComponentActions[K][A]["perform"];
+    };
+  };
+  invokeFlow: FlowInvoker<TFlows>;
+  debug: DebugContext;
 };
 
 type TriggerOptionChoice = "invalid" | "valid" | "required";

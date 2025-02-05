@@ -53,6 +53,7 @@ import {
 } from "./integration";
 import merge from "lodash/merge";
 import { createInvokeFlow } from "./perform";
+import { createDebugContext, logDebugResults } from "./context";
 
 export const convertIntegration = (definition: IntegrationDefinition): ServerComponent => {
   // Generate a unique reference key that will be used to reference the
@@ -889,7 +890,7 @@ const convertOnExecution =
     onExecution: ActionPerformFunction,
     componentRegistry: ComponentRegistry,
   ): ServerActionPerformFunction =>
-  (context, params) => {
+  async (context, params) => {
     // @ts-expect-error _components isn't part of the public API
     const { _components } = context;
 
@@ -952,14 +953,18 @@ const convertOnExecution =
       {},
     );
 
-    return onExecution(
-      {
-        ...context,
-        components: componentMethods,
-        invokeFlow: createInvokeFlow(context, { isCNI: true }),
-      },
-      params,
-    );
+    const actionContext = {
+      ...context,
+      debug: createDebugContext(context),
+      components: componentMethods,
+      invokeFlow: createInvokeFlow(context, { isCNI: true }),
+    };
+
+    const result = await onExecution(actionContext, params);
+
+    logDebugResults(actionContext);
+
+    return result;
   };
 
 /** Creates the structure necessary to import a Component as part of a

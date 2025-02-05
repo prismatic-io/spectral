@@ -187,7 +187,23 @@ const createActionContext = <
       stepName: "some-step",
       loopPath: "",
     },
-    globalDebug: false,
+    debug: {
+      enabled: false,
+      timeElapsed: {
+        mark: (context: ActionContext, label: string) => {},
+        measure: (
+          context: ActionContext,
+          label: string,
+          marks: { start: string; end: string },
+        ) => {},
+      },
+      memoryUsage: (context: ActionContext, label: string, showDetail?: boolean) => {},
+      results: {
+        timeElapsed: { marks: {}, measurements: {} },
+        memoryUsage: [],
+        allowedMemory: 1024,
+      },
+    },
     ...context,
   };
 };

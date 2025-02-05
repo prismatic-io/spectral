@@ -25,6 +25,55 @@ interface CustomLineage {
   customSource: string;
 }
 
+export interface DebugContext {
+  /** READ-ONLY: Denotes whether code should be executed in debug mode. */
+  enabled: boolean;
+  /** Helper methods for measuring how long a process takes between marks. Only runs if debug.enabled is true. */
+  timeElapsed: {
+    /** Creates a mark for measuring time in your process. */
+    mark: (context: ActionContext, label: string) => void;
+    /** Measures the time spent between two marks. The label should be a unique descriptor of this duration. */
+    measure: (context: ActionContext, label: string, marks: { start: string; end: string }) => void;
+  };
+  /** Measures memory usage up until that point in the process. showDetail will run slower but show the full output of process.memoryUsage().
+   * Only runs if debug.enabled is true. */
+  memoryUsage: (context: ActionContext, label: string, showDetail?: boolean) => void;
+  /** Resulting debug measurements that can be logged or saved. */
+  results: DebugResult;
+}
+
+interface DebugResult {
+  /** Resulting data about time measurements. */
+  timeElapsed: {
+    /** The set of recorded marks and their measured start times. */
+    marks: Record<string, number>;
+    /** The set of measured durations based on the difference in marked times. */
+    measurements: Record<
+      string,
+      {
+        marks: { start: string; end: string };
+        duration: number;
+      }
+    >;
+  };
+  /** Memory limit in MB */
+  allowedMemory: number;
+  /** Resulting data bout memory usage. */
+  memoryUsage: Array<{
+    mark: string;
+    /* Memory usage in MB up until the marked point. */
+    rss: number;
+    /* The full result of process.memoryUsage(). Measured in bytes */
+    detail?: {
+      rss: number;
+      heapTotal: number;
+      heapUsed: number;
+      external: number;
+      arrayBuffers: number;
+    };
+  }>;
+}
+
 export type ExecutionFrame =
   | ({
       invokedByExecutionJWT: string;
@@ -44,11 +93,17 @@ export type FlowInvoker<TFlows extends Readonly<string[]> | undefined> = (
 
 /** Definition of the function to perform when an Action is invoked. */
 export type ActionPerformFunction<
-  TInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection,
-  TComponentActions extends Record<string, ComponentManifest["actions"]>,
-  TAllowsBranching extends boolean | undefined,
-  TReturn extends ActionPerformReturn<TAllowsBranching, unknown>,
+  TInputs extends Inputs = Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
+    string,
+    ComponentManifest["actions"]
+  >,
+  TAllowsBranching extends boolean | undefined = undefined,
+  TReturn extends ActionPerformReturn<TAllowsBranching, unknown> = ActionPerformReturn<
+    TAllowsBranching,
+    unknown
+  >,
 > = (
   context: ActionContext<TConfigVars, TComponentActions>,
   params: ActionInputParameters<TInputs>,
@@ -103,10 +158,10 @@ export type ActionContext<
   flow: FlowAttributes;
   /** The time in UTC that execution started. */
   startedAt: string;
-  /** Function to invoke an execution of another flow.. */
+  /** Function to invoke an execution of another flow. */
   invokeFlow: FlowInvoker<TFlows>;
   /** Reference to the current execution and, when applicable, the current step. */
   executionFrame: ExecutionFrame;
-  /** Denotes whether code should be executed in debug mode. */
-  globalDebug: boolean;
+  /** Contains methods, flags, and data to support debug modes. */
+  debug: DebugContext;
 };
