@@ -127,7 +127,7 @@ export const createPerform = (
 const createInvokePollAction = <TInputs extends Inputs>(
   context: ActionContext,
   action: ActionDefinition<Inputs> | undefined,
-  { inputCleaners, errorHandler }: CreatePerformProps,
+  { errorHandler }: { errorHandler?: ErrorHandler },
 ): PerformFn => {
   return async (params: ActionInputParameters<TInputs>): Promise<any> => {
     try {
@@ -135,7 +135,14 @@ const createInvokePollAction = <TInputs extends Inputs>(
         throw "Error: Attempted to invoke an action for a trigger with no pollAction defined.";
       }
 
-      return await action.perform(context, cleanParams(params, inputCleaners));
+      /*
+       * By the time this is called, the inputs have already been cleaned
+       * as part of the polling trigger setup.
+       *
+       * Running clean twice can have unwanted behavior depending on how users have implemented
+       * their clean functions.
+       */
+      return await action.perform(context, params);
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
     }
@@ -161,7 +168,6 @@ export const createPollingPerform = (
         invokeFlow: createInvokeFlow(context),
         polling: {
           invokeAction: createInvokePollAction(context, pollAction, {
-            inputCleaners,
             errorHandler,
           }),
           getState: () => {
