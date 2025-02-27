@@ -47,4 +47,6 @@ export interface TriggerPayload {
   flow: FlowAttributes;
   /** The time in UTC that execution started. */
   startedAt: string;
+  /** Determines whether the execution will run in debug mode. */
+  globalDebug: boolean;
 }

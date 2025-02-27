@@ -130,6 +130,7 @@ export interface TriggerPayload {
   integration: IntegrationAttributes;
   flow: FlowAttributes;
   startedAt: string;
+  globalDebug: boolean;
 }
 
 interface HttpResponse {
