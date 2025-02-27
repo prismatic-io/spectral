@@ -318,6 +318,7 @@ export const defaultTriggerPayload = (): TriggerPayload => {
       name: "Flow 1",
     },
     startedAt: new Date().toISOString(),
+    globalDebug: false,
   };
 };
 
