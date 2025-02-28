@@ -63,15 +63,17 @@ interface DebugResult {
     mark: string;
     /* Memory usage in MB up until the marked point. */
     rss: number;
-    /* The full result of process.memoryUsage(). Measured in bytes */
-    detail?: {
-      rss: number;
-      heapTotal: number;
-      heapUsed: number;
-      external: number;
-      arrayBuffers: number;
-    };
+    /* The full result of process.memoryUsage(), converted to MB */
+    detail?: MemoryUsage;
   }>;
+}
+
+export interface MemoryUsage {
+  rss: number;
+  heapTotal: number;
+  heapUsed: number;
+  external: number;
+  arrayBuffers: number;
 }
 
 export type ExecutionFrame =
