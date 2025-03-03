@@ -1,7 +1,9 @@
 import { memoryUsage } from "node:process";
 import { ActionContext as ServerActionContext } from ".";
-import { ActionContext, DebugContext } from "../types";
+import { ActionContext, DebugContext, MemoryUsage } from "../types";
 import { performance } from "node:perf_hooks";
+
+const MEMORY_USAGE_CONVERSION = 1024 * 1024;
 
 export function createDebugContext(context: ServerActionContext): DebugContext {
   const globalDebug = Boolean(context.globalDebug);
@@ -31,12 +33,14 @@ export function createDebugContext(context: ServerActionContext): DebugContext {
     },
     memoryUsage: (actionContext: ActionContext, label: string, showDetail?: boolean) => {
       if (globalDebug) {
-        // @ts-expect-error: memoryUsage.rss() is documented but not typed
-        const usage = showDetail ? memoryUsage() : (memoryUsage.rss() as number);
+        const usage = showDetail
+          ? memoryUsageInMB()
+          : // @ts-expect-error: memoryUsage.rss() is documented but not typed
+            (memoryUsage.rss() as number) / MEMORY_USAGE_CONVERSION;
 
         actionContext.debug.results.memoryUsage.push({
           mark: label,
-          rss: typeof usage === "number" ? usage / 1000000 : usage.rss / 1000000,
+          rss: typeof usage === "number" ? usage : usage.rss,
           detail: typeof usage === "number" ? undefined : usage,
         });
       }
@@ -53,4 +57,21 @@ export function logDebugResults(context: ActionContext) {
   if (context.debug.enabled) {
     context.logger.metric(context.debug.results);
   }
+}
+
+function memoryUsageInMB() {
+  const usage: MemoryUsage = memoryUsage();
+  return Object.keys(usage).reduce<MemoryUsage>(
+    (accum, key) => {
+      accum[key as keyof MemoryUsage] = usage[key as keyof MemoryUsage] / MEMORY_USAGE_CONVERSION;
+      return accum;
+    },
+    {
+      rss: -1,
+      heapTotal: -1,
+      heapUsed: -1,
+      external: -1,
+      arrayBuffers: -1,
+    },
+  );
 }
