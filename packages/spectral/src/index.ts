@@ -104,7 +104,19 @@ export const connectionConfigVar = <T extends ConnectionConfigVar = ConnectionCo
 /**
  * For information on writing Code Native Integrations, see
  * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
- * @param definition A Customer Connection Config Var type object.
+ * @param definition A Customer-Activated Connection Config Var type object.
+ * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
+ */
+export const customerActivatedConnection = <T extends { stableKey: string }>(
+  definition: T,
+): OrganizationActivatedConnectionConfigVar => {
+  return { ...definition, dataType: "connection" };
+};
+
+/**
+ * For information on writing Code Native Integrations, see
+ * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
+ * @param definition An Organization-Activated Connection Config Var type object.
  * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
  */
 export const organizationActivatedConnection = <T extends { stableKey: string }>(
