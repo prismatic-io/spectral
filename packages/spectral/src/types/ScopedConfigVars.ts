@@ -1,13 +1,20 @@
 import { type ConfigVar, isConnectionDefinitionConfigVar, isConnectionReferenceConfigVar } from ".";
 import type { UnionToIntersection } from "./utils";
 
+export type CustomerActivatedConnectionConfigVar = {
+  dataType: "connection";
+  stableKey: string;
+};
+
 export type OrganizationActivatedConnectionConfigVar = {
   dataType: "connection";
   stableKey: string;
 };
 
 /* More types may eventually be added to this union. */
-export type ScopedConfigVar = OrganizationActivatedConnectionConfigVar;
+export type ScopedConfigVar =
+  | CustomerActivatedConnectionConfigVar
+  | OrganizationActivatedConnectionConfigVar;
 
 /**
  * Root ScopedConfigVars type exposed for augmentation.
@@ -43,7 +50,7 @@ type CreateScopedConfigVars<TScopedConfigVarMap> = keyof TScopedConfigVarMap ext
 
 export type ScopedConfigVarMap = CreateScopedConfigVars<IntegrationDefinitionScopedConfigVars>;
 
-export const isOrganizationActivatedConnectionConfigVar = (
+export const isConnectionScopedConfigVar = (
   cv: ConfigVar,
 ): cv is OrganizationActivatedConnectionConfigVar =>
   "dataType" in cv &&
