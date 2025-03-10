@@ -27,7 +27,6 @@ import {
   isPollingTriggerDefinition,
   PollingTriggerDefinition,
 } from "../types/PollingTriggerDefinition";
-import { input, util } from "..";
 
 export const convertInput = (
   key: string,

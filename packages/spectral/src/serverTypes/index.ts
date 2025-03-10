@@ -307,4 +307,5 @@ export interface Input {
   model?: InputFieldChoice[];
   language?: string;
   onPremiseControlled?: boolean;
+  dataSource?: string;
 }

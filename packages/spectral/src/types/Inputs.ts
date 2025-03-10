@@ -138,6 +138,8 @@ interface BaseInputField {
   example?: string;
   /** Indicate if this InputField is required. */
   required?: boolean;
+  /** Key of the data source that can be used to set the value of this input. */
+  dataSource?: string;
 }
 
 type CollectionOptions<T> = SingleValue<T> | ValueListCollection<T> | KeyValueListCollection<T>;
