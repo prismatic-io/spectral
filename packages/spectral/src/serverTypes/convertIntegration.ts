@@ -26,7 +26,7 @@ import {
   isJsonFormDataSourceConfigVar,
   TriggerReference,
   TriggerEventFunctionReturn,
-  isOrganizationActivatedConnectionConfigVar,
+  isConnectionScopedConfigVar,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -578,7 +578,7 @@ export const convertConfigVar = (
   referenceKey: string,
   componentRegistry: ComponentRegistry,
 ): ServerRequiredConfigVariable => {
-  if (isOrganizationActivatedConnectionConfigVar(configVar)) {
+  if (isConnectionScopedConfigVar(configVar)) {
     const { stableKey } = pick(configVar, ["stableKey"]);
 
     return {
