@@ -818,12 +818,24 @@ const generateTriggerPerformFn = (
 
           return await invokeTrigger(
             invokeTriggerComponentInput(componentRef, onTrigger, "perform"),
-            context,
+            {
+              ...context,
+              debug: createDebugContext(context),
+            },
             payload,
             params,
           );
         }
-      : (onTrigger as TriggerPerformFunction);
+      : async (context, payload, params) => {
+          return await (onTrigger as TriggerPerformFunction)(
+            {
+              ...context,
+              debug: createDebugContext(context),
+            },
+            payload,
+            params,
+          );
+        };
 
   return performFn;
 };
@@ -859,7 +871,10 @@ const generateOnInstanceWrapperFn = (
           const invokeResponse =
             (await invokeTrigger(
               invokeTriggerComponentInput(componentRef, onTrigger, eventName),
-              context,
+              {
+                ...context,
+                debug: createDebugContext(context),
+              },
               null,
               params,
             )) || {};
@@ -867,12 +882,23 @@ const generateOnInstanceWrapperFn = (
           let customResponse: TriggerEventFunctionReturn = {};
 
           if (customFn) {
-            customResponse = (await customFn(context, params)) || {};
+            customResponse =
+              (await customFn(
+                {
+                  ...context,
+                  debug: createDebugContext(context),
+                },
+                params,
+              )) || {};
           }
 
           return merge(invokeResponse, customResponse);
         }
-      : customFn;
+      : async (context, params) => {
+          if (customFn) {
+            return await customFn({ ...context, debug: createDebugContext(context) }, params);
+          }
+        };
 
   return onInstanceFn;
 };
@@ -935,7 +961,10 @@ const convertOnExecution =
                 // older versions of manifests did not contain action.key so we fall back to the registry key
                 key: action.key ?? registryActionKey,
               },
-              context,
+              {
+                ...context,
+                debug: createDebugContext(context),
+              },
               transformedValues,
             );
           };
