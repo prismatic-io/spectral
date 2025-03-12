@@ -142,7 +142,13 @@ const createInvokePollAction = <TInputs extends Inputs>(
        * Running clean twice can have unwanted behavior depending on how users have implemented
        * their clean functions.
        */
-      return await action.perform(context, params);
+      return await action.perform(
+        {
+          ...context,
+          debug: createDebugContext(context),
+        },
+        params,
+      );
     } catch (error) {
       throw errorHandler ? errorHandler(error) : error;
     }
@@ -185,6 +191,7 @@ export const createPollingPerform = (
             };
           },
         },
+        debug: createDebugContext(context),
       };
 
       const triggerPerform = createPerform(trigger.perform, {
