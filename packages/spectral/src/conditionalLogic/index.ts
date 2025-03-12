@@ -2,7 +2,6 @@ import {
   ConditionalExpression,
   BooleanOperator,
   TermExpression,
-  BooleanExpression,
   UnaryOperator,
   BinaryOperator,
 } from "./types";
@@ -101,7 +100,7 @@ export const parseDate = (value: unknown): Date => {
   throw new Error("Invalid argument type");
 };
 
-const isEqual = (left: unknown, right: unknown): boolean =>
+export const isEqual = (left: unknown, right: unknown): boolean =>
   left == right ||
   _isEqualWith(left, right, (objectA, objectB) => {
     if (typeof objectA === "object" || typeof objectB === "object") {
@@ -114,6 +113,59 @@ const isEqual = (left: unknown, right: unknown): boolean =>
 
     return objectA == objectB;
   });
+
+export const isDeepEqual = (left: unknown, right: unknown): boolean => {
+  return _isEqual(left, right);
+};
+
+export const evaluatesTrue = (value: string | boolean): boolean => {
+  return typeof value === "string" ? ["t", "true", "y", "yes"].includes(value) : value;
+};
+
+export const evaluatesFalse = (value: string | boolean): boolean => {
+  return typeof value === "string" ? ["f", "false", "n", "no"].includes(value) : value;
+};
+
+export const evaluatesNull = (value: unknown): boolean => {
+  const nullValues: Array<unknown> = [undefined, null, 0, Number.NaN, false, ""];
+  return nullValues.includes(value);
+};
+
+export const evaluatesEmpty = (value: string | Array<unknown>): boolean => {
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+
+  if (typeof value === "string") {
+    return value.length === 0;
+  }
+
+  throw new Error("Please provide an array or string");
+};
+
+export const evaluatesNotEmpty = (value: string | Array<unknown>): boolean => {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (typeof value === "string") {
+    return value.length > 0;
+  }
+
+  throw new Error("Please provide an array or string");
+};
+
+export const dateIsAfter = (left: unknown, right: unknown): boolean => {
+  return isAfter(util.types.toDate(left), util.types.toDate(right));
+};
+
+export const dateIsBefore = (left: unknown, right: unknown): boolean => {
+  return isBefore(util.types.toDate(left), util.types.toDate(right));
+};
+
+export const dateIsEqual = (left: unknown, right: unknown): boolean => {
+  return isDateEqual(util.types.toDate(left), util.types.toDate(right));
+};
 
 export const evaluate = (expression: ConditionalExpression): boolean => {
   const [valid, message] = validate(expression);
@@ -149,9 +201,9 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
         case UnaryOperator.isTrue:
           if (typeof left === "string") {
             const lowerValue = left.toLowerCase();
-            if (["t", "true", "y", "yes"].includes(lowerValue)) {
+            if (evaluatesTrue(lowerValue)) {
               return true;
-            } else if (["f", "false", "n", "no"].includes(lowerValue)) {
+            } else if (evaluatesFalse(lowerValue)) {
               return false;
             }
           }
@@ -159,25 +211,27 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
         case UnaryOperator.isFalse:
           if (typeof left === "string") {
             const lowerValue = left.toLowerCase();
-            if (["t", "true", "y", "yes"].includes(lowerValue)) {
+            if (evaluatesTrue(lowerValue)) {
               return false;
-            } else if (["f", "false", "n", "no"].includes(lowerValue)) {
+            } else if (evaluatesFalse(lowerValue)) {
               return true;
             }
           }
           return !left;
         case UnaryOperator.doesNotExist:
-          return [undefined, null, 0, Number.NaN, false, ""].includes(left);
+          return evaluatesNull(left);
         case UnaryOperator.exists:
-          return ![undefined, null, 0, Number.NaN, false, ""].includes(left);
+          return !evaluatesNull(left);
         case UnaryOperator.isEmpty:
           if (Array.isArray(left)) {
-            return left.length === 0;
+            return evaluatesEmpty(left);
           }
+
           // leftTerm is used here, since "123" would be cast to 123 and would not be a string
           if (typeof leftTerm === "string") {
-            return leftTerm.length === 0;
+            return evaluatesEmpty(leftTerm);
           }
+
           throw new Error("Please provide an array or string");
         case UnaryOperator.isNotEmpty:
           if (Array.isArray(left)) {
@@ -230,9 +284,9 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
         case BinaryOperator.notIn:
           return !contains(right, leftTerm);
         case BinaryOperator.exactlyMatches:
-          return left === right || _isEqual(left, right);
+          return left === right || isDeepEqual(left, right);
         case BinaryOperator.doesNotExactlyMatch:
-          return !(left === right || _isEqual(left, right));
+          return !(left === right || isDeepEqual(left, right));
         case BinaryOperator.startsWith:
           return `${right}`.startsWith(`${left}`);
         case BinaryOperator.doesNotStartWith:
@@ -242,11 +296,11 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
         case BinaryOperator.doesNotEndWith:
           return !`${right}`.endsWith(`${left}`);
         case BinaryOperator.dateTimeAfter:
-          return isAfter(util.types.toDate(left), util.types.toDate(right));
+          return dateIsAfter(util.types.toDate(left), util.types.toDate(right));
         case BinaryOperator.dateTimeBefore:
-          return isBefore(util.types.toDate(left), util.types.toDate(right));
+          return dateIsBefore(util.types.toDate(left), util.types.toDate(right));
         case BinaryOperator.dateTimeSame:
-          return isDateEqual(util.types.toDate(left), util.types.toDate(right));
+          return dateIsEqual(util.types.toDate(left), util.types.toDate(right));
         default:
           throw new Error(`Invalid operator: '${operator}'`);
       }
