@@ -2,7 +2,6 @@ import {
   ConditionalExpression,
   BooleanOperator,
   TermExpression,
-  BooleanExpression,
   UnaryOperator,
   BinaryOperator,
 } from "./types";
@@ -120,11 +119,11 @@ export const isDeepEqual = (left: unknown, right: unknown): boolean => {
 };
 
 export const evaluatesTrue = (value: string | boolean): boolean => {
-  return typeof value === "string" ? ["t", "true", "y", "yes"].includes(value) : !!value;
+  return typeof value === "string" ? ["t", "true", "y", "yes"].includes(value) : value;
 };
 
 export const evaluatesFalse = (value: string | boolean): boolean => {
-  return typeof value === "string" ? ["f", "false", "n", "no"].includes(value) : !!value;
+  return typeof value === "string" ? ["f", "false", "n", "no"].includes(value) : value;
 };
 
 export const evaluatesNull = (value: unknown): boolean => {
@@ -165,7 +164,7 @@ export const dateIsBefore = (left: unknown, right: unknown): boolean => {
 };
 
 export const dateIsEqual = (left: unknown, right: unknown): boolean => {
-  return isBefore(util.types.toDate(left), util.types.toDate(right));
+  return isDateEqual(util.types.toDate(left), util.types.toDate(right));
 };
 
 export const evaluate = (expression: ConditionalExpression): boolean => {
@@ -285,9 +284,9 @@ export const evaluate = (expression: ConditionalExpression): boolean => {
         case BinaryOperator.notIn:
           return !contains(right, leftTerm);
         case BinaryOperator.exactlyMatches:
-          return left === right || _isEqual(left, right);
+          return left === right || isDeepEqual(left, right);
         case BinaryOperator.doesNotExactlyMatch:
-          return !(left === right || _isEqual(left, right));
+          return !(left === right || isDeepEqual(left, right));
         case BinaryOperator.startsWith:
           return `${right}`.startsWith(`${left}`);
         case BinaryOperator.doesNotStartWith:
