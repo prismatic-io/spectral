@@ -48,6 +48,10 @@ export type IntegrationDefinition = {
   userLevelConfigPages?: UserLevelConfigPages;
   /** Scoped ConfigVars for this Integration. */
   scopedConfigVars?: ScopedConfigVarMap;
+  /** Instance Profile used for this integration.
+   * @default "Default Instance Profile"
+   */
+  instanceProfile?: string;
 
   componentRegistry?: ComponentRegistry;
 };

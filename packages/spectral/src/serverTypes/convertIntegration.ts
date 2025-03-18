@@ -144,6 +144,7 @@ const codeNativeIntegrationYaml = (
     configPages,
     userLevelConfigPages,
     scopedConfigVars,
+    instanceProfile = "Default Instance Profile",
     componentRegistry = {},
   }: IntegrationDefinition,
   referenceKey: string,
@@ -220,6 +221,7 @@ const codeNativeIntegrationYaml = (
       preprocessFlowConfig?.flowNameField,
     ),
     flows: flows.map((flow) => convertFlow(flow, componentRegistry, referenceKey)),
+    defaultInstanceProfile: instanceProfile,
     configPages: [
       ...convertConfigPages(configPages, false),
       ...convertConfigPages(userLevelConfigPages, true),
