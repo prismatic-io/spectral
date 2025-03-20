@@ -37,7 +37,8 @@ export type ConfigVarDataType =
   | "schedule"
   | "objectSelection"
   | "objectFieldMap"
-  | "jsonForm";
+  | "jsonForm"
+  | "htmlElement";
 
 type ConfigVarDataTypeDefaultValueMap<
   TMap extends Record<ConfigVarDataType, unknown> = {
@@ -52,6 +53,7 @@ type ConfigVarDataTypeDefaultValueMap<
     objectSelection: ObjectSelection;
     objectFieldMap: ObjectFieldMap;
     jsonForm: JSONForm;
+    htmlElement: string;
   },
 > = TMap;
 
@@ -68,6 +70,7 @@ type ConfigVarDataTypeRuntimeValueMap<
     objectSelection: ObjectSelection;
     objectFieldMap: ObjectFieldMap;
     jsonForm: unknown;
+    htmlElement: string;
   },
 > = TMap;
 
@@ -194,6 +197,8 @@ type JsonFormDataSourceDefinitionConfigVar = DataSourceDefinitionConfigVar & {
   validationMode?: ValidationMode;
 };
 
+type HtmlElementConfigVar = CreateStandardConfigVar<"htmlElement">;
+
 export type StandardConfigVar =
   | StringConfigVar
   | DateConfigVar
@@ -205,7 +210,8 @@ export type StandardConfigVar =
   | ScheduleConfigVar
   | ObjectSelectionConfigVar
   | ObjectFieldMapConfigVar
-  | JsonFormConfigVar;
+  | JsonFormConfigVar
+  | HtmlElementConfigVar;
 
 // Data Source Config Vars
 type BaseDataSourceConfigVar<TDataSourceType extends DataSourceType = DataSourceType> =
