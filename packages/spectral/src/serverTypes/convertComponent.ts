@@ -27,7 +27,6 @@ import {
   isPollingTriggerDefinition,
   PollingTriggerDefinition,
 } from "../types/PollingTriggerDefinition";
-import { input, util } from "..";
 
 export const convertInput = (
   key: string,
@@ -89,7 +88,7 @@ export const convertTrigger = (
   hooks?: ComponentHooks,
 ): ServerTrigger => {
   const { onInstanceDeploy, onInstanceDelete } = trigger;
-  const inputs: Inputs = trigger.inputs as Inputs;
+  const inputs: Inputs = trigger.inputs ?? {};
   const isPollingTrigger = isPollingTriggerDefinition(trigger);
 
   const triggerInputKeys = Object.keys(inputs);
