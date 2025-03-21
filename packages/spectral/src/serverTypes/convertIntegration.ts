@@ -116,17 +116,24 @@ const convertConfigPages = (
     name,
     tagline,
     ...(userLevelConfigured ? { userLevelConfigured } : {}),
-    elements: Object.entries(elements).map(([key, value]) =>
-      typeof value === "string"
-        ? {
-            type: "htmlElement",
-            value,
-          }
-        : {
-            type: "configVar",
-            value: key,
-          },
-    ),
+    elements: Object.entries(elements).map(([key, value]) => {
+      if (typeof value === "string") {
+        return {
+          type: "htmlElement",
+          value,
+        };
+      } else if ("dataType" in value && value.dataType === "htmlElement") {
+        return {
+          type: "htmlElement",
+          value: key,
+        };
+      }
+
+      return {
+        type: "configVar",
+        value: key,
+      };
+    }),
   }));
 };
 
@@ -188,9 +195,13 @@ const codeNativeIntegrationYaml = (
     { ...(configVars ?? {}) },
   );
 
-  const requiredConfigVars = Object.entries(configVarMap).map(([key, configVar]) =>
-    convertConfigVar(key, configVar, referenceKey, componentRegistry),
-  );
+  const requiredConfigVars: Array<ServerRequiredConfigVariable> = [];
+
+  Object.entries(configVarMap).forEach(([key, configVar]) => {
+    if ("dataType" in configVar && configVar.dataType !== "htmlElement") {
+      requiredConfigVars.push(convertConfigVar(key, configVar, referenceKey, componentRegistry));
+    }
+  });
 
   // Transform the IntegrationDefinition into the structure that is appropriate
   // for generating YAML, which will then be used by the Prismatic API to import
