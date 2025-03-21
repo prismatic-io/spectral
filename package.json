@@ -21,5 +21,6 @@
     "**/typedoc/marked": "4.0.10",
     "**/yo/meow/trim-newlines": "3.0.1",
     "**/yo/**/got": "11.8.5"
-  }
+  },
+  "version": "0.0.0"
 }
