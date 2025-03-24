@@ -412,6 +412,9 @@ export type ConfigVars = Prettify<UnionToIntersection<ExtractConfigVars<ConfigPa
   Prettify<UnionToIntersection<ExtractConfigVars<UserLevelConfigPages>>> &
   Prettify<UnionToIntersection<ExtractScopedConfigVars<ScopedConfigVarMap>>>;
 
+export const isHtmlElementConfigVar = (cv: ConfigVar): cv is HtmlElementConfigVar =>
+  "dataType" in cv && cv.dataType === "htmlElement";
+
 export const isCodeConfigVar = (cv: ConfigVar): cv is CodeConfigVar =>
   "dataType" in cv && cv.dataType === "code";
 

@@ -27,6 +27,7 @@ import {
   TriggerReference,
   TriggerEventFunctionReturn,
   isConnectionScopedConfigVar,
+  isHtmlElementConfigVar,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -122,7 +123,12 @@ const convertConfigPages = (
           type: "htmlElement",
           value,
         };
-      } else if ("dataType" in value && value.dataType === "htmlElement") {
+      } else if (
+        value &&
+        typeof value === "object" &&
+        "dataType" in value &&
+        value.dataType === "htmlElement"
+      ) {
         return {
           type: "htmlElement",
           value: key,
@@ -198,7 +204,7 @@ const codeNativeIntegrationYaml = (
   const requiredConfigVars: Array<ServerRequiredConfigVariable> = [];
 
   Object.entries(configVarMap).forEach(([key, configVar]) => {
-    if ("dataType" in configVar && configVar.dataType !== "htmlElement") {
+    if (!isHtmlElementConfigVar(configVar)) {
       requiredConfigVars.push(convertConfigVar(key, configVar, referenceKey, componentRegistry));
     }
   });
