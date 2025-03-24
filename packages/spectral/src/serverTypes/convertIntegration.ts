@@ -27,6 +27,7 @@ import {
   TriggerReference,
   TriggerEventFunctionReturn,
   isConnectionScopedConfigVar,
+  isHtmlElementConfigVar,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -116,17 +117,29 @@ const convertConfigPages = (
     name,
     tagline,
     ...(userLevelConfigured ? { userLevelConfigured } : {}),
-    elements: Object.entries(elements).map(([key, value]) =>
-      typeof value === "string"
-        ? {
-            type: "htmlElement",
-            value,
-          }
-        : {
-            type: "configVar",
-            value: key,
-          },
-    ),
+    elements: Object.entries(elements).map(([key, value]) => {
+      if (typeof value === "string") {
+        return {
+          type: "htmlElement",
+          value,
+        };
+      } else if (
+        value &&
+        typeof value === "object" &&
+        "dataType" in value &&
+        value.dataType === "htmlElement"
+      ) {
+        return {
+          type: "htmlElement",
+          value: key,
+        };
+      }
+
+      return {
+        type: "configVar",
+        value: key,
+      };
+    }),
   }));
 };
 
@@ -188,9 +201,13 @@ const codeNativeIntegrationYaml = (
     { ...(configVars ?? {}) },
   );
 
-  const requiredConfigVars = Object.entries(configVarMap).map(([key, configVar]) =>
-    convertConfigVar(key, configVar, referenceKey, componentRegistry),
-  );
+  const requiredConfigVars: Array<ServerRequiredConfigVariable> = [];
+
+  Object.entries(configVarMap).forEach(([key, configVar]) => {
+    if (!isHtmlElementConfigVar(configVar)) {
+      requiredConfigVars.push(convertConfigVar(key, configVar, referenceKey, componentRegistry));
+    }
+  });
 
   // Transform the IntegrationDefinition into the structure that is appropriate
   // for generating YAML, which will then be used by the Prismatic API to import
