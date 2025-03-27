@@ -77,7 +77,6 @@ export interface DefaultRequiredConfigVariable {
 export interface OrganizationActivatedConnectionRequiredConfigVariable {
   key: string;
   dataType: "connection";
-  orgOnly: false;
   inputs?: never;
   useScopedConfigVar: string;
 }
