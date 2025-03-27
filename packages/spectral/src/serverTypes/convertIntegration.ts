@@ -602,7 +602,6 @@ export const convertConfigVar = (
       key,
       stableKey,
       dataType: "connection",
-      orgOnly: false,
       useScopedConfigVar: stableKey,
     };
   }
