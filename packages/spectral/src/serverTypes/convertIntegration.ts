@@ -55,6 +55,9 @@ import {
 import merge from "lodash/merge";
 import { createInvokeFlow } from "./perform";
 import { createDebugContext, logDebugResults } from "./context";
+import path from "path";
+import { readFileSync } from "fs";
+import { homedir } from "os";
 
 export const convertIntegration = (definition: IntegrationDefinition): ServerComponent => {
   // Generate a unique reference key that will be used to reference the
@@ -95,9 +98,18 @@ export const convertIntegration = (definition: IntegrationDefinition): ServerCom
     {},
   );
 
-  const cniComponent = codeNativeIntegrationComponent(definition, referenceKey, configVars);
+  let metadata: Record<string, unknown> = {};
 
-  const cniYaml = codeNativeIntegrationYaml(definition, referenceKey, configVars);
+  try {
+    const metaDataPath = path.join("..", ".spectral", "metadata.json");
+    const file = readFileSync(metaDataPath, { encoding: "utf-8" });
+    metadata = JSON.parse(file);
+  } catch (e) {
+    // No-op. If there's no metadata file then we move on.
+  }
+
+  const cniComponent = codeNativeIntegrationComponent(definition, referenceKey, configVars);
+  const cniYaml = codeNativeIntegrationYaml(definition, referenceKey, configVars, metadata);
 
   return {
     ...cniComponent,
@@ -161,6 +173,7 @@ const codeNativeIntegrationYaml = (
   }: IntegrationDefinition,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
+  metadata?: Record<string, unknown>,
 ): string => {
   // Find the preprocess flow config on the flow, if one exists.
   const preprocessFlows = flows.filter((flow) => flow.preprocessFlowConfig);
@@ -241,6 +254,7 @@ const codeNativeIntegrationYaml = (
       ...convertConfigPages(configPages, false),
       ...convertConfigPages(userLevelConfigPages, true),
     ],
+    importMetadata: metadata,
   };
 
   return YAML.stringify(result);
