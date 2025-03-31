@@ -478,6 +478,7 @@ export class ComponentTestHarness<TComponent extends Component> {
     return result;
   }
 
+  /** Invoke a trigger by its key within a unit test */
   public async trigger<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     payload?: TriggerPayload,
@@ -492,6 +493,7 @@ export class ComponentTestHarness<TComponent extends Component> {
     );
   }
 
+  /** Invoke a trigger's onInstanceDeploy function by its key within a unit test */
   public async triggerOnInstanceDeploy<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     params?: Record<string, unknown>,
@@ -507,6 +509,7 @@ export class ComponentTestHarness<TComponent extends Component> {
     );
   }
 
+  /** Invoke a trigger's onInstanceDelete function by its key within a unit test */
   public async triggerOnInstanceDelete<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     params?: Record<string, unknown>,
@@ -522,6 +525,7 @@ export class ComponentTestHarness<TComponent extends Component> {
     );
   }
 
+  /** Invoke an action by its key within a unit test */
   public async action<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     params?: Record<string, unknown>,
@@ -531,6 +535,7 @@ export class ComponentTestHarness<TComponent extends Component> {
     return action.perform(createActionContext(context), this.buildParams(action.inputs, params));
   }
 
+  /** Invoke a data source by its key within a unit test */
   public async dataSource<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     params?: Record<string, unknown>,
@@ -544,6 +549,10 @@ export class ComponentTestHarness<TComponent extends Component> {
   }
 }
 
+/**
+ * Create a testing harness to test a custom component's actions, triggers and data sources. See
+ * https://prismatic.io/docs/custom-connectors/unit-testing/
+ */
 export const createHarness = <TComponent extends Component>(
   component: TComponent,
 ): ComponentTestHarness<TComponent> => {

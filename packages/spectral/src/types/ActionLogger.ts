@@ -11,7 +11,8 @@
 export type ActionLoggerFunction = (...args: unknown[]) => void;
 
 /**
- * An object containing logger functions.
+ * An object containing logger functions. See
+ * https://prismatic.io/docs/custom-connectors/actions/#logger-object
  */
 export interface ActionLogger {
   metric: ActionLoggerFunction;

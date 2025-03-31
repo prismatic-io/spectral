@@ -8,16 +8,20 @@ import {
 
 /** Represents a Trigger Payload, which is data passed into a Trigger to invoke an Integration execution. */
 export interface TriggerPayload {
+  /** The headers sent in the webhook request */
   headers: {
     [key: string]: string;
   };
+  /** The search parameters included in the URL of the webhook request */
   queryParameters: {
     [key: string]: string;
   };
+  /** The unparsed body of the webhook request */
   rawBody: {
     data: unknown;
     contentType?: string;
   };
+  /** The parsed body of the webhook request */
   body: {
     data: unknown;
     contentType?: string;

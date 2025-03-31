@@ -53,18 +53,31 @@ const toFormData = (
 };
 
 interface RetryConfig extends Omit<IAxiosRetryConfig, "retryDelay"> {
+  /** The number of milliseconds to wait between retry attempts */
   retryDelay?: IAxiosRetryConfig["retryDelay"] | number;
+  /**
+   * When true, all errors will be retried. When false, specify
+   * a retryCondition function to determine when retries should occur.
+   */
   retryAllErrors?: boolean;
+  /** When true, double the retry delay each retry (e.g. 1000ms, 2000ms, 4000ms, 8000ms, etc.) */
   useExponentialBackoff?: boolean;
 }
 
 export interface ClientProps {
+  /** The API's base URL (e.g. `https://api.acme.com/v2/`) */
   baseUrl?: string;
+  /** The type of response to expect. Set to 'json' to automatically parse a JSON response, or 'arraybuffer' for a binary file */
   responseType?: AxiosRequestConfig["responseType"];
+  /** Headers to send for all requests (e.g. Authorization header, etc.) */
   headers?: AxiosRequestConfig["headers"];
+  /** URL Search parameters to add to all requests */
   params?: Record<string, any>;
+  /** The maximum amount of time (in milliseconds) to wait for a response. Defaults to infinity. */
   timeout?: number;
+  /** When enabled, log all HTTP requests and responses */
   debug?: boolean;
+  /** Configuration used to determine if and how failed HTTP requests should be retried */
   retryConfig?: RetryConfig;
 }
 
@@ -94,6 +107,10 @@ const toAxiosRetryConfig = ({
       : isNetworkOrIdempotentRequestError,
 });
 
+/**
+ * Creates a reusable Axios HTTP client. See
+ * https://prismatic.io/docs/custom-connectors/connections/#using-the-built-in-createclient-http-client
+ */
 export const createClient = ({
   baseUrl,
   responseType,
@@ -165,6 +182,16 @@ export const createClient = ({
   return client;
 };
 
+/**
+ * A global error handler that examines a thrown error and yields additional
+ * information if the error was produced by Spectral's HTTP client. See
+ * https://prismatic.io/docs/custom-connectors/error-handling/
+ * and
+ * https://prismatic.io/docs/custom-connectors/connections/#using-the-built-in-createclient-http-client
+ *
+ * @param error A JavaScript error to handle
+ * @returns An error with data, status and headers if it was an Axios error, or the error otherwise
+ */
 export const handleErrors = (error: unknown): unknown => {
   if (axios.isAxiosError(error)) {
     const { message, response } = error;
@@ -180,6 +207,16 @@ export const handleErrors = (error: unknown): unknown => {
 
 type SendRawRequestValues = ActionInputParameters<typeof inputs>;
 
+/**
+ * This function allows you to build a generic "Raw Request" action
+ * for a custom connector. See
+ * https://prismatic.io/docs/integrations/low-code-integration-designer/raw-request-actions/#building-an-http-raw-request-action-in-your-custom-component
+ *
+ * @param baseUrl The base URL of the API you're integrating with
+ * @param values An objet comprising the HTTP request you'd like to make
+ * @param authorizationHeaders Auth headers to apply to the request
+ * @returns The response to the request
+ */
 export const sendRawRequest = async (
   baseUrl: string,
   values: SendRawRequestValues,
