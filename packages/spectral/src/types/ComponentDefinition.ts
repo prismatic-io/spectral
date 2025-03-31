@@ -25,7 +25,7 @@ export type ComponentDefinition<TPublic extends boolean, TKey extends string> = 
   /**
    * Specifies if this component is available for all organizations or only your own.
    * Only Prismatic public components can specify 'true'
-   * @defaultValue false
+   * @default false
    */
   public?: TPublic;
   /** Defines how the component is displayed in the Prismatic UI */

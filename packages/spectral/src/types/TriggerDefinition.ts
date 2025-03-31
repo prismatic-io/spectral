@@ -67,7 +67,7 @@ export interface TriggerDefinition<
   examplePayload?: Awaited<ReturnType<this["perform"]>>;
   /**
    * Specifies if this trigger appears in the list of 'common' triggers. Only configurable by Prismatic.
-   * @defaultValue false
+   * @default false
    */
   isCommonTrigger?: boolean;
 }

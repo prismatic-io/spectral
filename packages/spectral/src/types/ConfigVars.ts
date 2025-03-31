@@ -92,12 +92,12 @@ export interface ConfigVarVisibility {
    * - `"embedded"` - Customers cannot view or update the config variable as the value will be set programmatically.
    * - `"organization"` - Customers cannot view or update the config variable as it will always have a default value or be set by the organization.
    *
-   * @defaultValue `"customer"`
+   * @default `"customer"`
    */
   permissionAndVisibilityType?: PermissionAndVisibilityType;
   /**
    * Optional value that specifies whether this config var is visible to an organization deployer.
-   * @defaultValue true
+   * @default true
    */
   visibleToOrgDeployer?: boolean;
 }
@@ -111,12 +111,12 @@ interface ConfigVarInputVisibility {
    * - `"embedded"` - Customers cannot view or update the config variable input as the value will be set programmatically.
    * - `"organization"` - Customers cannot view or update the config variable input as it will always have a default value or be set by the organization.
    *
-   * @defaultValue `"customer"`
+   * @default `"customer"`
    */
   permissionAndVisibilityType?: PermissionAndVisibilityType;
   /**
    * Optional value that specifies whether this config var input is visible to an organization deployer.
-   * @defaultValue true
+   * @default true
    */
   visibleToOrgDeployer?: boolean;
 }

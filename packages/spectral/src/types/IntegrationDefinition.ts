@@ -41,7 +41,7 @@ export type IntegrationDefinition = {
    * A Preprocess Flow Config must be specified when using anything other than 'Flow Specific'. See
    * https://prismatic.io/docs/integrations/code-native/endpoint-config/.
    *
-   *  @defaultValue `EndpointType.FlowSpecific` */
+   *  @default `EndpointType.FlowSpecific` */
   endpointType?: EndpointType;
   /**
    * Optional Preprocess Flow configuration for when the Trigger payload contains the flow routing attributes.
@@ -111,13 +111,13 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
    * Only one flow per integration may define this.
    */
   preprocessFlowConfig?: PreprocessFlowConfig;
-  /** Optional value that specifies whether this flow is synchronous. @defaultValue `false` */
+  /** Optional value that specifies whether this flow is synchronous. @default `false` */
   isSynchronous?: boolean;
   /** Optional Retry Configuration for this flow. */
   retryConfig?: RetryConfig;
   /**
    * Optional security configuration to use for the endpoint of this flow.
-   * @defaultValue `EndpointSecurityType.CustomerOptional`
+   * @default `EndpointSecurityType.CustomerOptional`
    */
   endpointSecurityType?: EndpointSecurityType;
   /**
@@ -179,9 +179,9 @@ export type StepErrorConfig = {
   maxAttempts?: number;
   /** The delay in seconds to wait between retry attempts. Must be between 0 and 60. */
   delaySeconds?: number;
-  /** Specifies whether to use exponential backoff to calculate the delay between retry attempts. @defaultValue false */
+  /** Specifies whether to use exponential backoff to calculate the delay between retry attempts. @default false */
   usesExponentialBackoff?: boolean;
-  /** Specifies whether to ignore the final error after the final retry attempt. @defaultValue false */
+  /** Specifies whether to ignore the final error after the final retry attempt. @default false */
   ignoreFinalError?: boolean;
 };
 
