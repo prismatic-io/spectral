@@ -12,6 +12,7 @@ import {
   OnPremConnectionInput,
   TriggerOptionChoice,
   TriggerPayload,
+  ConnectionTemplateInput,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -55,6 +56,19 @@ export const convertInput = (
     label: typeof label === "string" ? label : label.value,
     keyLabel,
     onPremiseControlled: ("onPremControlled" in rest && rest.onPremControlled) || undefined,
+  };
+};
+
+export const convertTemplateInput = (
+  key: string,
+  { defaultValue, label, ...rest }: ConnectionTemplateInput,
+): ServerInput => {
+  return {
+    ...omit(rest, ["permissionAndVisibilityType", "visibleToOrgDeployer", "writeOnly"]),
+    key,
+    type: "template",
+    default: defaultValue ?? "",
+    label: typeof label === "string" ? label : label.value,
   };
 };
 
@@ -215,6 +229,13 @@ export const convertConnection = ({
   ...connection
 }: ConnectionDefinition): ServerConnection => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
+  let templateInputs: Array<ServerInput> = [];
+
+  if ("templateInputs" in connection) {
+    templateInputs = Object.entries(connection.templateInputs).map(([key, value]) =>
+      convertTemplateInput(key, value),
+    );
+  }
 
   const {
     display: { label, icons, description: comments },
@@ -227,7 +248,7 @@ export const convertConnection = ({
     comments,
     iconPath: icons?.oauth2ConnectionIconPath,
     avatarIconPath: icons?.avatarPath,
-    inputs: convertedInputs,
+    inputs: convertedInputs.concat(templateInputs),
   };
 };
 

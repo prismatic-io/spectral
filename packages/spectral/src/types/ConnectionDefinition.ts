@@ -1,4 +1,9 @@
-import type { ConnectionDisplayDefinition, ConnectionInput, OnPremConnectionInput } from ".";
+import type {
+  ConnectionDisplayDefinition,
+  ConnectionInput,
+  ConnectionTemplateInput,
+  OnPremConnectionInput,
+} from ".";
 
 export enum OAuth2Type {
   ClientCredentials = "client_credentials",
@@ -30,6 +35,14 @@ export interface OnPremConnectionDefinition extends BaseConnectionDefinition {
   };
 }
 
+export interface TemplateConnectionDefinition extends BaseConnectionDefinition {
+  inputs: {
+    [key: string]: ConnectionInput;
+  };
+  templateInputs: {
+    [key: string]: ConnectionTemplateInput;
+  };
+}
 interface OAuth2Config {
   overrideGrantType?: string;
   allowedTokenParams?: string[];
@@ -74,4 +87,5 @@ export type OAuth2ConnectionDefinition =
 export type ConnectionDefinition =
   | DefaultConnectionDefinition
   | OnPremConnectionDefinition
-  | OAuth2ConnectionDefinition;
+  | OAuth2ConnectionDefinition
+  | TemplateConnectionDefinition;

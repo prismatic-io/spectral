@@ -210,6 +210,15 @@ export type BooleanInputField = BaseInputField & {
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
+export type ConnectionTemplateInput = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type?: "template";
+  /** Default templated string. */
+  defaultValue: string;
+  /** Will not be user-facing. */
+  shown?: false;
+};
+
 /** Defines attributes of a CodeInputField. */
 export type CodeInputField = BaseInputField & {
   /** Data type the InputField will collect. */

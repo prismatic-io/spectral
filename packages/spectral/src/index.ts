@@ -27,6 +27,7 @@ import {
   OnPremConnectionDefinition,
   ComponentManifest,
   OrganizationActivatedConnectionConfigVar,
+  TemplateConnectionDefinition,
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
@@ -262,6 +263,15 @@ export const onPremConnection = <T extends OnPremConnectionDefinition>(definitio
  * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
  */
 export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(definition: T): T =>
+  definition;
+
+/**
+ * For information on writing custom component connections, see
+ * https://prismatic.io/docs/custom-components/writing-custom-components/#adding-connections.
+ * @param definition A TemplateConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
+ * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
+ */
+export const templateConnection = <T extends TemplateConnectionDefinition>(definition: T): T =>
   definition;
 
 export const componentManifests = <T extends Record<string, ComponentManifest>>(definition: T): T =>
