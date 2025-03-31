@@ -27,16 +27,17 @@ import {
   OnPremConnectionDefinition,
   ComponentManifest,
   OrganizationActivatedConnectionConfigVar,
+  CustomerActivatedConnectionConfigVar,
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
 import { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
 
 /**
- * This function creates a Integration object that can be
+ * This function creates a integration object that can be
  * imported into the Prismatic API. For information on using
- * this function to write code native integrations, see
- * https://prismatic.io/docs/code-native-integrations/.
+ * this function to write code-native integrations, see
+ * https://prismatic.io/docs/integrations/code-native/.
  * @param definition An IntegrationDefinition type object.
  * @returns This function returns an integration object that has the shape the Prismatic API expects.
  */
@@ -53,8 +54,8 @@ export const integration = <T extends IntegrationDefinition = IntegrationDefinit
 };
 
 /**
- * For information on writing Code Native Integrations, see
- * https://prismatic.io/docs/code-native-integrations/#adding-flows.
+ * For information on writing code-native integrations, see
+ * https://prismatic.io/docs/integrations/code-native/flows/.
  * @param definition A Flow type object.
  * @returns This function returns a flow object that has the shape the Prismatic API expects.
  */
@@ -66,24 +67,24 @@ export const flow = <
 ): T => definition;
 
 /**
- * For information on writing Code Native Integrations, see
- * https://prismatic.io/docs/code-native-integrations/#adding-config-pages.
+ * For information on writing code-native integrations, see
+ * https://prismatic.io/docs/integrations/code-native/config-wizard/.
  * @param definition A Config Page type object.
  * @returns This function returns a config page object that has the shape the Prismatic API expects.
  */
 export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T => definition;
 
 /**
- * For information on writing Code Native Integrations, see
- * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
+ * For information on writing code-native integrations, see
+ * https://prismatic.io/docs/integrations/code-native/config-wizard/#other-config-variable-types-in-code-native-integrations.
  * @param definition A Config Var type object.
  * @returns This function returns a standard config var object that has the shape the Prismatic API expects.
  */
 export const configVar = <T extends StandardConfigVar>(definition: T): T => definition;
 
 /**
- * For information on writing Code Native Integrations, see
- * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
+ * For information on writing code-native integrations, see
+ * https://prismatic.io/docs/integrations/code-native/config-wizard/#data-sources-is-code-native-integrations.
  * @param definition A Data Source Config Var type object.
  * @returns This function returns a data source config var object that has the shape the Prismatic API expects.
  */
@@ -92,8 +93,8 @@ export const dataSourceConfigVar = <TDataSourceConfigVar extends DataSourceConfi
 ): TDataSourceConfigVar => definition;
 
 /**
- * For information on writing Code Native Integrations, see
- * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
+ * For information on writing code-native integrations, see
+ * https://prismatic.io/docs/integrations/code-native/config-wizard/#connections-in-code-native-integrations.
  * @param definition A Connection Config Var type object.
  * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
  */
@@ -102,20 +103,24 @@ export const connectionConfigVar = <T extends ConnectionConfigVar = ConnectionCo
 ): T => definition;
 
 /**
- * For information on writing Code Native Integrations, see
- * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
+ * For information on writing code-native integrations, see
+ * https://prismatic.io/docs/integrations/code-native/.
+ * For information on customer-activated connections, see
+ * https://prismatic.io/docs/integrations/connections/integration-agnostic-connections/customer-activated/.
  * @param definition A Customer-Activated Connection Config Var type object.
  * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
  */
 export const customerActivatedConnection = <T extends { stableKey: string }>(
   definition: T,
-): OrganizationActivatedConnectionConfigVar => {
+): CustomerActivatedConnectionConfigVar => {
   return { ...definition, dataType: "connection" };
 };
 
 /**
- * For information on writing Code Native Integrations, see
- * https://prismatic.io/docs/code-native-integrations/#adding-config-vars.
+ * For information on writing code-native integrations, see
+ * https://prismatic.io/docs/integrations/code-native/.
+ * For information on customer-activated connections, see
+ * https://prismatic.io/docs/integrations/connections/integration-agnostic-connections/org-activated-customer/.
  * @param definition An Organization-Activated Connection Config Var type object.
  * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
  */
@@ -135,7 +140,7 @@ export const componentManifest = <T extends ComponentManifest>(definition: T): T
  * This function creates a component object that can be
  * imported into the Prismatic API. For information on using
  * this function to write custom components, see
- * https://prismatic.io/docs/custom-components/writing-custom-components/#exporting-a-component.
+ * https://prismatic.io/docs/custom-connectors/.
  * @param definition A ComponentDefinition type object, including display information, unique key, and a set of actions the component implements.
  * @returns This function returns a component object that has the shape the Prismatic API expects.
  */
@@ -148,7 +153,7 @@ export const component = <TPublic extends boolean, TKey extends string>(
  * by a custom component. It helps ensure that the shape of the
  * action object conforms to what the Prismatic API expects.
  * For information on writing custom component actions, see
- * https://prismatic.io/docs/custom-components/writing-custom-components/#writing-actions.
+ * https://prismatic.io/docs/custom-connectors/actions/.
  * @param definition An ActionDefinition type object that includes UI display information, a function to perform when the action is invoked, and a an object containing inputs for the perform function.
  * @returns This function validates the shape of the `definition` object provided, and returns the same action object.
  */
@@ -166,7 +171,7 @@ export const action = <
  * by a custom component. It helps ensure that the shape of the
  * trigger object conforms to what the Prismatic API expects.
  * For information on writing custom component triggers, see
- * https://prismatic.io/docs/custom-components/writing-custom-components/#writing-triggers.
+ * https://prismatic.io/docs/custom-connectors/triggers/.
  * @param definition A TriggerDefinition type object that includes UI display information, a function to perform when the trigger is invoked, and a an object containing inputs for the perform function.
  * @returns This function validates the shape of the `definition` object provided, and returns the same trigger object.
  */
@@ -217,7 +222,7 @@ export const pollingTrigger = <
  * by a custom component. It helps ensure that the shape of the
  * data source object conforms to what the Prismatic API expects.
  * For information on writing custom component data sources, see
- * https://prismatic.io/docs/custom-components/writing-custom-components/#writing-data-sources.
+ * https://prismatic.io/docs/custom-connectors/data-sources/.
  * @param definition A DataSourceDefinition type object that includes UI display information, a function to perform when the data source is invoked, and a an object containing inputs for the perform function.
  * @returns This function validates the shape of the `definition` object provided, and returns the same data source object.
  */
@@ -232,7 +237,7 @@ export const dataSource = <
 /**
  * For information and examples on how to write inputs
  * for custom component actions and triggers, see
- * https://prismatic.io/docs/custom-components/writing-custom-components/#adding-inputs.
+ * https://prismatic.io/docs/custom-connectors/actions/#action-inputs.
  * @param definition An InputFieldDefinition object that describes the type of an input for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This function validates the shape of the `definition` object provided, and returns the same input object.
  */
@@ -240,7 +245,7 @@ export const input = <T extends InputFieldDefinition>(definition: T): T => defin
 
 /**
  * For information on writing custom component connections, see
- * https://prismatic.io/docs/custom-components/writing-custom-components/#adding-connections.
+ * https://prismatic.io/docs/custom-connectors/connections/.
  * @param definition A DefaultConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
  */
@@ -248,7 +253,7 @@ export const connection = <T extends DefaultConnectionDefinition>(definition: T)
 
 /**
  * For information on writing custom component connections using on-premise resources, see
- * https://prismatic.io/docs/custom-components/writing-custom-components/#adding-connections.
+ * https://prismatic.io/docs/integrations/connections/on-prem-agent/#supporting-on-prem-connections-in-a-custom-connector.
  * @param definition An OnPremConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This function validates the shape of the `definition` object provided and returns the same connection object.
  */
@@ -257,7 +262,7 @@ export const onPremConnection = <T extends OnPremConnectionDefinition>(definitio
 
 /**
  * For information on writing custom component connections, see
- * https://prismatic.io/docs/custom-components/writing-custom-components/#adding-connections.
+ * https://prismatic.io/docs/custom-connectors/connections/#writing-oauth-20-connections.
  * @param definition An OAuth2ConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
  * @returns This functions validates the shape of the `definition` object provided and returns the same connection object.
  */

@@ -2,7 +2,7 @@
  * This module provides functions to help developers unit
  * test custom components prior to publishing them. For
  * information on unit testing, check out our docs:
- * https://prismatic.io/docs/custom-components/writing-custom-components/#testing-a-component
+ * https://prismatic.io/docs/custom-connectors/unit-testing/
  */
 
 import { AxiosRequestConfig, AxiosResponse } from "axios";
@@ -66,8 +66,9 @@ export const connectionValue = (
 };
 
 /**
- * Pre-built mock of ActionLogger. Suitable for asserting logs are created as expected.
- * See https://prismatic.io/docs/custom-components/writing-custom-components/#verifying-correct-logging-in-action-tests for information on testing correct logging behavior in your custom component.
+ * Pre-built mock of ActionLogger. Suitable for asserting logs are created as expected. See
+ * https://prismatic.io/docs/custom-connectors/unit-testing/#verifying-correct-logging-in-action-tests
+ * for information on testing correct logging behavior in your custom component.
  */
 export const loggerMock = (): ActionLogger => ({
   metric: console.log as ActionLoggerFunction,
