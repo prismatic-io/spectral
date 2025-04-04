@@ -24,27 +24,27 @@ import {
 export type IntegrationDefinition = {
   /** The unique name for this integration. */
   name: string;
-  /** Optional description for this integration. */
+  /** Description for this integration. */
   description?: string;
-  /** Optional path to icon to use for this integration. Path should be relative to the built integration source. */
+  /** Path to icon to use for this integration. Path should be relative to the built integration source. */
   iconPath?: string;
-  /** Optional category for this integration. */
+  /** Category for this integration. */
   category?: string;
-  /** Optional documentation for this integration. */
+  /** Documentation for this integration. */
   documentation?: string;
-  /** Optional version identifier for this integration. */
+  /** Version identifier for this integration. */
   version?: string;
-  /** Optional labels for this integration. */
+  /** Labels for this integration. */
   labels?: string[];
   /**
-   * Optional endpoint type used by Instances of this integration.
+   * Endpoint type used by Instances of this integration.
    * A Preprocess Flow Config must be specified when using anything other than 'Flow Specific'. See
    * https://prismatic.io/docs/integrations/code-native/endpoint-config/.
    *
    *  @default `EndpointType.FlowSpecific` */
   endpointType?: EndpointType;
   /**
-   * Optional Preprocess Flow configuration for when the Trigger payload contains the flow routing attributes.
+   * Preprocess Flow configuration for when the Trigger payload contains the flow routing attributes.
    *  Cannot specify this if a Preprocess Flow is also configured. See
    * https://prismatic.io/docs/integrations/code-native/endpoint-config/#endpoint-configuration-in-code-native-with-preprocess-flow
    */
@@ -104,32 +104,32 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   name: string;
   /** A unique, unchanging value that is used to maintain identity for the flow even if the name changes. */
   stableKey: string;
-  /** Optional description for this flow. */
+  /** Description for this flow. */
   description?: string;
   /**
-   * Optional Preprocess flow configuration for when the result of this flow contains the flow routing attributes.
+   * Preprocess flow configuration for when the result of this flow contains the flow routing attributes.
    * Only one flow per integration may define this.
    */
   preprocessFlowConfig?: PreprocessFlowConfig;
-  /** Optional value that specifies whether this flow is synchronous. @default `false` */
+  /** Value that specifies whether this flow is synchronous. @default `false` */
   isSynchronous?: boolean;
-  /** Optional Retry Configuration for this flow. */
+  /** Retry Configuration for this flow. */
   retryConfig?: RetryConfig;
   /**
-   * Optional security configuration to use for the endpoint of this flow.
+   * Security configuration to use for the endpoint of this flow.
    * @default `EndpointSecurityType.CustomerOptional`
    */
   endpointSecurityType?: EndpointSecurityType;
   /**
-   * Optional list of API key(s) to use for the endpoint of this flow
+   * List of API key(s) to use for the endpoint of this flow
    * when the endpoint security type is `EndpointSecurityType.Organization`.
    */
   organizationApiKeys?: string[];
-  /** Optional schedule configuration that defines the frequency with which this flow will be automatically executed. */
+  /** Schedule configuration that defines the frequency with which this flow will be automatically executed. */
   schedule?: (ValueExpression<string> | ConfigVarExpression) & {
     timezone?: string;
   };
-  /** Optional error handling configuration. */
+  /** Error handling configuration. */
   errorConfig?: StepErrorConfig;
   /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
   onTrigger?:
@@ -153,9 +153,9 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
 export type PreprocessFlowConfig = {
   /** Name of the field in the data payload returned by the Preprocess flow to use for a flow Name. */
   flowNameField: string;
-  /** Optional name of the field in the data payload returned by the Preprocess flow to use for an External Customer Id. */
+  /** Name of the field in the data payload returned by the Preprocess flow to use for an External Customer Id. */
   externalCustomerIdField?: string;
-  /** Optional name of the field in the data payload returned by the Preprocess flow to use for an External Customer User Id. */
+  /** Name of the field in the data payload returned by the Preprocess flow to use for an External Customer User Id. */
   externalCustomerUserIdField?: string;
 };
 

@@ -20,7 +20,7 @@ export interface ComponentHooks {
 
 /** Defines attributes of a component. */
 export type ComponentDefinition<TPublic extends boolean, TKey extends string> = {
-  /** Specifies a unique programmatic key for this component */
+  /** Specifies a unique programmatic key for this component. */
   key: TKey;
   /**
    * Specifies if this component is available for all organizations or only your own.
@@ -28,7 +28,7 @@ export type ComponentDefinition<TPublic extends boolean, TKey extends string> = 
    * @default false
    */
   public?: TPublic;
-  /** Defines how the component is displayed in the Prismatic UI */
+  /** Defines how the component is displayed in the Prismatic UI. */
   display: ComponentDisplayDefinition<TPublic>;
   /**
    * Specifies the supported Actions of this component. See
@@ -61,7 +61,7 @@ export type ComponentDefinition<TPublic extends boolean, TKey extends string> = 
   hooks?: ComponentHooks;
 } & (TPublic extends true
   ? {
-      /** The URL for this component's documentation */
+      /** The URL for this component's documentation. */
       documentationUrl: `https://prismatic.io/docs/components/${TKey}/`;
     }
   : {

@@ -28,7 +28,7 @@ export interface TriggerDefinition<
     TriggerPayload
   >,
 > {
-  /** Defines how the trigger is displayed in the Prismatic UI */
+  /** Defines how the trigger is displayed in the Prismatic UI. */
   display: ActionDisplayDefinition;
   /** Function to perform when this trigger is invoked. */
   perform: TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
@@ -50,7 +50,7 @@ export interface TriggerDefinition<
   scheduleSupport: TriggerOptionChoice;
   /** Specifies whether this trigger supports synchronous responses to a webhook request. */
   synchronousResponseSupport: TriggerOptionChoice;
-  /** Optional attribute that specifies whether this Trigger will terminate execution. */
+  /** Attribute that specifies whether this Trigger will terminate execution. */
   terminateExecution?: boolean;
   /** Specifies whether an Action will break out of a loop. */
   breakLoop?: boolean;

@@ -56,14 +56,14 @@ interface DebugResult {
       }
     >;
   };
-  /** Memory limit in MB */
+  /** Memory limit in MB. */
   allowedMemory: number;
   /** Resulting data bout memory usage. */
   memoryUsage: Array<{
     mark: string;
     /* Memory usage in MB up until the marked point. */
     rss: number;
-    /* The full result of process.memoryUsage(), converted to MB */
+    /* The full result of process.memoryUsage(), converted to MB. */
     detail?: MemoryUsage;
   }>;
 }
@@ -111,7 +111,7 @@ export type ActionPerformFunction<
   params: ActionInputParameters<TInputs>,
 ) => Promise<TReturn>;
 
-/** Context provided to perform method containing helpers and contextual data */
+/** Context provided to perform method containing helpers and contextual data. */
 export type ActionContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
@@ -120,15 +120,15 @@ export type ActionContext<
   >,
   TFlows extends string[] = string[],
 > = {
-  /** Logger for permanent logging; console calls are also captured */
+  /** Logger for permanent logging; console calls are also captured. */
   logger: ActionLogger;
-  /** A a flow-specific key/value store that may be used to store small amounts of data that is persisted between Instance executions */
+  /** A a flow-specific key/value store that may be used to store small amounts of data that is persisted between Instance executions. */
   instanceState: Record<string, unknown>;
-  /** A key/value store that is shared between flows on an Instance that may be used to store small amounts of data that is persisted between Instance executions */
+  /** A key/value store that is shared between flows on an Instance that may be used to store small amounts of data that is persisted between Instance executions. */
   crossFlowState: Record<string, unknown>;
-  /** A key/value store that may be used to store small amounts of data for use later during the execution */
+  /** A key/value store that may be used to store small amounts of data for use later during the execution. */
   executionState: Record<string, unknown>;
-  /** A key/value store that is shared between all flows of an Instance for any version of an Integration that may be used to store small amounts of data that is persisted between Instance executions */
+  /** A key/value store that is shared between all flows of an Instance for any version of an Integration that may be used to store small amounts of data that is persisted between Instance executions. */
   integrationState: Record<string, unknown>;
   /** Key/value collection of config variables of the integration. */
   configVars: TConfigVars;
@@ -138,15 +138,15 @@ export type ActionContext<
       [A in keyof TComponentActions[K]]: TComponentActions[K][A]["perform"];
     };
   };
-  /** A unique id that corresponds to the step on the Integration */
+  /** A unique id that corresponds to the step on the Integration. */
   stepId: string;
-  /** A unique id that corresponds to the specific execution of the Integration */
+  /** A unique id that corresponds to the specific execution of the Integration. */
   executionId: string;
-  /** An object containing webhook URLs for all flows of the currently running instance */
+  /** An object containing webhook URLs for all flows of the currently running instance. */
   webhookUrls: Record<string, string>;
-  /** An object containing webhook API keys for all flows of the currently running instance */
+  /** An object containing webhook API keys for all flows of the currently running instance. */
   webhookApiKeys: Record<string, string[]>;
-  /** The URL used to invoke the current execution */
+  /** The URL used to invoke the current execution. */
   invokeUrl: string;
   /** Contains attributes of the Customer for whom an Instance is being executed. */
   customer: CustomerAttributes;

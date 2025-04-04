@@ -36,7 +36,7 @@ export interface ActionDefinition<
    * are passed to the `perform` function when the action is invoked.
    */
   inputs: TInputs;
-  /** Optional attribute that specifies whether an action will terminate execution.*/
+  /** Attribute that specifies whether an action will terminate execution.*/
   terminateExecution?: boolean;
   /** Specifies whether an action will break out of a loop. */
   breakLoop?: boolean;
@@ -53,6 +53,6 @@ export interface ActionDefinition<
   staticBranchNames?: string[];
   /** The input field associated with dynamic branching. */
   dynamicBranchInput?: string;
-  /** An example of the payload output by this action */
+  /** An example of the payload output by this action. */
   examplePayload?: Awaited<ReturnType<this["perform"]>>;
 }

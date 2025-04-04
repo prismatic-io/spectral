@@ -16,11 +16,11 @@ export interface DataSourceDefinition<
   TConfigVars extends ConfigVarResultCollection,
   TDataSourceType extends DataSourceType,
 > {
-  /** Defines how the data source is displayed in the Prismatic UI */
+  /** Defines how the data source is displayed in the Prismatic UI. */
   display: ActionDisplayDefinition;
   /** Function to perform when this data source is invoked; fetches data from an external API and returns data to be presented in an integration config wizard UI. */
   perform: DataSourcePerformFunction<TInputs, TConfigVars, TDataSourceType>;
-  /** The type of UI that will present the data the `perform` function returns */
+  /** The type of UI that will present the data the `perform` function returns. */
   dataSourceType: TDataSourceType;
   /**
    * The inputs to present a low-code integration builder. Values of these inputs

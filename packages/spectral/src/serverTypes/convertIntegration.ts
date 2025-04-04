@@ -572,7 +572,7 @@ export const convertFlow = (
   return result;
 };
 
-/** Converts an input value to the expected server type by its collection type */
+/** Converts an input value to the expected server type by its collection type. */
 const convertInputValue = (value: unknown, collectionType: CollectionType | undefined) => {
   if (collectionType !== "keyvaluelist") {
     return value;
@@ -793,7 +793,7 @@ const flowFunctionKey = (flowName: string, functionName: "onExecution" | "onTrig
   return `${flowKey}_${functionName}`;
 };
 
-/* Generates component argument for invokeTrigger calls */
+/* Generates component argument for invokeTrigger calls. */
 const invokeTriggerComponentInput = (
   componentRef: ServerComponentReference,
   onTrigger: TriggerReference | undefined,
@@ -820,7 +820,7 @@ const invokeTriggerComponentInput = (
   };
 };
 
-/* Generates a wrapper function that calls an existing component trigger's perform */
+/* Generates a wrapper function that calls an existing component trigger's perform. */
 const generateTriggerPerformFn = (
   componentRef: ServerComponentReference | undefined,
   onTrigger: TriggerReference | TriggerPerformFunction | undefined,

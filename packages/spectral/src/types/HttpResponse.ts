@@ -5,9 +5,9 @@ export interface HttpResponse {
    * https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status.
    */
   statusCode: number;
-  /** The MIME type (`content-type` header) of the trigger's response */
+  /** The MIME type (`content-type` header) of the trigger's response. */
   contentType: string;
-  /** Custom headers to return in the trigger's response */
+  /** Custom headers to return in the trigger's response. */
   headers?: {
     [key: string]: string;
   };

@@ -19,9 +19,9 @@ export enum OAuth2PkceMethod {
 }
 
 interface BaseConnectionDefinition {
-  /* The programmatic key of this connection */
+  /* The programmatic key of this connection. */
   key: string;
-  /* How the connection should be presented in the Prismatic UI */
+  /* How the connection should be presented in the Prismatic UI. */
   display: ConnectionDisplayDefinition;
   /**
    * If this connection implements OAuth 2.0, specify which flavor of OAuth 2.0. See
@@ -91,11 +91,11 @@ interface OAuth2AuthorizationCodeConnectionDefinition extends BaseConnectionDefi
      * token for an access token. (e.g. `https://app.acme.com/oauth2/token`)
      */
     tokenUrl: ConnectionInput;
-    /** OAuth 2.0 permissions (scopes) to request from the authenticated user */
+    /** OAuth 2.0 permissions (scopes) to request from the authenticated user. */
     scopes: ConnectionInput;
-    /** OAuth 2.0 client ID (sometimes called app key or client key) */
+    /** OAuth 2.0 client ID (sometimes called app key or client key). */
     clientId: ConnectionInput;
-    /** OAuth 2.0 client secret (sometimes called app secret or secret key) */
+    /** OAuth 2.0 client secret (sometimes called app secret or secret key). */
     clientSecret: ConnectionInput;
     [key: string]: ConnectionInput;
   };
@@ -110,11 +110,11 @@ interface OAuth2ClientCredentialConnectionDefinition extends BaseConnectionDefin
      * for an access token. (e.g. `https://app.acme.com/oauth2/token`)
      */
     tokenUrl: ConnectionInput;
-    /** OAuth 2.0 permissions (scopes) to request from the authenticated user */
+    /** OAuth 2.0 permissions (scopes) to request from the authenticated user. */
     scopes: ConnectionInput;
-    /** OAuth 2.0 client ID (sometimes called app key or client key) */
+    /** OAuth 2.0 client ID (sometimes called app key or client key). */
     clientId: ConnectionInput;
-    /** OAuth 2.0 client secret (sometimes called app secret or secret key) */
+    /** OAuth 2.0 client secret (sometimes called app secret or secret key). */
     clientSecret: ConnectionInput;
     [key: string]: ConnectionInput;
   };

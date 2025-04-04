@@ -53,31 +53,31 @@ const toFormData = (
 };
 
 interface RetryConfig extends Omit<IAxiosRetryConfig, "retryDelay"> {
-  /** The number of milliseconds to wait between retry attempts */
+  /** The number of milliseconds to wait between retry attempts. */
   retryDelay?: IAxiosRetryConfig["retryDelay"] | number;
   /**
    * When true, all errors will be retried. When false, specify
    * a retryCondition function to determine when retries should occur.
    */
   retryAllErrors?: boolean;
-  /** When true, double the retry delay each retry (e.g. 1000ms, 2000ms, 4000ms, 8000ms, etc.) */
+  /** When true, double the retry delay after each attempt (e.g. 1000ms, 2000ms, 4000ms, 8000ms, etc.). */
   useExponentialBackoff?: boolean;
 }
 
 export interface ClientProps {
-  /** The API's base URL (e.g. `https://api.acme.com/v2/`) */
+  /** The API's base URL (e.g. `https://api.acme.com/v2/`). */
   baseUrl?: string;
-  /** The type of response to expect. Set to 'json' to automatically parse a JSON response, or 'arraybuffer' for a binary file */
+  /** The type of response to expect. Set to 'json' to automatically parse a JSON response, or 'arraybuffer' for a binary file. */
   responseType?: AxiosRequestConfig["responseType"];
-  /** Headers to send for all requests (e.g. Authorization header, etc.) */
+  /** Headers to send for all requests (e.g. Authorization header, etc.). */
   headers?: AxiosRequestConfig["headers"];
-  /** URL Search parameters to add to all requests */
+  /** URL Search parameters to add to all requests. */
   params?: Record<string, any>;
   /** The maximum amount of time (in milliseconds) to wait for a response. Defaults to infinity. */
   timeout?: number;
-  /** When enabled, log all HTTP requests and responses */
+  /** When enabled, log all HTTP requests and responses. */
   debug?: boolean;
-  /** Configuration used to determine if and how failed HTTP requests should be retried */
+  /** Configuration used to determine if and how failed HTTP requests should be retried. */
   retryConfig?: RetryConfig;
 }
 
@@ -213,7 +213,7 @@ type SendRawRequestValues = ActionInputParameters<typeof inputs>;
  * https://prismatic.io/docs/integrations/low-code-integration-designer/raw-request-actions/#building-an-http-raw-request-action-in-your-custom-component
  *
  * @param baseUrl The base URL of the API you're integrating with
- * @param values An objet comprising the HTTP request you'd like to make
+ * @param values An object comprising the HTTP request you'd like to make
  * @param authorizationHeaders Auth headers to apply to the request
  * @returns The response to the request
  */

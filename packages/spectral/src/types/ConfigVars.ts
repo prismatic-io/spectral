@@ -24,7 +24,7 @@ import {
 } from ".";
 import type { Prettify, UnionToIntersection } from "./utils";
 
-/** Supported data types for config variables */
+/** Supported data types for config variables. */
 export type ConfigVarDataType =
   | "string"
   | "date"
@@ -125,7 +125,7 @@ interface ConfigVarInputVisibility {
 type BaseConfigVar = {
   /** A unique, unchanging value that is used to maintain identity for the config variable even if the key changes. */
   stableKey: string;
-  /** Optional description for this config variable. */
+  /** Description for this config variable. */
   description?: string;
 } & ConfigVarVisibility;
 
@@ -135,18 +135,18 @@ type GetDynamicProperties<
 > = TCollectionType extends undefined
   ? {
       defaultValue?: TValue;
-      /** Optional value to specify the type of collection if the config variable is multi-value. */
+      /** Value to specify the type of collection if the config variable is multi-value. */
       collectionType?: undefined;
     }
   : TCollectionType extends "valuelist"
     ? {
         defaultValue?: TValue[];
-        /** Optional value to specify the type of collection if the config variable is multi-value. */
+        /** Value to specify the type of collection if the config variable is multi-value. */
         collectionType: "valuelist";
       }
     : {
         defaultValue?: Record<string, TValue> | Array<{ key: string; value: TValue }>;
-        /** Optional value to specify the type of collection if the config variable is multi-value. */
+        /** Value to specify the type of collection if the config variable is multi-value. */
         collectionType: "keyvaluelist";
       };
 
@@ -179,11 +179,11 @@ type PicklistConfigVar = CreateStandardConfigVar<"picklist"> & {
   pickList: string[];
 };
 
-/** Syntax highlighting to use for this code config variable */
+/** Syntax highlighting to use for this code config variable. */
 export type CodeLanguageType = "json" | "xml" | "html";
 
 type CodeConfigVar = CreateStandardConfigVar<"code"> & {
-  /** Value to specify the type of language of a code config variable */
+  /** Value to specify the type of language of a code config variable. */
   codeLanguage: CodeLanguageType;
 };
 
@@ -192,7 +192,7 @@ type BooleanConfigVar = CreateStandardConfigVar<"boolean">;
 type NumberConfigVar = CreateStandardConfigVar<"number">;
 
 type ScheduleConfigVar = CreateStandardConfigVar<"schedule"> & {
-  /** Optional timezone for the schedule. */
+  /** Timezone for the schedule. */
   timeZone?: string;
 };
 
