@@ -9,7 +9,8 @@ import { ComponentManifestAction } from "./ComponentManifest";
 
 /**
  * ActionDefinition is the type of the object that is passed in to `action` function to
- * define a component action.
+ * define a component action. See
+ * https://prismatic.io/docs/custom-connectors/actions/
  */
 export interface ActionDefinition<
   TInputs extends Inputs = Inputs,
@@ -20,9 +21,9 @@ export interface ActionDefinition<
     unknown
   >,
 > {
-  /** Defines how the Action is displayed in the Prismatic interface. */
+  /** Defines how the action is displayed in the Prismatic UI. */
   display: ActionDisplayDefinition;
-  /** Function to perform when this Action is invoked. */
+  /** The function to perform when this action is invoked. */
   perform: ActionPerformFunction<
     TInputs,
     TConfigVars,
@@ -30,18 +31,28 @@ export interface ActionDefinition<
     TAllowsBranching,
     TReturn
   >;
-  /** InputFields to present in the Prismatic interface for configuration of this Action. */
+  /**
+   * The inputs to present a low-code integration builder. Values of these inputs
+   * are passed to the `perform` function when the action is invoked.
+   */
   inputs: TInputs;
-  /** Optional attribute that specifies whether an Action will terminate execution.*/
+  /** Attribute that specifies whether an action will terminate execution.*/
   terminateExecution?: boolean;
-  /** Specifies whether an Action will break out of a loop. */
+  /** Specifies whether an action will break out of a loop. */
   breakLoop?: boolean;
-  /** Determines whether an Action will allow Conditional Branching.*/
+  /**
+   * Determines whether an action will allow branching. See
+   * https://prismatic.io/docs/custom-connectors/branching/
+   */
   allowsBranching?: TAllowsBranching;
-  /** Static Branch names associated with an Action. */
+  /**
+   * Static branches associated with an action.
+   * Use if your action supports branching. See
+   * https://prismatic.io/docs/custom-connectors/branching/
+   */
   staticBranchNames?: string[];
-  /** The Input associated with Dynamic Branching.*/
+  /** The input field associated with dynamic branching. */
   dynamicBranchInput?: string;
-  /** An example of the payload outputted by an Action*/
+  /** An example of the payload output by this action. */
   examplePayload?: Awaited<ReturnType<this["perform"]>>;
 }

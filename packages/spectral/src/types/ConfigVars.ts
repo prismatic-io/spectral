@@ -19,13 +19,12 @@ import {
   type ComponentRegistryDataSource,
   type ComponentRegistryConnection,
   type UserLevelConfigPages,
-  type ConnectionInput,
   type OrganizationActivatedConnectionConfigVar,
   type ScopedConfigVarMap,
 } from ".";
 import type { Prettify, UnionToIntersection } from "./utils";
 
-/** Supported data types for Config Vars. */
+/** Supported data types for config variables. */
 export type ConfigVarDataType =
   | "string"
   | "date"
@@ -74,7 +73,7 @@ type ConfigVarDataTypeRuntimeValueMap<
   },
 > = TMap;
 
-/** Choices of collection types for multi-value Config Vars. */
+/** Choices of collection types for multi-value config vars. */
 export type CollectionType = "valuelist" | "keyvaluelist";
 
 type ConfigVarSingleDataType = Extract<
@@ -86,35 +85,47 @@ export type PermissionAndVisibilityType = "customer" | "embedded" | "organizatio
 
 export interface ConfigVarVisibility {
   /**
-   * Optional value that sets the permission and visibility of the Config Var. @default "customer"
+   * Optional value that sets the permission and visibility of the config variable. See
+   * https://prismatic.io/docs/integrations/code-native/config-wizard/#config-variable-visibility-in-code-native
    *
-   * "customer" - Customers can view and edit the Config Var.
-   * "embedded" - Customers cannot view or update the Config Var as the value will be set programmatically.
-   * "organization" - Customers cannot view or update the Config Var as it will always have a default value or be set by the organization.
+   * - `"customer"` - Customers can view and edit the config variable.
+   * - `"embedded"` - Customers cannot view or update the config variable as the value will be set programmatically.
+   * - `"organization"` - Customers cannot view or update the config variable as it will always have a default value or be set by the organization.
+   *
+   * @default `"customer"`
    */
   permissionAndVisibilityType?: PermissionAndVisibilityType;
-  /** Optional value that specifies whether this Config Var is visible to an Organization deployer. @default true */
+  /**
+   * Optional value that specifies whether this config var is visible to an organization deployer.
+   * @default true
+   */
   visibleToOrgDeployer?: boolean;
 }
 
 interface ConfigVarInputVisibility {
   /**
-   * Optional value that sets the permission and visibility of the Config Var Input. @default "customer"
+   * Optional value that sets the permission and visibility of the config variable input. See
+   * https://prismatic.io/docs/integrations/code-native/config-wizard/#config-variable-visibility-in-code-native
    *
-   * "customer" - Customers can view and edit the Config Var Input.
-   * "embedded" - Customers cannot view or update the Config Var Input as the value will be set programmatically.
-   * "organization" - Customers cannot view or update the Config Var Input as it will always have a default value or be set by the organization.
+   * - `"customer"` - Customers can view and edit the config variable input.
+   * - `"embedded"` - Customers cannot view or update the config variable input as the value will be set programmatically.
+   * - `"organization"` - Customers cannot view or update the config variable input as it will always have a default value or be set by the organization.
+   *
+   * @default `"customer"`
    */
   permissionAndVisibilityType?: PermissionAndVisibilityType;
-  /** Optional value that specifies whether this Config Var Input is visible to an Organization deployer. @default true */
+  /**
+   * Optional value that specifies whether this config var input is visible to an organization deployer.
+   * @default true
+   */
   visibleToOrgDeployer?: boolean;
 }
 
-/** Common attribute shared by all types of Config Vars. */
+/** Common attribute shared by all types of config variables. */
 type BaseConfigVar = {
-  /** A unique, unchanging value that is used to maintain identity for the Config Var even if the key changes. */
+  /** A unique, unchanging value that is used to maintain identity for the config variable even if the key changes. */
   stableKey: string;
-  /** Optional description for this Config Var. */
+  /** Description for this config variable. */
   description?: string;
 } & ConfigVarVisibility;
 
@@ -124,18 +135,18 @@ type GetDynamicProperties<
 > = TCollectionType extends undefined
   ? {
       defaultValue?: TValue;
-      /** Optional value to specify the type of collection if the Config Var is multi-value. */
+      /** Value to specify the type of collection if the config variable is multi-value. */
       collectionType?: undefined;
     }
   : TCollectionType extends "valuelist"
     ? {
         defaultValue?: TValue[];
-        /** Optional value to specify the type of collection if the Config Var is multi-value. */
+        /** Value to specify the type of collection if the config variable is multi-value. */
         collectionType: "valuelist";
       }
     : {
         defaultValue?: Record<string, TValue> | Array<{ key: string; value: TValue }>;
-        /** Optional value to specify the type of collection if the Config Var is multi-value. */
+        /** Value to specify the type of collection if the config variable is multi-value. */
         collectionType: "keyvaluelist";
       };
 
@@ -153,7 +164,7 @@ type StandardConfigVarDynamicProperties<TDataType extends ConfigVarDataType> =
 
 type CreateStandardConfigVar<TDataType extends ConfigVarDataType> = BaseConfigVar &
   StandardConfigVarDynamicProperties<TDataType> & {
-    /** The data type of the Config Var. */
+    /** The data type of the config variable. */
     dataType: TDataType;
   };
 
@@ -168,11 +179,11 @@ type PicklistConfigVar = CreateStandardConfigVar<"picklist"> & {
   pickList: string[];
 };
 
-/** Choices of programming languages that may be used for Config Var code values. */
+/** Syntax highlighting to use for this code config variable. */
 export type CodeLanguageType = "json" | "xml" | "html";
 
 type CodeConfigVar = CreateStandardConfigVar<"code"> & {
-  /** Value to specify the type of language of a code Config Var. */
+  /** Value to specify the type of language of a code config variable. */
   codeLanguage: CodeLanguageType;
 };
 
@@ -181,7 +192,7 @@ type BooleanConfigVar = CreateStandardConfigVar<"boolean">;
 type NumberConfigVar = CreateStandardConfigVar<"number">;
 
 type ScheduleConfigVar = CreateStandardConfigVar<"schedule"> & {
-  /** Optional timezone for the schedule. */
+  /** Timezone for the schedule. */
   timeZone?: string;
 };
 
@@ -263,11 +274,10 @@ type DataSourceReferenceConfigVar =
       }
     : never;
 
-/** Defines attributes of a data source Config Var. */
+/** Defines attributes of a data source config variable. */
 export type DataSourceConfigVar = DataSourceDefinitionConfigVar | DataSourceReferenceConfigVar;
 
 // Connection Config Vars
-
 type BaseConnectionConfigVar = BaseConfigVar & {
   dataType: "connection";
 };
@@ -310,7 +320,7 @@ type ConnectionReferenceConfigVar = ComponentRegistryConnection extends infer TC
     : never
   : never;
 
-/** Defines attributes of a Config Var that represents a Connection. */
+/** Defines attributes of a config variable that represents a connection. */
 export type ConnectionConfigVar = ConnectionDefinitionConfigVar | ConnectionReferenceConfigVar;
 
 export type ConfigVar =
