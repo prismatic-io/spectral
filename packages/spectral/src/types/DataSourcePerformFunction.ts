@@ -7,7 +7,7 @@ import {
   ActionContext,
 } from ".";
 
-/** Context provided to perform method containing helpers and contextual data */
+/** Context provided to perform method containing helpers and contextual data. */
 export type DataSourceContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
 > = Pick<ActionContext<TConfigVars>, "logger" | "customer" | "instance" | "user" | "configVars">;

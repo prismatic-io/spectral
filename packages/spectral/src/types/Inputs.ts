@@ -9,14 +9,16 @@ import { JsonSchema, UISchemaElement } from "@jsonforms/core";
  * https://github.com/prismatic-io/examples/blob/main/components/aws-s3/src/actions.ts
  */
 export interface KeyValuePair<V = unknown> {
-  /** Key of the KeyValuePair */
+  /** Key of the KeyValuePair. */
   key: string;
-  /** Value of the KeyValuePair */
+  /** Value of the KeyValuePair. */
   value: V;
 }
 
 export type Element = {
+  /** The value to return for this field. */
   key: string;
+  /** The string to show in the UI for this field. Defaults to the value of `key` */
   label?: string;
 };
 
@@ -101,11 +103,20 @@ export type ConnectionInput = (
   | BooleanInputField
   | ConnectionTemplateInputField
 ) & {
+  /** Determines if this input field should be shown in the UI. */
   shown?: boolean;
+  /**
+   * Determines if this input should be write-only. See
+   * https://prismatic.io/docs/integrations/config-wizard/config-variables/#write-only-connection-inputs
+   */
   writeOnly?: true;
 };
 
 export type OnPremConnectionInput = {
+  /**
+   * When this connection is attached to an on-prem agent, this
+   * field will be overridden by a local on-prem value
+   */
   onPremControlled: true;
 } & ConnectionInput;
 
@@ -131,15 +142,15 @@ export type InputFieldDefinition =
 export type InputCleanFunction<TValue, TResult = TValue> = (value: TValue) => TResult;
 
 interface BaseInputField {
-  /** Interface label of the InputField. */
+  /** Name of this field to present in the UI. */
   label: { key: string; value: string } | string;
-  /** Text to show as the InputField placeholder. */
+  /** Text to show in the UI as the input's placeholder. */
   placeholder?: string;
-  /** Additional text to give guidance to the user configuring the InputField. */
+  /** Additional text to give guidance to the user configuring the input. */
   comments?: string;
-  /** Example valid input for this InputField. */
+  /** Example valid input for this input. */
   example?: string;
-  /** Indicate if this InputField is required. */
+  /** Indicate if this input field is required. */
   required?: boolean;
   /** Key of the data source that can be used to set the value of this input. */
   dataSource?: string;
@@ -148,68 +159,68 @@ interface BaseInputField {
 type CollectionOptions<T> = SingleValue<T> | ValueListCollection<T> | KeyValueListCollection<T>;
 
 interface SingleValue<T> {
-  /** Collection type of the InputField */
+  /** Collection type of the input. */
   collection?: undefined;
   /** Default value for this field. */
   default?: T;
 }
 
 interface ValueListCollection<T> {
-  /** Collection type of the InputField */
+  /** Collection type of the input. */
   collection: "valuelist";
   /** Default value for this field. */
   default?: T[];
 }
 
 interface KeyValueListCollection<T> {
-  /** Collection type of the InputField */
+  /** Collection type of the input. */
   collection: "keyvaluelist";
   /** Default value for this field. */
   default?: KeyValuePair<T>[];
 }
 
 export type StringInputField = BaseInputField & {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "string";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
 export type DataInputField = BaseInputField & {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "data";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
 export type TextInputField = BaseInputField & {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "text";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
 export type PasswordInputField = BaseInputField & {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "password";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
 export type BooleanInputField = BaseInputField & {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "boolean";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
@@ -226,7 +237,7 @@ export type ConnectionTemplateInputField = BaseInputField & {
 
 /** Defines attributes of a CodeInputField. */
 export type CodeInputField = BaseInputField & {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "code";
   /** Code language for syntax highlighting. For no syntax highlighting, choose "plaintext" */
   language:
@@ -248,120 +259,122 @@ export type CodeInputField = BaseInputField & {
     | "yaml";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
 /** Defines attributes of a ConditionalInputField. */
 export interface ConditionalInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "conditional";
-  /** Collection type of the InputField */
+  /** Collection type of the InputField. */
   collection: InputFieldCollection;
   /** Default value for this field. */
   default?: ConditionalExpression;
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<this["default"] | null>;
 }
 
 /** Defines attributes of a ConnectionInputField. */
 export interface ConnectionInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "connection";
-  /** Collection type of the InputField */
+  /** Collection type of the InputField. */
   collection?: InputFieldCollection;
   /** Default value for this field. */
   default?: Connection;
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<this["default"] | null>;
 }
 
 export interface Connection {
-  /** Key of the Connection type. */
+  /** Programmatic unique key of the connection type. */
   key: string;
-  /** Key for the Config Variable hosting this Connection. */
+  /** Name of the config variable hosting this connection. */
   configVarKey: string;
-  /** Field values supplied to this Connection. */
+  /** Values of input fields supplied to this connection. */
   fields: { [key: string]: unknown };
+  /** If this connection implements OAuth 2.0, this will be an object with properties like `access_token` and `refresh_token` */
   token?: Record<string, unknown>;
+  /** If this connection implements OAuth 2.0, this will contain metadata about the OAuth 2.0 tokens (like expiration time, etc). */
   context?: Record<string, unknown>;
 }
 
 /** Defines attributes of an ObjectSelectionInputField. */
 export interface ObjectSelectionInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "objectSelection";
-  /** Collection type of the InputField */
+  /** Collection type of the InputField. */
   collection?: InputFieldCollection;
   /** Default value for this field. */
   default?: ObjectSelection;
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<this["default"]>;
 }
 
 /** Defines attributes of an ObjectFieldMapInputField. */
 export interface ObjectFieldMapInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "objectFieldMap";
-  /** Collection type of the InputField */
+  /** Collection type of the InputField. */
   collection?: InputFieldCollection;
   /** Default value for this field. */
   default?: ObjectFieldMap;
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<this["default"]>;
 }
 
 /** Defines attributes of a JSONFormInputField. */
 export interface JSONFormInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "jsonForm";
-  /** Collection type of the InputField */
+  /** Collection type of the InputField. */
   collection?: InputFieldCollection;
   /** Default value for this field. */
   default?: JSONForm;
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<this["default"]>;
 }
 
-/** Defines attributes of a DynamicObjectSelectionInputField */
+/** Defines attributes of a DynamicObjectSelectionInputField. */
 export interface DynamicObjectSelectionInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "dynamicObjectSelection";
-  /** Collection type of the InputField */
+  /** Collection type of the InputField. */
   collection?: InputFieldCollection;
   /** Default value for this field. */
   default?: unknown;
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<this["default"]>;
 }
 
-/** Defines attributes of a SelectedFieldInputField */
+/** Defines attributes of a SelectedFieldInputField. */
 export interface DynamicFieldSelectionInputField extends BaseInputField {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "dynamicFieldSelection";
-  /** Collection type of the InputField */
+  /** Collection type of the InputField. */
   collection?: InputFieldCollection;
   /** Default value for this field. */
   default?: unknown;
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<this["default"]>;
 }
 
 export type DateInputField = BaseInputField & {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "date";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
 export type DateTimeInputField = BaseInputField & {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "timestamp";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
@@ -373,18 +386,18 @@ export interface InputFieldChoice {
   value: string;
 }
 
-/** InputField collection enumeration */
+/** InputField collection enumeration. */
 export type InputFieldCollection = "valuelist" | "keyvaluelist";
 
-/** Config variable result collection */
+/** Config variable result collection. */
 export type ConfigVarResultCollection = Record<
   string,
   string | Schedule | Connection | unknown | ObjectSelection | ObjectFieldMap
 >;
 
 export type FlowInputField = BaseInputField & {
-  /** Data type the InputField will collect. */
+  /** Data type the input will collect. */
   type: "flow";
-  /** Clean function */
+  /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;

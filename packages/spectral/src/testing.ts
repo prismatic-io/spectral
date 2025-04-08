@@ -2,7 +2,7 @@
  * This module provides functions to help developers unit
  * test custom components prior to publishing them. For
  * information on unit testing, check out our docs:
- * https://prismatic.io/docs/custom-components/writing-custom-components/#testing-a-component
+ * https://prismatic.io/docs/custom-connectors/unit-testing/
  */
 
 import { AxiosRequestConfig, AxiosResponse } from "axios";
@@ -38,6 +38,10 @@ import {
 } from "./types";
 import { spyOn } from "jest-mock";
 
+/**
+ * Create a test connection to use when testing your custom component locally. See
+ * https://prismatic.io/docs/custom-connectors/unit-testing/#providing-test-connection-inputs-to-an-action-test
+ */
 export const createConnection = <T extends ConnectionDefinition>(
   { key }: T,
   values: Record<string, unknown>,
@@ -51,6 +55,10 @@ export const createConnection = <T extends ConnectionDefinition>(
 
 export const defaultConnectionValueEnvironmentVariable = "PRISMATIC_CONNECTION_VALUE";
 
+/**
+ * Source a test connection from an environment variable for local testing. See
+ * https://prismatic.io/docs/custom-connectors/unit-testing/#access-connections-for-local-testing
+ */
 export const connectionValue = (
   envVarKey = defaultConnectionValueEnvironmentVariable,
 ): ConnectionValue => {
@@ -66,8 +74,9 @@ export const connectionValue = (
 };
 
 /**
- * Pre-built mock of ActionLogger. Suitable for asserting logs are created as expected.
- * See https://prismatic.io/docs/custom-components/writing-custom-components/#verifying-correct-logging-in-action-tests for information on testing correct logging behavior in your custom component.
+ * Pre-built mock of ActionLogger. Suitable for asserting logs are created as expected. See
+ * https://prismatic.io/docs/custom-connectors/unit-testing/#verifying-correct-logging-in-action-tests
+ * for information on testing correct logging behavior in your custom component.
  */
 export const loggerMock = (): ActionLogger => ({
   metric: console.log as ActionLoggerFunction,
@@ -405,7 +414,8 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
 
 /**
  * Invokes specified Flow of a Code Native Integration using supplied params.
- * Runs the Trigger and then the Action function and returns the result of the Action.
+ * Runs the Trigger and then the Action function and returns the result of the Action. See
+ * https://prismatic.io/docs/integrations/triggers/cross-flow/#using-cross-flow-triggers-in-code-native
  */
 export const invokeFlow = async <
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
@@ -465,6 +475,10 @@ export class ComponentTestHarness<TComponent extends Component> {
     return { ...defaults, ...params };
   }
 
+  /**
+   * Source a test connection from an environment variable for local testing. See
+   * https://prismatic.io/docs/custom-connectors/unit-testing/#access-connections-for-local-testing
+   */
   public connectionValue({ key }: ConnectionDefinition): ConnectionValue {
     const { PRISMATIC_CONNECTION_VALUE: value } = process.env;
     if (!value) {
@@ -477,6 +491,10 @@ export class ComponentTestHarness<TComponent extends Component> {
     return result;
   }
 
+  /**
+   * Invoke a trigger by its key within a unit test. See
+   * https://prismatic.io/docs/custom-connectors/unit-testing/
+   */
   public async trigger<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     payload?: TriggerPayload,
@@ -491,6 +509,10 @@ export class ComponentTestHarness<TComponent extends Component> {
     );
   }
 
+  /**
+   * Invoke a trigger's onInstanceDeploy function by its key within a unit test. See
+   * https://prismatic.io/docs/custom-connectors/unit-testing/
+   */
   public async triggerOnInstanceDeploy<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     params?: Record<string, unknown>,
@@ -506,6 +528,10 @@ export class ComponentTestHarness<TComponent extends Component> {
     );
   }
 
+  /**
+   * Invoke a trigger's onInstanceDelete function by its key within a unit test. See
+   * https://prismatic.io/docs/custom-connectors/unit-testing/
+   */
   public async triggerOnInstanceDelete<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     params?: Record<string, unknown>,
@@ -521,6 +547,10 @@ export class ComponentTestHarness<TComponent extends Component> {
     );
   }
 
+  /**
+   * Invoke an action by its key within a unit test. See
+   * https://prismatic.io/docs/custom-connectors/unit-testing/
+   */
   public async action<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     params?: Record<string, unknown>,
@@ -530,6 +560,10 @@ export class ComponentTestHarness<TComponent extends Component> {
     return action.perform(createActionContext(context), this.buildParams(action.inputs, params));
   }
 
+  /**
+   * Invoke a data source by its key within a unit test. See
+   * https://prismatic.io/docs/custom-connectors/unit-testing/
+   */
   public async dataSource<TConfigVars extends ConfigVarResultCollection>(
     key: string,
     params?: Record<string, unknown>,
@@ -543,6 +577,10 @@ export class ComponentTestHarness<TComponent extends Component> {
   }
 }
 
+/**
+ * Create a testing harness to test a custom component's actions, triggers and data sources. See
+ * https://prismatic.io/docs/custom-connectors/unit-testing/
+ */
 export const createHarness = <TComponent extends Component>(
   component: TComponent,
 ): ComponentTestHarness<TComponent> => {
