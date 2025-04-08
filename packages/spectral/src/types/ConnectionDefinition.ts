@@ -196,8 +196,3 @@ export type ConnectionDefinition =
   | OnPremConnectionDefinition
   | OAuth2ConnectionDefinition
   | TemplateConnectionDefinition;
-
-export const isTemplateConnectionDefinition = (
-  def: ConnectionDefinition,
-): def is TemplateConnectionDefinition =>
-  "type" in def && def.type === "template" && "inputs" in def;

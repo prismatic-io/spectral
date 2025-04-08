@@ -28,7 +28,6 @@ import {
   TriggerEventFunctionReturn,
   isConnectionScopedConfigVar,
   isHtmlElementConfigVar,
-  InputFieldDefinition,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -1155,7 +1154,7 @@ const codeNativeIntegrationComponent = (
       }
 
       const convertedInputs = Object.entries(configVar.inputs).map(([key, value]) =>
-        convertInput(key, value as InputFieldDefinition),
+        convertInput(key, value),
       );
 
       const connection = pick(configVar, ["oauth2Type", "oauth2PkceMethod"]);
