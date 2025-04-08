@@ -5,7 +5,6 @@ import type {
   OnPremConnectionInput,
 } from ".";
 import merge from "lodash/merge";
-import { templateConnection } from "..";
 
 export enum OAuth2Type {
   /**
@@ -98,13 +97,7 @@ interface OAuth2ClientCredentialInputs {
   clientSecret: ConnectionInput;
 }
 
-export interface TemplateBaseConnectionDefinition extends BaseConnectionDefinition {
-  inputs: {
-    [key: string]: ConnectionInput;
-  };
-}
-
-export function templateInputs<
+export function templateConnectionInputs<
   TConnectionType extends "client_credentials" | "authorization_code" | null = null,
   TInputs extends Record<string, ConnectionInput> = Record<string, ConnectionInput>,
 >(inputSet: {
@@ -126,28 +119,6 @@ export function templateInputs<
 }) {
   return merge(inputSet.inputs, inputSet.templateInputs);
 }
-
-export interface TemplateOAuth2AuthorizationCodeConnectionDefinition
-  extends TemplateBaseConnectionDefinition {
-  oauth2Type: OAuth2Type.AuthorizationCode;
-  oauth2Config?: OAuth2Config & OAuth2UrlOverrides;
-  /** The PKCE method (S256 or plain) that this OAuth 2.0 connection uses (if any) */
-  oauth2PkceMethod?: OAuth2PkceMethod;
-  templates: ReturnType<typeof templateInputs>;
-}
-
-export interface TemplateOAuth2ClientCredentialsConnectionDefinition
-  extends TemplateBaseConnectionDefinition {
-  oauth2Type: OAuth2Type.ClientCredentials;
-  oauth2Config?: OAuth2UrlOverrides;
-  templates: ReturnType<typeof templateInputs>;
-}
-
-export type TemplateConnectionDefinition =
-  | TemplateBaseConnectionDefinition
-  | TemplateOAuth2AuthorizationCodeConnectionDefinition
-  | TemplateOAuth2ClientCredentialsConnectionDefinition;
-
 interface OAuth2Config {
   overrideGrantType?: string;
   allowedTokenParams?: string[];
@@ -194,5 +165,4 @@ export type OAuth2ConnectionDefinition =
 export type ConnectionDefinition =
   | DefaultConnectionDefinition
   | OnPremConnectionDefinition
-  | OAuth2ConnectionDefinition
-  | TemplateConnectionDefinition;
+  | OAuth2ConnectionDefinition;
