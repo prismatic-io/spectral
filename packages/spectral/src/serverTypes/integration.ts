@@ -23,7 +23,7 @@ export type ComponentReference =
 export type Input =
   | {
       name?: string | Input;
-      type: "value" | "reference" | "configVar" | "template";
+      type: "value" | "reference" | "configVar";
       value: string;
       meta?: Record<string, unknown>;
     }

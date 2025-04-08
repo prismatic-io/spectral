@@ -308,4 +308,5 @@ export interface Input {
   language?: string;
   onPremiseControlled?: boolean;
   dataSource?: string;
+  shown?: boolean;
 }

@@ -95,6 +95,7 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   date: "string",
   timestamp: "string",
   flow: "string",
+  template: "string",
 };
 
 const getInputValueType = (input: ServerTypeInput): ValueType => {
