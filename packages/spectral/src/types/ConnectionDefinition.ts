@@ -100,13 +100,12 @@ interface OAuth2ClientCredentialInputs {
 export function templateConnectionInputs<
   TConnectionType extends "client_credentials" | "authorization_code" | null = null,
   TInputs extends Record<string, ConnectionInput> = Record<string, ConnectionInput>,
->(inputSet: {
-  authType?: TConnectionType;
+>(
   inputs: TConnectionType extends null | undefined
     ? Record<string, ConnectionInput>
     : TConnectionType extends OAuth2Type.ClientCredentials
       ? TInputs & Partial<OAuth2ClientCredentialInputs> & { [key: string]: ConnectionInput }
-      : TInputs & Partial<OAuth2AuthorizationCodeInputs> & { [key: string]: ConnectionInput };
+      : TInputs & Partial<OAuth2AuthorizationCodeInputs> & { [key: string]: ConnectionInput },
   templateInputs: TConnectionType extends null | undefined
     ? { [key: string]: ConnectionTemplateInputField }
     : TConnectionType extends "client_credentials"
@@ -115,9 +114,10 @@ export function templateConnectionInputs<
         }
       : TTemplateComplement<OAuth2AuthorizationCodeInputs, TInputs> & {
           [key: string]: ConnectionTemplateInputField;
-        };
-}) {
-  return merge(inputSet.inputs, inputSet.templateInputs);
+        },
+  _authType?: TConnectionType,
+) {
+  return merge(inputs, templateInputs);
 }
 interface OAuth2Config {
   overrideGrantType?: string;
