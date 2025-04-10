@@ -12,6 +12,7 @@ import {
   OnPremConnectionInput,
   TriggerOptionChoice,
   TriggerPayload,
+  ConnectionTemplateInputField,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -55,6 +56,20 @@ export const convertInput = (
     label: typeof label === "string" ? label : label.value,
     keyLabel,
     onPremiseControlled: ("onPremControlled" in rest && rest.onPremControlled) || undefined,
+  };
+};
+
+export const convertTemplateInput = (
+  key: string,
+  { templateValue, label, ...rest }: ConnectionTemplateInputField,
+): ServerInput => {
+  return {
+    ...omit(rest, ["permissionAndVisibilityType", "visibleToOrgDeployer", "writeOnly"]),
+    key,
+    type: "template",
+    default: templateValue ?? "",
+    label: typeof label === "string" ? label : label.value,
+    shown: false,
   };
 };
 
@@ -214,12 +229,18 @@ export const convertConnection = ({
   inputs = {},
   ...connection
 }: ConnectionDefinition): ServerConnection => {
-  const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
-
   const {
     display: { label, icons, description: comments },
     ...remaining
   } = connection;
+
+  const convertedInputs = Object.entries(inputs).map(([key, value]) => {
+    if ("templateValue" in value) {
+      return convertTemplateInput(key, value);
+    }
+
+    return convertInput(key, value);
+  });
 
   return {
     ...remaining,

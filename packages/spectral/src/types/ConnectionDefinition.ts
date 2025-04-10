@@ -1,4 +1,10 @@
-import type { ConnectionDisplayDefinition, ConnectionInput, OnPremConnectionInput } from ".";
+import type {
+  ConnectionDisplayDefinition,
+  ConnectionInput,
+  ConnectionTemplateInputField,
+  OnPremConnectionInput,
+} from ".";
+import merge from "lodash/merge";
 
 export enum OAuth2Type {
   /**
@@ -54,6 +60,65 @@ export interface OnPremConnectionDefinition extends BaseConnectionDefinition {
   };
 }
 
+type TTemplateComplement<TRequired, TGiven> = {
+  [K in Exclude<keyof TRequired, keyof TGiven>]: ConnectionTemplateInputField;
+};
+
+interface OAuth2AuthorizationCodeInputs {
+  /**
+   * The OAuth 2.0 authorization URL where users can consent to granting you permissions
+   * to their third-party account. (e.g. `https://app.acme.com/oauth2/authorize`)
+   */
+  authorizeUrl: ConnectionInput;
+  /**
+   * The OAuth 2.0 token URL which can be used to exchange an auth code or refresh
+   * token for an access token. (e.g. `https://app.acme.com/oauth2/token`)
+   */
+  tokenUrl: ConnectionInput;
+  /** OAuth 2.0 permissions (scopes) to request from the authenticated user. */
+  scopes: ConnectionInput;
+  /** OAuth 2.0 client ID (sometimes called app key or client key). */
+  clientId: ConnectionInput;
+  /** OAuth 2.0 client secret (sometimes called app secret or secret key). */
+  clientSecret: ConnectionInput;
+}
+
+interface OAuth2ClientCredentialInputs {
+  /**
+   * The OAuth 2.0 token URL which can be used to exchange a client ID and secret
+   * for an access token. (e.g. `https://app.acme.com/oauth2/token`)
+   */
+  tokenUrl: ConnectionInput;
+  /** OAuth 2.0 permissions (scopes) to request from the authenticated user. */
+  scopes: ConnectionInput;
+  /** OAuth 2.0 client ID (sometimes called app key or client key). */
+  clientId: ConnectionInput;
+  /** OAuth 2.0 client secret (sometimes called app secret or secret key). */
+  clientSecret: ConnectionInput;
+}
+
+export function templateConnectionInputs<
+  TConnectionType extends "client_credentials" | "authorization_code" | null = null,
+  TInputs extends Record<string, ConnectionInput> = Record<string, ConnectionInput>,
+>(
+  inputs: TConnectionType extends null | undefined
+    ? Record<string, ConnectionInput>
+    : TConnectionType extends OAuth2Type.ClientCredentials
+      ? TInputs & Partial<OAuth2ClientCredentialInputs> & { [key: string]: ConnectionInput }
+      : TInputs & Partial<OAuth2AuthorizationCodeInputs> & { [key: string]: ConnectionInput },
+  templateInputs: TConnectionType extends null | undefined
+    ? { [key: string]: ConnectionTemplateInputField }
+    : TConnectionType extends "client_credentials"
+      ? TTemplateComplement<OAuth2ClientCredentialInputs, TInputs> & {
+          [key: string]: ConnectionTemplateInputField;
+        }
+      : TTemplateComplement<OAuth2AuthorizationCodeInputs, TInputs> & {
+          [key: string]: ConnectionTemplateInputField;
+        },
+  _authType?: TConnectionType,
+) {
+  return merge(inputs, templateInputs);
+}
 interface OAuth2Config {
   overrideGrantType?: string;
   allowedTokenParams?: string[];
@@ -80,23 +145,7 @@ interface OAuth2AuthorizationCodeConnectionDefinition extends BaseConnectionDefi
    * https://prismatic.io/docs/custom-connectors/connections/#supporting-pkce-with-oauth-20
    */
   oauth2PkceMethod?: OAuth2PkceMethod;
-  inputs: {
-    /**
-     * The OAuth 2.0 authorization URL where users can consent to granting you permissions
-     * to their third-party account. (e.g. `https://app.acme.com/oauth2/authorize`)
-     */
-    authorizeUrl: ConnectionInput;
-    /**
-     * The OAuth 2.0 token URL which can be used to exchange an auth code or refresh
-     * token for an access token. (e.g. `https://app.acme.com/oauth2/token`)
-     */
-    tokenUrl: ConnectionInput;
-    /** OAuth 2.0 permissions (scopes) to request from the authenticated user. */
-    scopes: ConnectionInput;
-    /** OAuth 2.0 client ID (sometimes called app key or client key). */
-    clientId: ConnectionInput;
-    /** OAuth 2.0 client secret (sometimes called app secret or secret key). */
-    clientSecret: ConnectionInput;
+  inputs: OAuth2AuthorizationCodeInputs & {
     [key: string]: ConnectionInput;
   };
 }
@@ -104,18 +153,7 @@ interface OAuth2AuthorizationCodeConnectionDefinition extends BaseConnectionDefi
 interface OAuth2ClientCredentialConnectionDefinition extends BaseConnectionDefinition {
   oauth2Type: OAuth2Type.ClientCredentials;
   oauth2Config?: OAuth2UrlOverrides;
-  inputs: {
-    /**
-     * The OAuth 2.0 token URL which can be used to exchange a client ID and secret
-     * for an access token. (e.g. `https://app.acme.com/oauth2/token`)
-     */
-    tokenUrl: ConnectionInput;
-    /** OAuth 2.0 permissions (scopes) to request from the authenticated user. */
-    scopes: ConnectionInput;
-    /** OAuth 2.0 client ID (sometimes called app key or client key). */
-    clientId: ConnectionInput;
-    /** OAuth 2.0 client secret (sometimes called app secret or secret key). */
-    clientSecret: ConnectionInput;
+  inputs: OAuth2ClientCredentialInputs & {
     [key: string]: ConnectionInput;
   };
 }

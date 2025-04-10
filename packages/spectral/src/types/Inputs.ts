@@ -90,6 +90,7 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = 
   date: "",
   timestamp: "",
   flow: "",
+  template: "",
 };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -100,6 +101,7 @@ export type ConnectionInput = (
   | TextInputField
   | PasswordInputField
   | BooleanInputField
+  | ConnectionTemplateInputField
 ) & {
   /** Determines if this input field should be shown in the UI. */
   shown?: boolean;
@@ -127,6 +129,7 @@ export type InputFieldDefinition =
   | CodeInputField
   | ConditionalInputField
   | ConnectionInputField
+  | ConnectionTemplateInputField
   | ObjectSelectionInputField
   | ObjectFieldMapInputField
   | JSONFormInputField
@@ -218,6 +221,17 @@ export type BooleanInputField = BaseInputField & {
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
   /** Clean function. */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
+
+export type ConnectionTemplateInputField = BaseInputField & {
+  /** Data type the InputField will collect. */
+  type: "template";
+  /** Default templated string. */
+  templateValue: string;
+  /** Will not be user-facing. */
+  shown?: false;
+  /** Clean function */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
