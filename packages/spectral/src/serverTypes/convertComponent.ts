@@ -13,6 +13,7 @@ import {
   TriggerOptionChoice,
   TriggerPayload,
   ConnectionTemplateInputField,
+  ConnectionInput,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -59,10 +60,59 @@ export const convertInput = (
   };
 };
 
+const TEMPLATE_VALUE_REGEX = /{{#(\w+)}}/g;
+const TEMPLATE_VALUE_ERRORS = {
+  NO_SLOTS:
+    "No template slots were found. Declare a template slot with this notation: {{#someInputKey}}",
+  INVALID_KEYS:
+    "Invalid keys were found in the template string. All referenced keys must be non-template inputs declared in the first argument:",
+};
+
+export const _isValidTemplateValue = (
+  template: string,
+  inputs: { [key: string]: ConnectionInput | ConnectionTemplateInputField },
+): {
+  isValid: boolean;
+  error?: string;
+} => {
+  const matches = [...template.matchAll(TEMPLATE_VALUE_REGEX)];
+
+  if (matches.length === 0) {
+    return {
+      isValid: false,
+      error: TEMPLATE_VALUE_ERRORS.NO_SLOTS,
+    };
+  }
+
+  const invalidKeys: Array<string> = [];
+  for (const [_substr, key] of matches) {
+    if (!inputs[key] || inputs[key].type === "template") {
+      invalidKeys.push(key);
+    }
+  }
+
+  if (invalidKeys.length > 0) {
+    return {
+      isValid: false,
+      error: `${TEMPLATE_VALUE_ERRORS.INVALID_KEYS} ${invalidKeys}`,
+    };
+  }
+
+  return {
+    isValid: true,
+  };
+};
+
 export const convertTemplateInput = (
   key: string,
   { templateValue, label, ...rest }: ConnectionTemplateInputField,
+  inputs: { [key: string]: ConnectionInput | ConnectionTemplateInputField },
 ): ServerInput => {
+  const validation = _isValidTemplateValue(templateValue, inputs);
+  if (!validation.isValid) {
+    throw `Template input "${key}": ${validation.error}`;
+  }
+
   return {
     ...omit(rest, ["permissionAndVisibilityType", "visibleToOrgDeployer", "writeOnly"]),
     key,
@@ -236,7 +286,7 @@ export const convertConnection = ({
 
   const convertedInputs = Object.entries(inputs).map(([key, value]) => {
     if ("templateValue" in value) {
-      return convertTemplateInput(key, value);
+      return convertTemplateInput(key, value, inputs);
     }
 
     return convertInput(key, value);

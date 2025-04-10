@@ -1,5 +1,5 @@
 import { connection, input } from "..";
-import { convertConnection, convertInput } from "./convertComponent";
+import { convertConnection, convertInput, convertTemplateInput } from "./convertComponent";
 
 describe("convertConnection", () => {
   const label = "My Basic Connection";
@@ -37,4 +37,98 @@ describe("convertInput", () => {
     expect(convertedInput.key).toBe(basicInputWithDataSourceKey);
     expect(convertedInput.dataSource).toBe(dataSourceKey);
   });
+});
+
+describe("convertTemplateInput", () => {
+  it("correctly handles valid template input values", () => {
+    expect(
+      convertTemplateInput(
+        "authUrl",
+        input({
+          type: "template",
+          label: "authUrl",
+          templateValue: "https://{{#domain}}.something.com/{{#path}}",
+        }),
+        {
+          domain: input({
+            type: "string",
+            label: "Domain",
+          }),
+          path: input({
+            type: "string",
+            label: "path",
+          }),
+        },
+      ),
+    ).toMatchObject({
+      key: "authUrl",
+      type: "template",
+      default: "https://{{#domain}}.something.com/{{#path}}",
+      label: "authUrl",
+      shown: false,
+    });
+  });
+
+  it.each([
+    [
+      "missing input key",
+      {
+        key: "authUrl",
+        templateInput: input({
+          type: "template",
+          label: "authUrl",
+          templateValue: "https://{{#domain}}.something.com/{{#path}}",
+        }),
+        inputs: {
+          domain: input({
+            type: "string",
+            label: "Domain",
+          }),
+        },
+        expected: `Template input "authUrl": Invalid keys were found in the template string. All referenced keys must be non-template inputs declared in the first argument: path`,
+      },
+    ],
+    [
+      "invalid input key",
+      {
+        key: "authUrl",
+        templateInput: input({
+          type: "template",
+          label: "authUrl",
+          templateValue: "https://{{#subdomain}}.something.com/",
+        }),
+        inputs: {
+          domain: input({
+            type: "string",
+            label: "Domain",
+          }),
+        },
+        expected: `Template input "authUrl": Invalid keys were found in the template string. All referenced keys must be non-template inputs declared in the first argument: subdomain`,
+      },
+    ],
+    [
+      "does not accept other template values",
+      {
+        key: "authUrl",
+        templateInput: input({
+          type: "template",
+          label: "authUrl",
+          templateValue: "https://{{#domain}}.something.com/",
+        }),
+        inputs: {
+          domain: input({
+            type: "template",
+            label: "Domain",
+            templateValue: "{{#nestedKey}}",
+          }),
+        },
+        expected: `Template input "authUrl": Invalid keys were found in the template string. All referenced keys must be non-template inputs declared in the first argument: domain`,
+      },
+    ],
+  ])(
+    "correctly handles valid template input values: %s",
+    (_scenario, { key, templateInput, inputs, expected }) => {
+      expect(() => convertTemplateInput(key, templateInput, inputs)).toThrow(expected);
+    },
+  );
 });
