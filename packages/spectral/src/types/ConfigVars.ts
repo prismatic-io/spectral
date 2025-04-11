@@ -1,4 +1,4 @@
-import { ValidationMode } from "@jsonforms/core";
+import { ValidationMode } from "./jsonforms/ValidationMode";
 import {
   type DataSourceDefinition,
   type ConnectionDefinition,
