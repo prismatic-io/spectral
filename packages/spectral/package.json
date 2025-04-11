@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "10.5.1",
+  "version": "10.5.2",
   "description": "Utility library for building Prismatic connectors and code-native integrations",
   "keywords": ["prismatic"],
   "main": "dist/index.js",
@@ -38,7 +38,6 @@
   },
   "files": ["dist/"],
   "dependencies": {
-    "@jsonforms/core": "3.0.0",
     "axios": "1.8.3",
     "axios-retry": "4.5.0",
     "date-fns": "2.30.0",
