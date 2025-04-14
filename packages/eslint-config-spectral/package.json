@@ -25,16 +25,16 @@
   },
   "files": ["dist"],
   "dependencies": {
-    "@typescript-eslint/eslint-plugin": "8.29.0",
-    "@typescript-eslint/parser": "8.29.0",
+    "@typescript-eslint/eslint-plugin": "8.29.1",
+    "@typescript-eslint/parser": "8.29.1",
     "eslint-plugin-import": "2.31.0",
-    "eslint-import-resolver-typescript": "4.3.1",
-    "eslint-config-prettier": "10.1.1",
+    "eslint-import-resolver-typescript": "4.3.2",
+    "eslint-config-prettier": "10.1.2",
     "eslint-plugin-prettier": "5.2.6"
   },
   "devDependencies": {
     "@types/eslint": "9.6.1",
-    "@types/node": "22.14.0",
+    "@types/node": "22.14.1",
     "eslint": "^9",
     "prettier": "^3",
     "typescript": "^5"
