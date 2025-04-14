@@ -16,7 +16,6 @@
   "resolutions": {
     "**/eslint-plugin-import/tsconfig-paths/json5": "2.2.3",
     "**/find-versions/semver-regex": "3.1.4",
-    "**/typedoc/marked": "4.0.10",
     "**/yo/meow/trim-newlines": "3.0.1",
     "**/yo/**/got": "11.8.5"
   }
