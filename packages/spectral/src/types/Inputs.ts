@@ -1,5 +1,6 @@
 import { ConditionalExpression } from "./conditional-logic";
-import { JsonSchema, UISchemaElement } from "@jsonforms/core";
+import { JsonSchema } from "./jsonforms/JsonSchema";
+import { UISchemaElement } from "./jsonforms/UISchemaElement";
 
 /**
  * KeyValuePair input parameter type.

@@ -1,11 +1,8 @@
 {
   "name": "@prismatic-io/eslint-config-spectral",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "ESLint config for building Prismatic connectors and code-native integrations",
-  "keywords": [
-    "prismatic",
-    "eslint"
-  ],
+  "keywords": ["prismatic", "eslint"],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://prismatic.io",
@@ -26,27 +23,25 @@
     "build": "yarn run clean && tsc",
     "prepack": "yarn run build"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "dependencies": {
-    "@typescript-eslint/eslint-plugin": "6.7.0",
-    "@typescript-eslint/parser": "6.7.0",
-    "eslint-plugin-import": "2.28.1",
-    "eslint-import-resolver-typescript": "3.6.0",
-    "eslint-config-prettier": "9.0.0",
-    "eslint-plugin-prettier": "5.0.0"
+    "@typescript-eslint/eslint-plugin": "8.29.1",
+    "@typescript-eslint/parser": "8.29.1",
+    "eslint-plugin-import": "2.31.0",
+    "eslint-import-resolver-typescript": "4.3.2",
+    "eslint-config-prettier": "10.1.2",
+    "eslint-plugin-prettier": "5.2.6"
   },
   "devDependencies": {
-    "@types/eslint": "8.44.2",
-    "@types/node": "20.6.0",
-    "eslint": "^8",
+    "@types/eslint": "9.6.1",
+    "@types/node": "22.14.1",
+    "eslint": "^9",
     "prettier": "^3",
-    "typescript": "^4"
+    "typescript": "^5"
   },
   "peerDependencies": {
     "eslint": ">=8",
     "prettier": ">=3",
-    "typescript": ">=4"
+    "typescript": ">=5"
   }
 }
