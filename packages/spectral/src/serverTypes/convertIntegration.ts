@@ -770,7 +770,8 @@ export const convertConfigVar = (
       componentRegistry,
       "dataSources",
     );
-    result.dataType = componentRegistry[ref.component.key].dataSources[ref.key].dataSourceType;
+    result.dataType =
+      componentRegistry[configVar.dataSource.component].dataSources[ref.key].dataSourceType;
     result.dataSource = ref;
     result.inputs = inputs;
 
