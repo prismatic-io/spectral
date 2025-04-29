@@ -43,7 +43,7 @@ import {
   TriggerPayload,
   TriggerResult,
 } from ".";
-import { convertInput } from "./convertComponent";
+import { convertInput, convertTemplateInput } from "./convertComponent";
 import {
   DefinitionVersion,
   RequiredConfigVariable as ServerRequiredConfigVariable,
@@ -637,7 +637,8 @@ export const convertConfigVar = (
         component: codeNativeIntegrationComponentReference(referenceKey),
       },
       inputs: Object.entries(configVar.inputs).reduce((result, [key, input]) => {
-        if (input.shown === false) {
+        // Connection template inputs are never shown in the resulting YAML.
+        if (input.shown === false || "templateValue" in input) {
           return result;
         }
 
@@ -1153,9 +1154,13 @@ const codeNativeIntegrationComponent = (
         return result;
       }
 
-      const convertedInputs = Object.entries(configVar.inputs).map(([key, value]) =>
-        convertInput(key, value),
-      );
+      const convertedInputs = Object.entries(configVar.inputs).map(([key, value]) => {
+        if ("templateValue" in value) {
+          return convertTemplateInput(key, value, configVar.inputs);
+        }
+
+        return convertInput(key, value);
+      });
 
       const connection = pick(configVar, ["oauth2Type", "oauth2PkceMethod"]);
       const { avatarPath: avatarIconPath, oauth2ConnectionIconPath: iconPath } =
