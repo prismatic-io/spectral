@@ -30,6 +30,15 @@ export type ComponentRegistry = keyof IntegrationDefinitionComponentRegistry ext
     >;
 
 export type ConfigVarExpression = { configVar: string };
+export type TemplateExpression = {
+  /**
+   * Use a template to concatenate strings and other config variables together.
+   * For example, if you have a config variable named "Sharepoint Site", you
+   * can provide a value `/sites/{{#Sharepoint Site}}/drives`, and your `{{#}}`
+   * config variable will be concatenated with `/sites/` and `/drives`.
+   */
+  template: string;
+};
 export type ValueExpression<TValueType = unknown> = {
   value: TValueType;
 };
@@ -44,7 +53,7 @@ type ComponentReferenceTypeValueMap<
   TMap extends Record<ComponentReferenceType, unknown> = {
     actions: ValueExpression<TValue>;
     triggers: ValueExpression<TValue> | ConfigVarExpression;
-    dataSources: ValueExpression<TValue> | ConfigVarExpression;
+    dataSources: ValueExpression<TValue> | ConfigVarExpression | TemplateExpression;
     connections: (ValueExpression<TValue> | ConfigVarExpression) &
       ConfigVarVisibility & { writeOnly?: true };
   },
@@ -55,14 +64,14 @@ export type ComponentReference<
     component: string;
     key: string;
     values?: {
-      [key: string]: ValueExpression | ConfigVarExpression;
+      [key: string]: ValueExpression | ConfigVarExpression | TemplateExpression;
     };
     template?: string;
   } = {
     component: string;
     key: string;
     values?: {
-      [key: string]: ValueExpression | ConfigVarExpression;
+      [key: string]: ValueExpression | ConfigVarExpression | TemplateExpression;
     };
     template?: string;
   },

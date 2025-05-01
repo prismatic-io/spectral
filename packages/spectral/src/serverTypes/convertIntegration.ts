@@ -435,6 +435,13 @@ const convertComponentReference = (
         };
       }
 
+      if ("template" in value) {
+        return {
+          ...result,
+          [key]: { type: "template", value: value.template },
+        };
+      }
+
       return result;
     },
     {},
