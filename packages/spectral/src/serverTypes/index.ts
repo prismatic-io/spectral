@@ -15,8 +15,8 @@ import {
   FlowInvoker,
   ExecutionFrame,
   DebugContext,
+  FlowSchemas,
 } from "../types";
-import { FlowSchemas } from "../types/FlowSchema";
 
 interface DisplayDefinition {
   label: string;
@@ -28,6 +28,7 @@ export { CustomerAttributes } from "../types";
 export { UserAttributes } from "../types";
 export { IntegrationAttributes } from "../types";
 export { FlowAttributes } from "../types";
+export { FlowSchemas } from "../types";
 
 export interface Component {
   key: string;
