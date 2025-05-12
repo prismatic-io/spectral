@@ -16,6 +16,7 @@ import {
   ExecutionFrame,
   DebugContext,
 } from "../types";
+import { FlowSchemas } from "../types/FlowSchema";
 
 interface DisplayDefinition {
   label: string;
@@ -91,6 +92,7 @@ export type ActionContext<
   flow: FlowAttributes;
   startedAt: string;
   executionFrame: ExecutionFrame;
+  flowSchemas: FlowSchemas;
 
   // @TODO - Hidden from the user-facing ActionContext.
   globalDebug?: boolean;
