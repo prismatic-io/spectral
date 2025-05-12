@@ -11,8 +11,8 @@ import {
   IntegrationAttributes,
   FlowAttributes,
   ComponentManifest,
+  FlowSchemas,
 } from ".";
-import { FlowSchema, FlowSchemas } from "./FlowSchema";
 
 interface StandardLineage {
   componentActionKey: string;

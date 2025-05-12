@@ -6,6 +6,8 @@ export interface FlowSchema {
 }
 
 export interface FlowSchemas {
-  invoke: FlowSchema;
-  [key: string]: FlowSchema;
+  [key: string]: {
+    invoke: FlowSchema;
+    [key: string]: FlowSchema;
+  };
 }
