@@ -213,6 +213,13 @@ const createActionContext = <
         allowedMemory: 1024,
       },
     },
+    flowSchemas: {
+      invoke: {
+        properties: {},
+        type: "",
+        title: "",
+      },
+    },
     ...context,
   };
 };

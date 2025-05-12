@@ -12,6 +12,7 @@ import {
   FlowAttributes,
   ComponentManifest,
 } from ".";
+import { FlowSchema, FlowSchemas } from "./FlowSchema";
 
 interface StandardLineage {
   componentActionKey: string;
@@ -166,4 +167,6 @@ export type ActionContext<
   executionFrame: ExecutionFrame;
   /** Contains methods, flags, and data to support debug modes. */
   debug: DebugContext;
+  /** JSON schemas to enable using flows for AI function calls. */
+  flowSchemas: FlowSchemas;
 };
