@@ -626,10 +626,6 @@ export const convertConfigVar = (
       stableKey,
       dataType: "connection",
       useScopedConfigVar: stableKey,
-      meta: {
-        visibleToCustomerDeployer: false,
-        visibleToOrgDeployer: false,
-      },
     };
   }
 
