@@ -129,29 +129,31 @@ const convertConfigPages = (
     name,
     tagline,
     ...(userLevelConfigured ? { userLevelConfigured } : {}),
-    elements: Object.entries(elements).map(([key, value]) => {
-      if (typeof value === "string") {
+    elements: Object.entries(elements)
+      .filter(([key, value]) => !isConnectionScopedConfigVar(value as ConfigVar))
+      .map(([key, value]) => {
+        if (typeof value === "string") {
+          return {
+            type: "htmlElement",
+            value,
+          };
+        } else if (
+          value &&
+          typeof value === "object" &&
+          "dataType" in value &&
+          value.dataType === "htmlElement"
+        ) {
+          return {
+            type: "htmlElement",
+            value: key,
+          };
+        }
+
         return {
-          type: "htmlElement",
-          value,
-        };
-      } else if (
-        value &&
-        typeof value === "object" &&
-        "dataType" in value &&
-        value.dataType === "htmlElement"
-      ) {
-        return {
-          type: "htmlElement",
+          type: "configVar",
           value: key,
         };
-      }
-
-      return {
-        type: "configVar",
-        value: key,
-      };
-    }),
+      }),
   }));
 };
 
