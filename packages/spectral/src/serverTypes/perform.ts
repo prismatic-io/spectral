@@ -1,12 +1,9 @@
-import axios, { AxiosRequestConfig } from "axios";
 import type {
   ActionContext,
   ActionDefinition,
   ActionInputParameters,
   ConfigVarResultCollection,
   ErrorHandler,
-  ExecutionFrame,
-  FlowInvoker,
   Inputs,
   PollingContext,
   PollingTriggerDefinition,
@@ -15,7 +12,7 @@ import type {
   TriggerResult,
 } from "../types";
 import uniq from "lodash/uniq";
-import { createDebugContext, logDebugResults } from "./context";
+import { createDebugContext, createInvokeFlow, logDebugResults } from "./context";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
 export type CleanFn = (...args: any[]) => any;
@@ -37,47 +34,6 @@ export const cleanParams = (
     const cleanFn = cleaners[key];
     return { ...result, [key]: cleanFn ? cleanFn(value) : value };
   }, {});
-};
-
-function formatExecutionFrameHeaders(frame: ExecutionFrame, source?: string) {
-  let frameToUse = frame;
-
-  if (source) {
-    frameToUse = {
-      ...frame,
-      customSource: source,
-    };
-  }
-
-  return JSON.stringify(frameToUse);
-}
-
-export const createInvokeFlow = <const TFlows extends Readonly<string[]>>(
-  context: ActionContext,
-  options: { isCNI?: boolean } = {},
-): FlowInvoker<TFlows> => {
-  return async (
-    flowName: TFlows[number],
-    data?: Record<string, unknown>,
-    config?: AxiosRequestConfig,
-    source?: string,
-  ) => {
-    const sourceToUse = options.isCNI ? source : undefined;
-    return await axios.post(context.webhookUrls[flowName], data, {
-      ...config,
-      headers: {
-        ...(config?.headers ?? {}),
-        ...(context.webhookApiKeys[flowName]?.length > 0
-          ? {
-              "Api-Key": context.webhookApiKeys[flowName][0],
-            }
-          : {}),
-        "prismatic-invoked-by": formatExecutionFrameHeaders(context.executionFrame, sourceToUse),
-        "prismatic-invoke-type": "Cross Flow",
-        "prismatic-executionid": context.executionId,
-      },
-    });
-  };
 };
 
 export const createPerform = (

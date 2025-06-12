@@ -20,7 +20,6 @@ import {
 } from "./serverTypes";
 import {
   ActionContext,
-  ActionPerformReturn,
   ConnectionDefinition,
   ActionDefinition,
   TriggerDefinition,
