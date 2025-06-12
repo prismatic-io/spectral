@@ -17,10 +17,7 @@ import {
   isComponentReference,
   isDataSourceReferenceConfigVar,
   ComponentRegistry,
-  ComponentManifestAction,
   PermissionAndVisibilityType,
-  CollectionType,
-  KeyValuePair,
   ComponentManifest,
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
@@ -28,6 +25,8 @@ import {
   TriggerEventFunctionReturn,
   isConnectionScopedConfigVar,
   isHtmlElementConfigVar,
+  CollectionType,
+  KeyValuePair,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -53,11 +52,9 @@ import {
   ComponentReference as ServerComponentReference,
 } from "./integration";
 import merge from "lodash/merge";
-import { createInvokeFlow } from "./perform";
-import { createDebugContext, logDebugResults } from "./context";
+import { createCNIContext, logDebugResults } from "./context";
 import path from "path";
 import { readFileSync } from "fs";
-import { homedir } from "os";
 
 export const convertIntegration = (definition: IntegrationDefinition): ServerComponent => {
   // Generate a unique reference key that will be used to reference the
@@ -596,7 +593,7 @@ export const convertFlow = (
 };
 
 /** Converts an input value to the expected server type by its collection type. */
-const convertInputValue = (value: unknown, collectionType: CollectionType | undefined) => {
+export const convertInputValue = (value: unknown, collectionType: CollectionType | undefined) => {
   if (collectionType !== "keyvaluelist") {
     return value;
   }
@@ -849,6 +846,7 @@ const invokeTriggerComponentInput = (
 const generateTriggerPerformFn = (
   componentRef: ServerComponentReference | undefined,
   onTrigger: TriggerReference | TriggerPerformFunction | undefined,
+  componentRegistry: ComponentRegistry,
 ): TriggerPerformFunction => {
   const performFn: TriggerPerformFunction =
     componentRef && typeof onTrigger !== "function"
@@ -856,26 +854,18 @@ const generateTriggerPerformFn = (
           // @ts-expect-error: _components isn't part of the public API
           const { _components } = context;
           const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
+          const cniContext = createCNIContext(context, componentRegistry);
 
           return await invokeTrigger(
             invokeTriggerComponentInput(componentRef, onTrigger, "perform"),
-            {
-              ...context,
-              debug: createDebugContext(context),
-            },
+            cniContext,
             payload,
             params,
           );
         }
       : async (context, payload, params) => {
-          return await (onTrigger as TriggerPerformFunction)(
-            {
-              ...context,
-              debug: createDebugContext(context),
-            },
-            payload,
-            params,
-          );
+          const cniContext = createCNIContext(context, componentRegistry);
+          return await (onTrigger as TriggerPerformFunction)(cniContext, payload, params);
         };
 
   return performFn;
@@ -900,6 +890,7 @@ const generateOnInstanceWrapperFn = (
   componentRef: ServerComponentReference | undefined,
   onTrigger: TriggerReference | TriggerPerformFunction | undefined,
   eventName: "onInstanceDeploy" | "onInstanceDelete",
+  componentRegistry: ComponentRegistry,
   customFn?: TriggerEventFunction,
 ): TriggerEventFunction | undefined => {
   const onInstanceFn: TriggerEventFunction | undefined =
@@ -907,15 +898,13 @@ const generateOnInstanceWrapperFn = (
       ? async (context, params) => {
           // @ts-expect-error: _components isn't part of the public API
           const { _components } = context;
-          const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
 
+          const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
+          const cniContext = createCNIContext(context, componentRegistry);
           const invokeResponse =
             (await invokeTrigger(
               invokeTriggerComponentInput(componentRef, onTrigger, eventName),
-              {
-                ...context,
-                debug: createDebugContext(context),
-              },
+              cniContext,
               null,
               params,
             )) || {};
@@ -923,34 +912,20 @@ const generateOnInstanceWrapperFn = (
           let customResponse: TriggerEventFunctionReturn = {};
 
           if (customFn) {
-            customResponse =
-              (await customFn(
-                {
-                  ...context,
-                  debug: createDebugContext(context),
-                },
-                params,
-              )) || {};
+            customResponse = (await customFn(cniContext, params)) || {};
           }
 
           return merge(invokeResponse, customResponse);
         }
       : async (context, params) => {
           if (customFn) {
-            return await customFn({ ...context, debug: createDebugContext(context) }, params);
+            const cniContext = createCNIContext(context, componentRegistry);
+            return await customFn(cniContext, params);
           }
         };
 
   return onInstanceFn;
 };
-
-type ComponentActionInvokeFunction = <TValues extends Record<string, any>>(
-  ref: ServerComponentReference,
-  context: ActionContext,
-  values: TValues,
-) => Promise<unknown>;
-
-type ComponentMethods = Record<string, Record<string, ComponentManifestAction["perform"]>>;
 
 const convertOnExecution =
   (
@@ -958,78 +933,7 @@ const convertOnExecution =
     componentRegistry: ComponentRegistry,
   ): ServerActionPerformFunction =>
   async (context, params) => {
-    // @ts-expect-error _components isn't part of the public API
-    const { _components } = context;
-
-    const invoke = (_components as { invoke: ComponentActionInvokeFunction }).invoke;
-
-    // Construct the component methods from the component registry
-    const componentMethods = Object.entries(componentRegistry).reduce<ComponentMethods>(
-      (
-        accumulator,
-        [registryComponentKey, { key: componentKey, actions, public: isPublic, signature }],
-      ) => {
-        const componentActions = Object.entries(actions).reduce<
-          Record<string, ComponentManifestAction["perform"]>
-        >((actionsAccumulator, [registryActionKey, action]) => {
-          const manifestActions =
-            componentRegistry[registryComponentKey].actions[registryActionKey];
-
-          // Define the method to be called for the action
-          const invokeAction: ComponentManifestAction["perform"] = async (values) => {
-            // Apply defaults directly within the transformation process
-            const transformedValues = Object.entries(manifestActions.inputs).reduce<
-              Record<string, any>
-            >((transformedAccumulator, [inputKey, inputValueBase]) => {
-              const inputValue = values[inputKey] ?? inputValueBase.default;
-
-              const { collection } = inputValueBase;
-
-              return {
-                ...transformedAccumulator,
-                [inputKey]: convertInputValue(inputValue, collection),
-              };
-            }, {});
-
-            // Invoke the action with the transformed values
-            return invoke(
-              {
-                component: {
-                  key: componentKey,
-                  signature: signature ?? "",
-                  isPublic,
-                },
-                // older versions of manifests did not contain action.key so we fall back to the registry key
-                key: action.key ?? registryActionKey,
-              },
-              {
-                ...context,
-                debug: createDebugContext(context),
-              },
-              transformedValues,
-            );
-          };
-          return {
-            ...actionsAccumulator,
-            [registryActionKey]: invokeAction,
-          };
-        }, {});
-
-        return {
-          ...accumulator,
-          [registryComponentKey]: componentActions,
-        };
-      },
-      {},
-    );
-
-    const actionContext = {
-      ...context,
-      debug: createDebugContext(context),
-      components: componentMethods,
-      invokeFlow: createInvokeFlow(context, { isCNI: true }),
-    };
-
+    const actionContext = createCNIContext(context, componentRegistry);
     const result = await onExecution(actionContext, params);
 
     logDebugResults(actionContext);
@@ -1096,17 +1000,23 @@ const codeNativeIntegrationComponent = (
         ? convertComponentReference(onTrigger as TriggerReference, componentRegistry, "triggers")
         : { ref: onTrigger ? undefined : defaultComponentRef };
 
-      const performFn: TriggerPerformFunction = generateTriggerPerformFn(ref, onTrigger);
+      const performFn: TriggerPerformFunction = generateTriggerPerformFn(
+        ref,
+        onTrigger,
+        componentRegistry,
+      );
       const deleteFn: TriggerEventFunction | undefined = generateOnInstanceWrapperFn(
         ref,
         onTrigger,
         "onInstanceDelete",
+        componentRegistry,
         onInstanceDelete,
       );
       const deployFn: TriggerEventFunction | undefined = generateOnInstanceWrapperFn(
         ref,
         onTrigger,
         "onInstanceDeploy",
+        componentRegistry,
         onInstanceDeploy,
       );
 
