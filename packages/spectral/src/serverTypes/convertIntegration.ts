@@ -114,7 +114,7 @@ export const convertIntegration = (definition: IntegrationDefinition): ServerCom
   };
 };
 
-const convertConfigPages = (
+export const convertConfigPages = (
   pages: ConfigPages | undefined,
   userLevelConfigured: boolean,
 ): ServerConfigPage[] => {
@@ -127,7 +127,7 @@ const convertConfigPages = (
     tagline,
     ...(userLevelConfigured ? { userLevelConfigured } : {}),
     elements: Object.entries(elements)
-      .filter(([key, value]) => !isConnectionScopedConfigVar(value as ConfigVar))
+      .filter(([key, value]) => !isConnectionScopedConfigVar(value))
       .map(([key, value]) => {
         if (typeof value === "string") {
           return {

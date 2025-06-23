@@ -51,9 +51,18 @@ type CreateScopedConfigVars<TScopedConfigVarMap> = keyof TScopedConfigVarMap ext
 export type ScopedConfigVarMap = CreateScopedConfigVars<IntegrationDefinitionScopedConfigVars>;
 
 export const isConnectionScopedConfigVar = (
-  cv: ConfigVar,
-): cv is OrganizationActivatedConnectionConfigVar =>
-  "dataType" in cv &&
-  cv.dataType === "connection" &&
-  !isConnectionDefinitionConfigVar(cv) &&
-  !isConnectionReferenceConfigVar(cv);
+  cv: unknown,
+): cv is OrganizationActivatedConnectionConfigVar => {
+  if (!cv || typeof cv !== "object" || Array.isArray(cv)) {
+    return false;
+  }
+
+  if (!("dataType" in cv) || cv.dataType !== "connection") {
+    return false;
+  }
+
+  return (
+    !isConnectionDefinitionConfigVar(cv as ConfigVar) &&
+    !isConnectionReferenceConfigVar(cv as ConfigVar)
+  );
+};
