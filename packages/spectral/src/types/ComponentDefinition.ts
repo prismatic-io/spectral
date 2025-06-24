@@ -7,7 +7,7 @@ import {
 } from ".";
 import { PollingTriggerDefinition } from "./PollingTriggerDefinition";
 
-export type ErrorHandler = (error: unknown) => unknown;
+export type ErrorHandler = (error: unknown) => unknown | Promise<unknown>;
 
 export interface ComponentHooks {
   /**
