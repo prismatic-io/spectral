@@ -66,6 +66,10 @@ export type IntegrationDefinition = {
   userLevelConfigPages?: UserLevelConfigPages;
   /** Scoped ConfigVars for this integration. */
   scopedConfigVars?: ScopedConfigVarMap;
+  /** Instance Profile used for this integration.
+   * @default "Default Instance Profile"
+   */
+  instanceProfile?: string;
   /**
    * A list of components this code-native integration uses. See
    * https://prismatic.io/docs/integrations/code-native/existing-components/
