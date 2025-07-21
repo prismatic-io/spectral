@@ -35,7 +35,7 @@
   "devDependencies": {
     "@types/eslint": "9.6.1",
     "@types/node": "22.14.1",
-    "eslint": "^9",
+    "eslint": "^9.31.0",
     "prettier": "^3",
     "typescript": "^5"
   },
