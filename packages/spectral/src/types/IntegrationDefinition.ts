@@ -15,7 +15,7 @@ import {
   ConfigVarExpression,
   ActionContext,
   ScopedConfigVarMap,
-  FlowDefinitionSchemaConfig,
+  FlowDefinitionFlowSchema,
 } from ".";
 
 /**
@@ -133,7 +133,9 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   /** Error handling configuration. */
   errorConfig?: StepErrorConfig;
   /** Optional schemas definitions for the flow. Currently only for use with AI agents. */
-  schemaConfig?: FlowDefinitionSchemaConfig;
+  schemas?: Record<string, FlowDefinitionFlowSchema> & {
+    invoke: FlowDefinitionFlowSchema;
+  };
   /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
   onTrigger?:
     | TriggerReference

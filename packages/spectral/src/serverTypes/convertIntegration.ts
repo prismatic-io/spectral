@@ -28,8 +28,8 @@ import {
   CollectionType,
   KeyValuePair,
   FlowSchema,
-  FlowDefinitionSchemaConfig,
   DEFAULT_JSON_SCHEMA_VERSION,
+  FlowDefinitionFlowSchema,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -501,16 +501,16 @@ const flowUsesWrapperTrigger = (
 
 const convertFlowSchemas = (
   flowKey: string,
-  config: FlowDefinitionSchemaConfig,
+  schemas: Record<string, FlowDefinitionFlowSchema>,
 ): Record<string, FlowSchema> => {
-  return Object.entries(config.schemas).reduce(
+  return Object.entries(schemas).reduce(
     (acc, [key, value]) => {
       acc[key] = {
         title: value.title || `${flowKey}-${key}`,
         type: "object",
         $comment: value.description,
         properties: value.properties,
-        $schema: config.jsonSchemaVersion || DEFAULT_JSON_SCHEMA_VERSION,
+        $schema: value.jsonSchemaVersion || DEFAULT_JSON_SCHEMA_VERSION,
       };
       return acc;
     },
@@ -534,7 +534,6 @@ export const convertFlow = (
   result.onExecution = undefined;
   result.preprocessFlowConfig = undefined;
   result.errorConfig = undefined;
-  result.schemaConfig = undefined;
 
   let publicSupplementalComponent: "webhook" | "schedule" | undefined;
 
@@ -612,9 +611,7 @@ export const convertFlow = (
     publicSupplementalComponent,
   );
 
-  result.schemas = flow.schemaConfig
-    ? convertFlowSchemas(flow.stableKey, flow.schemaConfig)
-    : undefined;
+  result.schemas = flow.schemas ? convertFlowSchemas(flow.stableKey, flow.schemas) : undefined;
 
   return result;
 };

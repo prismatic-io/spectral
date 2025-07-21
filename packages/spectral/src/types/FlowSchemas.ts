@@ -11,13 +11,7 @@ export type FlowDefinitionFlowSchema = {
   title?: string;
   description?: string;
   properties: Record<string, FlowSchemaProperty>;
-};
-
-export type FlowDefinitionSchemaConfig = {
   jsonSchemaVersion?: string;
-  schemas: Record<string, FlowDefinitionFlowSchema> & {
-    invoke: FlowDefinitionFlowSchema;
-  };
 };
 
 export interface FlowSchema {
