@@ -27,6 +27,9 @@ import {
   isHtmlElementConfigVar,
   CollectionType,
   KeyValuePair,
+  FlowSchema,
+  FlowDefinitionSchemaConfig,
+  DEFAULT_JSON_SCHEMA_VERSION,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -496,6 +499,25 @@ const flowUsesWrapperTrigger = (
   return typeof flow.onTrigger === "function" || flow.onInstanceDelete || flow.onInstanceDeploy;
 };
 
+const convertFlowSchemas = (
+  flowKey: string,
+  config: FlowDefinitionSchemaConfig,
+): Record<string, FlowSchema> => {
+  return Object.entries(config.schemas).reduce(
+    (acc, [key, value]) => {
+      acc[key] = {
+        title: value.title || `${flowKey}-${key}`,
+        type: "object",
+        $comment: value.description,
+        properties: value.properties,
+        $schema: config.jsonSchemaVersion || DEFAULT_JSON_SCHEMA_VERSION,
+      };
+      return acc;
+    },
+    {} as Record<string, FlowSchema>,
+  );
+};
+
 /** Converts a Flow into the structure necessary for YAML generation. */
 export const convertFlow = (
   flow: Flow,
@@ -512,6 +534,7 @@ export const convertFlow = (
   result.onExecution = undefined;
   result.preprocessFlowConfig = undefined;
   result.errorConfig = undefined;
+  result.schemaConfig = undefined;
 
   let publicSupplementalComponent: "webhook" | "schedule" | undefined;
 
@@ -588,6 +611,10 @@ export const convertFlow = (
     componentRegistry,
     publicSupplementalComponent,
   );
+
+  result.schemas = flow.schemaConfig
+    ? convertFlowSchemas(flow.stableKey, flow.schemaConfig)
+    : undefined;
 
   return result;
 };
