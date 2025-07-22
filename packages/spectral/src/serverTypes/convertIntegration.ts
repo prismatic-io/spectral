@@ -27,6 +27,9 @@ import {
   isHtmlElementConfigVar,
   CollectionType,
   KeyValuePair,
+  FlowSchema,
+  DEFAULT_JSON_SCHEMA_VERSION,
+  FlowDefinitionFlowSchema,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -498,6 +501,25 @@ const flowUsesWrapperTrigger = (
   return typeof flow.onTrigger === "function" || flow.onInstanceDelete || flow.onInstanceDeploy;
 };
 
+const convertFlowSchemas = (
+  flowKey: string,
+  schemas: Record<string, FlowDefinitionFlowSchema>,
+): Record<string, FlowSchema> => {
+  return Object.entries(schemas).reduce(
+    (acc, [key, value]) => {
+      acc[key] = {
+        title: value.title || `${flowKey}-${key}`,
+        type: "object",
+        $comment: value.$comment,
+        properties: value.properties,
+        $schema: value.$schema || DEFAULT_JSON_SCHEMA_VERSION,
+      };
+      return acc;
+    },
+    {} as Record<string, FlowSchema>,
+  );
+};
+
 /** Converts a Flow into the structure necessary for YAML generation. */
 export const convertFlow = (
   flow: Flow,
@@ -590,6 +612,8 @@ export const convertFlow = (
     componentRegistry,
     publicSupplementalComponent,
   );
+
+  result.schemas = flow.schemas ? convertFlowSchemas(flow.stableKey, flow.schemas) : undefined;
 
   return result;
 };
