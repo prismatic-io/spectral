@@ -75,7 +75,7 @@ export const createPerform = (
 
       return result;
     } catch (error) {
-      throw errorHandler ? errorHandler(error) : error;
+      throw errorHandler ? await errorHandler(error) : error;
     }
   };
 };
@@ -106,7 +106,7 @@ const createInvokePollAction = <TInputs extends Inputs>(
         params,
       );
     } catch (error) {
-      throw errorHandler ? errorHandler(error) : error;
+      throw errorHandler ? await errorHandler(error) : error;
     }
   };
 };
@@ -164,7 +164,7 @@ export const createPollingPerform = (
         resultType: polledNoChanges ? "polled_no_changes" : "completed",
       };
     } catch (error) {
-      throw errorHandler ? errorHandler(error) : error;
+      throw errorHandler ? await errorHandler(error) : error;
     }
   };
 };
