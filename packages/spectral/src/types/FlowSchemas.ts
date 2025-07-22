@@ -9,9 +9,9 @@ export const DEFAULT_JSON_SCHEMA_VERSION = "https://json-schema.org/draft/2020-1
  *  type, since they can be populated in the convert layer. */
 export type FlowDefinitionFlowSchema = {
   title?: string;
-  description?: string;
+  $comment?: string;
+  $schema?: string;
   properties: Record<string, FlowSchemaProperty>;
-  jsonSchemaVersion?: string;
 };
 
 export interface FlowSchema {

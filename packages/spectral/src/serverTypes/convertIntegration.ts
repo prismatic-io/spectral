@@ -508,9 +508,9 @@ const convertFlowSchemas = (
       acc[key] = {
         title: value.title || `${flowKey}-${key}`,
         type: "object",
-        $comment: value.description,
+        $comment: value.$comment,
         properties: value.properties,
-        $schema: value.jsonSchemaVersion || DEFAULT_JSON_SCHEMA_VERSION,
+        $schema: value.$schema || DEFAULT_JSON_SCHEMA_VERSION,
       };
       return acc;
     },
