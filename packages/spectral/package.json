@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "10.5.12",
+  "version": "10.5.13",
   "description": "Utility library for building Prismatic connectors and code-native integrations",
   "keywords": ["prismatic"],
   "main": "dist/index.js",
@@ -61,6 +61,7 @@
     "@types/jest": "29.5.12",
     "@types/lodash": "4.17.0",
     "@types/node": "14.14.35",
+    "@types/prettier": "2.6.2",
     "@types/sax": "1.2.4",
     "@types/url-join": "4.0.1",
     "@types/uuid": "8.3.4",
