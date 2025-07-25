@@ -380,7 +380,7 @@ export const invokeDataSource = async <
   return result;
 };
 
-type TestConnectionValue = Pick<ConnectionValue, "fields" | "context" | "token">;
+type TestConnectionValue = Pick<ConnectionValue, "fields" | "context" | "token" | "key">;
 
 type TestConfigVarValues = Record<string, string | TestConnectionValue>;
 
@@ -399,7 +399,6 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
         ...result,
         [key]: {
           ...value,
-          key,
           configVarKey: "",
         },
       };
