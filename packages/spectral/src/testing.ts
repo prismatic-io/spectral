@@ -399,7 +399,6 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
         ...result,
         [key]: {
           ...value,
-          key: value.key,
           configVarKey: "",
         },
       };
