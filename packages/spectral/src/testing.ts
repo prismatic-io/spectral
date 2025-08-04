@@ -45,8 +45,9 @@ export const createConnection = <T extends ConnectionDefinition>(
   { key }: T,
   values: Record<string, unknown>,
   tokenValues?: Record<string, unknown>,
+  displayName?: string,
 ): ConnectionValue => ({
-  configVarKey: "",
+  configVarKey: displayName ?? "",
   key,
   fields: values,
   token: tokenValues,
