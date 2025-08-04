@@ -6,11 +6,11 @@ import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import { createTypeInterface } from "../utils/createTypeInterface";
 import { createImport } from "../utils/createImport";
-import type { Component } from "../../serverTypes";
 import { DataSourceType } from "../../types";
+import { ComponentForManifest } from "../cniComponentManifest/types";
 
 interface CreateDataSourcesProps {
-  component: Component;
+  component: ComponentForManifest;
   dryRun: boolean;
   verbose: boolean;
   sourceDir: string;

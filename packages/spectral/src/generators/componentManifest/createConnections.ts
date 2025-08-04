@@ -6,10 +6,10 @@ import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import { createTypeInterface } from "../utils/createTypeInterface";
 import { createImport } from "../utils/createImport";
-import type { Component } from "../../serverTypes";
+import { ComponentForManifest } from "../cniComponentManifest/types";
 
 interface CreateConnectionsProps {
-  component: Component;
+  component: ComponentForManifest;
   dryRun: boolean;
   verbose: boolean;
   sourceDir: string;
