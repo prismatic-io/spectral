@@ -7,7 +7,8 @@
   "types": "dist/index.d.ts",
   "homepage": "https://prismatic.io",
   "bin": {
-    "component-manifest": "./bin/component-manifest.js"
+    "component-manifest": "./bin/component-manifest.js",
+    "cni-component-manifest": "./bin/cni-component-manifest.js"
   },
   "bugs": {
     "url": "https://github.com/prismatic-io/spectral"
