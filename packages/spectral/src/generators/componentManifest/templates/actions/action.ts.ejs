@@ -1,3 +1,4 @@
+<%- include('../partials/generatedHeader.ejs', { includeGeneratedHeader }) -%>
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 
 export interface <%= action.typeInterface %>Values {
@@ -16,5 +17,8 @@ export const <%= action.import %> = {
   ): Promise<TReturn> => Promise.resolve<TReturn>({} as TReturn),
   inputs: {
     <%- include('../partials/inputs.ejs', { inputs: action.inputs, helpers }) -%>
-  }
+  },
+  <%_ if (action.examplePayload) { -%>
+  examplePayload: <%- typeof action.examplePayload === 'string' ? action.examplePayload : JSON.stringify(action.examplePayload, null, 2) %>,
+  <%_ } -%>
 } as const;
