@@ -34,6 +34,7 @@ export const fetchComponentDataForManifest = async ({
           id
           label
           description
+          signature
           key
           actions {
             nodes {
@@ -161,6 +162,7 @@ export const fetchComponentDataForManifest = async ({
 
   return {
     key: componentKey,
+    signature: component.signature,
     public: !isPrivate,
     display: {
       label: component.label,

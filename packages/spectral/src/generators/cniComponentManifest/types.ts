@@ -4,6 +4,7 @@ export interface ComponentNode {
   id: string;
   label: string;
   description: string;
+  signature: string;
   key: string;
   actions: {
     nodes: ActionNode[];
