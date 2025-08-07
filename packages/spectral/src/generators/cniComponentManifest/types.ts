@@ -49,7 +49,7 @@ export interface InputNode {
   onPremiseControlled: boolean;
 }
 
-export type FormattedAction = Pick<Action, "key" | "display" | "inputs">;
+export type FormattedAction = Pick<Action, "key" | "display" | "inputs" | "examplePayload">;
 export type FormattedTrigger = Pick<Trigger, "key" | "display" | "inputs">;
 export type FormattedDataSource = Pick<
   DataSource,
