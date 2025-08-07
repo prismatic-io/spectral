@@ -14,6 +14,7 @@ interface CreateConnectionsProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
+  includeGeneratedHeader?: boolean;
 }
 
 export const createConnections = async ({
@@ -22,6 +23,7 @@ export const createConnections = async ({
   verbose,
   sourceDir,
   destinationDir,
+  includeGeneratedHeader = false,
 }: CreateConnectionsProps) => {
   if (verbose) {
     console.info("Creating connections...");
@@ -37,6 +39,7 @@ export const createConnections = async ({
     verbose,
     sourceDir,
     destinationDir,
+    includeGeneratedHeader,
   });
 
   const connections = await Promise.all(
@@ -66,6 +69,7 @@ export const createConnections = async ({
         verbose,
         sourceDir,
         destinationDir,
+        includeGeneratedHeader,
       });
     }),
   );
@@ -88,6 +92,7 @@ interface RenderConnectionsIndexProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
+  includeGeneratedHeader: boolean;
 }
 
 const renderConnectionsIndex = async ({
@@ -96,12 +101,14 @@ const renderConnectionsIndex = async ({
   verbose,
   sourceDir,
   destinationDir,
+  includeGeneratedHeader,
 }: RenderConnectionsIndexProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "connections", "index.ts.ejs"),
     destination: path.join(destinationDir, "connections", "index.ts"),
     data: {
       imports,
+      includeGeneratedHeader,
     },
     dryRun,
     verbose,
@@ -123,6 +130,7 @@ interface RenderConnectionProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
+  includeGeneratedHeader: boolean;
 }
 
 const renderConnection = async ({
@@ -132,6 +140,7 @@ const renderConnection = async ({
   verbose,
   sourceDir,
   destinationDir,
+  includeGeneratedHeader,
 }: RenderConnectionProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "connections", "connection.ts.ejs"),
@@ -140,6 +149,7 @@ const renderConnection = async ({
       connection,
       helpers,
       imports,
+      includeGeneratedHeader,
     },
     dryRun,
     verbose,
