@@ -29,7 +29,7 @@ export const <%= connection.import %> = {
  *
  * @comments Helper for direct usage in config wizard definitions.
  */
-export const <%= connection.key %>Connection = (
+export const <%= connection.component %><%= helpers.capitalizeFirstLetter(connection.key) %> = (
   stableKey: string,
   values: {
 <% connection.inputs.forEach((input) => { -%>

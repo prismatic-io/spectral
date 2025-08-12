@@ -27,7 +27,7 @@ export const <%= dataSource.import %> = {
  *
  * @comments Helper for direct usage in config wizard definitions.
  */
-export const <%= dataSource.key %>DataSource = (
+export const <%= dataSource.component %><%= helpers.capitalizeFirstLetter(dataSource.key) %> = (
   stableKey: string,
   values: {
 <% dataSource.inputs.forEach((input) => { -%>
