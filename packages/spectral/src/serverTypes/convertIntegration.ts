@@ -30,6 +30,7 @@ import {
   FlowSchema,
   DEFAULT_JSON_SCHEMA_VERSION,
   FlowDefinitionFlowSchema,
+  ConnectionTemplateInputField,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -687,7 +688,7 @@ export const convertConfigVar = (
         }
 
         const defaultValue = input.collection
-          ? (input.default || []).map((defaultValue) => {
+          ? (Array.isArray(input.default) ? input.default : []).map((defaultValue) => {
               if (typeof defaultValue === "string") {
                 return {
                   type: "value",
@@ -1101,7 +1102,7 @@ const codeNativeIntegrationComponent = (
 
       const convertedInputs = Object.entries(configVar.inputs).map(([key, value]) => {
         if ("templateValue" in value) {
-          return convertTemplateInput(key, value, configVar.inputs);
+          return convertTemplateInput(key, value as ConnectionTemplateInputField, configVar.inputs);
         }
 
         return convertInput(key, value);

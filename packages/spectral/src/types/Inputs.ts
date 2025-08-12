@@ -96,14 +96,15 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = 
 
 export type Inputs = Record<string, InputFieldDefinition>;
 
-export type ConnectionInput = (
+export type ConnectionInput = Omit<
   | StringInputField
   | DataInputField
   | TextInputField
   | PasswordInputField
   | BooleanInputField
-  | ConnectionTemplateInputField
-) & {
+  | ConnectionTemplateInputField,
+  "clean"
+> & {
   /** Determines if this input field should be shown in the UI. */
   shown?: boolean;
   /**
