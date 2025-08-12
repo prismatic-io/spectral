@@ -49,7 +49,12 @@ export const createDataSources = async ({
         inputs: dataSource.inputs,
       });
 
-      const imports = getImports({ inputs });
+      const imports = getImports({
+        inputs,
+        additionalImports: {
+          "@prismatic-io/spectral": ["ConfigVarExpression", "TemplateExpression"],
+        },
+      });
 
       return await renderDataSource({
         dataSource: {
@@ -60,6 +65,7 @@ export const createDataSources = async ({
           description: dataSource.display.description,
           dataSourceType: dataSource.dataSourceType,
           inputs,
+          component: component.key,
         },
         imports,
         dryRun,
@@ -121,6 +127,7 @@ interface RenderDataSourceProps {
     description: string;
     dataSourceType: DataSourceType;
     inputs: Input[];
+    component: string;
   };
   dryRun: boolean;
   imports: Imports;
