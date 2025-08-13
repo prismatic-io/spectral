@@ -120,7 +120,10 @@ export const createMockContextComponents = <TMockAction extends () => Promise<an
         Record<string, TMockAction>
       >((actionAccum, actionKey) => {
         actionAccum[actionKey] = (() => {
-          return Promise.resolve({ data: null });
+          const response = registry[componentKey].actions[actionKey].examplePayload ?? {
+            data: null,
+          };
+          return Promise.resolve(response);
         }) as TMockAction;
         return actionAccum;
       }, {});

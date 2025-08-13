@@ -6,7 +6,7 @@ import { createDataSources } from "./createDataSources";
 import { createStaticFiles, type PackageDependencies } from "./createStaticFiles";
 import { createTriggers } from "./createTriggers";
 import { removeComponentManifest } from "./removeComponentManifest";
-import { getComponentSignatureWithPrism } from "../utils/getComponentSignatureWithPrism";
+import { getComponentSignatureWithPrism } from "../utils/prism";
 import type { Component } from "../../serverTypes";
 
 interface CreateComponentManifestProps {

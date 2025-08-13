@@ -1,3 +1,5 @@
+<%- include('../partials/generatedHeader.ejs') -%>
+import { dataSourceConfigVar } from "@prismatic-io/spectral";
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 
 export interface <%= dataSource.typeInterface %>Values {
@@ -19,3 +21,30 @@ export const <%= dataSource.import %> = {
     <%- include('../partials/inputs.ejs', { inputs: dataSource.inputs, helpers }) -%>
   }
 } as const;
+
+/**
+ * <%= dataSource.label %> DataSource Helper
+ *
+ * @comments Helper for direct usage in config wizard definitions.
+ */
+export const <%= dataSource.componentKey %><%= helpers.capitalizeFirstLetter(helpers.camelCase(dataSource.key)) %> = (
+  stableKey: string,
+  values: {
+<% dataSource.inputs.forEach((input) => { -%>
+  <%- helpers.formatType(input.key) %><%= input.required ? "" : "?" %>:
+  <% if (!input.valueType.type || input.valueType.type !== "Connection") { %>
+    { value: <%- input.valueType.type ? input.valueType.type : input.valueType %>; } | TemplateExpression
+  <% } %>
+  | ConfigVarExpression;
+<% }); -%>
+  },
+) => {
+  return dataSourceConfigVar({
+    stableKey,
+    dataSource: {
+      component: "<%= dataSource.componentKey %>",
+      key: "<%= helpers.camelCase(dataSource.key) %>",
+      values,
+    },
+  });
+};

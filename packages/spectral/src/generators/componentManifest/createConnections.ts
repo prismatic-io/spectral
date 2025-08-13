@@ -6,10 +6,10 @@ import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import { createTypeInterface } from "../utils/createTypeInterface";
 import { createImport } from "../utils/createImport";
-import type { Component } from "../../serverTypes";
+import { ComponentForManifest } from "../cniComponentManifest/types";
 
 interface CreateConnectionsProps {
-  component: Component;
+  component: ComponentForManifest;
   dryRun: boolean;
   verbose: boolean;
   sourceDir: string;
@@ -45,7 +45,12 @@ export const createConnections = async ({
         inputs: connection.inputs,
       });
 
-      const imports = getImports({ inputs });
+      const imports = getImports({
+        inputs,
+        additionalImports: {
+          "@prismatic-io/spectral": ["ConfigVarExpression", "ConfigVarVisibility"],
+        },
+      });
 
       const onPremAvailable = connection.inputs.some(
         (input) => input.onPremControlled || input.onPremiseControlled,
@@ -60,6 +65,7 @@ export const createConnections = async ({
           comments: connection.comments,
           inputs,
           onPremAvailable,
+          componentKey: component.key,
         },
         imports,
         dryRun,
@@ -117,6 +123,7 @@ interface RenderConnectionProps {
     comments?: string;
     inputs: Input[];
     onPremAvailable: boolean;
+    componentKey: string;
   };
   dryRun: boolean;
   imports: Imports;
