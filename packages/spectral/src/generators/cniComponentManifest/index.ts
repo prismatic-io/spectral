@@ -110,7 +110,9 @@ export const fetchComponentDataForManifest = async ({
     throw new Error(
       `Could not find a ${
         isPrivate ? "private" : "public"
-      } component with the given key: ${componentKey}. You may need to include the "--private" flag.`,
+      } component with the given key: ${componentKey}. ${
+        !isPrivate ? 'You may need to include the "--private" flag.' : ""
+      }`,
     );
   }
 

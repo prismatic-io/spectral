@@ -14,7 +14,6 @@ interface CreateTriggersProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  includeGeneratedHeader?: boolean;
 }
 
 export const createTriggers = async ({
@@ -23,7 +22,6 @@ export const createTriggers = async ({
   verbose,
   sourceDir,
   destinationDir,
-  includeGeneratedHeader = false,
 }: CreateTriggersProps) => {
   if (verbose) {
     console.info("Creating triggers...");
@@ -39,7 +37,6 @@ export const createTriggers = async ({
     verbose,
     sourceDir,
     destinationDir,
-    includeGeneratedHeader,
   });
 
   const triggers = await Promise.all(
@@ -64,7 +61,6 @@ export const createTriggers = async ({
         verbose,
         sourceDir,
         destinationDir,
-        includeGeneratedHeader,
       });
     }),
   );
@@ -87,7 +83,6 @@ interface RenderTriggersIndexProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  includeGeneratedHeader: boolean;
 }
 
 const renderTriggersIndex = async ({
@@ -96,14 +91,12 @@ const renderTriggersIndex = async ({
   verbose,
   sourceDir,
   destinationDir,
-  includeGeneratedHeader,
 }: RenderTriggersIndexProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "triggers", "index.ts.ejs"),
     destination: path.join(destinationDir, "triggers", "index.ts"),
     data: {
       imports,
-      includeGeneratedHeader,
     },
     dryRun,
     verbose,
@@ -124,7 +117,6 @@ interface RenderTriggerProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  includeGeneratedHeader: boolean;
 }
 
 const renderTrigger = async ({
@@ -134,7 +126,6 @@ const renderTrigger = async ({
   verbose,
   sourceDir,
   destinationDir,
-  includeGeneratedHeader,
 }: RenderTriggerProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "triggers", "trigger.ts.ejs"),
@@ -143,7 +134,6 @@ const renderTrigger = async ({
       helpers,
       imports,
       trigger,
-      includeGeneratedHeader,
     },
     dryRun,
     verbose,

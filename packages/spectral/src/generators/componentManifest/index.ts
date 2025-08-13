@@ -19,7 +19,6 @@ interface CreateComponentManifestProps {
   sourceDir: string;
   destinationDir: string;
   registry: string | null;
-  includeGeneratedHeader?: boolean;
 }
 
 export const createComponentManifest = async ({
@@ -32,7 +31,6 @@ export const createComponentManifest = async ({
   sourceDir,
   destinationDir,
   registry,
-  includeGeneratedHeader = false,
 }: CreateComponentManifestProps) => {
   const signature = await getComponentSignatureWithPrism({
     skipSignatureVerify,
@@ -68,7 +66,6 @@ export const createComponentManifest = async ({
     verbose,
     sourceDir,
     destinationDir: srcDir,
-    includeGeneratedHeader,
   });
 
   await createTriggers({
@@ -77,7 +74,6 @@ export const createComponentManifest = async ({
     verbose,
     sourceDir,
     destinationDir: srcDir,
-    includeGeneratedHeader,
   });
 
   await createConnections({
@@ -86,7 +82,6 @@ export const createComponentManifest = async ({
     verbose,
     sourceDir,
     destinationDir: srcDir,
-    includeGeneratedHeader,
   });
 
   await createDataSources({
@@ -95,7 +90,6 @@ export const createComponentManifest = async ({
     verbose,
     sourceDir,
     destinationDir: srcDir,
-    includeGeneratedHeader,
   });
 
   console.info(
