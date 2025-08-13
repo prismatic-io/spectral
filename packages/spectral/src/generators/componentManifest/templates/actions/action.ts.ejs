@@ -1,5 +1,6 @@
 <%- include('../partials/generatedHeader.ejs') -%>
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
+import { requireContext } from "@prismatic-io/spectral";
 
 export interface <%= action.typeInterface %>Values {
 <%- include('../partials/performArgs.ejs', { inputs: action.inputs, helpers }) -%>
@@ -12,9 +13,12 @@ export interface <%= action.typeInterface %>Values {
  */
 export const <%= action.import %> = {
   key: "<%= action.key %>",
-  perform: <TReturn>(
-    _values: <%= action.typeInterface %>Values
-  ): Promise<TReturn> => Promise.resolve<TReturn>({} as TReturn),
+  perform: async <TReturn>(
+    values: <%= action.typeInterface %>Values
+  ): Promise<TReturn> => {
+    const context = requireContext();
+    return await context.components.<%= action.componentKey %>.<%= action.key %>({ ...values }) as TReturn;
+  },
   inputs: {
     <%- include('../partials/inputs.ejs', { inputs: action.inputs, helpers }) -%>
   },

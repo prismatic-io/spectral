@@ -1,4 +1,5 @@
 <%- include('../partials/generatedHeader.ejs') -%>
+import { connectionConfigVar } from "@prismatic-io/spectral";
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 
 export interface <%= connection.typeInterface %>Values {
@@ -22,3 +23,29 @@ export const <%= connection.import %> = {
     <%- include('../partials/inputs.ejs', { inputs: connection.inputs, helpers }) -%>
   }
 } as const;
+
+/**
+ * <%= connection.label %> Connection Helper
+ *
+ * @comments Helper for direct usage in config wizard definitions.
+ */
+export const <%= connection.componentKey %><%= helpers.capitalizeFirstLetter(helpers.camelCase(connection.key)) %> = (
+  stableKey: string,
+  values: {
+<% connection.inputs.forEach((input) => { -%>
+  <%- helpers.formatType(input.key) %><%= input.required ? "" : "?" %>: ({
+    value: <%- input.valueType.type ? input.valueType.type : input.valueType %>;
+  } | ConfigVarExpression) & ConfigVarVisibility & { writeOnly?: true };
+<% }); -%>
+  },
+) => {
+  return connectionConfigVar({
+    dataType: "connection",
+    stableKey,
+    connection: {
+      component: "<%= connection.componentKey %>",
+      key: "<%= helpers.camelCase(connection.key) %>",
+      values,
+    },
+  });
+};
