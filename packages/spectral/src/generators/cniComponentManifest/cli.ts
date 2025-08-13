@@ -96,7 +96,6 @@ export const runMain = async (process: NodeJS.Process) => {
     destination: path.join(destinationDir, "index.ts"),
     data: {
       component,
-      includeGeneratedHeader: true,
     },
     verbose,
     dryRun,
@@ -108,7 +107,6 @@ export const runMain = async (process: NodeJS.Process) => {
     verbose,
     sourceDir: templatesDir,
     destinationDir,
-    includeGeneratedHeader: true,
   });
 
   await createTriggers({
@@ -117,7 +115,6 @@ export const runMain = async (process: NodeJS.Process) => {
     verbose,
     sourceDir: templatesDir,
     destinationDir,
-    includeGeneratedHeader: true,
   });
 
   await createConnections({
@@ -126,7 +123,6 @@ export const runMain = async (process: NodeJS.Process) => {
     verbose,
     sourceDir: templatesDir,
     destinationDir,
-    includeGeneratedHeader: true,
   });
 
   await createDataSources({
@@ -135,7 +131,6 @@ export const runMain = async (process: NodeJS.Process) => {
     verbose: flags.verbose.value,
     sourceDir: templatesDir,
     destinationDir,
-    includeGeneratedHeader: true,
   });
 
   console.info(

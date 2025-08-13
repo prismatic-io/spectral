@@ -15,7 +15,6 @@ interface CreateDataSourcesProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  includeGeneratedHeader?: boolean;
 }
 
 export const createDataSources = async ({
@@ -24,7 +23,6 @@ export const createDataSources = async ({
   verbose,
   sourceDir,
   destinationDir,
-  includeGeneratedHeader = false,
 }: CreateDataSourcesProps) => {
   if (verbose) {
     console.info("Creating data sources...");
@@ -40,7 +38,6 @@ export const createDataSources = async ({
     verbose,
     sourceDir,
     destinationDir,
-    includeGeneratedHeader,
   });
 
   const dataSources = await Promise.all(
@@ -66,7 +63,6 @@ export const createDataSources = async ({
         verbose,
         sourceDir,
         destinationDir,
-        includeGeneratedHeader,
       });
     }),
   );
@@ -89,7 +85,6 @@ interface RenderDataSourcesProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  includeGeneratedHeader: boolean;
 }
 
 const renderDataSourcesIndex = async ({
@@ -98,14 +93,12 @@ const renderDataSourcesIndex = async ({
   verbose,
   sourceDir,
   destinationDir,
-  includeGeneratedHeader,
 }: RenderDataSourcesProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "dataSources", "index.ts.ejs"),
     destination: path.join(destinationDir, "dataSources", "index.ts"),
     data: {
       imports,
-      includeGeneratedHeader,
     },
     dryRun,
     verbose,
@@ -127,7 +120,6 @@ interface RenderDataSourceProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  includeGeneratedHeader: boolean;
 }
 
 const renderDataSource = async ({
@@ -137,7 +129,6 @@ const renderDataSource = async ({
   verbose,
   sourceDir,
   destinationDir,
-  includeGeneratedHeader,
 }: RenderDataSourceProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "dataSources", "dataSource.ts.ejs"),
@@ -146,7 +137,6 @@ const renderDataSource = async ({
       dataSource,
       helpers,
       imports,
-      includeGeneratedHeader,
     },
     dryRun,
     verbose,

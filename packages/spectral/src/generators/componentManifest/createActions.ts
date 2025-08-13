@@ -14,7 +14,6 @@ interface CreateActionsProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  includeGeneratedHeader?: boolean;
 }
 
 export const createActions = async ({
@@ -23,7 +22,6 @@ export const createActions = async ({
   verbose,
   sourceDir,
   destinationDir,
-  includeGeneratedHeader = false,
 }: CreateActionsProps) => {
   if (verbose) {
     console.info("Creating actions...");
@@ -39,7 +37,6 @@ export const createActions = async ({
     verbose,
     sourceDir,
     destinationDir,
-    includeGeneratedHeader,
   });
 
   const actions = await Promise.all(
@@ -65,7 +62,6 @@ export const createActions = async ({
         verbose,
         sourceDir,
         destinationDir,
-        includeGeneratedHeader,
       });
     }),
   );
@@ -88,7 +84,6 @@ interface RenderActionsIndexProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  includeGeneratedHeader: boolean;
 }
 
 const renderActionsIndex = async ({
@@ -97,14 +92,12 @@ const renderActionsIndex = async ({
   verbose,
   sourceDir,
   destinationDir,
-  includeGeneratedHeader,
 }: RenderActionsIndexProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "actions", "index.ts.ejs"),
     destination: path.join(destinationDir, "actions", "index.ts"),
     data: {
       imports,
-      includeGeneratedHeader,
     },
     dryRun,
     verbose,
@@ -126,7 +119,6 @@ interface RenderActionProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  includeGeneratedHeader: boolean;
 }
 
 const renderAction = async ({
@@ -136,7 +128,6 @@ const renderAction = async ({
   verbose,
   sourceDir,
   destinationDir,
-  includeGeneratedHeader,
 }: RenderActionProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "actions", "action.ts.ejs"),
@@ -145,7 +136,6 @@ const renderAction = async ({
       action,
       helpers,
       imports,
-      includeGeneratedHeader,
     },
     dryRun,
     verbose,
