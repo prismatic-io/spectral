@@ -878,7 +878,7 @@ const generateTriggerPerformFn = (
     componentRef && typeof onTrigger !== "function"
       ? async (context, payload, params) => {
           // @ts-expect-error: _components isn't part of the public API
-          const { _components } = context;
+          const _components = context._components ?? { invokeTrigger: () => {} };
           const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
           const cniContext = createCNIContext(context, componentRegistry);
 
@@ -923,8 +923,7 @@ const generateOnInstanceWrapperFn = (
     componentRef && typeof onTrigger !== "function"
       ? async (context, params) => {
           // @ts-expect-error: _components isn't part of the public API
-          const { _components } = context;
-
+          const _components = context._components ?? { invokeTrigger: () => {} };
           const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
           const cniContext = createCNIContext(context, componentRegistry);
           const invokeResponse =

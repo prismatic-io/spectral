@@ -32,8 +32,7 @@ export function createCNIContext(
   // They are added to the context via spectral, here.
 
   // @ts-expect-error _components isn't part of the public API
-  const { _components } = context;
-
+  const _components = context._components ?? { invoke: () => {} };
   const invoke = (_components as { invoke: ComponentActionInvokeFunction }).invoke;
 
   // Construct the component methods from the component registry
