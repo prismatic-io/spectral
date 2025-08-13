@@ -86,7 +86,9 @@ export const fetchComponentDataForManifest = async ({
     throw new Error(
       `Could not find a ${
         isPrivate ? "private" : "public"
-      } component with the given key: ${componentKey}`,
+      } component with the given key: ${componentKey}. ${
+        !isPrivate ? 'You may need to include the "--private" flag.' : ""
+      }`,
     );
   }
 
@@ -125,6 +127,7 @@ export const fetchComponentDataForManifest = async ({
           description: node.description,
         },
         inputs: transformInputNodes(node.inputs.nodes),
+        examplePayload: node.examplePayload,
       };
     }
   });

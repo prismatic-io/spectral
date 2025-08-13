@@ -21,6 +21,7 @@ export interface ComponentManifestAction {
   key?: string;
   perform: (values: any) => Promise<unknown>;
   inputs: Record<string, BaseInput>;
+  examplePayload?: unknown;
 }
 
 export interface ComponentManifestTrigger {
