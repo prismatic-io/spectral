@@ -3,10 +3,6 @@ import { ActionContext } from "../types";
 
 const actionContextStorage = new AsyncLocalStorage<ActionContext>();
 
-export function getCurrentContext(): ActionContext | undefined {
-  return actionContextStorage.getStore();
-}
-
 export function runWithContext<T>(
   context: ActionContext,
   fn: () => T | Promise<T>,
@@ -15,9 +11,11 @@ export function runWithContext<T>(
 }
 
 export function requireContext(): ActionContext {
-  const context = getCurrentContext();
+  const context = actionContextStorage.getStore();
+
   if (!context) {
     throw new Error("ActionContext not found. Ensure this code is wrapped via runWithContext.");
   }
+
   return context;
 }

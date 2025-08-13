@@ -59,7 +59,7 @@ export const createActions = async ({
           description: action.display.description,
           inputs,
           ...(action.examplePayload ? { examplePayload: action.examplePayload } : {}),
-          component: component.key,
+          componentKey: component.key,
         },
         imports,
         dryRun,
@@ -121,7 +121,7 @@ interface RenderActionProps {
     description: string;
     inputs: Input[];
     examplePayload?: unknown;
-    component: string;
+    componentKey: string;
   };
   dryRun: boolean;
   imports: Imports;
