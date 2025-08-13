@@ -68,7 +68,7 @@ export const createConnections = async ({
           comments: connection.comments,
           inputs,
           onPremAvailable,
-          component: component.key,
+          componentKey: component.key,
         },
         imports,
         dryRun,
@@ -130,7 +130,7 @@ interface RenderConnectionProps {
     comments?: string;
     inputs: Input[];
     onPremAvailable: boolean;
-    component: string;
+    componentKey: string;
   };
   dryRun: boolean;
   imports: Imports;
