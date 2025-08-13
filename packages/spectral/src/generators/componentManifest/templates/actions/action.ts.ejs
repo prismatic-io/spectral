@@ -17,7 +17,7 @@ export const <%= action.import %> = {
     values: <%= action.typeInterface %>Values
   ): Promise<TReturn> => {
     const context = requireContext();
-    return await context.components.<%= action.component %>.<%= action.key %>({ ...values }) as TReturn;
+    return await context.components.<%= action.componentKey %>.<%= action.key %>({ ...values }) as TReturn;
   },
   inputs: {
     <%- include('../partials/inputs.ejs', { inputs: action.inputs, helpers }) -%>
