@@ -6,6 +6,8 @@ import {
   FormattedAction,
   FormattedDataSource,
   FormattedTrigger,
+  ActionNode,
+  ComponentActionsQueryResponse,
 } from "./types";
 import { getPrismAccessToken } from "../utils/prism";
 
@@ -36,31 +38,6 @@ export const fetchComponentDataForManifest = async ({
           description
           signature
           key
-          actions {
-            nodes {
-              isDataSource
-              isDetailDataSource
-              dataSourceType
-              isTrigger
-              isCommonTrigger
-              key
-              label
-              description
-              inputs {
-                nodes {
-                  key
-                  label
-                  type
-                  required
-                  default
-                  collection
-                  shown
-                  onPremiseControlled
-                }
-              }
-              examplePayload
-            }
-          }
           connections {
             nodes {
               key
@@ -98,7 +75,6 @@ export const fetchComponentDataForManifest = async ({
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        // @TODO: Is it OK to list spectral here? As opposed to prism
         "Prismatic-Client": "spectral",
       },
     },
@@ -114,11 +90,13 @@ export const fetchComponentDataForManifest = async ({
     );
   }
 
+  const componentActions = await getComponentActions(component.id, prismaticUrl, accessToken);
+
   const actions: Record<string, FormattedAction> = {};
   const triggers: Record<string, FormattedTrigger> = {};
   const dataSources: Record<string, FormattedDataSource> = {};
 
-  component.actions.nodes.forEach((node) => {
+  componentActions.forEach((node) => {
     if (node.isTrigger) {
       triggers[node.key] = {
         key: node.key,
@@ -174,3 +152,71 @@ export const fetchComponentDataForManifest = async ({
     connections,
   };
 };
+
+async function getComponentActions(componentId: string, prismaticUrl: string, accessToken: string) {
+  let hasNextPage = true;
+  let cursor: string | null = null;
+  let actions: Array<ActionNode> = [];
+
+  while (hasNextPage) {
+    const query = `
+      query componentActionQuery($component: ID!, $after: String) {
+        actions(component: $component, after: $after) {
+          nodes {
+            isDataSource
+            isDetailDataSource
+            dataSourceType
+            isTrigger
+            isCommonTrigger
+            key
+            label
+            description
+            inputs {
+              nodes {
+                key
+                label
+                type
+                required
+                default
+                collection
+                shown
+                onPremiseControlled
+              }
+            }
+            examplePayload
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+        }
+      }
+    `;
+
+    const response: ComponentActionsQueryResponse = await axios.post(
+      `${prismaticUrl}/api`,
+      {
+        query: query,
+        variables: {
+          component: componentId,
+          after: cursor,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Prismatic-Client": "spectral",
+        },
+      },
+    );
+
+    const responseActions: Array<ActionNode> = response.data.data.actions.nodes;
+
+    actions = actions.concat(responseActions);
+    hasNextPage = response.data.data.actions.pageInfo?.hasNextPage;
+    cursor = response.data.data.actions.pageInfo?.endCursor;
+  }
+
+  return actions;
+}

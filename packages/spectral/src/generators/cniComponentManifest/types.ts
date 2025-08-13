@@ -61,3 +61,14 @@ export type ComponentForManifest = Pick<Component, "key" | "public" | "display" 
   triggers: Record<string, Trigger | FormattedTrigger>;
   dataSources: Record<string, DataSource | FormattedDataSource>;
 };
+
+export type ComponentActionsQueryResponse = {
+  data: {
+    data: {
+      actions: {
+        nodes: Array<ActionNode>;
+        pageInfo: { hasNextPage: boolean; endCursor: string };
+      };
+    };
+  };
+};
