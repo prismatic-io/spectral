@@ -21,6 +21,32 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./component": {
+      "types": "./dist/component.d.ts",
+      "default": "./dist/component.js"
+    },
+    "./integration": {
+      "types": "./dist/integration.d.ts",
+      "default": "./dist/integration.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    },
+    "./util": {
+      "types": "./dist/util.d.ts",
+      "default": "./dist/util.js"
+    },
+    "./serverTypes": {
+      "types": "./dist/serverTypes/index.d.ts",
+      "default": "./dist/serverTypes/index.js"
+    }
+  },
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf dist",
