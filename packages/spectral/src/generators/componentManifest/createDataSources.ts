@@ -6,11 +6,11 @@ import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import { createTypeInterface } from "../utils/createTypeInterface";
 import { createImport } from "../utils/createImport";
-import type { Component } from "../../serverTypes";
 import { DataSourceType } from "../../types";
+import { ComponentForManifest } from "../cniComponentManifest/types";
 
 interface CreateDataSourcesProps {
-  component: Component;
+  component: ComponentForManifest;
   dryRun: boolean;
   verbose: boolean;
   sourceDir: string;
@@ -46,7 +46,12 @@ export const createDataSources = async ({
         inputs: dataSource.inputs,
       });
 
-      const imports = getImports({ inputs });
+      const imports = getImports({
+        inputs,
+        additionalImports: {
+          "@prismatic-io/spectral": ["ConfigVarExpression", "TemplateExpression"],
+        },
+      });
 
       return await renderDataSource({
         dataSource: {
@@ -57,6 +62,7 @@ export const createDataSources = async ({
           description: dataSource.display.description,
           dataSourceType: dataSource.dataSourceType,
           inputs,
+          componentKey: component.key,
         },
         imports,
         dryRun,
@@ -114,6 +120,7 @@ interface RenderDataSourceProps {
     description: string;
     dataSourceType: DataSourceType;
     inputs: Input[];
+    componentKey: string;
   };
   dryRun: boolean;
   imports: Imports;

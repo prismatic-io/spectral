@@ -57,6 +57,7 @@ import {
 } from "./integration";
 import merge from "lodash/merge";
 import { createCNIContext, logDebugResults } from "./context";
+import { runWithContext } from "./asyncContext";
 import path from "path";
 import { readFileSync } from "fs";
 
@@ -927,26 +928,32 @@ const generateOnInstanceWrapperFn = (
           const _components = context._components ?? { invokeTrigger: () => {} };
           const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
           const cniContext = createCNIContext(context, componentRegistry);
-          const invokeResponse =
-            (await invokeTrigger(
-              invokeTriggerComponentInput(componentRef, onTrigger, eventName),
-              cniContext,
-              null,
-              params,
-            )) || {};
 
-          let customResponse: TriggerEventFunctionReturn = {};
+          // Using runWithContext allows for component action invocation via manifest.
+          return await runWithContext(cniContext, async () => {
+            const invokeResponse =
+              (await invokeTrigger(
+                invokeTriggerComponentInput(componentRef, onTrigger, eventName),
+                cniContext,
+                null,
+                params,
+              )) || {};
 
-          if (customFn) {
-            customResponse = (await customFn(cniContext, params)) || {};
-          }
+            let customResponse: TriggerEventFunctionReturn = {};
+            if (customFn) {
+              customResponse = (await customFn(cniContext, params)) || {};
+            }
 
-          return merge(invokeResponse, customResponse);
+            return merge(invokeResponse, customResponse);
+          });
         }
       : async (context, params) => {
           if (customFn) {
             const cniContext = createCNIContext(context, componentRegistry);
-            return await customFn(cniContext, params);
+            // Using runWithContext allows for component action invocation via manifest.
+            return await runWithContext(cniContext, async () => {
+              return await customFn(cniContext, params);
+            });
           }
         };
 
@@ -960,7 +967,11 @@ const convertOnExecution =
   ): ServerActionPerformFunction =>
   async (context, params) => {
     const actionContext = createCNIContext(context, componentRegistry);
-    const result = await onExecution(actionContext, params);
+
+    // Using runWithContext allows for component action invocation via manifest.
+    const result = await runWithContext(actionContext, async () => {
+      return await onExecution(actionContext, params);
+    });
 
     logDebugResults(actionContext);
 
