@@ -120,6 +120,8 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   isSynchronous?: boolean;
   /** Retry Configuration for this flow. */
   retryConfig?: RetryConfig;
+  /** Queue Configuration for this flow. */
+  queueConfig?: QueueConfig;
   /**
    * Security configuration to use for the endpoint of this flow.
    * @default `EndpointSecurityType.CustomerOptional`
@@ -178,6 +180,14 @@ export type RetryConfig = {
   usesExponentialBackoff: boolean;
   /** Name of the field in the data payload returned by the flow's trigger to use as a Unique Request ID for retry request cancellation. */
   uniqueRequestIdField?: string;
+};
+
+/** Defines attributes of a retry configuration used by a flow of an integration. */
+export type QueueConfig = {
+  /** Determines whether the flow should be executed using FIFO ordering. */
+  usesFifoQueue: boolean;
+  /** Name of the field in the data payload returned by the flow's trigger to use as a dedupe ID; used to determine whether to queue the execution. */
+  dedupeIdField?: string;
 };
 
 /** Defines attributes of a step error configuration used to determine how to handle errors during flow step execution. */
