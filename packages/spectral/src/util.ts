@@ -617,6 +617,8 @@ const cleanObject = (
   return omitBy(obj, predicate || defaultPredicate);
 };
 
+export * from "./errors";
+
 export default {
   types: {
     isBool,
