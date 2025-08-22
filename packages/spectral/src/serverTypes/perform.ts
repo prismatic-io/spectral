@@ -16,7 +16,6 @@ import { createDebugContext, createInvokeFlow, logDebugResults } from "./context
 
 export type PerformFn = (...args: any[]) => Promise<any>;
 export type CleanFn = (...args: any[]) => any;
-
 export type InputCleaners = Record<string, CleanFn | undefined>;
 
 interface CreatePerformProps {

@@ -38,7 +38,7 @@ export const convertInput = (
     label,
     collection,
     ...rest
-  }: InputFieldDefinition | OnPremConnectionInput,
+  }: InputFieldDefinition | OnPremConnectionInput | ConnectionInput,
 ): ServerInput => {
   const keyLabel =
     collection === "keyvaluelist" && typeof label === "object" ? label.key : undefined;
@@ -286,7 +286,7 @@ export const convertConnection = ({
 
   const convertedInputs = Object.entries(inputs).map(([key, value]) => {
     if ("templateValue" in value) {
-      return convertTemplateInput(key, value, inputs);
+      return convertTemplateInput(key, value as ConnectionTemplateInputField, inputs);
     }
 
     return convertInput(key, value);
