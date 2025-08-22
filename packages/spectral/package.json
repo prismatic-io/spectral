@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "10.6.0-alpha.0",
+  "version": "10.7.0",
   "description": "Utility library for building Prismatic connectors and code-native integrations",
   "keywords": ["prismatic"],
   "main": "dist/index.js",
@@ -42,7 +42,11 @@
       "types": "./dist/util.d.ts",
       "default": "./dist/util.js"
     },
-    "./serverTypes": {
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./types/server": {
       "types": "./dist/serverTypes/index.d.ts",
       "default": "./dist/serverTypes/index.js"
     }
