@@ -37,4 +37,3 @@ export * from "./ComponentManifest";
 export * from "./ScopedConfigVars";
 export * from "./PollingTriggerDefinition";
 export * from "./FlowSchemas";
-export * as serverTypes from "../serverTypes";

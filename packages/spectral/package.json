@@ -45,6 +45,10 @@
     "./types": {
       "types": "./dist/types/index.d.ts",
       "default": "./dist/types/index.js"
+    },
+    "./types/server": {
+      "types": "./dist/serverTypes/index.d.ts",
+      "default": "./dist/serverTypes/index.js"
     }
   },
   "license": "MIT",
