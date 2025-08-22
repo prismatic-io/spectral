@@ -49,7 +49,7 @@ export const createDataSources = async ({
       const imports = getImports({
         inputs,
         additionalImports: {
-          "@prismatic-io/spectral": ["ConfigVarExpression", "TemplateExpression"],
+          "@prismatic-io/spectral/types": ["ConfigVarExpression", "TemplateExpression"],
         },
       });
 
