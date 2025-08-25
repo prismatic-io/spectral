@@ -1,11 +1,7 @@
-import type {
-  Inputs,
-  ConfigVarResultCollection,
-  DataSourceResult,
-  DataSourceType,
-  ActionInputParameters,
-  ActionContext,
-} from ".";
+import type { ActionInputParameters } from "./ActionInputParameters";
+import type { ActionContext } from "./ActionPerformFunction";
+import type { DataSourceResult, DataSourceType } from "./DataSourceResult";
+import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 
 /** Context provided to perform method containing helpers and contextual data. */
 export type DataSourceContext<

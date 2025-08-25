@@ -1,4 +1,6 @@
-import type { Inputs, ConfigVarResultCollection, ActionContext, ActionInputParameters } from ".";
+import type { ActionInputParameters } from "./ActionInputParameters";
+import type { ActionContext } from "./ActionPerformFunction";
+import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 
 export type TriggerEventFunctionReturn = {
   /** An optional object, the keys and values of which will be persisted in the flow-specific instanceState and available for subsequent actions and executions. */

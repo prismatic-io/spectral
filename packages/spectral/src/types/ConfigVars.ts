@@ -1,28 +1,34 @@
 import type { ValidationMode } from "./jsonforms/ValidationMode";
+import type { Prettify, UnionToIntersection } from "./utils";
+
 import { isComponentReference } from "./ComponentRegistry";
 import type {
-  DataSourceDefinition,
-  ConnectionDefinition,
-  Inputs,
+  ComponentRegistryConnection,
+  ComponentRegistryDataSource,
+  DataSourceReference,
+} from "./ComponentRegistry";
+import type {
+  ConfigVarResultCollection,
   Connection,
+  Inputs,
   JSONForm,
   ObjectFieldMap,
   ObjectSelection,
-  ConfigVarResultCollection,
   Schedule,
-  DataSourceType,
-  CollectionDataSourceType,
-  DataSourceReference,
-  ComponentRegistryDataSource,
-  ComponentRegistryConnection,
-  ConfigPage,
-  ConfigPages,
-  ConfigPageElement,
-  UserLevelConfigPages,
+} from "./Inputs";
+import type { CollectionDataSourceType, DataSourceType } from "./DataSourceResult";
+import type { DataSourceDefinition } from "./DataSourceDefinition";
+import type { ConnectionDefinition } from "./ConnectionDefinition";
+import type {
   OrganizationActivatedConnectionConfigVar,
   ScopedConfigVarMap,
-} from ".";
-import type { Prettify, UnionToIntersection } from "./utils";
+} from "./ScopedConfigVars";
+import type {
+  ConfigPage,
+  ConfigPageElement,
+  ConfigPages,
+  UserLevelConfigPages,
+} from "./ConfigPages";
 
 /** Supported data types for config variables. */
 export type ConfigVarDataType =

@@ -1,4 +1,4 @@
-import type { ConfigVar } from ".";
+import type { ConfigVar } from "./ConfigVars";
 import type { UnionToIntersection } from "./utils";
 
 /**

@@ -1,11 +1,11 @@
-import {
-  ConditionalExpression,
-  Inputs,
-  InputFieldCollection,
-  InputCleanFunction,
+import type { ConditionalExpression } from "./conditional-logic";
+import type {
   Connection,
+  InputCleanFunction,
+  InputFieldCollection,
+  Inputs,
   KeyValuePair,
-} from ".";
+} from "./Inputs";
 
 /**
  * Collection of input parameters.

@@ -1,4 +1,4 @@
-import type { ConditionalExpression } from ".";
+import type { ConditionalExpression } from "./conditional-logic";
 import type { JsonSchema } from "./jsonforms/JsonSchema";
 import type { UISchemaElement } from "./jsonforms/UISchemaElement";
 

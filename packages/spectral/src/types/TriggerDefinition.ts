@@ -1,12 +1,9 @@
-import type {
-  ActionDisplayDefinition,
-  TriggerPerformFunction,
-  TriggerEventFunction,
-  Inputs,
-  ConfigVarResultCollection,
-  TriggerResult,
-  TriggerPayload,
-} from ".";
+import type { ActionDisplayDefinition } from "./DisplayDefinition";
+import type { ConfigVarResultCollection, Inputs } from "./Inputs";
+import type { TriggerEventFunction } from "./TriggerEventFunction";
+import type { TriggerPayload } from "./TriggerPayload";
+import type { TriggerPerformFunction } from "./TriggerPerformFunction";
+import type { TriggerResult } from "./TriggerResult";
 
 const optionChoices = ["invalid", "valid", "required"] as const;
 

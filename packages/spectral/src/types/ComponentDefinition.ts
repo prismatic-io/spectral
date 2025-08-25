@@ -1,11 +1,9 @@
-import type {
-  ActionDefinition,
-  ConnectionDefinition,
-  ComponentDisplayDefinition,
-  TriggerDefinition,
-  DataSourceDefinition,
-  PollingTriggerDefinition,
-} from ".";
+import type { ActionDefinition } from "./ActionDefinition";
+import type { ConnectionDefinition } from "./ConnectionDefinition";
+import type { DataSourceDefinition } from "./DataSourceDefinition";
+import type { ComponentDisplayDefinition } from "./DisplayDefinition";
+import type { PollingTriggerDefinition } from "./PollingTriggerDefinition";
+import type { TriggerDefinition } from "./TriggerDefinition";
 
 export type ErrorHandler = (error: unknown) => unknown | Promise<unknown>;
 

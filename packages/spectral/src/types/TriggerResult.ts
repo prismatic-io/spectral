@@ -1,4 +1,5 @@
-import type { TriggerPayload, HttpResponse } from ".";
+import { HttpResponse } from "./HttpResponse";
+import { TriggerPayload } from "./TriggerPayload";
 
 /** Represents the result of a Trigger action. */
 export interface TriggerBaseResult<TPayload extends TriggerPayload> {

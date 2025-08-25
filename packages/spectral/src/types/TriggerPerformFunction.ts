@@ -1,11 +1,8 @@
-import type {
-  Inputs,
-  ConfigVarResultCollection,
-  TriggerResult,
-  ActionInputParameters,
-  ActionContext,
-  TriggerPayload,
-} from ".";
+import type { ActionInputParameters } from "./ActionInputParameters";
+import type { ActionContext } from "./ActionPerformFunction";
+import type { ConfigVarResultCollection, Inputs } from "./Inputs";
+import type { TriggerPayload } from "./TriggerPayload";
+import type { TriggerResult } from "./TriggerResult";
 
 /** Definition of the function to perform when a Trigger is invoked. */
 export type TriggerPerformFunction<

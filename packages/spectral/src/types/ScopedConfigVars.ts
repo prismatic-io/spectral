@@ -1,5 +1,8 @@
-import { isConnectionDefinitionConfigVar, isConnectionReferenceConfigVar } from "./ConfigVars";
-import type { ConfigVar } from ".";
+import {
+  type ConfigVar,
+  isConnectionDefinitionConfigVar,
+  isConnectionReferenceConfigVar,
+} from "./ConfigVars";
 import type { UnionToIntersection } from "./utils";
 
 export type CustomerActivatedConnectionConfigVar = {
