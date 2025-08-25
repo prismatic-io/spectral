@@ -5,8 +5,8 @@
  * https://prismatic.io/docs/custom-connectors/unit-testing/
  */
 
-import { AxiosRequestConfig, AxiosResponse } from "axios";
-import {
+import type { AxiosRequestConfig, AxiosResponse } from "axios";
+import type {
   ActionPerformReturn as ServerActionPerformReturn,
   TriggerPayload,
   TriggerResult,
@@ -18,7 +18,7 @@ import {
   Input,
   DataSourceContext,
 } from "./serverTypes";
-import {
+import type {
   ActionContext,
   ConnectionDefinition,
   ActionDefinition,

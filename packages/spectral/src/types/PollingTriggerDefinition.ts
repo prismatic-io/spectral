@@ -1,16 +1,12 @@
-import type { AxiosRequestConfig, AxiosResponse } from "axios";
-import type {
-  ActionDisplayDefinition,
-  TriggerEventFunction,
-  Inputs,
-  ConfigVarResultCollection,
-  TriggerPayload,
-  ActionDefinition,
-  ActionInputParameters,
-  ActionPerformReturn,
-  TriggerResult,
-  ActionContext,
-} from ".";
+import type { ActionDefinition } from "./ActionDefinition";
+import type { ActionInputParameters } from "./ActionInputParameters";
+import type { ActionContext } from "./ActionPerformFunction";
+import type { ActionPerformReturn } from "./ActionPerformReturn";
+import type { ActionDisplayDefinition } from "./DisplayDefinition";
+import type { ConfigVarResultCollection, Inputs } from "./Inputs";
+import type { TriggerEventFunction } from "./TriggerEventFunction";
+import type { TriggerPayload } from "./TriggerPayload";
+import type { TriggerResult } from "./TriggerResult";
 
 export interface PollingContext<
   TInputs extends Inputs = Inputs,

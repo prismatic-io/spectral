@@ -5,7 +5,9 @@ export interface CreateDependencyImportsProps {
 }
 
 export const createDependencyImports = ({ imports }: CreateDependencyImportsProps) => {
-  return Object.entries(imports).map(([module, types]) => {
-    return `import type { ${types.join(", ")} } from "${module}";`;
-  });
+  return Object.entries(imports)
+    .map(([module, types]) => {
+      return `import type { ${types.join(", ")} } from "${module}";`;
+    })
+    .join("\n");
 };

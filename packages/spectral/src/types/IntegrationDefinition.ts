@@ -1,22 +1,20 @@
-import {
-  ActionPerformFunction,
-  ActionPerformReturn,
-  TriggerEventFunction,
-  TriggerPerformFunction,
-  Inputs,
-  TriggerResult,
-  TriggerPayload,
+import type { ActionContext, ActionPerformFunction } from "./ActionPerformFunction";
+import type { ActionPerformReturn } from "./ActionPerformReturn";
+import type {
   ComponentRegistry,
-  TriggerReference,
-  ConfigVars,
-  ConfigPages,
-  UserLevelConfigPages,
-  ValueExpression,
   ConfigVarExpression,
-  ActionContext,
-  ScopedConfigVarMap,
-  FlowDefinitionFlowSchema,
-} from ".";
+  TriggerReference,
+  ValueExpression,
+} from "./ComponentRegistry";
+import type { ConfigPages, UserLevelConfigPages } from "./ConfigPages";
+import type { ConfigVars } from "./ConfigVars";
+import type { FlowDefinitionFlowSchema } from "./FlowSchemas";
+import type { Inputs } from "./Inputs";
+import type { ScopedConfigVarMap } from "./ScopedConfigVars";
+import type { TriggerEventFunction } from "./TriggerEventFunction";
+import type { TriggerPayload } from "./TriggerPayload";
+import type { TriggerPerformFunction } from "./TriggerPerformFunction";
+import type { TriggerResult } from "./TriggerResult";
 
 /**
  * Defines attributes of a code-native integration. See

@@ -51,7 +51,9 @@ export const getInputs = ({ inputs, docBlock = DOC_BLOCK_DEFAULT }: GetInputsPro
         label: input.label,
         inputType: input.type,
         valueType: getInputValueType(input),
-        required: input.required && (input.default === undefined || input.default === ""),
+        required:
+          input.required &&
+          (input.default === undefined || input.default === null || input.default === ""),
         collection: input.collection,
         onPremControlled: input.onPremiseControlled || input.onPremControlled,
         docBlock: docBlock(input),
@@ -71,23 +73,23 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   boolean: "boolean",
   code: "string",
   conditional: {
-    module: "@prismatic-io/spectral",
+    module: "@prismatic-io/spectral/util",
     type: "ConditionalExpression",
   },
   connection: {
-    module: "@prismatic-io/spectral",
+    module: "@prismatic-io/spectral/types",
     type: "Connection",
   },
   objectSelection: {
-    module: "@prismatic-io/spectral",
+    module: "@prismatic-io/spectral/types",
     type: "ObjectSelection",
   },
   objectFieldMap: {
-    module: "@prismatic-io/spectral",
+    module: "@prismatic-io/spectral/types",
     type: "ObjectFieldMap",
   },
   jsonForm: {
-    module: "@prismatic-io/spectral",
+    module: "@prismatic-io/spectral/types",
     type: "JSONForm",
   },
   dynamicObjectSelection: "string",

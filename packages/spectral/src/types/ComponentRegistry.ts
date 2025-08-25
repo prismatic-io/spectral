@@ -1,4 +1,5 @@
-import type { ComponentManifest, ConfigVarVisibility } from ".";
+import type { ComponentManifest } from "./ComponentManifest";
+import type { ConfigVarVisibility } from "./ConfigVars";
 import type { Prettify, UnionToIntersection } from "./utils";
 
 /**
