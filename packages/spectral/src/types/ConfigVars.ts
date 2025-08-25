@@ -79,6 +79,14 @@ type ConfigVarDataTypeRuntimeValueMap<
   },
 > = TMap;
 
+/** Choices of collection types for multi-value config vars. */
+export type CollectionType = "valuelist" | "keyvaluelist";
+
+type ConfigVarSingleDataType = Extract<
+  ConfigVarDataType,
+  "schedule" | "objectSelection" | "objectFieldMap" | "jsonForm"
+>;
+
 export type PermissionAndVisibilityType = "customer" | "embedded" | "organization";
 
 export interface ConfigVarVisibility {
@@ -99,14 +107,6 @@ export interface ConfigVarVisibility {
    */
   visibleToOrgDeployer?: boolean;
 }
-
-/** Choices of collection types for multi-value config vars. */
-export type CollectionType = "valuelist" | "keyvaluelist";
-
-type ConfigVarSingleDataType = Extract<
-  ConfigVarDataType,
-  "schedule" | "objectSelection" | "objectFieldMap" | "jsonForm"
->;
 
 interface ConfigVarInputVisibility {
   /**

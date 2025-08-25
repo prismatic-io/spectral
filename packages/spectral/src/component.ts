@@ -3,7 +3,6 @@
  * to run on the Prismatic platform.
  */
 
-// Export component-related functions from their explicit sources
 export {
   component,
   action,

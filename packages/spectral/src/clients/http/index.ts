@@ -10,7 +10,8 @@ import FormData from "form-data";
 import objectSizeof from "object-sizeof";
 
 import { action } from "../..";
-import type { ActionInputParameters, Connection, KeyValuePair } from "../../types";
+import type { ActionInputParameters } from "../../types/ActionInputParameters";
+import type { Connection, KeyValuePair } from "../../types/Inputs";
 import util from "../../util";
 import { inputs } from "./inputs";
 
