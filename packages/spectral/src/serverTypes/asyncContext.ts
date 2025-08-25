@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { ActionContext } from "../types";
+import type { ActionContext } from "../types/ActionPerformFunction";
 
 const actionContextStorage = new AsyncLocalStorage<ActionContext>();
 

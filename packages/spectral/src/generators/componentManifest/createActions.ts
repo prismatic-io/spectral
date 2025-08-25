@@ -6,7 +6,7 @@ import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import { createTypeInterface } from "../utils/createTypeInterface";
 import { createImport } from "../utils/createImport";
-import { ComponentForManifest } from "../cniComponentManifest/types";
+import type { ComponentForManifest } from "../cniComponentManifest/types";
 
 interface CreateActionsProps {
   component: ComponentForManifest;

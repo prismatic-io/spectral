@@ -1,5 +1,5 @@
-import { AxiosRequestConfig, AxiosResponse } from "axios";
-import {
+import type { AxiosRequestConfig, AxiosResponse } from "axios";
+import type {
   Inputs,
   ConfigVarResultCollection,
   ActionPerformReturn,

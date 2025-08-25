@@ -1,5 +1,5 @@
 import { input, util } from "../..";
-import { Method, ResponseType } from "axios";
+import type { Method, ResponseType } from "axios";
 
 const supportedMethods: Method[] = [
   "DELETE",

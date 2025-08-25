@@ -1,9 +1,9 @@
-import {
+import type {
   ActionDisplayDefinition,
   DataSourcePerformFunction,
   Inputs,
-  DataSourceType,
   ConfigVarResultCollection,
+  DataSourceType,
 } from ".";
 
 /**

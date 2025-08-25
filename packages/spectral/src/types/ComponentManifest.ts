@@ -1,4 +1,4 @@
-import { CollectionType, DataSourceType, InputFieldType } from ".";
+import type { CollectionType, InputFieldType, DataSourceType } from ".";
 
 export interface ComponentManifest {
   key: string;

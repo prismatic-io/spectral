@@ -1,10 +1,10 @@
-import {
+import type {
   ActionDisplayDefinition,
   TriggerPerformFunction,
   TriggerEventFunction,
   Inputs,
-  TriggerResult,
   ConfigVarResultCollection,
+  TriggerResult,
   TriggerPayload,
 } from ".";
 

@@ -1,6 +1,6 @@
 import { createHarness, ComponentTestHarness } from "./testing";
 import { component, connection, input, action, trigger, dataSource } from ".";
-import { ConnectionValue } from "./serverTypes";
+import type { ConnectionValue } from "./serverTypes";
 import { OAuth2Type } from "./types";
 import util from "./util";
 

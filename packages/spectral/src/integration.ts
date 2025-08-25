@@ -3,7 +3,7 @@
  * that can run on the Prismatic platform.
  */
 
-// Re-export integration-related functions from index
+// Export integration-related functions from their explicit sources
 export {
   integration,
   flow,

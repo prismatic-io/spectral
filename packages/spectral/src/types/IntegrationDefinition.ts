@@ -1,5 +1,6 @@
-import {
+import type {
   ActionPerformFunction,
+  ActionContext,
   ActionPerformReturn,
   TriggerEventFunction,
   TriggerPerformFunction,
@@ -8,12 +9,11 @@ import {
   TriggerPayload,
   ComponentRegistry,
   TriggerReference,
+  ValueExpression,
+  ConfigVarExpression,
   ConfigVars,
   ConfigPages,
   UserLevelConfigPages,
-  ValueExpression,
-  ConfigVarExpression,
-  ActionContext,
   ScopedConfigVarMap,
   FlowDefinitionFlowSchema,
 } from ".";

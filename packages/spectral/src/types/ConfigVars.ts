@@ -1,26 +1,26 @@
-import { ValidationMode } from "./jsonforms/ValidationMode";
-import {
-  type DataSourceDefinition,
-  type ConnectionDefinition,
-  type Inputs,
-  type DataSourceType,
-  type Connection,
-  type JSONForm,
-  type ObjectFieldMap,
-  type ObjectSelection,
-  type ConfigVarResultCollection,
-  type Schedule,
-  type CollectionDataSourceType,
-  type DataSourceReference,
-  isComponentReference,
-  type ConfigPage,
-  type ConfigPages,
-  type ConfigPageElement,
-  type ComponentRegistryDataSource,
-  type ComponentRegistryConnection,
-  type UserLevelConfigPages,
-  type OrganizationActivatedConnectionConfigVar,
-  type ScopedConfigVarMap,
+import type { ValidationMode } from "./jsonforms/ValidationMode";
+import { isComponentReference } from "./ComponentRegistry";
+import type {
+  DataSourceDefinition,
+  ConnectionDefinition,
+  Inputs,
+  Connection,
+  JSONForm,
+  ObjectFieldMap,
+  ObjectSelection,
+  ConfigVarResultCollection,
+  Schedule,
+  DataSourceType,
+  CollectionDataSourceType,
+  DataSourceReference,
+  ComponentRegistryDataSource,
+  ComponentRegistryConnection,
+  ConfigPage,
+  ConfigPages,
+  ConfigPageElement,
+  UserLevelConfigPages,
+  OrganizationActivatedConnectionConfigVar,
+  ScopedConfigVarMap,
 } from ".";
 import type { Prettify, UnionToIntersection } from "./utils";
 
@@ -73,14 +73,6 @@ type ConfigVarDataTypeRuntimeValueMap<
   },
 > = TMap;
 
-/** Choices of collection types for multi-value config vars. */
-export type CollectionType = "valuelist" | "keyvaluelist";
-
-type ConfigVarSingleDataType = Extract<
-  ConfigVarDataType,
-  "schedule" | "objectSelection" | "objectFieldMap" | "jsonForm"
->;
-
 export type PermissionAndVisibilityType = "customer" | "embedded" | "organization";
 
 export interface ConfigVarVisibility {
@@ -101,6 +93,14 @@ export interface ConfigVarVisibility {
    */
   visibleToOrgDeployer?: boolean;
 }
+
+/** Choices of collection types for multi-value config vars. */
+export type CollectionType = "valuelist" | "keyvaluelist";
+
+type ConfigVarSingleDataType = Extract<
+  ConfigVarDataType,
+  "schedule" | "objectSelection" | "objectFieldMap" | "jsonForm"
+>;
 
 interface ConfigVarInputVisibility {
   /**

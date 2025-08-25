@@ -1,11 +1,11 @@
-import {
+import type {
   ActionDefinition,
   ConnectionDefinition,
   ComponentDisplayDefinition,
   TriggerDefinition,
   DataSourceDefinition,
+  PollingTriggerDefinition,
 } from ".";
-import { PollingTriggerDefinition } from "./PollingTriggerDefinition";
 
 export type ErrorHandler = (error: unknown) => unknown | Promise<unknown>;
 

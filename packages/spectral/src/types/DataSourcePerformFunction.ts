@@ -1,9 +1,9 @@
-import {
+import type {
   Inputs,
+  ConfigVarResultCollection,
   DataSourceResult,
   DataSourceType,
   ActionInputParameters,
-  ConfigVarResultCollection,
   ActionContext,
 } from ".";
 

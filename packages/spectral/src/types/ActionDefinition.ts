@@ -1,11 +1,11 @@
-import {
+import type {
   ActionDisplayDefinition,
   ActionPerformFunction,
   ActionPerformReturn,
   ConfigVarResultCollection,
   Inputs,
+  ComponentManifestAction,
 } from ".";
-import { ComponentManifestAction } from "./ComponentManifest";
 
 /**
  * ActionDefinition is the type of the object that is passed in to `action` function to

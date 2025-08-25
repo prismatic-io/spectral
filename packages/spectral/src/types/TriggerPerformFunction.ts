@@ -1,10 +1,10 @@
-import {
+import type {
   Inputs,
+  ConfigVarResultCollection,
   TriggerResult,
   ActionInputParameters,
   ActionContext,
   TriggerPayload,
-  ConfigVarResultCollection,
 } from ".";
 
 /** Definition of the function to perform when a Trigger is invoked. */
