@@ -73,23 +73,23 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   boolean: "boolean",
   code: "string",
   conditional: {
-    module: "@prismatic-io/spectral/util",
+    module: "@prismatic-io/spectral/dist/util",
     type: "ConditionalExpression",
   },
   connection: {
-    module: "@prismatic-io/spectral/types",
+    module: "@prismatic-io/spectral/dist/types",
     type: "Connection",
   },
   objectSelection: {
-    module: "@prismatic-io/spectral/types",
+    module: "@prismatic-io/spectral/dist/types",
     type: "ObjectSelection",
   },
   objectFieldMap: {
-    module: "@prismatic-io/spectral/types",
+    module: "@prismatic-io/spectral/dist/types",
     type: "ObjectFieldMap",
   },
   jsonForm: {
-    module: "@prismatic-io/spectral/types",
+    module: "@prismatic-io/spectral/dist/types",
     type: "JSONForm",
   },
   dynamicObjectSelection: "string",
