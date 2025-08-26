@@ -1,6 +1,6 @@
 <%- include('../partials/generatedHeader.ejs') -%>
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
-import { requireContext } from "@prismatic-io/spectral";
+import { requireContext } from "@prismatic-io/spectral/dist/serverTypes";
 
 export interface <%= action.typeInterface %>Values {
 <%- include('../partials/performArgs.ejs', { inputs: action.inputs, helpers }) -%>
