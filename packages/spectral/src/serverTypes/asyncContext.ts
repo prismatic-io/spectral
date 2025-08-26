@@ -1,12 +1,17 @@
-import { AsyncLocalStorage } from "node:async_hooks";
 import type { ActionContext } from "../types/ActionPerformFunction";
 
-const actionContextStorage = new AsyncLocalStorage<ActionContext>();
+// Only import async_hooks in Node.js environments
+const asyncHooks = typeof window === "undefined" ? require("node:async_hooks") : null;
+const actionContextStorage = asyncHooks ? new asyncHooks.AsyncLocalStorage() : null;
 
 export function runWithContext<T>(
   context: ActionContext,
   fn: () => T | Promise<T>,
 ): T | Promise<T> {
+  if (!actionContextStorage) {
+    // This shouldn't be running in a browser environment anyway.
+    return fn();
+  }
   return actionContextStorage.run(context, fn);
 }
 
