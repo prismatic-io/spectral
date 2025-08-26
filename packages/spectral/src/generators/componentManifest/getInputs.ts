@@ -51,7 +51,9 @@ export const getInputs = ({ inputs, docBlock = DOC_BLOCK_DEFAULT }: GetInputsPro
         label: input.label,
         inputType: input.type,
         valueType: getInputValueType(input),
-        required: input.required && (input.default === undefined || input.default === ""),
+        required:
+          input.required &&
+          (input.default === undefined || input.default === null || input.default === ""),
         collection: input.collection,
         onPremControlled: input.onPremiseControlled || input.onPremControlled,
         docBlock: docBlock(input),
