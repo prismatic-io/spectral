@@ -598,12 +598,19 @@ export const convertFlow = (
   }
 
   if ("queueConfig" in flow && typeof flow.queueConfig === "object") {
+    const { queueConfig } = flow;
     result.queueConfig = {
-      ...flow.queueConfig,
-      dedupeIdField: {
-        type: "reference",
-        value: `${triggerStep.name ? camelCase(triggerStep.name as string) : "onTrigger"}.results`,
-      },
+      ...queueConfig,
+      ...(queueConfig.dedupeIdField
+        ? {
+            dedupeIdField: {
+              type: "reference",
+              value: `${
+                triggerStep.name ? camelCase(triggerStep.name as string) : "onTrigger"
+              }.results.${queueConfig.dedupeIdField}`,
+            },
+          }
+        : {}),
     };
   }
 
