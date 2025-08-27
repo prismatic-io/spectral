@@ -186,7 +186,7 @@ export type RetryConfig = {
 export type QueueConfig = {
   /** Determines whether the flow should be executed using FIFO ordering. */
   usesFifoQueue: boolean;
-  /** Reference to the field in the flow's trigger resturn payload; used to determine whether to queue the execution. */
+  /** Reference to the field in the flow's trigger return payload; used to determine whether to queue the execution. */
   dedupeIdField?: string;
 };
 
