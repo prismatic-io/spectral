@@ -597,6 +597,23 @@ export const convertFlow = (
     result.schedule = undefined;
   }
 
+  if ("queueConfig" in flow && typeof flow.queueConfig === "object") {
+    const { queueConfig } = flow;
+    result.queueConfig = {
+      ...queueConfig,
+      ...(queueConfig.dedupeIdField
+        ? {
+            dedupeIdField: {
+              type: "reference",
+              value: `${
+                triggerStep.name ? camelCase(triggerStep.name as string) : "onTrigger"
+              }.results.${queueConfig.dedupeIdField}`,
+            },
+          }
+        : {}),
+    };
+  }
+
   const actionStep: Record<string, unknown> = {
     action: {
       key: flowFunctionKey(flow.name, "onExecution"),
