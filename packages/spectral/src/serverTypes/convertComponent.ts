@@ -153,6 +153,8 @@ export const convertTrigger = (
   hooks?: ComponentHooks,
 ): ServerTrigger => {
   const { onInstanceDeploy, onInstanceDelete } = trigger;
+  const webhookLifecycleHandlers =
+    "webhookLifecycleHandlers" in trigger ? trigger.webhookLifecycleHandlers : undefined;
   const inputs: Inputs = trigger.inputs ?? {};
   const isPollingTrigger = isPollingTriggerDefinition(trigger);
 
@@ -243,8 +245,25 @@ export const convertTrigger = (
     });
     result.hasOnInstanceDelete = true;
   }
+  if (webhookLifecycleHandlers) {
+    result.webhookLifecycleHandlers = {
+      create: createPerform(webhookLifecycleHandlers.create, {
+        inputCleaners: triggerInputCleaners,
+        errorHandler: hooks?.error,
+      }),
+      read: createPerform(webhookLifecycleHandlers.read, {
+        inputCleaners: triggerInputCleaners,
+        errorHandler: hooks?.error,
+      }),
+      delete: createPerform(webhookLifecycleHandlers.delete, {
+        inputCleaners: triggerInputCleaners,
+        errorHandler: hooks?.error,
+      }),
+    };
+    result.hasWebhookLifecycleHandlers = true;
+  }
 
-  const { pollAction, triggerType, ...resultTrigger } = result;
+  const { pollAction, triggerType, webhookLifecycleHandlers: _, ...resultTrigger } = result;
 
   return resultTrigger;
 };
