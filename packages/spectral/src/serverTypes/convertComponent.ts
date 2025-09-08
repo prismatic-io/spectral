@@ -251,16 +251,13 @@ export const convertTrigger = (
         inputCleaners: triggerInputCleaners,
         errorHandler: hooks?.error,
       }),
-      read: createPerform(webhookLifecycleHandlers.read, {
-        inputCleaners: triggerInputCleaners,
-        errorHandler: hooks?.error,
-      }),
       delete: createPerform(webhookLifecycleHandlers.delete, {
         inputCleaners: triggerInputCleaners,
         errorHandler: hooks?.error,
       }),
     };
-    result.hasWebhookLifecycleHandlers = true;
+    result.hasWebhookCreateFunction = true;
+    result.hasWebhookDeleteFunction = true;
   }
 
   const { pollAction, triggerType, webhookLifecycleHandlers: _, ...resultTrigger } = result;

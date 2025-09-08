@@ -42,8 +42,6 @@ export interface TriggerDefinition<
   webhookLifecycleHandlers?: {
     /** Function to execute to configure a webhook. */
     create: TriggerEventFunction<TInputs, TConfigVars>;
-    /** Function to execute to validate or refresh webhook configuration. This is useful for webhook health checks and validation. */
-    read: TriggerEventFunction<TInputs, TConfigVars>;
     /** Function to execute for webhook teardown. */
     delete: TriggerEventFunction<TInputs, TConfigVars>;
   };
