@@ -16,7 +16,7 @@ export const <%= dataSource.import %> = {
   perform: (
     _values: <%= dataSource.typeInterface %>Values
   ): Promise<void> => Promise.resolve(),
-  dataSourceType: "<%= dataSource.dataSourceType %>",
+  dataSourceType: "<%= helpers.camelizeLowercaseType(dataSource.dataSourceType) %>",
   inputs: {
     <%- include('../partials/inputs.ejs', { inputs: dataSource.inputs, helpers }) -%>
   }
@@ -27,7 +27,7 @@ export const <%= dataSource.import %> = {
  *
  * @comments Helper for direct usage in config wizard definitions.
  */
-export const <%= dataSource.componentKey %><%= helpers.capitalizeFirstLetter(helpers.camelCase(dataSource.key)) %> = (
+export const <%= helpers.camelCase(dataSource.componentKey) %><%= helpers.capitalizeFirstLetter(helpers.camelCase(dataSource.key)) %> = (
   stableKey: string,
   values: {
 <% dataSource.inputs.forEach((input) => { -%>

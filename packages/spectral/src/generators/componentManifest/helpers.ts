@@ -1,3 +1,4 @@
+import { camelizeLowercaseType } from "../utils/camelizeLowercaseType";
 import { capitalizeFirstLetter } from "../utils/capitalizeFirstLetter";
 import { createDependencyImports } from "../utils/createDependencyImports";
 import { formatType } from "../utils/formatType";
@@ -10,4 +11,5 @@ export const helpers = {
   generatePackageJsonVersion,
   formatType,
   camelCase,
+  camelizeLowercaseType,
 };

@@ -1,6 +1,6 @@
 <% inputs.forEach((input) => { -%>
   <%- helpers.formatType(input.key) %>: {
-    inputType: "<%= input.inputType %>",
+    inputType: "<%= helpers.camelizeLowercaseType(input.inputType) %>",
     <%_ if (input.collection) { -%>
     collection: "<%= input.collection %>",
     <%_ } else { -%>
