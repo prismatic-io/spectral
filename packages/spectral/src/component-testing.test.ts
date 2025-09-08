@@ -90,9 +90,6 @@ describe("test convert trigger", () => {
       create: async (_context, _params) => {
         return Promise.resolve({ executionState: { webhookCreated: true } });
       },
-      read: async (_context, _params) => {
-        return Promise.resolve({ executionState: { webhookValidated: true } });
-      },
       delete: async (_context, _params) => {
         return Promise.resolve({ executionState: { webhookDeleted: true } });
       },
@@ -162,7 +159,8 @@ describe("test convert trigger", () => {
     key: "my-webhook-trigger",
     scheduleSupport: "invalid",
     synchronousResponseSupport: "valid",
-    hasWebhookLifecycleHandlers: true,
+    hasWebhookCreateFunction: true,
+    hasWebhookDeleteFunction: true,
   };
 
   it("converts triggers properly", () => {

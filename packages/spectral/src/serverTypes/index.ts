@@ -189,10 +189,10 @@ export interface Trigger {
   hasOnInstanceDelete?: boolean;
   webhookLifecycleHandlers?: {
     create: TriggerEventFunction;
-    read: TriggerEventFunction;
     delete: TriggerEventFunction;
   };
-  hasWebhookLifecycleHandlers?: boolean;
+  hasWebhookCreateFunction?: boolean;
+  hasWebhookDeleteFunction?: boolean;
   scheduleSupport: TriggerOptionChoice;
   synchronousResponseSupport: TriggerOptionChoice;
   examplePayload?: unknown;
