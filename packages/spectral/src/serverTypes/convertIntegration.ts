@@ -584,6 +584,8 @@ export const convertFlow = (
     };
   }
 
+  let hasSchedule = false;
+
   if ("schedule" in flow && typeof flow.schedule === "object") {
     const { schedule } = flow;
     triggerStep.schedule = {
@@ -595,11 +597,28 @@ export const convertFlow = (
       },
     };
     result.schedule = undefined;
+    hasSchedule = true;
   }
 
   if ("queueConfig" in flow && typeof flow.queueConfig === "object") {
     const { queueConfig } = flow;
+
+    if (hasSchedule && queueConfig.usesFifoQueue) {
+      throw new Error(
+        `${flow.name} has a schedule & usesFifoQueue set to true. FIFO queues cannot be used with scheduled flows.`,
+      );
+    } else if (!hasSchedule && queueConfig.singletonExecutions) {
+      throw new Error(
+        `${flow.name} is configured for singletonExecutions but has no schedule. Unscheduled flows cannot be configured for singleton executions.`,
+      );
+    } else if (queueConfig.usesFifoQueue && queueConfig.singletonExecutions) {
+      throw new Error(
+        `${flow.name} is configured for both FIFO queues and singleton executions, but these options are mutually exclusive. Please choose one.`,
+      );
+    }
+
     result.queueConfig = {
+      usesFifoQueue: false, // Should be false by default, even if undefined
       ...queueConfig,
       ...(queueConfig.dedupeIdField
         ? {
