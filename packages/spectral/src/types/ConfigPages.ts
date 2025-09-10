@@ -1,5 +1,5 @@
-import { ConfigVar } from ".";
-import { UnionToIntersection } from "./utils";
+import type { ConfigVar } from "./ConfigVars";
+import type { UnionToIntersection } from "./utils";
 
 /**
  * Root ConfigPages type exposed for augmentation.

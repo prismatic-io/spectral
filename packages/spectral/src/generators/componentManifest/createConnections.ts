@@ -6,7 +6,7 @@ import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import { createTypeInterface } from "../utils/createTypeInterface";
 import { createImport } from "../utils/createImport";
-import { ComponentForManifest } from "../cniComponentManifest/types";
+import type { ComponentForManifest } from "../cniComponentManifest/types";
 
 interface CreateConnectionsProps {
   component: ComponentForManifest;
@@ -48,7 +48,7 @@ export const createConnections = async ({
       const imports = getImports({
         inputs,
         additionalImports: {
-          "@prismatic-io/spectral": ["ConfigVarExpression", "ConfigVarVisibility"],
+          "@prismatic-io/spectral/dist/types": ["ConfigVarExpression", "ConfigVarVisibility"],
         },
       });
 

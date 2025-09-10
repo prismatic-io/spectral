@@ -48,5 +48,26 @@
         }
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "include": ["src/types/**/*"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  ".": "Import types directly from specific files instead of the generic index",
+                  "..": "Import types directly from specific files instead of the generic index",
+                  "../types": "Import types directly from specific files instead of the generic index"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

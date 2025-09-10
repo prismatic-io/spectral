@@ -31,7 +31,7 @@ import {
 } from "./types";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
-import { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
+import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
 
 /**
  * This function creates a code-native integration object that can be

@@ -1,6 +1,6 @@
 import isEmpty from "lodash/isEmpty";
-import axios, { AxiosResponse } from "axios";
-import { AxiosInstance, AxiosRequestConfig } from "axios";
+import axios from "axios";
+import type { AxiosInstance, AxiosResponse, AxiosRequestConfig } from "axios";
 import axiosRetry, {
   IAxiosRetryConfig,
   exponentialDelay,
@@ -10,7 +10,8 @@ import FormData from "form-data";
 import objectSizeof from "object-sizeof";
 
 import { action } from "../..";
-import { ActionInputParameters, Connection, KeyValuePair } from "../../types";
+import type { ActionInputParameters } from "../../types/ActionInputParameters";
+import type { Connection, KeyValuePair } from "../../types/Inputs";
 import util from "../../util";
 import { inputs } from "./inputs";
 

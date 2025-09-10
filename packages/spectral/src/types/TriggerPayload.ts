@@ -1,10 +1,8 @@
-import {
-  InstanceAttributes,
-  CustomerAttributes,
-  UserAttributes,
-  IntegrationAttributes,
-  FlowAttributes,
-} from ".";
+import type { CustomerAttributes } from "./CustomerAttributes";
+import type { FlowAttributes } from "./FlowAttributes";
+import type { InstanceAttributes } from "./InstanceAttributes";
+import type { IntegrationAttributes } from "./IntegrationAttributes";
+import type { UserAttributes } from "./UserAttributes";
 
 /** Represents a Trigger Payload, which is data passed into a Trigger to invoke an Integration execution. */
 export interface TriggerPayload {

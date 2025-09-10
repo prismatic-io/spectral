@@ -1,4 +1,4 @@
-import { ActionContext } from "../types";
+import type { ActionContext } from "../types/ActionPerformFunction";
 
 // Only import async_hooks in Node.js environments
 const asyncHooks = typeof window === "undefined" ? require("node:async_hooks") : null;
