@@ -12,7 +12,7 @@ import {
 import { performance } from "node:perf_hooks";
 import { ComponentReference as ServerComponentReference } from "./integration";
 import { convertInputValue } from "./convertIntegration";
-import axios, { AxiosRequestConfig } from "axios";
+import axios, { type AxiosRequestConfig } from "axios";
 
 const MEMORY_USAGE_CONVERSION = 1024 * 1024;
 

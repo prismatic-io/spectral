@@ -1,5 +1,5 @@
 import axios from "axios";
-import { DataSourceType } from "../../types";
+import type { DataSourceType } from "../../types";
 import {
   ComponentNode,
   InputNode,

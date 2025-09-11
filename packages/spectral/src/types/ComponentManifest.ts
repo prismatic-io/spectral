@@ -1,4 +1,6 @@
-import { CollectionType, DataSourceType, InputFieldType } from ".";
+import type { CollectionType } from "./ConfigVars";
+import type { DataSourceType } from "./DataSourceResult";
+import type { InputFieldType } from "./Inputs";
 
 export interface ComponentManifest {
   key: string;

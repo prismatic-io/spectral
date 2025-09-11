@@ -1,10 +1,7 @@
-import {
-  ActionDisplayDefinition,
-  DataSourcePerformFunction,
-  Inputs,
-  DataSourceType,
-  ConfigVarResultCollection,
-} from ".";
+import type { DataSourcePerformFunction } from "./DataSourcePerformFunction";
+import type { DataSourceType } from "./DataSourceResult";
+import type { ActionDisplayDefinition } from "./DisplayDefinition";
+import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 
 /**
  * DataSourceDefinition is the type of the object that is passed in to `dataSource` function to
