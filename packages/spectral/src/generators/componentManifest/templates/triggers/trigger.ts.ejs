@@ -1,5 +1,6 @@
 <%- include('../partials/generatedHeader.ejs') -%>
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
+import { ConfigVarExpression } from "@prismatic-io/spectral";
 
 export interface <%= trigger.typeInterface %>Values {
 <%- include('../partials/performArgs.ejs', { inputs: trigger.inputs, helpers }) -%>
@@ -9,6 +10,7 @@ export interface <%= trigger.typeInterface %>Values {
  * <%= trigger.label %>
  *
  * @description <%- trigger.description %>
+ * This object is used to support type hinting.
  */
 export const <%= trigger.import %> = {
   key: "<%= trigger.key %>",
@@ -19,3 +21,22 @@ export const <%= trigger.import %> = {
     <%- include('../partials/inputs.ejs', { inputs: trigger.inputs, helpers }) -%>
   }
 } as const;
+
+/**
+ * <%= trigger.label %> Trigger Helper
+ *
+ * @comments This wrapper function can be used directly in flow definitions.
+ */
+export const <%= helpers.camelCase(trigger.componentKey) %><%= helpers.capitalizeFirstLetter(trigger.import) %> = (values: {
+  <% trigger.inputs.forEach((input) => { -%>
+    <%- helpers.formatType(input.key) %><%= input.required ? "" : "?" %>: ({
+      value: <%- input.valueType.type ? input.valueType.type : input.valueType %>;
+    } | ConfigVarExpression);
+  <% }); -%>
+}) => {
+  return {
+    component: "<%= helpers.camelCase(trigger.componentKey) %>",
+    key: "<%= trigger.key %>",
+    values,
+  } as const;
+};

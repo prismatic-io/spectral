@@ -55,6 +55,7 @@ export const createTriggers = async ({
           label: trigger.display.description,
           description: trigger.display.description,
           inputs,
+          componentKey: component.key,
         },
         dryRun,
         imports,
@@ -111,6 +112,7 @@ interface RenderTriggerProps {
     label: string;
     description: string;
     inputs: Input[];
+    componentKey: string;
   };
   dryRun: boolean;
   imports: Imports;
