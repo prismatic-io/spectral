@@ -142,7 +142,7 @@ export const fetchComponentDataForManifest = async ({
   });
 
   return {
-    key: componentKey,
+    key: component.key,
     signature: component.signature,
     public: !isPrivate,
     display: {

@@ -10,6 +10,7 @@ export interface <%= dataSource.typeInterface %>Values {
  * <%= dataSource.label %>
  *
  * @description <%- dataSource.description %>
+ * This object is used to support type hinting.
  */
 export const <%= dataSource.import %> = {
   key: "<%= dataSource.key %>",
@@ -25,7 +26,7 @@ export const <%= dataSource.import %> = {
 /**
  * <%= dataSource.label %> DataSource Helper
  *
- * @comments Helper for direct usage in config wizard definitions.
+ * @comments This wrapper function can be used directly in config wizard definitions.
  */
 export const <%= helpers.camelCase(dataSource.componentKey) %><%= helpers.capitalizeFirstLetter(helpers.camelCase(dataSource.key)) %> = (
   stableKey: string,

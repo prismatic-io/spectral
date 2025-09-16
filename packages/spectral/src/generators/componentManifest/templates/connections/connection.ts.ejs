@@ -10,6 +10,7 @@ export interface <%= connection.typeInterface %>Values {
  * <%= connection.label %>
  *
  * @comments <%- connection.comments %>
+ * This object is used to support type hinting.
  */
 export const <%= connection.import %> = {
   key: "<%= connection.key %>",
@@ -27,7 +28,7 @@ export const <%= connection.import %> = {
 /**
  * <%= connection.label %> Connection Helper
  *
- * @comments Helper for direct usage in config wizard definitions.
+ * @comments This wrapper function can be used directly in config wizard definitions.
  */
 export const <%= helpers.camelCase(connection.componentKey) %><%= helpers.capitalizeFirstLetter(helpers.camelCase(connection.key)) %> = (
   stableKey: string,
