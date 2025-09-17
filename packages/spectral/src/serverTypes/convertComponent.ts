@@ -228,6 +228,7 @@ export const convertTrigger = (
         : scheduleSupport === "invalid"
           ? "valid"
           : "invalid",
+    ...(isPollingTrigger ? { isPollingTrigger: true } : {}),
   };
 
   if (onInstanceDeploy) {

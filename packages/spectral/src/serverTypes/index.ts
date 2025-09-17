@@ -197,6 +197,7 @@ export interface Trigger {
   synchronousResponseSupport: TriggerOptionChoice;
   examplePayload?: unknown;
   isCommonTrigger?: boolean;
+  isPollingTrigger?: boolean;
 }
 
 export interface DataSourceContext<
