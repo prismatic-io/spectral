@@ -38,6 +38,13 @@ export interface TriggerDefinition<
    * https://prismatic.io/docs/custom-connectors/triggers/#instance-deploy-and-delete-events-for-triggers
    */
   onInstanceDelete?: TriggerEventFunction<TInputs, TConfigVars>;
+  /** Optional webhook lifecycle handlers for create, read, and delete operations. */
+  webhookLifecycleHandlers?: {
+    /** Function to execute to configure a webhook. */
+    create: TriggerEventFunction<TInputs, TConfigVars>;
+    /** Function to execute for webhook teardown. */
+    delete: TriggerEventFunction<TInputs, TConfigVars>;
+  };
   /**
    * The inputs to present a low-code integration builder. Values of these inputs
    * are passed to the `perform` function when the trigger is invoked.

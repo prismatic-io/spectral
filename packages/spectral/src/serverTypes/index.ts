@@ -187,10 +187,19 @@ export interface Trigger {
   hasOnInstanceDeploy?: boolean;
   onInstanceDelete?: TriggerEventFunction;
   hasOnInstanceDelete?: boolean;
+  webhookLifecycleHandlers?: {
+    create: TriggerEventFunction;
+    delete: TriggerEventFunction;
+  };
+  webhookCreate?: TriggerEventFunction;
+  hasWebhookCreateFunction?: boolean;
+  webhookDelete?: TriggerEventFunction;
+  hasWebhookDeleteFunction?: boolean;
   scheduleSupport: TriggerOptionChoice;
   synchronousResponseSupport: TriggerOptionChoice;
   examplePayload?: unknown;
   isCommonTrigger?: boolean;
+  isPollingTrigger?: boolean;
 }
 
 export interface DataSourceContext<

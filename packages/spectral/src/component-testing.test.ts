@@ -72,6 +72,32 @@ describe("test convert trigger", () => {
     },
   });
 
+  const myWebhookTrigger = trigger({
+    display: {
+      label: "My webhook trigger",
+      description: "A webhook trigger with lifecycle hooks",
+    },
+    inputs: {
+      myWebhookInput: input({
+        label: "My webhook input",
+        type: "string",
+      }),
+    },
+    perform: async (context, payload, params) => {
+      return Promise.resolve({ payload });
+    },
+    webhookLifecycleHandlers: {
+      create: async (_context, _params) => {
+        return Promise.resolve({ executionState: { webhookCreated: true } });
+      },
+      delete: async (_context, _params) => {
+        return Promise.resolve({ executionState: { webhookDeleted: true } });
+      },
+    },
+    scheduleSupport: "invalid",
+    synchronousResponseSupport: "valid",
+  });
+
   const expectedTrigger = {
     display: { label: "My trigger", description: "A basic trigger" },
     inputs: [
@@ -117,6 +143,26 @@ describe("test convert trigger", () => {
     synchronousResponseSupport: "invalid",
   };
 
+  const expectedWebhookTrigger = {
+    display: { label: "My webhook trigger", description: "A webhook trigger with lifecycle hooks" },
+    inputs: [
+      {
+        key: "myWebhookInput",
+        type: "string",
+        default: "",
+        collection: undefined,
+        label: "My webhook input",
+        keyLabel: undefined,
+        onPremiseControlled: undefined,
+      },
+    ],
+    key: "my-webhook-trigger",
+    scheduleSupport: "invalid",
+    synchronousResponseSupport: "valid",
+    hasWebhookCreateFunction: true,
+    hasWebhookDeleteFunction: true,
+  };
+
   it("converts triggers properly", () => {
     const { perform, ...convertedTrigger } = convertTrigger("my-basic-trigger", myTrigger);
 
@@ -129,6 +175,13 @@ describe("test convert trigger", () => {
 
     expect(perform).toBeTruthy();
     expect(convertedTrigger).toMatchObject(expectedPollTrigger);
+  });
+
+  it("converts webhook triggers with lifecycle hooks properly", () => {
+    const convertedTrigger = convertTrigger("my-webhook-trigger", myWebhookTrigger);
+
+    expect(convertedTrigger.perform).toBeTruthy();
+    expect(convertedTrigger).toMatchObject(expectedWebhookTrigger);
   });
 
   it("does not allow duplicate input keys across the trigger & poll action", () => {
