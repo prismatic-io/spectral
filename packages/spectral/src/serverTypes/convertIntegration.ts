@@ -515,6 +515,7 @@ const convertFlowSchemas = (
         $comment: value.$comment,
         properties: value.properties,
         $schema: value.$schema || DEFAULT_JSON_SCHEMA_VERSION,
+        ...(value.required?.length ? { required: value.required } : {}),
       };
       return acc;
     },

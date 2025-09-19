@@ -1,6 +1,6 @@
 interface FlowSchemaProperty {
   description: string;
-  type: string;
+  type?: string;
 }
 
 export const DEFAULT_JSON_SCHEMA_VERSION = "https://json-schema.org/draft/2020-12/schema";
@@ -12,6 +12,7 @@ export type FlowDefinitionFlowSchema = {
   $comment?: string;
   $schema?: string;
   properties: Record<string, FlowSchemaProperty>;
+  required?: string[];
 };
 
 export interface FlowSchema {
@@ -20,6 +21,7 @@ export interface FlowSchema {
   $schema: string;
   type: string;
   properties: Record<string, FlowSchemaProperty>;
+  required?: string[];
 }
 
 export interface FlowSchemas {
