@@ -191,7 +191,9 @@ export interface Trigger {
     create: TriggerEventFunction;
     delete: TriggerEventFunction;
   };
+  webhookCreate?: TriggerEventFunction;
   hasWebhookCreateFunction?: boolean;
+  webhookDelete?: TriggerEventFunction;
   hasWebhookDeleteFunction?: boolean;
   scheduleSupport: TriggerOptionChoice;
   synchronousResponseSupport: TriggerOptionChoice;

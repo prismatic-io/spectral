@@ -247,16 +247,14 @@ export const convertTrigger = (
     result.hasOnInstanceDelete = true;
   }
   if (webhookLifecycleHandlers) {
-    result.webhookLifecycleHandlers = {
-      create: createPerform(webhookLifecycleHandlers.create, {
-        inputCleaners: triggerInputCleaners,
-        errorHandler: hooks?.error,
-      }),
-      delete: createPerform(webhookLifecycleHandlers.delete, {
-        inputCleaners: triggerInputCleaners,
-        errorHandler: hooks?.error,
-      }),
-    };
+    result.webhookCreate = createPerform(webhookLifecycleHandlers.create, {
+      inputCleaners: triggerInputCleaners,
+      errorHandler: hooks?.error,
+    });
+    result.webhookDelete = createPerform(webhookLifecycleHandlers.delete, {
+      inputCleaners: triggerInputCleaners,
+      errorHandler: hooks?.error,
+    });
     result.hasWebhookCreateFunction = true;
     result.hasWebhookDeleteFunction = true;
   }
