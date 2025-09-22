@@ -62,98 +62,106 @@ export const fetchComponentDataForManifest = async ({
     }
   `;
 
-  const response = await axios.post(
-    `${prismaticUrl}/api`,
-    {
-      query,
-      variables: {
-        componentKey,
-        public: !isPrivate,
+  try {
+    const response = await axios.post(
+      `${prismaticUrl}/api`,
+      {
+        query,
+        variables: {
+          componentKey,
+          public: !isPrivate,
+        },
       },
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-        "Prismatic-Client": "spectral",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Prismatic-Client": "spectral",
+        },
       },
-    },
-  );
+    );
 
-  const component: ComponentNode = response.data.data.components.nodes[0];
+    const component: ComponentNode = response.data.data.components.nodes[0];
 
-  if (!component) {
+    if (!component) {
+      throw new Error(
+        `Could not find a ${
+          isPrivate ? "private" : "public"
+        } component with the given key: ${componentKey}. ${
+          !isPrivate ? 'You may need to include the "--private" flag.' : ""
+        }`,
+      );
+    }
+
+    const componentActions = await getComponentActions(component.id, prismaticUrl, accessToken);
+
+    const actions: Record<string, FormattedAction> = {};
+    const triggers: Record<string, FormattedTrigger> = {};
+    const dataSources: Record<string, FormattedDataSource> = {};
+
+    componentActions.forEach((node) => {
+      if (node.isTrigger) {
+        triggers[node.key] = {
+          key: node.key,
+          display: {
+            label: node.label,
+            description: node.description,
+          },
+          inputs: transformInputNodes(node.inputs.nodes),
+        };
+      } else if (node.isDataSource) {
+        dataSources[node.key] = {
+          key: node.key,
+          display: {
+            label: node.label,
+            description: node.description,
+          },
+          inputs: transformInputNodes(node.inputs.nodes),
+          dataSourceType: (node.dataSourceType ?? "string").toLowerCase() as DataSourceType,
+          examplePayload: node.examplePayload ?? {},
+        };
+      } else {
+        actions[node.key] = {
+          key: node.key,
+          display: {
+            label: node.label,
+            description: node.description,
+          },
+          inputs: transformInputNodes(node.inputs.nodes),
+          examplePayload: node.examplePayload,
+        };
+      }
+    });
+
+    const connections = component.connections.nodes.map((node) => {
+      return {
+        key: node.key,
+        label: node.label,
+        comments: node.comments,
+        inputs: transformInputNodes(node.inputs.nodes),
+      };
+    });
+
+    return {
+      key: component.key,
+      signature: component.signature,
+      public: !isPrivate,
+      display: {
+        label: component.label,
+        description: component.description,
+      },
+      actions,
+      triggers,
+      dataSources,
+      connections,
+    };
+  } catch (error) {
     throw new Error(
-      `Could not find a ${
-        isPrivate ? "private" : "public"
-      } component with the given key: ${componentKey}. ${
-        !isPrivate ? 'You may need to include the "--private" flag.' : ""
+      `There was an error accessing the Prismatic API. Check your login status via 'prism me' or 'prism login'.\n${
+        error instanceof Error ? error.message : String(error)
       }`,
     );
   }
-
-  const componentActions = await getComponentActions(component.id, prismaticUrl, accessToken);
-
-  const actions: Record<string, FormattedAction> = {};
-  const triggers: Record<string, FormattedTrigger> = {};
-  const dataSources: Record<string, FormattedDataSource> = {};
-
-  componentActions.forEach((node) => {
-    if (node.isTrigger) {
-      triggers[node.key] = {
-        key: node.key,
-        display: {
-          label: node.label,
-          description: node.description,
-        },
-        inputs: transformInputNodes(node.inputs.nodes),
-      };
-    } else if (node.isDataSource) {
-      dataSources[node.key] = {
-        key: node.key,
-        display: {
-          label: node.label,
-          description: node.description,
-        },
-        inputs: transformInputNodes(node.inputs.nodes),
-        dataSourceType: (node.dataSourceType ?? "string").toLowerCase() as DataSourceType,
-        examplePayload: node.examplePayload ?? {},
-      };
-    } else {
-      actions[node.key] = {
-        key: node.key,
-        display: {
-          label: node.label,
-          description: node.description,
-        },
-        inputs: transformInputNodes(node.inputs.nodes),
-        examplePayload: node.examplePayload,
-      };
-    }
-  });
-
-  const connections = component.connections.nodes.map((node) => {
-    return {
-      key: node.key,
-      label: node.label,
-      comments: node.comments,
-      inputs: transformInputNodes(node.inputs.nodes),
-    };
-  });
-
-  return {
-    key: component.key,
-    signature: component.signature,
-    public: !isPrivate,
-    display: {
-      label: component.label,
-      description: component.description,
-    },
-    actions,
-    triggers,
-    dataSources,
-    connections,
-  };
 };
 
 async function getComponentActions(componentId: string, prismaticUrl: string, accessToken: string) {
