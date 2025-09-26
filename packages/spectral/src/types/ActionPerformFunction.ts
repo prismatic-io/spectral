@@ -166,4 +166,6 @@ export type ActionContext<
   debug: DebugContext;
   /** JSON schemas to enable using flows for AI function calls. */
   flowSchemas: FlowSchemas;
+  /** Whether the execution is being run with simulated data. */
+  isSimulatedTestExecution?: boolean;
 };
