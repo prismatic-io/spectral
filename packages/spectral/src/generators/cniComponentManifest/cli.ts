@@ -134,6 +134,6 @@ export const runMain = async (process: NodeJS.Process) => {
   });
 
   console.info(
-    `Component manifest created successfully for ${component.display.label} in ${destinationDir}!`,
+    `Component manifest created successfully for ${component.display.label} in ${destinationDir}!\nEnsure that you update your componentRegistry file accordingly.`,
   );
 };

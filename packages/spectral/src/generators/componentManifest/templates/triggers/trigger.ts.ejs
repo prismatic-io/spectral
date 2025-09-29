@@ -3,7 +3,6 @@ import { ConfigVarExpression } from "@prismatic-io/spectral";
 import {
   findUserDefinedComponentKey,
   requireIntegrationContext,
-  runWithIntegrationContext,
 } from "@prismatic-io/spectral/dist/serverTypes";
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 
@@ -39,17 +38,16 @@ export const <%= helpers.camelCase(trigger.componentKey) %><%= helpers.capitaliz
     } | ConfigVarExpression);
   <% }); -%>
 }) => {
-  const context = requireIntegrationContext();
-  return runWithIntegrationContext(context, () => {
-    const userKey = findUserDefinedComponentKey(
-      "<%= trigger.componentKey %>",
-      context.componentRegistry,
-    );
-
-    return {
-      component: userKey,
-      key: "<%= trigger.key %>",
-      values,
-    } as const;
-  });
+  return {
+    get component() {
+      const context = requireIntegrationContext();
+      return findUserDefinedComponentKey(
+        "<%= trigger.componentKey %>",
+        <%= trigger.componentIsPublic %>,
+        context.componentRegistry,
+      );
+    },
+    key: "<%= trigger.key %>",
+    values,
+  } as const;
 };

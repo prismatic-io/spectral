@@ -46,9 +46,9 @@ import { runWithIntegrationContext } from "./serverTypes";
 export const integration = <T extends IntegrationDefinition = IntegrationDefinition>(
   definition: T,
 ): ReturnType<typeof convertIntegration> => {
-  const integrationDefinition = runWithIntegrationContext(definition, () =>
-    convertIntegration(definition),
-  );
+  const integrationDefinition = runWithIntegrationContext(definition, () => {
+    return convertIntegration(definition);
+  });
 
   if (process.env?.DEBUG === "true") {
     console.info(integrationDefinition.codeNativeIntegrationYAML);

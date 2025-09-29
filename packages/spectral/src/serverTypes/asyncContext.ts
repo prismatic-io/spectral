@@ -45,6 +45,7 @@ export function requireIntegrationContext<T extends IntegrationDefinition>(): T 
   const context = integrationContextStorage.getStore();
 
   if (!context) {
+    console.trace();
     throw new Error(
       "IntegrationContext not found. Ensure this code is wrapped via runWithIntegrationContext.",
     );
@@ -53,25 +54,39 @@ export function requireIntegrationContext<T extends IntegrationDefinition>(): T 
   return context;
 }
 
-export const findUserDefinedComponentKey = <T extends ComponentRegistry>(
-  componentKey: string,
+type GetUserDefinedKeyByComponentKey<
+  K extends string,
+  T extends ComponentRegistry,
+> = keyof T extends infer UserKey
+  ? UserKey extends keyof T
+    ? T[UserKey] extends { key: string }
+      ? T[UserKey]["key"] extends K
+        ? UserKey
+        : never
+      : never
+    : never
+  : never;
+
+export const findUserDefinedComponentKey = <K extends string, T extends ComponentRegistry>(
+  componentKey: K,
+  isPublic: boolean,
   registry?: T,
-): keyof T => {
+): GetUserDefinedKeyByComponentKey<K, T> => {
   if (!registry) {
     throw new Error(
-      "Error locating component registry. Do you have a component registry defined on your integration?",
+      "Error locating component registry. Is there a component registry defined on your integration?",
     );
   }
 
   const userKey = Object.keys(registry).find((userKey) => {
-    return registry[userKey].key === componentKey;
+    return registry[userKey].key === componentKey && registry[userKey].public === isPublic;
   });
 
   if (!userKey) {
     throw new Error(
-      `Error locating component ${componentKey} in the component registry. Is this component properly installed?`,
+      `Error locating component ${componentKey} in the component registry. Is this component properly installed with a correct public/private setting?`,
     );
   }
 
-  return userKey;
+  return userKey as GetUserDefinedKeyByComponentKey<K, T>;
 };

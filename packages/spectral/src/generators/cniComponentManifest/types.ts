@@ -6,6 +6,7 @@ export interface ComponentNode {
   description: string;
   signature: string;
   key: string;
+  public: boolean;
   actions: {
     nodes: ActionNode[];
   };

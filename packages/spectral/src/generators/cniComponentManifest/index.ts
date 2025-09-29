@@ -156,11 +156,7 @@ export const fetchComponentDataForManifest = async ({
       connections,
     };
   } catch (error) {
-    throw new Error(
-      `There was an error accessing the Prismatic API. Check your login status via 'prism me' or 'prism login'.\n${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    );
+    throw new Error(error instanceof Error ? error.message : String(error));
   }
 };
 
