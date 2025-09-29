@@ -1,5 +1,10 @@
 <%- include('../partials/generatedHeader.ejs') -%>
 import { connectionConfigVar } from "@prismatic-io/spectral/dist/integration";
+import {
+  findUserDefinedComponentKey,
+  requireIntegrationContext,
+  runWithIntegrationContext,
+} from "@prismatic-io/spectral/dist/serverTypes";
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 
 export interface <%= connection.typeInterface %>Values {
@@ -40,13 +45,24 @@ export const <%= helpers.camelCase(connection.componentKey) %><%= helpers.capita
 <% }); -%>
   },
 ) => {
-  return connectionConfigVar({
-    dataType: "connection",
-    stableKey,
-    connection: {
-      component: "<%= connection.componentKey %>",
-      key: "<%= helpers.camelCase(connection.key) %>",
-      values,
-    },
+  const context = requireIntegrationContext();
+  return runWithIntegrationContext(context, () => {
+    const userKey = findUserDefinedComponentKey(
+      "<%= connection.componentKey %>",
+      context.componentRegistry,
+    );
+
+    return connectionConfigVar({
+      dataType: "connection",
+      stableKey,
+      connection: {
+        // @ts-expect-error: findUserDefinedComponentKey does not narrow a response to a specific user key.
+        component: userKey,
+        // @ts-expect-error: See above.
+        key: "<%= helpers.camelCase(connection.key) %>",
+        // @ts-expect-error: See above.
+        values,
+      },
+    });
   });
 };

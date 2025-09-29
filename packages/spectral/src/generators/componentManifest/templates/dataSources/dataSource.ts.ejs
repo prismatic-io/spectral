@@ -1,5 +1,10 @@
 <%- include('../partials/generatedHeader.ejs') -%>
 import { dataSourceConfigVar } from "@prismatic-io/spectral/dist/integration";
+import {
+  findUserDefinedComponentKey,
+  requireIntegrationContext,
+  runWithIntegrationContext,
+} from "@prismatic-io/spectral/dist/serverTypes";
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 
 export interface <%= dataSource.typeInterface %>Values {
@@ -40,12 +45,21 @@ export const <%= helpers.camelCase(dataSource.componentKey) %><%= helpers.capita
 <% }); -%>
   },
 ) => {
-  return dataSourceConfigVar({
-    stableKey,
-    dataSource: {
-      component: "<%= dataSource.componentKey %>",
-      key: "<%= helpers.camelCase(dataSource.key) %>",
-      values,
-    },
+  const context = requireIntegrationContext();
+  return runWithIntegrationContext(context, () => {
+    const userKey = findUserDefinedComponentKey(
+      "<%= dataSource.componentKey %>",
+      context.componentRegistry,
+    );
+
+    return dataSourceConfigVar({
+      stableKey,
+      dataSource: {
+        // @ts-expect-error: findUserDefinedComponentKey does not narrow a response to a specific user key.
+        component: userKey,
+        key: "<%= helpers.camelCase(dataSource.key) %>",
+        values,
+      },
+    });
   });
 };
