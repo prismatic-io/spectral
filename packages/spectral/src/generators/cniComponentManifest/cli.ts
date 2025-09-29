@@ -115,6 +115,7 @@ export const runMain = async (process: NodeJS.Process) => {
     verbose,
     sourceDir: templatesDir,
     destinationDir,
+    isCniManifest: true,
   });
 
   await createConnections({
@@ -123,6 +124,7 @@ export const runMain = async (process: NodeJS.Process) => {
     verbose,
     sourceDir: templatesDir,
     destinationDir,
+    isCniManifest: true,
   });
 
   await createDataSources({
@@ -131,6 +133,7 @@ export const runMain = async (process: NodeJS.Process) => {
     verbose: flags.verbose.value,
     sourceDir: templatesDir,
     destinationDir,
+    isCniManifest: true,
   });
 
   console.info(

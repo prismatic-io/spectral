@@ -14,6 +14,7 @@ interface CreateTriggersProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
+  isCniManifest?: boolean;
 }
 
 export const createTriggers = async ({
@@ -22,6 +23,7 @@ export const createTriggers = async ({
   verbose,
   sourceDir,
   destinationDir,
+  isCniManifest = false,
 }: CreateTriggersProps) => {
   if (verbose) {
     console.info("Creating triggers...");
@@ -63,6 +65,7 @@ export const createTriggers = async ({
         verbose,
         sourceDir,
         destinationDir,
+        isCniManifest,
       });
     }),
   );
@@ -121,6 +124,7 @@ interface RenderTriggerProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
+  isCniManifest: boolean;
 }
 
 const renderTrigger = async ({
@@ -130,6 +134,7 @@ const renderTrigger = async ({
   verbose,
   sourceDir,
   destinationDir,
+  isCniManifest,
 }: RenderTriggerProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "triggers", "trigger.ts.ejs"),
@@ -138,6 +143,7 @@ const renderTrigger = async ({
       helpers,
       imports,
       trigger,
+      isCniManifest,
     },
     dryRun,
     verbose,

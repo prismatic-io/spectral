@@ -1,9 +1,11 @@
 <%- include('../partials/generatedHeader.ejs') -%>
 import { dataSourceConfigVar } from "@prismatic-io/spectral/dist/integration";
+<%_ if (isCniManifest) { -%>
 import {
   findUserDefinedComponentKey,
   requireIntegrationContext,
 } from "@prismatic-io/spectral/dist/serverTypes";
+<%_ } -%>
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 
 export interface <%= dataSource.typeInterface %>Values {
@@ -27,6 +29,7 @@ export const <%= dataSource.import %> = {
   }
 } as const;
 
+<%_ if (isCniManifest) { -%>
 /**
  * <%= dataSource.label %> DataSource Helper
  *
@@ -60,3 +63,4 @@ export const <%= helpers.camelCase(dataSource.componentKey) %><%= helpers.capita
     },
   });
 };
+<%_ } -%>
