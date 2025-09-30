@@ -60,9 +60,11 @@ type GetUserDefinedKeyByComponentKey<
   TPublic extends boolean,
 > = keyof T extends infer UserKey
   ? UserKey extends keyof T
-    ? T[UserKey]["key"] extends K
-      ? T[UserKey]["public"] extends TPublic
-        ? UserKey
+    ? T[UserKey] extends { key: string; public: boolean }
+      ? T[UserKey]["key"] extends K
+        ? T[UserKey]["public"] extends TPublic
+          ? UserKey
+          : never
         : never
       : never
     : never
