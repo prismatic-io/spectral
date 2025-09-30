@@ -84,7 +84,7 @@ export const findUserDefinedComponentKey = <K extends string, T extends Componen
 
   if (!userKey) {
     throw new Error(
-      `Error locating component ${componentKey} in the component registry. Is this component properly installed with a correct public/private setting?`,
+      `Error locating component ${componentKey} with custom key ${userKey} in the component registry. Is this component properly installed with a correct public/private setting?`,
     );
   }
 
