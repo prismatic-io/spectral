@@ -57,21 +57,26 @@ export function requireIntegrationContext<T extends IntegrationDefinition>(): T 
 type GetUserDefinedKeyByComponentKey<
   K extends string,
   T extends ComponentRegistry,
+  TPublic extends boolean,
 > = keyof T extends infer UserKey
   ? UserKey extends keyof T
-    ? T[UserKey] extends { key: string }
-      ? T[UserKey]["key"] extends K
+    ? T[UserKey]["key"] extends K
+      ? T[UserKey]["public"] extends TPublic
         ? UserKey
         : never
       : never
     : never
   : never;
 
-export const findUserDefinedComponentKey = <K extends string, T extends ComponentRegistry>(
+export const findUserDefinedComponentKey = <
+  K extends string,
+  T extends ComponentRegistry,
+  TPublic extends boolean,
+>(
   componentKey: K,
-  isPublic: boolean,
+  isPublic: TPublic,
   registry?: T,
-): GetUserDefinedKeyByComponentKey<K, T> => {
+): GetUserDefinedKeyByComponentKey<K, T, TPublic> => {
   if (!registry) {
     throw new Error(
       "Error locating component registry. Is there a component registry defined on your integration?",
@@ -88,5 +93,5 @@ export const findUserDefinedComponentKey = <K extends string, T extends Componen
     );
   }
 
-  return userKey as GetUserDefinedKeyByComponentKey<K, T>;
+  return userKey as GetUserDefinedKeyByComponentKey<K, T, TPublic>;
 };
