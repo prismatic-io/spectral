@@ -15,7 +15,6 @@ interface CreateDataSourcesProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  isCniManifest?: boolean;
 }
 
 export const createDataSources = async ({
@@ -24,7 +23,6 @@ export const createDataSources = async ({
   verbose,
   sourceDir,
   destinationDir,
-  isCniManifest = false,
 }: CreateDataSourcesProps) => {
   if (verbose) {
     console.info("Creating data sources...");
@@ -72,7 +70,6 @@ export const createDataSources = async ({
         verbose,
         sourceDir,
         destinationDir,
-        isCniManifest,
       });
     }),
   );
@@ -132,7 +129,6 @@ interface RenderDataSourceProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  isCniManifest: boolean;
 }
 
 const renderDataSource = async ({
@@ -142,7 +138,6 @@ const renderDataSource = async ({
   verbose,
   sourceDir,
   destinationDir,
-  isCniManifest,
 }: RenderDataSourceProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "dataSources", "dataSource.ts.ejs"),
@@ -151,7 +146,6 @@ const renderDataSource = async ({
       dataSource,
       helpers,
       imports,
-      isCniManifest,
     },
     dryRun,
     verbose,

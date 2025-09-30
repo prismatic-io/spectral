@@ -14,7 +14,6 @@ interface CreateConnectionsProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  isCniManifest?: boolean;
 }
 
 export const createConnections = async ({
@@ -23,7 +22,6 @@ export const createConnections = async ({
   verbose,
   sourceDir,
   destinationDir,
-  isCniManifest = false,
 }: CreateConnectionsProps) => {
   if (verbose) {
     console.info("Creating connections...");
@@ -75,7 +73,6 @@ export const createConnections = async ({
         verbose,
         sourceDir,
         destinationDir,
-        isCniManifest,
       });
     }),
   );
@@ -135,7 +132,6 @@ interface RenderConnectionProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
-  isCniManifest: boolean;
 }
 
 const renderConnection = async ({
@@ -145,7 +141,6 @@ const renderConnection = async ({
   verbose,
   sourceDir,
   destinationDir,
-  isCniManifest,
 }: RenderConnectionProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "connections", "connection.ts.ejs"),
@@ -154,7 +149,6 @@ const renderConnection = async ({
       connection,
       helpers,
       imports,
-      isCniManifest,
     },
     dryRun,
     verbose,

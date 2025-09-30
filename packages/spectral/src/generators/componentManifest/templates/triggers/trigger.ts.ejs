@@ -1,11 +1,9 @@
 <%- include('../partials/generatedHeader.ejs') -%>
 import { ConfigVarExpression } from "@prismatic-io/spectral";
-<%_ if (isCniManifest) { -%>
 import {
   findUserDefinedComponentKey,
   requireIntegrationContext,
 } from "@prismatic-io/spectral/dist/serverTypes";
-<%_ } -%>
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 
 export interface <%= trigger.typeInterface %>Values {
@@ -28,7 +26,6 @@ export const <%= trigger.import %> = {
   }
 } as const;
 
-<%_ if (isCniManifest) { -%>
 /**
  * <%= trigger.label %> Trigger Helper
  *
@@ -54,4 +51,3 @@ export const <%= helpers.camelCase(trigger.componentKey) %><%= helpers.capitaliz
     values,
   } as const;
 };
-<%_ } -%>
