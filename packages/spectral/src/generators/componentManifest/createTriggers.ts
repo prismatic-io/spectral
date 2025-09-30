@@ -56,6 +56,7 @@ export const createTriggers = async ({
           description: trigger.display.description,
           inputs,
           componentKey: component.key,
+          componentIsPublic: Boolean(component.public),
         },
         dryRun,
         imports,
@@ -113,6 +114,7 @@ interface RenderTriggerProps {
     description: string;
     inputs: Input[];
     componentKey: string;
+    componentIsPublic: boolean;
   };
   dryRun: boolean;
   imports: Imports;

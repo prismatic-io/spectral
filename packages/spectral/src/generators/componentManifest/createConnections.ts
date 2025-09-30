@@ -66,6 +66,7 @@ export const createConnections = async ({
           inputs,
           onPremAvailable,
           componentKey: component.key,
+          componentIsPublic: Boolean(component.public),
         },
         imports,
         dryRun,
@@ -124,6 +125,7 @@ interface RenderConnectionProps {
     inputs: Input[];
     onPremAvailable: boolean;
     componentKey: string;
+    componentIsPublic: boolean;
   };
   dryRun: boolean;
   imports: Imports;

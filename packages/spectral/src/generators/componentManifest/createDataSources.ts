@@ -63,6 +63,7 @@ export const createDataSources = async ({
           dataSourceType: dataSource.dataSourceType,
           inputs,
           componentKey: component.key,
+          componentIsPublic: Boolean(component.public),
         },
         imports,
         dryRun,
@@ -121,6 +122,7 @@ interface RenderDataSourceProps {
     dataSourceType: DataSourceType;
     inputs: Input[];
     componentKey: string;
+    componentIsPublic: boolean;
   };
   dryRun: boolean;
   imports: Imports;

@@ -1,6 +1,10 @@
 <%- include('../partials/generatedHeader.ejs') -%>
-<%- include('../partials/imports.ejs', { imports, helpers }) %>
 import { ConfigVarExpression } from "@prismatic-io/spectral";
+import {
+  findUserDefinedComponentKey,
+  requireIntegrationContext,
+} from "@prismatic-io/spectral/dist/serverTypes";
+<%- include('../partials/imports.ejs', { imports, helpers }) %>
 
 export interface <%= trigger.typeInterface %>Values {
 <%- include('../partials/performArgs.ejs', { inputs: trigger.inputs, helpers }) -%>
@@ -35,7 +39,14 @@ export const <%= helpers.camelCase(trigger.componentKey) %><%= helpers.capitaliz
   <% }); -%>
 }) => {
   return {
-    component: "<%= helpers.camelCase(trigger.componentKey) %>",
+    get component() {
+      const context = requireIntegrationContext();
+      return findUserDefinedComponentKey(
+        "<%= trigger.componentKey %>",
+        <%= trigger.componentIsPublic %>,
+        context.componentRegistry,
+      );
+    },
     key: "<%= trigger.key %>",
     values,
   } as const;

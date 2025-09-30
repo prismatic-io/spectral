@@ -32,6 +32,7 @@ import {
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
 import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
+import { runWithIntegrationContext } from "./serverTypes";
 
 /**
  * This function creates a code-native integration object that can be
@@ -45,7 +46,9 @@ import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition"
 export const integration = <T extends IntegrationDefinition = IntegrationDefinition>(
   definition: T,
 ): ReturnType<typeof convertIntegration> => {
-  const integrationDefinition = convertIntegration(definition);
+  const integrationDefinition = runWithIntegrationContext(definition, () => {
+    return convertIntegration(definition);
+  });
 
   if (process.env?.DEBUG === "true") {
     console.info(integrationDefinition.codeNativeIntegrationYAML);
