@@ -30,6 +30,13 @@ export { IntegrationAttributes } from "../types";
 export { FlowAttributes } from "../types";
 export { FlowSchemas } from "../types";
 
+export interface PublishingMetadata {
+  flowsWithCustomerRequiredAPIKeys: {
+    name: string;
+    testApiKeys?: string[];
+  }[];
+}
+
 export interface Component {
   key: string;
   public?: boolean;
@@ -40,6 +47,7 @@ export interface Component {
   dataSources: Record<string, DataSource>;
   connections: Connection[];
   codeNativeIntegrationYAML?: string;
+  publishingMetadata?: PublishingMetadata;
 }
 
 export interface Action {

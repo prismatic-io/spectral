@@ -132,6 +132,7 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
    * when the endpoint security type is `EndpointSecurityType.Organization`.
    */
   organizationApiKeys?: string[];
+  testApiKeys?: string[];
   /** Schedule configuration that defines the frequency with which this flow will be automatically executed. */
   schedule?: (ValueExpression<string> | ConfigVarExpression) & {
     timezone?: string;

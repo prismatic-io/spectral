@@ -45,6 +45,7 @@ import {
   ActionContext,
   TriggerPayload,
   TriggerResult,
+  PublishingMetadata,
 } from ".";
 import { convertInput, convertTemplateInput } from "./convertComponent";
 import {
@@ -112,10 +113,12 @@ export const convertIntegration = (definition: IntegrationDefinition): ServerCom
 
   const cniComponent = codeNativeIntegrationComponent(definition, referenceKey, configVars);
   const cniYaml = codeNativeIntegrationYaml(definition, referenceKey, configVars, metadata);
+  const publishingMetadata = codeNativeIntegrationPublishingMetadata(definition);
 
   return {
     ...cniComponent,
     codeNativeIntegrationYAML: cniYaml,
+    publishingMetadata,
   };
 };
 
@@ -541,6 +544,7 @@ export const convertFlow = (
   result.onExecution = undefined;
   result.preprocessFlowConfig = undefined;
   result.errorConfig = undefined;
+  result.testApiKeys = undefined;
 
   let publicSupplementalComponent: "webhook" | "schedule" | undefined;
 
@@ -655,7 +659,6 @@ export const convertFlow = (
   );
 
   result.schemas = flow.schemas ? convertFlowSchemas(flow.stableKey, flow.schemas) : undefined;
-
   return result;
 };
 
@@ -919,7 +922,9 @@ const generateTriggerPerformFn = (
     componentRef && typeof onTrigger !== "function"
       ? async (context, payload, params) => {
           // @ts-expect-error: _components isn't part of the public API
-          const _components = context._components ?? { invokeTrigger: () => {} };
+          const _components = context._components ?? {
+            invokeTrigger: () => {},
+          };
           const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
           const cniContext = createCNIContext(context, componentRegistry);
 
@@ -964,7 +969,9 @@ const generateOnInstanceWrapperFn = (
     componentRef && typeof onTrigger !== "function"
       ? async (context, params) => {
           // @ts-expect-error: _components isn't part of the public API
-          const _components = context._components ?? { invokeTrigger: () => {} };
+          const _components = context._components ?? {
+            invokeTrigger: () => {},
+          };
           const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
           const cniContext = createCNIContext(context, componentRegistry);
 
@@ -1188,5 +1195,19 @@ const codeNativeIntegrationComponent = (
     actions: convertedActions,
     triggers: convertedTriggers,
     dataSources: convertedDataSources,
+  };
+};
+
+const codeNativeIntegrationPublishingMetadata = (
+  definition: IntegrationDefinition,
+): PublishingMetadata => {
+  const customerRequiredSecurityEndpoints = definition.flows
+    .filter((flow) => flow.endpointSecurityType === "customer_required")
+    .map(({ name, testApiKeys }) => {
+      return { name, testApiKeys };
+    });
+
+  return {
+    flowsWithCustomerRequiredAPIKeys: customerRequiredSecurityEndpoints,
   };
 };
