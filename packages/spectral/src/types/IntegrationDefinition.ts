@@ -116,6 +116,8 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   preprocessFlowConfig?: PreprocessFlowConfig;
   /** Value that specifies whether this flow is synchronous. @default `false` */
   isSynchronous?: boolean;
+  /** Value that specifies whether this flow is an AI agent flow on the integrations MCP server. @default `false` */
+  isAgentFlow?: boolean;
   /** Retry Configuration for this flow. */
   retryConfig?: RetryConfig;
   /** Queue Configuration for this flow. */
