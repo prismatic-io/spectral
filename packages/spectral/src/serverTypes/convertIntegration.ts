@@ -384,16 +384,18 @@ const convertComponentReference = (
 
   const inputs = Object.entries(manifestEntry.inputs).reduce(
     (result, [key, manifestEntryInput]) => {
+      const isCollection = Boolean(manifestEntryInput.collection);
       // Retrieve the input value or default to the manifest's default value
+
       const value = componentReference.values?.[key] ?? {
-        value: manifestEntryInput.default ?? "",
+        value: isCollection
+          ? manifestEntryInput.default === ""
+            ? []
+            : manifestEntryInput.default
+          : manifestEntryInput.default ?? "",
       };
 
-      const type = manifestEntryInput.collection
-        ? "complex"
-        : "value" in value
-          ? "value"
-          : "configVar";
+      const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
 
       if ("value" in value) {
         const valueExpr =
