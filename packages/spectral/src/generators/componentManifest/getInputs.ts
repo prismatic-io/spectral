@@ -25,9 +25,9 @@ interface GetInputsProps {
   docBlock?: (input: ServerTypeInput) => string;
 }
 
-const getDefaultValue = (value: ServerTypeInput["default"]) => {
+const getDefaultValue = (value: ServerTypeInput["default"], isCollection: boolean) => {
   if (value === undefined || value === "") {
-    return value;
+    return isCollection ? [] : value;
   }
 
   const stringValue = typeof value === "string" ? value : JSON.stringify(value);
@@ -57,7 +57,7 @@ export const getInputs = ({ inputs, docBlock = DOC_BLOCK_DEFAULT }: GetInputsPro
         collection: input.collection,
         onPremControlled: input.onPremiseControlled || input.onPremControlled,
         docBlock: docBlock(input),
-        default: getDefaultValue(input.default),
+        default: getDefaultValue(input.default, Boolean(input.collection)),
       },
     ];
   }, [] as Input[]);

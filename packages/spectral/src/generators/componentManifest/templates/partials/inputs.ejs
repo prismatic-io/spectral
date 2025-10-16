@@ -6,7 +6,9 @@
     <%_ } else { -%>
     collection: undefined,
     <%_ } -%>
-    <%_ if (typeof input.default !== 'undefined') { -%>
+    <%_ if (Array.isArray(input.default)) { -%>
+    default: <%- JSON.stringify(input.default) %>,
+    <%_ } else if (typeof input.default !== 'undefined') { -%>
     default: `<%- input.default %>`,
     <%_ } else { -%>
     default: undefined,
