@@ -241,7 +241,6 @@ type BaseDataSourceConfigVar<TDataSourceType extends DataSourceType = DataSource
       ? TDataSourceType extends Extract<DataSourceType, "jsonForm">
         ? BaseConfigVar & {
             dataSourceType: Extract<DataSourceType, "jsonForm">;
-            dataSource?: never;
             collectionType?: undefined;
             validationMode?: ValidationMode;
           }
