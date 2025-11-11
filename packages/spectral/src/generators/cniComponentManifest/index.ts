@@ -38,7 +38,7 @@ export const fetchComponentDataForManifest = async ({
           description
           signature
           key
-          connections {
+          connections(sortBy: {direction: ASC, field: KEY}) {
             nodes {
               key
               label
@@ -225,5 +225,5 @@ async function getComponentActions(componentId: string, prismaticUrl: string, ac
     cursor = response.data.data.actions.pageInfo?.endCursor;
   }
 
-  return actions;
+  return actions.sort((a, b) => a.key.localeCompare(b.key));
 }
