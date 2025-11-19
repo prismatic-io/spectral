@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import type { DataSourceType } from "../../types";
 import {
   ComponentNode,
@@ -156,7 +156,10 @@ export const fetchComponentDataForManifest = async ({
       connections,
     };
   } catch (error) {
-    throw new Error(error instanceof Error ? error.message : String(error));
+    if (error instanceof AxiosError && error.response?.data?.errors) {
+      throw new Error(JSON.stringify(error.response.data.errors, null, 2));
+    }
+    throw error;
   }
 };
 
@@ -166,63 +169,70 @@ async function getComponentActions(componentId: string, prismaticUrl: string, ac
   let actions: Array<ActionNode> = [];
 
   while (hasNextPage) {
-    const query = `
-      query componentActionQuery($component: ID!, $after: String) {
-        actions(component: $component, after: $after) {
-          nodes {
-            isDataSource
-            isDetailDataSource
-            dataSourceType
-            isTrigger
-            isCommonTrigger
-            key
-            label
-            description
-            inputs {
-              nodes {
-                key
-                label
-                type
-                required
-                default
-                collection
-                shown
-                onPremiseControlled
+    try {
+      const query = `
+        query componentActionQuery($component: ID!, $after: String) {
+          actions(component: $component, after: $after) {
+            nodes {
+              isDataSource
+              isDetailDataSource
+              dataSourceType
+              isTrigger
+              isCommonTrigger
+              key
+              label
+              description
+              inputs {
+                nodes {
+                  key
+                  label
+                  type
+                  required
+                  default
+                  collection
+                  shown
+                  onPremiseControlled
+                }
               }
+              examplePayload
             }
-            examplePayload
-          }
-          pageInfo {
-            hasNextPage
-            endCursor
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
           }
         }
+      `;
+
+      const response: ComponentActionsQueryResponse = await axios.post(
+        `${prismaticUrl}/api`,
+        {
+          query: query,
+          variables: {
+            component: componentId,
+            after: cursor,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+            "Prismatic-Client": "spectral",
+          },
+        },
+      );
+
+      const responseActions: Array<ActionNode> = response.data.data.actions.nodes;
+
+      actions = actions.concat(responseActions);
+      hasNextPage = response.data.data.actions.pageInfo?.hasNextPage;
+      cursor = response.data.data.actions.pageInfo?.endCursor;
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.data?.errors) {
+        throw new Error(JSON.stringify(error.response.data.errors, null, 2));
       }
-    `;
-
-    const response: ComponentActionsQueryResponse = await axios.post(
-      `${prismaticUrl}/api`,
-      {
-        query: query,
-        variables: {
-          component: componentId,
-          after: cursor,
-        },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-          "Prismatic-Client": "spectral",
-        },
-      },
-    );
-
-    const responseActions: Array<ActionNode> = response.data.data.actions.nodes;
-
-    actions = actions.concat(responseActions);
-    hasNextPage = response.data.data.actions.pageInfo?.hasNextPage;
-    cursor = response.data.data.actions.pageInfo?.endCursor;
+      throw error;
+    }
   }
 
   return actions.sort((a, b) => a.key.localeCompare(b.key));
