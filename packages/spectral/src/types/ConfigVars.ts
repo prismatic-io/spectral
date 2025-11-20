@@ -206,12 +206,20 @@ type ObjectSelectionConfigVar = CreateStandardConfigVar<"objectSelection">;
 
 type ObjectFieldMapConfigVar = CreateStandardConfigVar<"objectFieldMap">;
 
+type DataSourceReset = {
+  /** Either always prompt a user to reset the data source when a dependent config variable changes, or always reset the data source */
+  mode: "prompt" | "always";
+  /** List of config variable names that, if changed, should trigger a reset of the JSON Form */
+  dependencies?: string[];
+};
+
 type JsonFormConfigVar = CreateStandardConfigVar<"jsonForm"> & {
   validationMode?: ValidationMode;
 };
 
 type JsonFormDataSourceDefinitionConfigVar = DataSourceDefinitionConfigVar & {
   validationMode?: ValidationMode;
+  dataSourceReset?: DataSourceReset;
 };
 
 type HtmlElementConfigVar = CreateStandardConfigVar<"htmlElement">;
@@ -276,6 +284,7 @@ type DataSourceReferenceConfigVar =
     ? Omit<BaseDataSourceConfigVar<TDataSourceReference["dataSourceType"]>, "dataSourceType"> & {
         dataSource: TDataSourceReference["reference"];
         validationMode?: ValidationMode;
+        dataSourceReset?: Omit<DataSourceReset, "dependencies">;
       }
     : never;
 
