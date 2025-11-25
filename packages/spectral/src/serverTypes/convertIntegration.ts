@@ -832,6 +832,22 @@ export const convertConfigVar = (
     };
   }
 
+  if (isJsonFormDataSourceConfigVar(configVar) && configVar.dataSourceReset) {
+    result.meta = { ...result.meta, dataSourceReset: configVar.dataSourceReset.mode };
+    // Create placeholder inputs for each config variable dependency, so that
+    // the config wizard can detect if any changed and reset the data source.
+    result.inputs = (configVar.dataSourceReset.dependencies || []).reduce(
+      (acc, dep, idx) => ({
+        ...acc,
+        [`input${idx}`]: {
+          type: "configVar",
+          value: dep,
+        },
+      }),
+      {},
+    );
+  }
+
   if (isDataSourceDefinitionConfigVar(configVar)) {
     result.dataType = configVar.dataSourceType;
     result.dataSource = {
@@ -856,6 +872,10 @@ export const convertConfigVar = (
         ...result.meta,
         validationMode: configVar.validationMode,
       };
+    }
+
+    if (configVar.dataSourceReset) {
+      result.meta = { ...result.meta, dataSourceReset: configVar.dataSourceReset.mode };
     }
   }
 
@@ -1144,7 +1164,16 @@ const codeNativeIntegrationComponent = (
             label: key,
             description: key,
           },
-          inputs: [],
+          inputs:
+            // Create placeholder inputs for each config variable dependency,so that
+            // the config wizard can detect if any changed and reset the data source.
+            isJsonFormDataSourceConfigVar(configVar) && configVar.dataSourceReset
+              ? (configVar.dataSourceReset.dependencies || []).map((dep, idx) => ({
+                  key: `input${idx}`,
+                  label: dep,
+                  type: "string",
+                }))
+              : [],
         },
       };
     },
