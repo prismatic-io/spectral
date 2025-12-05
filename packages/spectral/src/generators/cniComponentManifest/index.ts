@@ -64,7 +64,7 @@ export const fetchComponentDataForManifest = async ({
 
   try {
     const response = await axios.post(
-      `${prismaticUrl}/api`,
+      new URL("/api", prismaticUrl).toString(),
       {
         query,
         variables: {
@@ -205,7 +205,7 @@ async function getComponentActions(componentId: string, prismaticUrl: string, ac
       `;
 
       const response: ComponentActionsQueryResponse = await axios.post(
-        `${prismaticUrl}/api`,
+        new URL("/api", prismaticUrl).toString(),
         {
           query: query,
           variables: {
