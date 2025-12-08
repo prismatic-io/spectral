@@ -985,45 +985,46 @@ const generateOnInstanceWrapperFn = (
   componentRegistry: ComponentRegistry,
   customFn?: TriggerEventFunction,
 ): TriggerEventFunction | undefined => {
-  const onInstanceFn: TriggerEventFunction | undefined =
-    componentRef && typeof onTrigger !== "function"
-      ? async (context, params) => {
-          // @ts-expect-error: _components isn't part of the public API
-          const _components = context._components ?? {
-            invokeTrigger: () => {},
-          };
-          const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
-          const cniContext = createCNIContext(context, componentRegistry);
+  const usesComponentRef = componentRef && typeof onTrigger !== "function";
 
-          // Using runWithContext allows for component action invocation via manifest.
-          return await runWithContext(cniContext, async () => {
-            const invokeResponse =
-              (await invokeTrigger(
-                invokeTriggerComponentInput(componentRef, onTrigger, eventName),
-                cniContext,
-                null,
-                params,
-              )) || {};
+  if (usesComponentRef) {
+    return async (context, params) => {
+      // @ts-expect-error: _components isn't part of the public API
+      const _components = context._components ?? {
+        invokeTrigger: () => {},
+      };
+      const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
+      const cniContext = createCNIContext(context, componentRegistry);
 
-            let customResponse: TriggerEventFunctionReturn = {};
-            if (customFn) {
-              customResponse = (await customFn(cniContext, params)) || {};
-            }
+      // Using runWithContext allows for component action invocation via manifest.
+      return await runWithContext(cniContext, async () => {
+        const invokeResponse =
+          (await invokeTrigger(
+            invokeTriggerComponentInput(componentRef, onTrigger, eventName),
+            cniContext,
+            null,
+            params,
+          )) || {};
 
-            return merge(invokeResponse, customResponse);
-          });
+        let customResponse: TriggerEventFunctionReturn = {};
+        if (customFn) {
+          customResponse = (await customFn(cniContext, params)) || {};
         }
-      : async (context, params) => {
-          if (customFn) {
-            const cniContext = createCNIContext(context, componentRegistry);
-            // Using runWithContext allows for component action invocation via manifest.
-            return await runWithContext(cniContext, async () => {
-              return await customFn(cniContext, params);
-            });
-          }
-        };
 
-  return onInstanceFn;
+        return merge(invokeResponse, customResponse);
+      });
+    };
+  } else if (customFn) {
+    return async (context, params) => {
+      const cniContext = createCNIContext(context, componentRegistry);
+      // Using runWithContext allows for component action invocation via manifest.
+      return await runWithContext(cniContext, async () => {
+        return await customFn(cniContext, params);
+      });
+    };
+  } else {
+    return;
+  }
 };
 
 const convertOnExecution =
