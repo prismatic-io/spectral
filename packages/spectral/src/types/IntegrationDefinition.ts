@@ -101,6 +101,8 @@ export type FlowExecutionContext = ActionContext<
 
 export type FlowExecutionContextActions = FlowExecutionContext["components"];
 
+export type FlowTriggerType = "polling";
+
 /** Defines attributes of a flow of a code-native integration. */
 export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   /** The unique name for this flow. */
@@ -143,6 +145,11 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   schemas?: Record<string, FlowDefinitionFlowSchema> & {
     invoke: FlowDefinitionFlowSchema;
   };
+  /**
+   * Type of trigger for this flow. When set to "polling", the trigger runs on a schedule
+   * and can use context.polling.* functions. Requires schedule to be set.
+   */
+  triggerType?: FlowTriggerType;
   /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
   onTrigger?:
     | TriggerReference
