@@ -545,6 +545,7 @@ export const convertFlow = (
   result.preprocessFlowConfig = undefined;
   result.errorConfig = undefined;
   result.testApiKeys = undefined;
+  result.triggerType = undefined;
 
   let publicSupplementalComponent: "webhook" | "schedule" | undefined;
 
