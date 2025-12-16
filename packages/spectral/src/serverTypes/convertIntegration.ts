@@ -607,6 +607,12 @@ export const convertFlow = (
     hasSchedule = true;
   }
 
+  if (flow.triggerType === "polling" && !hasSchedule) {
+    throw new Error(
+      `${flow.name} is marked as a polling trigger but has no schedule. Polling triggers require a schedule.`,
+    );
+  }
+
   if ("queueConfig" in flow && typeof flow.queueConfig === "object") {
     const { queueConfig } = flow;
 
