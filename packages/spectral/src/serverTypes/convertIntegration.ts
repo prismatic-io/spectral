@@ -5,6 +5,7 @@ import camelCase from "lodash/camelCase";
 import pick from "lodash/pick";
 import {
   IntegrationDefinition,
+  FlowTriggerType,
   ConfigVar,
   Flow,
   EndpointType,
@@ -31,6 +32,11 @@ import {
   DEFAULT_JSON_SCHEMA_VERSION,
   FlowDefinitionFlowSchema,
   ConnectionTemplateInputField,
+  PollingTriggerPerformFunction,
+  Inputs,
+  TriggerResult as TriggerPerformResult,
+  ConfigVarResultCollection,
+  CodeNativePollingTriggerPerformFunction,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -48,6 +54,7 @@ import {
   PublishingMetadata,
 } from ".";
 import { convertInput, convertTemplateInput } from "./convertComponent";
+import { createPollingContext } from "./perform";
 import {
   DefinitionVersion,
   RequiredConfigVariable as ServerRequiredConfigVariable,
@@ -948,35 +955,61 @@ const invokeTriggerComponentInput = (
   };
 };
 
+interface GenerateTriggerPerformFn {
+  componentRef: ServerComponentReference | undefined;
+  onTrigger:
+    | TriggerReference
+    | TriggerPerformFunction
+    | CodeNativePollingTriggerPerformFunction
+    | undefined;
+  componentRegistry: ComponentRegistry;
+  triggerType: FlowTriggerType | undefined;
+}
 /* Generates a wrapper function that calls an existing component trigger's perform. */
-const generateTriggerPerformFn = (
-  componentRef: ServerComponentReference | undefined,
-  onTrigger: TriggerReference | TriggerPerformFunction | undefined,
-  componentRegistry: ComponentRegistry,
-): TriggerPerformFunction => {
-  const performFn: TriggerPerformFunction =
-    componentRef && typeof onTrigger !== "function"
-      ? async (context, payload, params) => {
-          // @ts-expect-error: _components isn't part of the public API
-          const _components = context._components ?? {
-            invokeTrigger: () => {},
-          };
-          const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
-          const cniContext = createCNIContext(context, componentRegistry);
+const generateTriggerPerformFn = ({
+  componentRef,
+  onTrigger,
+  componentRegistry,
+  triggerType,
+}: GenerateTriggerPerformFn): TriggerPerformFunction => {
+  if (componentRef && typeof onTrigger !== "function") {
+    return async (context, payload, params) => {
+      // @ts-expect-error: _components isn't part of the public API
+      const _components = context._components ?? {
+        invokeTrigger: () => {},
+      };
+      const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
+      const cniContext = createCNIContext(context, componentRegistry);
 
-          return await invokeTrigger(
-            invokeTriggerComponentInput(componentRef, onTrigger, "perform"),
-            cniContext,
-            payload,
-            params,
-          );
-        }
-      : async (context, payload, params) => {
-          const cniContext = createCNIContext(context, componentRegistry);
-          return await (onTrigger as TriggerPerformFunction)(cniContext, payload, params);
-        };
+      return await invokeTrigger(
+        invokeTriggerComponentInput(componentRef, onTrigger, "perform"),
+        cniContext,
+        payload,
+        params,
+      );
+    };
+  } else {
+    return async (context, payload, params) => {
+      const cniContext = createCNIContext(context, componentRegistry);
+      const finalContext =
+        triggerType === "polling"
+          ? {
+              ...cniContext,
+              ...createPollingContext({
+                context: cniContext,
+                invokeAction: async () => {
+                  throw new Error(
+                    "invokeAction is not available for code-native polling triggers. " +
+                      "Use getState/setState to manage polling state directly in your onTrigger function.",
+                  );
+                },
+              }),
+            }
+          : cniContext;
 
-  return performFn;
+      return await (onTrigger as TriggerPerformFunction)(finalContext, payload, params);
+    };
+  }
 };
 
 type TriggerActionInvokeFunction = (
@@ -996,7 +1029,11 @@ type TriggerActionInvokeFunction = (
  * if there's a conflict. */
 const generateOnInstanceWrapperFn = (
   componentRef: ServerComponentReference | undefined,
-  onTrigger: TriggerReference | TriggerPerformFunction | undefined,
+  onTrigger:
+    | TriggerReference
+    | TriggerPerformFunction
+    | CodeNativePollingTriggerPerformFunction
+    | undefined,
   eventName: "onInstanceDeploy" | "onInstanceDelete",
   componentRegistry: ComponentRegistry,
   customFn?: TriggerEventFunction,
@@ -1091,7 +1128,7 @@ const codeNativeIntegrationComponent = (
   );
 
   const convertedTriggers = flows.reduce<Record<string, ServerTrigger>>(
-    (result, { name, onTrigger, onInstanceDeploy, onInstanceDelete, schedule }) => {
+    (result, { name, onTrigger, onInstanceDeploy, onInstanceDelete, schedule, triggerType }) => {
       if (
         !flowUsesWrapperTrigger({
           onTrigger,
@@ -1120,11 +1157,12 @@ const codeNativeIntegrationComponent = (
         ? convertComponentReference(onTrigger as TriggerReference, componentRegistry, "triggers")
         : { ref: onTrigger ? undefined : defaultComponentRef };
 
-      const performFn: TriggerPerformFunction = generateTriggerPerformFn(
-        ref,
+      const performFn: TriggerPerformFunction = generateTriggerPerformFn({
+        componentRef: ref,
         onTrigger,
         componentRegistry,
-      );
+        triggerType,
+      });
       const deleteFn: TriggerEventFunction | undefined = generateOnInstanceWrapperFn(
         ref,
         onTrigger,
@@ -1155,8 +1193,9 @@ const codeNativeIntegrationComponent = (
           onInstanceDelete: deleteFn,
           hasOnInstanceDelete: !!deleteFn,
           inputs: [],
-          scheduleSupport: "valid",
+          scheduleSupport: triggerType === "polling" ? "required" : "valid",
           synchronousResponseSupport: "valid",
+          isPollingTrigger: triggerType === "polling",
         },
       };
     },

@@ -1,4 +1,5 @@
 import type { ActionContext, ActionPerformFunction } from "./ActionPerformFunction";
+import type { ActionInputParameters } from "./ActionInputParameters";
 import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type {
   ComponentRegistry,
@@ -10,6 +11,7 @@ import type { ConfigPages, UserLevelConfigPages } from "./ConfigPages";
 import type { ConfigVars } from "./ConfigVars";
 import type { FlowDefinitionFlowSchema } from "./FlowSchemas";
 import type { Inputs } from "./Inputs";
+import type { CodeNativePollingTriggerPerformFunction } from "./PollingTriggerDefinition";
 import type { ScopedConfigVarMap } from "./ScopedConfigVars";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
 import type { TriggerPayload } from "./TriggerPayload";
@@ -101,10 +103,8 @@ export type FlowExecutionContext = ActionContext<
 
 export type FlowExecutionContextActions = FlowExecutionContext["components"];
 
-export type FlowTriggerType = "polling";
-
-/** Defines attributes of a flow of a code-native integration. */
-export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
+/** Base properties shared by all flow types. */
+interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   /** The unique name for this flow. */
   name: string;
   /** A unique, unchanging value that is used to maintain identity for the flow even if the name changes. */
@@ -135,25 +135,12 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
    */
   organizationApiKeys?: string[];
   testApiKeys?: string[];
-  /** Schedule configuration that defines the frequency with which this flow will be automatically executed. */
-  schedule?: (ValueExpression<string> | ConfigVarExpression) & {
-    timezone?: string;
-  };
   /** Error handling configuration. */
   errorConfig?: StepErrorConfig;
   /** Optional schemas definitions for the flow. Currently only for use with AI agents. */
   schemas?: Record<string, FlowDefinitionFlowSchema> & {
     invoke: FlowDefinitionFlowSchema;
   };
-  /**
-   * Type of trigger for this flow. When set to "polling", the trigger runs on a schedule
-   * and can use context.polling.* functions. Requires schedule to be set.
-   */
-  triggerType?: FlowTriggerType;
-  /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
-  onTrigger?:
-    | TriggerReference
-    | TriggerPerformFunction<Inputs, ConfigVars, false, TriggerResult<false, TTriggerPayload>>;
   /**
    * Specifies the function to execute when an instance of this integration is deployed. See
    * https://prismatic.io/docs/custom-connectors/triggers/#instance-deploy-and-delete-events-for-triggers
@@ -167,6 +154,49 @@ export interface Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   /** Specifies the main function for this flow which is run when this flow is invoked. */
   onExecution: FlowOnExecution<TTriggerPayload>;
 }
+
+export type StandardTriggerType = "standard";
+
+/** A standard flow with a webhook or scheduled trigger (non-polling). */
+interface StandardFlow<TTriggerPayload extends TriggerPayload = TriggerPayload>
+  extends FlowBase<TTriggerPayload> {
+  triggerType?: StandardTriggerType;
+  /** Schedule configuration that defines the frequency with which this flow will be automatically executed. */
+  schedule?: (ValueExpression<string> | ConfigVarExpression) & {
+    timezone?: string;
+  };
+  /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
+  onTrigger?:
+    | TriggerReference
+    | TriggerPerformFunction<Inputs, ConfigVars, false, TriggerResult<false, TTriggerPayload>>;
+}
+
+export type PollingTriggerType = "polling";
+
+/** A polling flow that runs on a schedule and has access to polling context (getState/setState). */
+interface PollingFlow<TTriggerPayload extends TriggerPayload = TriggerPayload>
+  extends FlowBase<TTriggerPayload> {
+  /**
+   * Type of trigger for this flow. A "polling" trigger runs on a schedule
+   * and can use context.polling.* functions. Requires schedule to be set.
+   */
+  triggerType: PollingTriggerType;
+  /** Schedule configuration that defines the frequency with which this flow will be automatically executed. Required for polling triggers. */
+  schedule: (ValueExpression<string> | ConfigVarExpression) & {
+    timezone?: string;
+  };
+  /**
+   * Specifies the trigger function for this flow.
+   */
+  onTrigger?: TriggerReference | CodeNativePollingTriggerPerformFunction<TTriggerPayload>;
+}
+
+/** Defines attributes of a flow of a code-native integration. */
+export type Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> =
+  | StandardFlow<TTriggerPayload>
+  | PollingFlow<TTriggerPayload>;
+
+export type FlowTriggerType = PollingTriggerType | StandardTriggerType;
 
 /** Defines attributes of a Preprocess flow Configuration used by a flow of an integration. */
 export type PreprocessFlowConfig = {
