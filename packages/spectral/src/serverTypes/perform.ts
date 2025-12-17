@@ -15,6 +15,39 @@ import uniq from "lodash/uniq";
 import { createDebugContext, createInvokeFlow, logDebugResults } from "./context";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+interface CreatePollingContext {
+  context: ActionContext;
+  invokeAction: PollingContext["polling"]["invokeAction"];
+}
+
+export const createPollingContext = ({
+  context,
+  invokeAction,
+}: CreatePollingContext): Pick<PollingContext, "polling"> => {
+  return {
+    polling: {
+      invokeAction,
+      getState: () => {
+        const internal = context.instanceState.__prismaticInternal;
+        const internalState = isRecord(internal) ? internal : {};
+        return isRecord(internalState.polling) ? internalState.polling : {};
+      },
+      setState: (newState: Record<string, unknown>) => {
+        const internal = context.instanceState.__prismaticInternal;
+        const internalState = isRecord(internal) ? internal : {};
+        context.instanceState.__prismaticInternal = {
+          ...internalState,
+          polling: newState,
+        };
+      },
+    },
+  };
+};
+
 export type CleanFn = (...args: any[]) => any;
 export type InputCleaners = Record<string, CleanFn | undefined>;
 
@@ -127,25 +160,10 @@ export const createPollingPerform = (
 
       const pollingContext: Partial<PollingContext> = {
         invokeFlow: createInvokeFlow(context),
-        polling: {
-          invokeAction: createInvokePollAction(context, pollAction, {
-            errorHandler,
-          }),
-          getState: () => {
-            const castState =
-              (context.instanceState.__prismaticInternal as Record<string, unknown>) ?? {};
-            return (castState.polling as Record<string, unknown>) ?? {};
-          },
-          setState: (newState: Record<string, unknown>) => {
-            const castState =
-              (context.instanceState.__prismaticInternal as Record<string, unknown>) ?? {};
-
-            context.instanceState.__prismaticInternal = {
-              ...castState,
-              polling: newState,
-            };
-          },
-        },
+        ...createPollingContext({
+          context,
+          invokeAction: createInvokePollAction(context, pollAction, { errorHandler }),
+        }),
         debug: createDebugContext(context),
       };
 
