@@ -3,6 +3,7 @@ import type { ActionInputParameters } from "./ActionInputParameters";
 import type { ActionContext } from "./ActionPerformFunction";
 import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type { ActionDisplayDefinition } from "./DisplayDefinition";
+import type { ConfigVars } from "./ConfigVars";
 import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
 import type { TriggerPayload } from "./TriggerPayload";
@@ -20,6 +21,15 @@ export interface PollingContext<
     setState: (newState: Record<string, unknown>) => void;
   };
 }
+
+/** Perform function for code-native polling triggers with access to polling context. */
+export type CodeNativePollingTriggerPerformFunction<
+  TTriggerPayload extends TriggerPayload = TriggerPayload,
+> = (
+  context: ActionContext<ConfigVars> & PollingContext,
+  payload: TriggerPayload,
+  params: ActionInputParameters<Inputs>,
+) => Promise<TriggerResult<false, TTriggerPayload>>;
 
 export type PollingTriggerPerformFunction<
   TInputs extends Inputs,
