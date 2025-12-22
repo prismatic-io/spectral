@@ -183,7 +183,7 @@ export type RetryConfig = {
   uniqueRequestIdField?: string;
 };
 
-/** Defines attributes of a retry configuration used by a flow of an integration. */
+/** Defines attributes of a queue configuration used by a flow of an integration. */
 export type QueueConfig = {
   /** Determines whether the flow should be executed using FIFO ordering. Not valid for synchonous or scheduled flows. */
   usesFifoQueue?: boolean;
@@ -191,6 +191,8 @@ export type QueueConfig = {
   dedupeIdField?: string;
   /** Determines whether the flow should be setup for singleton executions. Only valid for scheduled/polling trigger-based flows. */
   singletonExecutions?: boolean;
+  /** The maximum number of concurrent executions for this flow. Must be between 2 and 10. */
+  concurrencyLimit?: number;
 };
 
 /** Defines attributes of a step error configuration used to determine how to handle errors during flow step execution. */
