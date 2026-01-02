@@ -43,8 +43,8 @@ export interface PublishingMetadata {
 }
 
 export interface Component<
-  TInputs extends Inputs,
-  TActionInputs extends Inputs,
+  TInputs extends Inputs = Inputs,
+  TActionInputs extends Inputs = Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
