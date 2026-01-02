@@ -55,11 +55,7 @@ import {
   PublishingMetadata,
 } from ".";
 import { convertInput, convertTemplateInput } from "./convertComponent";
-import {
-  createCNIPollingPerform,
-  createCNIComponentRefPerform,
-  createCNIPerform,
-} from "./perform";
+import { createCNIPollingPerform, createCNIComponentRefPerform, createCNIPerform } from "./perform";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 import {
   DefinitionVersion,
