@@ -1,5 +1,11 @@
 import axios, { AxiosError } from "axios";
-import type { DataSourceType } from "../../types";
+import type {
+  DataSourceType,
+  Inputs,
+  ConfigVarResultCollection,
+  TriggerPayload,
+  TriggerResult,
+} from "../../types";
 import {
   ComponentNode,
   InputNode,
@@ -22,7 +28,17 @@ function transformInputNodes(inputs: InputNode[]) {
 
 // This function does not return a complete Component as described in ServerTypes;
 // it instead selectively returns only what's needed to generate a manifest.
-export const fetchComponentDataForManifest = async ({
+export const fetchComponentDataForManifest = async <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>({
   componentKey,
   isPrivate,
 }: { componentKey: string; isPrivate: boolean }) => {
@@ -96,7 +112,10 @@ export const fetchComponentDataForManifest = async ({
     const componentActions = await getComponentActions(component.id, prismaticUrl, accessToken);
 
     const actions: Record<string, FormattedAction> = {};
-    const triggers: Record<string, FormattedTrigger> = {};
+    const triggers: Record<
+      string,
+      FormattedTrigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>
+    > = {};
     const dataSources: Record<string, FormattedDataSource> = {};
 
     componentActions.forEach((node) => {

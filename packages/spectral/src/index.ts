@@ -43,7 +43,32 @@ import { runWithIntegrationContext } from "./serverTypes";
  * @param definition An IntegrationDefinition type object.
  * @returns This function returns an integration object that has the shape the Prismatic API expects.
  */
-export const integration = <T extends IntegrationDefinition = IntegrationDefinition>(
+export const integration = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  T extends IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  > = IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
+>(
   definition: T,
 ): ReturnType<typeof convertIntegration> => {
   const integrationDefinition = runWithIntegrationContext(definition, () => {
@@ -66,8 +91,33 @@ export const integration = <T extends IntegrationDefinition = IntegrationDefinit
  * @returns This function returns a flow object that has the shape the Prismatic API expects.
  */
 export const flow = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
-  T extends Flow<TTriggerPayload> = Flow<TTriggerPayload>,
+  T extends Flow<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult,
+    TTriggerPayload
+  > = Flow<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult,
+    TTriggerPayload
+  >,
 >(
   definition: T,
 ): T => definition;

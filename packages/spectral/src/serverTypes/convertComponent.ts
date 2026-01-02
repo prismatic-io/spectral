@@ -14,6 +14,7 @@ import {
   TriggerPayload,
   ConnectionTemplateInputField,
   ConnectionInput,
+  TriggerResult,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -145,13 +146,23 @@ const convertAction = (
   };
 };
 
-export const convertTrigger = (
+export const convertTrigger = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
   triggerKey: string,
   trigger:
     | TriggerDefinition<any>
     | PollingTriggerDefinition<any, ConfigVarResultCollection, TriggerPayload, boolean, any, any>,
   hooks?: ComponentHooks,
-): ServerTrigger => {
+): ServerTrigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult> => {
   const { onInstanceDeploy, onInstanceDelete } = trigger;
   const webhookLifecycleHandlers =
     "webhookLifecycleHandlers" in trigger ? trigger.webhookLifecycleHandlers : undefined;
@@ -213,7 +224,14 @@ export const convertTrigger = (
     });
   }
 
-  const result: ServerTrigger & {
+  const result: ServerTrigger<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  > & {
     pollAction?: PollingTriggerDefinition["pollAction"];
     triggerType?: string;
   } = {
@@ -317,14 +335,33 @@ export const convertConnection = ({
   };
 };
 
-export const convertComponent = <TPublic extends boolean, TKey extends string>({
+export const convertComponent = <
+  TPublic extends boolean,
+  TKey extends string,
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>({
   connections = [],
   actions = {},
   triggers = {},
   dataSources = {},
   hooks,
   ...definition
-}: ComponentDefinition<TPublic, TKey>): ServerComponent => {
+}: ComponentDefinition<TPublic, TKey>): ServerComponent<
+  TInputs,
+  TActionInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult
+> => {
   const convertedActions = Object.entries(actions).reduce(
     (result, [actionKey, action]) => ({
       ...result,
