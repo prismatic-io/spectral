@@ -188,7 +188,7 @@ interface PollingFlow<TTriggerPayload extends TriggerPayload = TriggerPayload>
   /**
    * Specifies the trigger function for this flow.
    */
-  onTrigger?: TriggerReference | CodeNativePollingTriggerPerformFunction<TTriggerPayload>;
+  onTrigger: TriggerReference | CodeNativePollingTriggerPerformFunction<TTriggerPayload>;
 }
 
 /** Defines attributes of a flow of a code-native integration. */

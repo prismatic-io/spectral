@@ -37,6 +37,8 @@ import {
   TriggerResult as TriggerPerformResult,
   ConfigVarResultCollection,
   CodeNativePollingTriggerPerformFunction,
+  PollingTriggerType,
+  StandardTriggerType,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -54,7 +56,7 @@ import {
   PublishingMetadata,
 } from ".";
 import { convertInput, convertTemplateInput } from "./convertComponent";
-import { createPollingContext } from "./perform";
+import { createCNIPollingPerform, createCNIComponentRefPerform, createCNIPerform } from "./perform";
 import {
   DefinitionVersion,
   RequiredConfigVariable as ServerRequiredConfigVariable,
@@ -920,7 +922,7 @@ const flowFunctionKey = (flowName: string, functionName: "onExecution" | "onTrig
 };
 
 /* Generates component argument for invokeTrigger calls. */
-const invokeTriggerComponentInput = (
+export const invokeTriggerComponentInput = (
   componentRef: ServerComponentReference,
   onTrigger: TriggerReference | undefined,
   eventName: "perform" | "onInstanceDeploy" | "onInstanceDelete",
@@ -948,62 +950,39 @@ const invokeTriggerComponentInput = (
 
 interface GenerateTriggerPerformFn {
   componentRef: ServerComponentReference | undefined;
-  onTrigger:
-    | TriggerReference
-    | TriggerPerformFunction
-    | CodeNativePollingTriggerPerformFunction
-    | undefined;
+  onTrigger: TriggerReference | TriggerPerformFunction | undefined;
   componentRegistry: ComponentRegistry;
-  triggerType: FlowTriggerType | undefined;
+  triggerType: StandardTriggerType | undefined;
 }
+
+interface GeneratePollingTriggerPerformFn {
+  onTrigger: CodeNativePollingTriggerPerformFunction;
+  componentRef: undefined;
+  componentRegistry: ComponentRegistry;
+  triggerType: PollingTriggerType;
+}
+
 /* Generates a wrapper function that calls an existing component trigger's perform. */
-const generateTriggerPerformFn = ({
-  componentRef,
-  onTrigger,
-  componentRegistry,
-  triggerType,
-}: GenerateTriggerPerformFn): TriggerPerformFunction => {
-  if (componentRef && typeof onTrigger !== "function") {
-    return async (context, payload, params) => {
-      // @ts-expect-error: _components isn't part of the public API
-      const _components = context._components ?? {
-        invokeTrigger: () => {},
-      };
-      const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
-      const cniContext = createCNIContext(context, componentRegistry);
-
-      return await invokeTrigger(
-        invokeTriggerComponentInput(componentRef, onTrigger, "perform"),
-        cniContext,
-        payload,
-        params,
-      );
-    };
+function generateTriggerPerformFn(
+  params: GeneratePollingTriggerPerformFn,
+): CodeNativePollingTriggerPerformFunction;
+function generateTriggerPerformFn(params: GenerateTriggerPerformFn): TriggerPerformFunction;
+function generateTriggerPerformFn(
+  args: GenerateTriggerPerformFn | GeneratePollingTriggerPerformFn,
+): TriggerPerformFunction | CodeNativePollingTriggerPerformFunction {
+  const { componentRef, onTrigger, componentRegistry, triggerType } = args;
+  if (componentRef && onTrigger && typeof onTrigger !== "function") {
+    return createCNIComponentRefPerform({ componentRegistry, componentRef, onTrigger });
+  } else if (triggerType === "polling") {
+    return createCNIPollingPerform({ onTrigger, componentRegistry });
+  } else if (typeof onTrigger === "function") {
+    return createCNIPerform({ componentRegistry, onTrigger });
   } else {
-    return async (context, payload, params) => {
-      const cniContext = createCNIContext(context, componentRegistry);
-      const finalContext =
-        triggerType === "polling"
-          ? {
-              ...cniContext,
-              ...createPollingContext({
-                context: cniContext,
-                invokeAction: async () => {
-                  throw new Error(
-                    "invokeAction is not available for code-native polling triggers. " +
-                      "Use getState/setState to manage polling state directly in your onTrigger function.",
-                  );
-                },
-              }),
-            }
-          : cniContext;
-
-      return await (onTrigger as TriggerPerformFunction)(finalContext, payload, params);
-    };
+    throw new Error(`Invalid configuration detected: ${JSON.stringify(args, null, 2)}`);
   }
-};
+}
 
-type TriggerActionInvokeFunction = (
+export type TriggerActionInvokeFunction = (
   ref: {
     component: ServerComponentReference["component"];
     key: string;
@@ -1148,20 +1127,20 @@ const codeNativeIntegrationComponent = (
         ? convertComponentReference(onTrigger as TriggerReference, componentRegistry, "triggers")
         : { ref: onTrigger ? undefined : defaultComponentRef };
 
-      const performFn: TriggerPerformFunction = generateTriggerPerformFn({
+      const performFn = generateTriggerPerformFn({
         componentRef: ref,
         onTrigger,
         componentRegistry,
         triggerType,
       });
-      const deleteFn: TriggerEventFunction | undefined = generateOnInstanceWrapperFn(
+      const deleteFn = generateOnInstanceWrapperFn(
         ref,
         onTrigger,
         "onInstanceDelete",
         componentRegistry,
         onInstanceDelete,
       );
-      const deployFn: TriggerEventFunction | undefined = generateOnInstanceWrapperFn(
+      const deployFn = generateOnInstanceWrapperFn(
         ref,
         onTrigger,
         "onInstanceDeploy",

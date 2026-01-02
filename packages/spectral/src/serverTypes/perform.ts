@@ -2,6 +2,8 @@ import type {
   ActionContext,
   ActionDefinition,
   ActionInputParameters,
+  CodeNativePollingTriggerPerformFunction,
+  ComponentRegistry,
   ConfigVarResultCollection,
   ErrorHandler,
   Inputs,
@@ -9,10 +11,15 @@ import type {
   PollingTriggerDefinition,
   PollingTriggerPerformFunction,
   TriggerPayload,
+  TriggerReference,
   TriggerResult,
 } from "../types";
+import { TriggerPerformFunction } from ".";
+import { invokeTriggerComponentInput, TriggerActionInvokeFunction } from "./convertIntegration";
+import { ComponentReference as ServerComponentReference } from "./integration";
+
 import uniq from "lodash/uniq";
-import { createDebugContext, createInvokeFlow, logDebugResults } from "./context";
+import { createCNIContext, createDebugContext, createInvokeFlow, logDebugResults } from "./context";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
 
@@ -59,7 +66,7 @@ interface CreatePerformProps {
 export const cleanParams = (
   params: Record<string, unknown>,
   cleaners: InputCleaners,
-): Record<string, any> => {
+): Record<string, unknown> => {
   const keys = uniq([...Object.keys(params), ...Object.keys(cleaners)]);
   return keys.reduce<Record<string, any>>((result, key) => {
     const value = params[key];
@@ -183,5 +190,85 @@ export const createPollingPerform = (
     } catch (error) {
       throw errorHandler ? await errorHandler(error) : error;
     }
+  };
+};
+
+interface CreateCNIPollingPerform {
+  componentRegistry: ComponentRegistry;
+  onTrigger: CodeNativePollingTriggerPerformFunction;
+}
+
+export const createCNIPollingPerform = ({
+  onTrigger,
+  componentRegistry,
+}: CreateCNIPollingPerform): CodeNativePollingTriggerPerformFunction => {
+  return async (context, payload, params): Promise<TriggerResult<boolean, any>> => {
+    try {
+      const cniContext = createCNIContext(context, componentRegistry);
+      const finalContext = {
+        ...cniContext,
+        ...createPollingContext({
+          context: cniContext,
+          invokeAction: async () => {
+            throw new Error(
+              "invokeAction is not available for code-native polling triggers. " +
+                "Use getState/setState to manage polling state directly in your onTrigger function.",
+            );
+          },
+        }),
+      };
+
+      const { polledNoChanges, ...rest } = await onTrigger(finalContext, payload, params);
+
+      return {
+        ...rest,
+        resultType: polledNoChanges ? "polled_no_changes" : "completed",
+      };
+    } catch (error) {
+      throw errorHandler ? await errorHandler(error) : error;
+    }
+  };
+};
+
+interface CreateCNIComponentRefPerform {
+  componentRef: ServerComponentReference;
+  componentRegistry: ComponentRegistry;
+  onTrigger: TriggerReference;
+}
+
+export const createCNIComponentRefPerform = ({
+  componentRegistry,
+  componentRef,
+  onTrigger,
+}: CreateCNIComponentRefPerform): TriggerPerformFunction => {
+  return async (context, payload, params) => {
+    // @ts-expect-error: _components isn't part of the public API
+    const _components = context._components ?? {
+      invokeTrigger: () => {},
+    };
+    const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
+    const cniContext = createCNIContext(context, componentRegistry);
+
+    return await invokeTrigger(
+      invokeTriggerComponentInput(componentRef, onTrigger, "perform"),
+      cniContext,
+      payload,
+      params,
+    );
+  };
+};
+
+interface CreateCNIPerform {
+  componentRegistry: ComponentRegistry;
+  onTrigger: TriggerPerformFunction;
+}
+
+export const createCNIPerform = ({
+  componentRegistry,
+  onTrigger,
+}: CreateCNIPerform): TriggerPerformFunction => {
+  return async (context, payload, params) => {
+    const cniContext = createCNIContext(context, componentRegistry);
+    return await onTrigger(cniContext, payload, params);
   };
 };
