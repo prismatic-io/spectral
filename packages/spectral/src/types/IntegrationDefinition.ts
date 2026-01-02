@@ -23,8 +23,8 @@ import type { TriggerResult } from "./TriggerResult";
  * https://prismatic.io/docs/integrations/code-native/
  */
 export type IntegrationDefinition<
-  TInputs extends Inputs,
-  TActionInputs extends Inputs,
+  TInputs extends Inputs = Inputs,
+  TActionInputs extends Inputs = Inputs,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
