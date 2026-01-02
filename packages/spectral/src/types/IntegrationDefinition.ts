@@ -268,7 +268,7 @@ export type RetryConfig = {
 
 /** Defines attributes of a retry configuration used by a flow of an integration. */
 export type QueueConfig = {
-  /** Determines whether the flow should be executed using FIFO ordering. Not valid for synchonous or scheduled flows. */
+  /** Determines whether the flow should be executed using FIFO ordering. Not valid for synchronous or scheduled flows. */
   usesFifoQueue?: boolean;
   /** Reference to the field in the flow's trigger return payload; used to determine whether to queue the execution. */
   dedupeIdField?: string;

@@ -80,7 +80,25 @@ export const integration = <
     TResult
   >
 > => {
-  const integrationDefinition = runWithIntegrationContext(definition, () => {
+  const integrationDefinition = runWithIntegrationContext<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult,
+    T,
+    ReturnType<
+      typeof convertIntegration<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >
+    >
+  >(definition, () => {
     return convertIntegration(definition);
   });
 
