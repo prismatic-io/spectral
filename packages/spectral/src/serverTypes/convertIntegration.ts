@@ -36,7 +36,6 @@ import {
   Inputs,
   TriggerResult as TriggerPerformResult,
   ConfigVarResultCollection,
-  CodeNativePollingTriggerPerformFunction,
   PollingTriggerType,
   StandardTriggerType,
 } from "../types";
@@ -950,16 +949,33 @@ export const invokeTriggerComponentInput = (
 
 type ComponentRefTrigger = "component-ref";
 
-interface PreValidationTriggerPerformConfig {
+type PreValidationTriggerPerformConfig<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> = {
   componentRef: ServerComponentReference | undefined;
   onTrigger:
     | TriggerReference
     | TriggerPerformFunction
-    | CodeNativePollingTriggerPerformFunction
+    | PollingTriggerPerformFunction<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >
     | undefined;
   componentRegistry: ComponentRegistry;
   triggerType: FlowTriggerType | undefined;
-}
+};
 
 interface GenerateTriggerPerformFn {
   componentRef: undefined;
@@ -975,8 +991,25 @@ interface GenerateComponentRefTriggerPerformFn {
   triggerType: ComponentRefTrigger;
 }
 
-interface GeneratePollingTriggerPerformFn {
-  onTrigger: CodeNativePollingTriggerPerformFunction;
+interface GeneratePollingTriggerPerformFn<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> {
+  onTrigger: PollingTriggerPerformFunction<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >;
   componentRef: undefined;
   componentRegistry: ComponentRegistry;
   triggerType: PollingTriggerType;
@@ -986,17 +1019,60 @@ interface GeneratePollingTriggerPerformFn {
  * Since TriggerPerformFunction and CodeNativePollingTriggerPerformFunction are
  * structurally identical, TypeScript cannot distinguish them. This guard uses
  * triggerType to narrow the function type. */
-const isStandardTriggerPerform = (
-  fn: TriggerPerformFunction | CodeNativePollingTriggerPerformFunction,
+const isStandardTriggerPerform = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  fn:
+    | TriggerPerformFunction
+    | PollingTriggerPerformFunction<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >,
   triggerType: FlowTriggerType | undefined,
 ): fn is TriggerPerformFunction => triggerType !== "polling";
 
 // Force incoming config into a discriminated union type to simplify downstream handling
-function validateTriggerPerformConfig(
-  params: PreValidationTriggerPerformConfig,
+function validateTriggerPerformConfig<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  params: PreValidationTriggerPerformConfig<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
 ):
   | GenerateTriggerPerformFn
-  | GeneratePollingTriggerPerformFn
+  | GeneratePollingTriggerPerformFn<
+      TInputs,
+      TActionInputs,
+      TConfigVars,
+      TPayload,
+      TAllowsBranching,
+      TResult
+    >
   | GenerateComponentRefTriggerPerformFn {
   const { componentRef, onTrigger, componentRegistry, triggerType } = params;
   if (componentRef && onTrigger && typeof onTrigger !== "function") {
@@ -1026,9 +1102,35 @@ function validateTriggerPerformConfig(
 }
 
 /* Generates a wrapper function that calls an existing component trigger's perform. */
-function generateTriggerPerformFn(
-  params: PreValidationTriggerPerformConfig,
-): TriggerPerformFunction | CodeNativePollingTriggerPerformFunction {
+function generateTriggerPerformFn<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  params: PreValidationTriggerPerformConfig<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
+):
+  | TriggerPerformFunction
+  | PollingTriggerPerformFunction<
+      TInputs,
+      TActionInputs,
+      TConfigVars,
+      TPayload,
+      TAllowsBranching,
+      TResult
+    > {
   const { componentRef, onTrigger, componentRegistry, triggerType } =
     validateTriggerPerformConfig(params);
   switch (triggerType) {
@@ -1059,12 +1161,29 @@ export type TriggerActionInvokeFunction = (
  * or onInstanceDelete, then calls the flow-defined version if it exists.
  * Returns the deep-merged results of the two, prioritizing the custom response
  * if there's a conflict. */
-const generateOnInstanceWrapperFn = (
+const generateOnInstanceWrapperFn = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
   componentRef: ServerComponentReference | undefined,
   onTrigger:
     | TriggerReference
     | TriggerPerformFunction
-    | CodeNativePollingTriggerPerformFunction
+    | PollingTriggerPerformFunction<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >
     | undefined,
   eventName: "onInstanceDeploy" | "onInstanceDelete",
   componentRegistry: ComponentRegistry,

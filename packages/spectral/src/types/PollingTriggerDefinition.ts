@@ -22,15 +22,6 @@ export interface PollingContext<
   };
 }
 
-/** Perform function for code-native polling triggers with access to polling context. */
-export type CodeNativePollingTriggerPerformFunction<
-  TTriggerPayload extends TriggerPayload = TriggerPayload,
-> = (
-  context: ActionContext<ConfigVars> & PollingContext,
-  payload: TriggerPayload,
-  params: ActionInputParameters<Inputs>,
-) => Promise<TriggerResult<false, TTriggerPayload>>;
-
 export type PollingTriggerPerformFunction<
   TInputs extends Inputs,
   TActionInputs extends Inputs,

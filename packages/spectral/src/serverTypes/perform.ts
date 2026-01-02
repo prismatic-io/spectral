@@ -2,7 +2,6 @@ import type {
   ActionContext,
   ActionDefinition,
   ActionInputParameters,
-  CodeNativePollingTriggerPerformFunction,
   ComponentRegistry,
   ConfigVarResultCollection,
   ErrorHandler,
@@ -193,40 +192,77 @@ export const createPollingPerform = (
   };
 };
 
-interface CreateCNIPollingPerform {
+type CreateCNIPollingPerform<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> = {
   componentRegistry: ComponentRegistry;
-  onTrigger: CodeNativePollingTriggerPerformFunction;
-}
+  onTrigger: PollingTriggerPerformFunction<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >;
+};
 
-export const createCNIPollingPerform = ({
+export const createCNIPollingPerform = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>({
   onTrigger,
   componentRegistry,
-}: CreateCNIPollingPerform): CodeNativePollingTriggerPerformFunction => {
-  return async (context, payload, params): Promise<TriggerResult<boolean, any>> => {
-    try {
-      const cniContext = createCNIContext(context, componentRegistry);
-      const finalContext = {
-        ...cniContext,
-        ...createPollingContext({
-          context: cniContext,
-          invokeAction: async () => {
-            throw new Error(
-              "invokeAction is not available for code-native polling triggers. " +
-                "Use getState/setState to manage polling state directly in your onTrigger function.",
-            );
-          },
-        }),
-      };
+}: CreateCNIPollingPerform<
+  TInputs,
+  TActionInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult
+>): PollingTriggerPerformFunction<
+  TInputs,
+  TActionInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult
+> => {
+  return async (context, payload, params) => {
+    const cniContext = createCNIContext(context, componentRegistry);
+    const finalContext = {
+      ...cniContext,
+      ...createPollingContext({
+        context: cniContext,
+        invokeAction: async () => {
+          throw new Error(
+            "invokeAction is not available for code-native polling triggers. " +
+              "Use getState/setState to manage polling state directly in your onTrigger function.",
+          );
+        },
+      }),
+    };
 
-      const { polledNoChanges, ...rest } = await onTrigger(finalContext, payload, params);
+    const { polledNoChanges, ...rest } = await onTrigger(finalContext, payload, params);
 
-      return {
-        ...rest,
-        resultType: polledNoChanges ? "polled_no_changes" : "completed",
-      };
-    } catch (error) {
-      throw errorHandler ? await errorHandler(error) : error;
-    }
+    return {
+      ...rest,
+      resultType: polledNoChanges ? "polled_no_changes" : "completed",
+    };
   };
 };
 
