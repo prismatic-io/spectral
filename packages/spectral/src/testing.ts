@@ -448,14 +448,18 @@ export const invokeFlow = async <
     ...context,
     configVars: realizedConfigVars,
   });
-  const realizedPayload = { ...defaultTriggerPayload(), ...payload };
+  const realizedPayload = { ...defaultTriggerPayload(), ...payload } as TPayload;
 
   const params: Record<"onTrigger", { results: any }> = {
     onTrigger: { results: realizedPayload },
   };
 
   if ("onTrigger" in flow && typeof flow.onTrigger === "function") {
-    const triggerResult = await flow.onTrigger(realizedContext as any, realizedPayload, params);
+    const triggerResult = await flow.onTrigger(
+      realizedContext as any,
+      realizedPayload,
+      params as ActionInputParameters<TInputs>,
+    );
 
     params.onTrigger = { results: triggerResult?.payload };
   }
@@ -493,7 +497,10 @@ export class ComponentTestHarness<
     this.component = component;
   }
 
-  private buildParams(inputs: Input[], params?: Record<string, unknown>): Record<string, unknown> {
+  private buildParams(
+    inputs: Input[],
+    params?: Record<string, unknown>,
+  ): ActionInputParameters<TInputs> {
     const defaults = inputs.reduce<Record<string, string>>(
       (result, { key, default: defaultValue }) => ({
         ...result,
@@ -501,7 +508,7 @@ export class ComponentTestHarness<
       }),
       {},
     );
-    return { ...defaults, ...params };
+    return { ...defaults, ...params } as ActionInputParameters<TInputs>;
   }
 
   /**
@@ -524,16 +531,26 @@ export class ComponentTestHarness<
    * Invoke a trigger by its key within a unit test. See
    * https://prismatic.io/docs/custom-connectors/unit-testing/
    */
-  public async trigger<TConfigVars extends ConfigVarResultCollection>(
+  public async trigger(
     key: string,
-    payload?: TriggerPayload,
+    payload?: Partial<TPayload>,
     params?: Record<string, unknown>,
     context?: Partial<ActionContext<TConfigVars>>,
   ): Promise<TriggerResult> {
     const trigger = this.component.triggers[key];
+    const testContext = {
+      ...createActionContext(context),
+      polling: {
+        invokeAction: async () => {
+          throw new Error("invokeAction not available in test context");
+        },
+        getState: () => ({}),
+        setState: () => {},
+      },
+    };
     return trigger.perform(
-      createActionContext(context),
-      { ...defaultTriggerPayload(), ...payload },
+      testContext,
+      { ...defaultTriggerPayload(), ...payload } as TPayload,
       this.buildParams(trigger.inputs, params),
     );
   }

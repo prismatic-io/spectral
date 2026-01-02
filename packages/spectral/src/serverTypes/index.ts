@@ -21,6 +21,7 @@ import {
   TriggerResult as TriggerPerformResult,
   TriggerPerformFunction,
 } from "../types";
+import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 interface DisplayDefinition {
   label: string;
@@ -220,7 +221,9 @@ export interface Trigger<
         TPayload,
         TAllowsBranching,
         TResult
-      >;
+      >
+    | CNIPollingPerformFunction<TInputs, TConfigVars, TPayload, TAllowsBranching>
+    | ComponentRefTriggerPerformFunction<TInputs, TConfigVars>;
   onInstanceDeploy?: TriggerEventFunction;
   hasOnInstanceDeploy?: boolean;
   onInstanceDelete?: TriggerEventFunction;

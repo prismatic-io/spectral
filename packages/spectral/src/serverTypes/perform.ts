@@ -16,6 +16,7 @@ import type {
 } from "../types";
 import { invokeTriggerComponentInput, TriggerActionInvokeFunction } from "./convertIntegration";
 import { ComponentReference as ServerComponentReference } from "./integration";
+import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 import uniq from "lodash/uniq";
 import { createCNIContext, createDebugContext, createInvokeFlow, logDebugResults } from "./context";
@@ -251,15 +252,12 @@ export const createCNIPollingPerform = <
   TPayload,
   TAllowsBranching,
   TResult
->): PollingTriggerPerformFunction<
-  TInputs,
-  TActionInputs,
-  TConfigVars,
-  TPayload,
-  TAllowsBranching,
-  TResult
-> => {
-  return async (context, payload, params) => {
+>): CNIPollingPerformFunction<TInputs, TConfigVars, TPayload, TAllowsBranching> => {
+  return async (
+    context: ActionContext<TConfigVars>,
+    payload: TPayload,
+    params: ActionInputParameters<TInputs>,
+  ) => {
     const cniContext = createCNIContext(context, componentRegistry);
     const finalContext = {
       ...cniContext,
@@ -272,9 +270,15 @@ export const createCNIPollingPerform = <
           );
         },
       }),
-    };
+    } as ActionContext<TConfigVars> & PollingContext<TActionInputs>;
 
-    const { polledNoChanges, ...rest } = await onTrigger(finalContext, payload, params);
+    const result = await onTrigger(finalContext, payload, params);
+
+    if (result === undefined) {
+      return undefined;
+    }
+
+    const { polledNoChanges, ...rest } = result;
 
     return {
       ...rest,
@@ -292,18 +296,11 @@ interface CreateCNIComponentRefPerform {
 export const createCNIComponentRefPerform = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  TAllowsBranching extends boolean | undefined,
-  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
 >({
   componentRegistry,
   componentRef,
   onTrigger,
-}: CreateCNIComponentRefPerform): TriggerPerformFunction<
-  TInputs,
-  TConfigVars,
-  TAllowsBranching,
-  TResult
-> => {
+}: CreateCNIComponentRefPerform): ComponentRefTriggerPerformFunction<TInputs, TConfigVars> => {
   return async (context, payload, params) => {
     // @ts-expect-error: _components isn't part of the public API
     const _components = context._components ?? {

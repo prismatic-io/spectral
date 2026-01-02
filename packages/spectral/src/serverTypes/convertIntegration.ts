@@ -55,7 +55,12 @@ import {
   PublishingMetadata,
 } from ".";
 import { convertInput, convertTemplateInput } from "./convertComponent";
-import { createCNIPollingPerform, createCNIComponentRefPerform, createCNIPerform } from "./perform";
+import {
+  createCNIPollingPerform,
+  createCNIComponentRefPerform,
+  createCNIPerform,
+} from "./perform";
+import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 import {
   DefinitionVersion,
   RequiredConfigVariable as ServerRequiredConfigVariable,
@@ -1188,14 +1193,8 @@ function generateTriggerPerformFn<
   >,
 ):
   | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
-  | PollingTriggerPerformFunction<
-      TInputs,
-      TActionInputs,
-      TConfigVars,
-      TPayload,
-      TAllowsBranching,
-      TResult
-    > {
+  | CNIPollingPerformFunction<TInputs, TConfigVars, TPayload, TAllowsBranching>
+  | ComponentRefTriggerPerformFunction<TInputs, TConfigVars> {
   const { componentRef, onTrigger, componentRegistry, triggerType } =
     validateTriggerPerformConfig(params);
   switch (triggerType) {
