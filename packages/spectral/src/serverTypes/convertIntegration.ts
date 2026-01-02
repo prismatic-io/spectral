@@ -81,7 +81,14 @@ export const convertIntegration = <
     TPayload
   >,
 >(
-  definition: IntegrationDefinition,
+  definition: IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
 ): ServerComponent<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult> => {
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
@@ -182,7 +189,17 @@ export const convertConfigPages = (
   }));
 };
 
-const codeNativeIntegrationYaml = (
+const codeNativeIntegrationYaml = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
   {
     name,
     description,
@@ -198,7 +215,14 @@ const codeNativeIntegrationYaml = (
     scopedConfigVars,
     instanceProfile = "Default Instance Profile",
     componentRegistry = {},
-  }: IntegrationDefinition,
+  }: IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
   metadata?: Record<string, unknown>,
@@ -522,8 +546,21 @@ const codeNativeIntegrationComponentReference = (referenceKey: string) => ({
 /* A flow's trigger gets wrapped in a custom component if there's a defined
  * onTrigger function, or if any custom onInstance behavior is defined.
  * */
-const flowUsesWrapperTrigger = (
-  flow: Pick<Flow, "onTrigger" | "onInstanceDelete" | "onInstanceDeploy">,
+const flowUsesWrapperTrigger = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  flow: Pick<
+    Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+    "onTrigger" | "onInstanceDelete" | "onInstanceDeploy"
+  >,
 ) => {
   return typeof flow.onTrigger === "function" || flow.onInstanceDelete || flow.onInstanceDeploy;
 };
@@ -549,8 +586,18 @@ const convertFlowSchemas = (
 };
 
 /** Converts a Flow into the structure necessary for YAML generation. */
-export const convertFlow = (
-  flow: Flow,
+export const convertFlow = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  flow: Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
   componentRegistry: ComponentRegistry,
   referenceKey: string,
 ): Record<string, unknown> => {
@@ -1274,7 +1321,20 @@ const codeNativeIntegrationComponent = <
     TPayload
   >,
 >(
-  { name, iconPath, description, flows = [], componentRegistry = {} }: IntegrationDefinition,
+  {
+    name,
+    iconPath,
+    description,
+    flows = [],
+    componentRegistry = {},
+  }: IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
 ): ServerComponent<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult> => {
@@ -1300,80 +1360,81 @@ const codeNativeIntegrationComponent = <
     {},
   );
 
-  const convertedTriggers = flows.reduce<Record<string, ServerTrigger>>(
-    (result, { name, onTrigger, onInstanceDeploy, onInstanceDelete, schedule, triggerType }) => {
-      if (
-        !flowUsesWrapperTrigger({
-          onTrigger,
-          onInstanceDelete,
-          onInstanceDeploy,
-        })
-      ) {
-        // In this scenario, the user has defined an existing component trigger
-        // without any custom behavior, so we don't need to wrap anything.
-        return result;
-      }
-
-      const key = flowFunctionKey(name, "onTrigger");
-      const defaultComponentKey = schedule && typeof schedule === "object" ? "schedule" : "webhook";
-      const defaultComponentRef: ServerComponentReference = {
-        component: {
-          key: `${defaultComponentKey}-triggers`,
-          version: "LATEST",
-          isPublic: true,
-        },
-        key: defaultComponentKey,
-      };
-
-      // The component ref here is undefined if onTrigger is a function.
-      const { ref } = isComponentReference(onTrigger)
-        ? convertComponentReference(onTrigger as TriggerReference, componentRegistry, "triggers")
-        : { ref: onTrigger ? undefined : defaultComponentRef };
-
-      const performFn = generateTriggerPerformFn({
-        componentRef: ref,
+  const convertedTriggers = flows.reduce<
+    Record<
+      string,
+      ServerTrigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>
+    >
+  >((result, { name, onTrigger, onInstanceDeploy, onInstanceDelete, schedule, triggerType }) => {
+    if (
+      !flowUsesWrapperTrigger({
         onTrigger,
-        componentRegistry,
-        triggerType,
-      });
-      const deleteFn = generateOnInstanceWrapperFn(
-        ref,
-        onTrigger,
-        "onInstanceDelete",
-        componentRegistry,
         onInstanceDelete,
-      );
-      const deployFn = generateOnInstanceWrapperFn(
-        ref,
-        onTrigger,
-        "onInstanceDeploy",
-        componentRegistry,
         onInstanceDeploy,
-      );
+      })
+    ) {
+      // In this scenario, the user has defined an existing component trigger
+      // without any custom behavior, so we don't need to wrap anything.
+      return result;
+    }
 
-      return {
-        ...result,
-        [key]: {
-          key,
-          display: {
-            label: `${name} - onTrigger`,
-            description:
-              "The function that will be executed by the flow to return an HTTP response.",
-          },
-          perform: performFn,
-          onInstanceDeploy: deployFn,
-          hasOnInstanceDeploy: !!deployFn,
-          onInstanceDelete: deleteFn,
-          hasOnInstanceDelete: !!deleteFn,
-          inputs: [],
-          scheduleSupport: triggerType === "polling" ? "required" : "valid",
-          synchronousResponseSupport: "valid",
-          isPollingTrigger: triggerType === "polling",
+    const key = flowFunctionKey(name, "onTrigger");
+    const defaultComponentKey = schedule && typeof schedule === "object" ? "schedule" : "webhook";
+    const defaultComponentRef: ServerComponentReference = {
+      component: {
+        key: `${defaultComponentKey}-triggers`,
+        version: "LATEST",
+        isPublic: true,
+      },
+      key: defaultComponentKey,
+    };
+
+    // The component ref here is undefined if onTrigger is a function.
+    const { ref } = isComponentReference(onTrigger)
+      ? convertComponentReference(onTrigger as TriggerReference, componentRegistry, "triggers")
+      : { ref: onTrigger ? undefined : defaultComponentRef };
+
+    const performFn = generateTriggerPerformFn({
+      componentRef: ref,
+      onTrigger,
+      componentRegistry,
+      triggerType,
+    });
+    const deleteFn = generateOnInstanceWrapperFn(
+      ref,
+      onTrigger,
+      "onInstanceDelete",
+      componentRegistry,
+      onInstanceDelete,
+    );
+    const deployFn = generateOnInstanceWrapperFn(
+      ref,
+      onTrigger,
+      "onInstanceDeploy",
+      componentRegistry,
+      onInstanceDeploy,
+    );
+
+    return {
+      ...result,
+      [key]: {
+        key,
+        display: {
+          label: `${name} - onTrigger`,
+          description: "The function that will be executed by the flow to return an HTTP response.",
         },
-      };
-    },
-    {},
-  );
+        perform: performFn,
+        onInstanceDeploy: deployFn,
+        hasOnInstanceDeploy: !!deployFn,
+        onInstanceDelete: deleteFn,
+        hasOnInstanceDelete: !!deleteFn,
+        inputs: [],
+        scheduleSupport: triggerType === "polling" ? "required" : "valid",
+        synchronousResponseSupport: "valid",
+        isPollingTrigger: triggerType === "polling",
+      },
+    };
+  }, {});
 
   const convertedDataSources = Object.entries(configVars).reduce<Record<string, ServerDataSource>>(
     (result, [key, configVar]) => {
@@ -1456,8 +1517,25 @@ const codeNativeIntegrationComponent = <
   };
 };
 
-const codeNativeIntegrationPublishingMetadata = (
-  definition: IntegrationDefinition,
+const codeNativeIntegrationPublishingMetadata = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  definition: IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
 ): PublishingMetadata => {
   const customerRequiredSecurityEndpoints = definition.flows
     .filter((flow) => flow.endpointSecurityType === "customer_required")

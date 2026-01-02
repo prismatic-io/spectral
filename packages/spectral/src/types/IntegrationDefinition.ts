@@ -10,8 +10,8 @@ import type {
 import type { ConfigPages, UserLevelConfigPages } from "./ConfigPages";
 import type { ConfigVars } from "./ConfigVars";
 import type { FlowDefinitionFlowSchema } from "./FlowSchemas";
-import type { Inputs } from "./Inputs";
-import type { CodeNativePollingTriggerPerformFunction } from "./PollingTriggerDefinition";
+import type { ConfigVarResultCollection, Inputs } from "./Inputs";
+import type { PollingTriggerPerformFunction } from "./PollingTriggerDefinition";
 import type { ScopedConfigVarMap } from "./ScopedConfigVars";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
 import type { TriggerPayload } from "./TriggerPayload";
@@ -22,7 +22,17 @@ import type { TriggerResult } from "./TriggerResult";
  * Defines attributes of a code-native integration. See
  * https://prismatic.io/docs/integrations/code-native/
  */
-export type IntegrationDefinition = {
+export type IntegrationDefinition<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> = {
   /** The unique name for this integration. */
   name: string;
   /** Description for this integration. */
@@ -54,7 +64,7 @@ export type IntegrationDefinition = {
    * Flows for this integration. See
    * https://prismatic.io/docs/integrations/code-native/flows/
    */
-  flows: Flow[];
+  flows: Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>[];
   /**
    * Config wizard pages for this integration. See
    * https://prismatic.io/docs/integrations/code-native/config-wizard/
@@ -174,8 +184,18 @@ interface StandardFlow<TTriggerPayload extends TriggerPayload = TriggerPayload>
 export type PollingTriggerType = "polling";
 
 /** A polling flow that runs on a schedule and has access to polling context (getState/setState). */
-interface PollingFlow<TTriggerPayload extends TriggerPayload = TriggerPayload>
-  extends FlowBase<TTriggerPayload> {
+interface PollingFlow<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  TTriggerPayload extends TriggerPayload = TriggerPayload,
+> extends FlowBase<TTriggerPayload> {
   /**
    * Type of trigger for this flow. A "polling" trigger runs on a schedule
    * and can use context.polling.* functions. Requires schedule to be set.
@@ -188,13 +208,39 @@ interface PollingFlow<TTriggerPayload extends TriggerPayload = TriggerPayload>
   /**
    * Specifies the trigger function for this flow.
    */
-  onTrigger: TriggerReference | CodeNativePollingTriggerPerformFunction<TTriggerPayload>;
+  onTrigger: PollingTriggerPerformFunction<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >;
 }
 
 /** Defines attributes of a flow of a code-native integration. */
-export type Flow<TTriggerPayload extends TriggerPayload = TriggerPayload> =
+export type Flow<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  TTriggerPayload extends TriggerPayload = TriggerPayload,
+> =
   | StandardFlow<TTriggerPayload>
-  | PollingFlow<TTriggerPayload>;
+  | PollingFlow<
+      TInputs,
+      TActionInputs,
+      TConfigVars,
+      TPayload,
+      TAllowsBranching,
+      TResult,
+      TTriggerPayload
+    >;
 
 export type FlowTriggerType = PollingTriggerType | StandardTriggerType;
 

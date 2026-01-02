@@ -149,7 +149,17 @@ const createInvokePollAction = <TInputs extends Inputs>(
   };
 };
 
-export const createPollingPerform = (
+export const createPollingPerform = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
   trigger: PollingTriggerDefinition<
     any,
     ConfigVarResultCollection,
@@ -159,8 +169,15 @@ export const createPollingPerform = (
     any
   >,
   { inputCleaners, errorHandler }: CreatePerformProps,
-): PollingTriggerPerformFunction<Inputs, Inputs> => {
-  return async (context, payload, params): Promise<TriggerResult<boolean, any>> => {
+): PollingTriggerPerformFunction<
+  TInputs,
+  TActionInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult
+> => {
+  return async (context, payload, params) => {
     try {
       const { pollAction } = trigger;
 
