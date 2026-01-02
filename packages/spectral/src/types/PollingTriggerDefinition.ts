@@ -3,7 +3,6 @@ import type { ActionInputParameters } from "./ActionInputParameters";
 import type { ActionContext } from "./ActionPerformFunction";
 import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type { ActionDisplayDefinition } from "./DisplayDefinition";
-import type { ConfigVars } from "./ConfigVars";
 import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
 import type { TriggerPayload } from "./TriggerPayload";
@@ -12,11 +11,12 @@ import type { TriggerResult } from "./TriggerResult";
 export interface PollingContext<
   TInputs extends Inputs = Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  ReturnData = unknown,
 > extends ActionContext<TConfigVars> {
   polling: {
     invokeAction: (
       params: ActionInputParameters<TInputs>,
-    ) => Promise<ActionPerformReturn<boolean, any>>;
+    ) => Promise<ActionPerformReturn<boolean, ReturnData>>;
     getState: () => Record<string, unknown>;
     setState: (newState: Record<string, unknown>) => void;
   };

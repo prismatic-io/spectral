@@ -50,8 +50,15 @@ export function runWithIntegrationContext<
     TPayload,
     TAllowsBranching,
     TResult
+  > = IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
   >,
-  U,
+  U = unknown,
 >(context: T, fn: () => U): U {
   if (!integrationContextStorage) {
     console.warn(
@@ -75,6 +82,13 @@ export function requireIntegrationContext<
     TPayload
   >,
   T extends IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  > = IntegrationDefinition<
     TInputs,
     TActionInputs,
     TConfigVars,
