@@ -1,6 +1,58 @@
 import { describe, expect, it } from "@jest/globals";
-import { configPage, configVar } from "..";
-import { convertConfigPages } from "./convertIntegration";
+import { configPage, configVar, flow } from "..";
+import { convertConfigPages, convertFlow } from "./convertIntegration";
+
+describe("convertFlow with polling triggers", () => {
+  const baseFlowInput = {
+    name: "Test Polling Flow",
+    stableKey: "test-polling-flow",
+    description: "A flow with polling trigger",
+    onExecution: async () => ({ data: "test" }),
+  };
+
+  it("throws error when polling trigger has no schedule", () => {
+    const pollingFlowWithoutSchedule = {
+      ...baseFlowInput,
+      triggerType: "polling" as const,
+      onTrigger: async (_context: unknown, payload: { body: { data: string } }) => {
+        return { payload };
+      },
+    };
+    // @ts-expect-error - intentionally omitting schedule to test runtime validation
+    expect(() => convertFlow(pollingFlowWithoutSchedule, {}, "test-ref")).toThrow(
+      "Test Polling Flow is marked as a polling trigger but has no schedule. Polling triggers require a schedule.",
+    );
+  });
+
+  it("converts polling flow with schedule successfully", () => {
+    const pollingFlow = flow({
+      ...baseFlowInput,
+      triggerType: "polling",
+      schedule: { value: "*/5 * * * *" },
+      onTrigger: async (_context, payload) => {
+        return { payload };
+      },
+    });
+
+    const result = convertFlow(pollingFlow, {}, "test-ref");
+
+    expect(result.name).toBe("Test Polling Flow");
+    expect(result.stableKey).toBe("test-polling-flow");
+  });
+
+  it("converts flow with no explicit triggerType (defaults to standard)", () => {
+    const defaultFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => {
+        return { payload };
+      },
+    });
+
+    const result = convertFlow(defaultFlow, {}, "test-ref");
+
+    expect(result.name).toBe("Test Polling Flow");
+  });
+});
 
 describe("convertConfigPages", () => {
   it("should handle HTML string elements correctly", () => {

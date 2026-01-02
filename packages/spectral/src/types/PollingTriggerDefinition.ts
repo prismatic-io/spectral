@@ -11,11 +11,12 @@ import type { TriggerResult } from "./TriggerResult";
 export interface PollingContext<
   TInputs extends Inputs = Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  ReturnData = unknown,
 > extends ActionContext<TConfigVars> {
   polling: {
     invokeAction: (
       params: ActionInputParameters<TInputs>,
-    ) => Promise<ActionPerformReturn<boolean, any>>;
+    ) => Promise<ActionPerformReturn<boolean, ReturnData>>;
     getState: () => Record<string, unknown>;
     setState: (newState: Record<string, unknown>) => void;
   };
