@@ -16,6 +16,7 @@ import {
   ExecutionFrame,
   DebugContext,
   FlowSchemas,
+  CodeNativePollingTriggerPerformFunction,
 } from "../types";
 
 interface DisplayDefinition {
@@ -190,7 +191,7 @@ export interface Trigger {
   allowsBranching?: boolean;
   staticBranchNames?: string[];
   dynamicBranchInput?: string;
-  perform: TriggerPerformFunction;
+  perform: TriggerPerformFunction | CodeNativePollingTriggerPerformFunction;
   onInstanceDeploy?: TriggerEventFunction;
   hasOnInstanceDeploy?: boolean;
   onInstanceDelete?: TriggerEventFunction;

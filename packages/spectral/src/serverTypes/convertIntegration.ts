@@ -948,11 +948,31 @@ export const invokeTriggerComponentInput = (
   };
 };
 
-interface GenerateTriggerPerformFn {
+type ComponentRefTrigger = "component-ref";
+
+interface PreValidationTriggerPerformConfig {
   componentRef: ServerComponentReference | undefined;
-  onTrigger: TriggerReference | TriggerPerformFunction | undefined;
+  onTrigger:
+    | TriggerReference
+    | TriggerPerformFunction
+    | CodeNativePollingTriggerPerformFunction
+    | undefined;
   componentRegistry: ComponentRegistry;
-  triggerType: StandardTriggerType | undefined;
+  triggerType: FlowTriggerType | undefined;
+}
+
+interface GenerateTriggerPerformFn {
+  componentRef: undefined;
+  onTrigger: TriggerPerformFunction;
+  componentRegistry: ComponentRegistry;
+  triggerType: StandardTriggerType;
+}
+
+interface GenerateComponentRefTriggerPerformFn {
+  componentRef: ServerComponentReference;
+  onTrigger: TriggerReference;
+  componentRegistry: ComponentRegistry;
+  triggerType: ComponentRefTrigger;
 }
 
 interface GeneratePollingTriggerPerformFn {
@@ -962,23 +982,65 @@ interface GeneratePollingTriggerPerformFn {
   triggerType: PollingTriggerType;
 }
 
+/** Type guard to narrow trigger perform functions based on triggerType.
+ * Since TriggerPerformFunction and CodeNativePollingTriggerPerformFunction are
+ * structurally identical, TypeScript cannot distinguish them. This guard uses
+ * triggerType to narrow the function type. */
+const isStandardTriggerPerform = (
+  fn: TriggerPerformFunction | CodeNativePollingTriggerPerformFunction,
+  triggerType: FlowTriggerType | undefined,
+): fn is TriggerPerformFunction => triggerType !== "polling";
+
+// Force incoming config into a discriminated union type to simplify downstream handling
+function validateTriggerPerformConfig(
+  params: PreValidationTriggerPerformConfig,
+):
+  | GenerateTriggerPerformFn
+  | GeneratePollingTriggerPerformFn
+  | GenerateComponentRefTriggerPerformFn {
+  const { componentRef, onTrigger, componentRegistry, triggerType } = params;
+  if (componentRef && onTrigger && typeof onTrigger !== "function") {
+    return {
+      componentRef,
+      onTrigger,
+      triggerType: "component-ref",
+      componentRegistry,
+    };
+  } else if (triggerType === "polling" && typeof onTrigger === "function") {
+    return {
+      componentRef: undefined,
+      onTrigger,
+      triggerType,
+      componentRegistry,
+    };
+  } else if (typeof onTrigger === "function" && isStandardTriggerPerform(onTrigger, triggerType)) {
+    return {
+      componentRef: undefined,
+      onTrigger,
+      triggerType: "standard",
+      componentRegistry,
+    };
+  } else {
+    throw new Error(`Invalid trigger configuration detected: ${JSON.stringify(params, null, 2)}`);
+  }
+}
+
 /* Generates a wrapper function that calls an existing component trigger's perform. */
 function generateTriggerPerformFn(
-  params: GeneratePollingTriggerPerformFn,
-): CodeNativePollingTriggerPerformFunction;
-function generateTriggerPerformFn(params: GenerateTriggerPerformFn): TriggerPerformFunction;
-function generateTriggerPerformFn(
-  args: GenerateTriggerPerformFn | GeneratePollingTriggerPerformFn,
+  params: PreValidationTriggerPerformConfig,
 ): TriggerPerformFunction | CodeNativePollingTriggerPerformFunction {
-  const { componentRef, onTrigger, componentRegistry, triggerType } = args;
-  if (componentRef && onTrigger && typeof onTrigger !== "function") {
-    return createCNIComponentRefPerform({ componentRegistry, componentRef, onTrigger });
-  } else if (triggerType === "polling") {
-    return createCNIPollingPerform({ onTrigger, componentRegistry });
-  } else if (typeof onTrigger === "function") {
-    return createCNIPerform({ componentRegistry, onTrigger });
-  } else {
-    throw new Error(`Invalid configuration detected: ${JSON.stringify(args, null, 2)}`);
+  const { componentRef, onTrigger, componentRegistry, triggerType } =
+    validateTriggerPerformConfig(params);
+  switch (triggerType) {
+    case "polling":
+      return createCNIPollingPerform({ onTrigger, componentRegistry });
+    case "standard":
+      return createCNIPerform({ componentRegistry, onTrigger });
+    case "component-ref":
+      return createCNIComponentRefPerform({ componentRegistry, componentRef, onTrigger });
+
+    default:
+      throw new Error(`Invalid trigger configuration detected: ${JSON.stringify(params, null, 2)}`);
   }
 }
 
