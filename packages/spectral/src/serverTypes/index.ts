@@ -16,7 +16,9 @@ import {
   ExecutionFrame,
   DebugContext,
   FlowSchemas,
-  CodeNativePollingTriggerPerformFunction,
+  PollingTriggerPerformFunction,
+  Inputs,
+  TriggerResult as TriggerPerformResult,
 } from "../types";
 
 interface DisplayDefinition {
@@ -38,13 +40,26 @@ export interface PublishingMetadata {
   }[];
 }
 
-export interface Component {
+export interface Component<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> {
   key: string;
   public?: boolean;
   documentationUrl?: string;
   display: DisplayDefinition & { category?: string; iconPath?: string };
   actions: Record<string, Action>;
-  triggers: Record<string, Trigger>;
+  triggers: Record<
+    string,
+    Trigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>
+  >;
   dataSources: Record<string, DataSource>;
   connections: Connection[];
   codeNativeIntegrationYAML?: string;
@@ -182,7 +197,17 @@ export type TriggerEventFunction = (
   params: Record<string, unknown>,
 ) => Promise<TriggerEventFunctionResult>;
 
-export interface Trigger {
+export interface Trigger<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> {
   key: string;
   display: DisplayDefinition & { directions?: string; important?: boolean };
   inputs: Input[];
@@ -191,7 +216,16 @@ export interface Trigger {
   allowsBranching?: boolean;
   staticBranchNames?: string[];
   dynamicBranchInput?: string;
-  perform: TriggerPerformFunction | CodeNativePollingTriggerPerformFunction;
+  perform:
+    | TriggerPerformFunction
+    | PollingTriggerPerformFunction<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >;
   onInstanceDeploy?: TriggerEventFunction;
   hasOnInstanceDeploy?: boolean;
   onInstanceDelete?: TriggerEventFunction;

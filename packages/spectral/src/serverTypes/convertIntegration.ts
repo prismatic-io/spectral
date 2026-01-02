@@ -70,7 +70,19 @@ import { runWithContext } from "./asyncContext";
 import path from "path";
 import { readFileSync } from "fs";
 
-export const convertIntegration = (definition: IntegrationDefinition): ServerComponent => {
+export const convertIntegration = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  definition: IntegrationDefinition,
+): ServerComponent<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult> => {
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
   // inline as part of the integration definition.
@@ -1251,11 +1263,21 @@ const convertOnExecution =
 
 /** Creates the structure necessary to import a Component as part of a
  *  Code Native integration. */
-const codeNativeIntegrationComponent = (
+const codeNativeIntegrationComponent = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
   { name, iconPath, description, flows = [], componentRegistry = {} }: IntegrationDefinition,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
-): ServerComponent => {
+): ServerComponent<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult> => {
   const convertedActions = flows.reduce<Record<string, ServerAction>>(
     (result, { name, onExecution }) => {
       const key = flowFunctionKey(name, "onExecution");
