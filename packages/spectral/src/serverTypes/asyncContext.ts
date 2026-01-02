@@ -2,7 +2,6 @@ import {
   ComponentRegistry,
   IntegrationDefinition,
   Inputs,
-  ConfigVarResultCollection,
   TriggerPayload,
   TriggerResult,
 } from "../types";
@@ -36,7 +35,6 @@ export function requireContext(): ActionContext {
 export function runWithIntegrationContext<
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
@@ -46,18 +44,10 @@ export function runWithIntegrationContext<
   T extends IntegrationDefinition<
     TInputs,
     TActionInputs,
-    TConfigVars,
     TPayload,
     TAllowsBranching,
     TResult
-  > = IntegrationDefinition<
-    TInputs,
-    TActionInputs,
-    TConfigVars,
-    TPayload,
-    TAllowsBranching,
-    TResult
-  >,
+  > = IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   U = unknown,
 >(context: T, fn: () => U): U {
   if (!integrationContextStorage) {
@@ -74,7 +64,6 @@ export function runWithIntegrationContext<
 export function requireIntegrationContext<
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
@@ -84,18 +73,10 @@ export function requireIntegrationContext<
   T extends IntegrationDefinition<
     TInputs,
     TActionInputs,
-    TConfigVars,
     TPayload,
     TAllowsBranching,
     TResult
-  > = IntegrationDefinition<
-    TInputs,
-    TActionInputs,
-    TConfigVars,
-    TPayload,
-    TAllowsBranching,
-    TResult
-  >,
+  > = IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
 >(): T {
   const context = integrationContextStorage.getStore();
 

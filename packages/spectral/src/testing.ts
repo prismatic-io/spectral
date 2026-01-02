@@ -432,7 +432,7 @@ export const invokeFlow = async <
     TPayload
   >,
 >(
-  flow: Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+  flow: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   {
     configVars,
     context,

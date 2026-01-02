@@ -46,7 +46,6 @@ import { runWithIntegrationContext } from "./serverTypes";
 export const integration = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
@@ -56,47 +55,24 @@ export const integration = <
   T extends IntegrationDefinition<
     TInputs,
     TActionInputs,
-    TConfigVars,
     TPayload,
     TAllowsBranching,
     TResult
-  > = IntegrationDefinition<
-    TInputs,
-    TActionInputs,
-    TConfigVars,
-    TPayload,
-    TAllowsBranching,
-    TResult
-  >,
+  > = IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
 >(
   definition: T,
 ): ReturnType<
-  typeof convertIntegration<
-    TInputs,
-    TActionInputs,
-    TConfigVars,
-    TPayload,
-    TAllowsBranching,
-    TResult
-  >
+  typeof convertIntegration<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>
 > => {
   const integrationDefinition = runWithIntegrationContext<
     TInputs,
     TActionInputs,
-    TConfigVars,
     TPayload,
     TAllowsBranching,
     TResult,
     T,
     ReturnType<
-      typeof convertIntegration<
-        TInputs,
-        TActionInputs,
-        TConfigVars,
-        TPayload,
-        TAllowsBranching,
-        TResult
-      >
+      typeof convertIntegration<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>
     >
   >(definition, () => {
     return convertIntegration(definition);
@@ -120,7 +96,6 @@ export const integration = <
 export const flow = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
@@ -131,20 +106,11 @@ export const flow = <
   T extends Flow<
     TInputs,
     TActionInputs,
-    TConfigVars,
     TPayload,
     TAllowsBranching,
     TResult,
     TTriggerPayload
-  > = Flow<
-    TInputs,
-    TActionInputs,
-    TConfigVars,
-    TPayload,
-    TAllowsBranching,
-    TResult,
-    TTriggerPayload
-  >,
+  > = Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult, TTriggerPayload>,
 >(
   definition: T,
 ): T => definition;

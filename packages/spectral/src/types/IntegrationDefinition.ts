@@ -10,7 +10,7 @@ import type {
 import type { ConfigPages, UserLevelConfigPages } from "./ConfigPages";
 import type { ConfigVars } from "./ConfigVars";
 import type { FlowDefinitionFlowSchema } from "./FlowSchemas";
-import type { ConfigVarResultCollection, Inputs } from "./Inputs";
+import type { Inputs } from "./Inputs";
 import type { PollingTriggerPerformFunction } from "./PollingTriggerDefinition";
 import type { ScopedConfigVarMap } from "./ScopedConfigVars";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
@@ -25,7 +25,6 @@ import type { TriggerResult } from "./TriggerResult";
 export type IntegrationDefinition<
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
@@ -64,7 +63,7 @@ export type IntegrationDefinition<
    * Flows for this integration. See
    * https://prismatic.io/docs/integrations/code-native/flows/
    */
-  flows: Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>[];
+  flows: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>[];
   /**
    * Config wizard pages for this integration. See
    * https://prismatic.io/docs/integrations/code-native/config-wizard/
@@ -170,7 +169,6 @@ export type StandardTriggerType = "standard";
 /** A standard flow with a webhook or scheduled trigger (non-polling). */
 interface StandardFlow<
   TInputs extends Inputs = Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = false,
   TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
@@ -187,7 +185,7 @@ interface StandardFlow<
   /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
   onTrigger?:
     | TriggerReference
-    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
+    | TriggerPerformFunction<TInputs, ConfigVars, TAllowsBranching, TResult>;
 }
 
 export type PollingTriggerType = "polling";
@@ -196,7 +194,6 @@ export type PollingTriggerType = "polling";
 interface PollingFlow<
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
@@ -220,7 +217,7 @@ interface PollingFlow<
   onTrigger: PollingTriggerPerformFunction<
     TInputs,
     TActionInputs,
-    TConfigVars,
+    ConfigVars,
     TPayload,
     TAllowsBranching,
     TResult
@@ -231,7 +228,6 @@ interface PollingFlow<
 export type Flow<
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
@@ -240,16 +236,8 @@ export type Flow<
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
 > =
-  | StandardFlow<TInputs, TConfigVars, TPayload, TAllowsBranching, TResult, TTriggerPayload>
-  | PollingFlow<
-      TInputs,
-      TActionInputs,
-      TConfigVars,
-      TPayload,
-      TAllowsBranching,
-      TResult,
-      TTriggerPayload
-    >;
+  | StandardFlow<TInputs, TPayload, TAllowsBranching, TResult, TTriggerPayload>
+  | PollingFlow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult, TTriggerPayload>;
 
 export type FlowTriggerType = PollingTriggerType | StandardTriggerType;
 

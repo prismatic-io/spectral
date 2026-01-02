@@ -74,7 +74,6 @@ import { readFileSync } from "fs";
 export const convertIntegration = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
@@ -82,15 +81,15 @@ export const convertIntegration = <
     TPayload
   >,
 >(
-  definition: IntegrationDefinition<
-    TInputs,
-    TActionInputs,
-    TConfigVars,
-    TPayload,
-    TAllowsBranching,
-    TResult
-  >,
-): ServerComponent<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult> => {
+  definition: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
+): ServerComponent<
+  TInputs,
+  TActionInputs,
+  ConfigVarResultCollection,
+  TPayload,
+  TAllowsBranching,
+  TResult
+> => {
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
   // inline as part of the integration definition.
@@ -193,7 +192,6 @@ export const convertConfigPages = (
 const codeNativeIntegrationYaml = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
@@ -216,14 +214,7 @@ const codeNativeIntegrationYaml = <
     scopedConfigVars,
     instanceProfile = "Default Instance Profile",
     componentRegistry = {},
-  }: IntegrationDefinition<
-    TInputs,
-    TActionInputs,
-    TConfigVars,
-    TPayload,
-    TAllowsBranching,
-    TResult
-  >,
+  }: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
   metadata?: Record<string, unknown>,
@@ -550,7 +541,6 @@ const codeNativeIntegrationComponentReference = (referenceKey: string) => ({
 const flowUsesWrapperTrigger = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
@@ -559,7 +549,7 @@ const flowUsesWrapperTrigger = <
   >,
 >(
   flow: Pick<
-    Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+    Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
     "onTrigger" | "onInstanceDelete" | "onInstanceDeploy"
   >,
 ) => {
@@ -590,7 +580,6 @@ const convertFlowSchemas = (
 export const convertFlow = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
@@ -598,7 +587,7 @@ export const convertFlow = <
     TPayload
   >,
 >(
-  flow: Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+  flow: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   componentRegistry: ComponentRegistry,
   referenceKey: string,
 ): Record<string, unknown> => {
@@ -1323,7 +1312,6 @@ const convertOnExecution =
 const codeNativeIntegrationComponent = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
@@ -1337,17 +1325,17 @@ const codeNativeIntegrationComponent = <
     description,
     flows = [],
     componentRegistry = {},
-  }: IntegrationDefinition<
-    TInputs,
-    TActionInputs,
-    TConfigVars,
-    TPayload,
-    TAllowsBranching,
-    TResult
-  >,
+  }: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
-): ServerComponent<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult> => {
+): ServerComponent<
+  TInputs,
+  TActionInputs,
+  ConfigVarResultCollection,
+  TPayload,
+  TAllowsBranching,
+  TResult
+> => {
   const convertedActions = flows.reduce<Record<string, ServerAction>>(
     (result, { name, onExecution }) => {
       const key = flowFunctionKey(name, "onExecution");
@@ -1373,7 +1361,14 @@ const codeNativeIntegrationComponent = <
   const convertedTriggers = flows.reduce<
     Record<
       string,
-      ServerTrigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>
+      ServerTrigger<
+        TInputs,
+        TActionInputs,
+        ConfigVarResultCollection,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >
     >
   >((result, { name, onTrigger, onInstanceDeploy, onInstanceDelete, schedule, triggerType }) => {
     if (
@@ -1530,7 +1525,6 @@ const codeNativeIntegrationComponent = <
 const codeNativeIntegrationPublishingMetadata = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
@@ -1538,14 +1532,7 @@ const codeNativeIntegrationPublishingMetadata = <
     TPayload
   >,
 >(
-  definition: IntegrationDefinition<
-    TInputs,
-    TActionInputs,
-    TConfigVars,
-    TPayload,
-    TAllowsBranching,
-    TResult
-  >,
+  definition: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
 ): PublishingMetadata => {
   const customerRequiredSecurityEndpoints = definition.flows
     .filter((flow) => flow.endpointSecurityType === "customer_required")
