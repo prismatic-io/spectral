@@ -460,7 +460,7 @@ export const invokeFlow = async <
     params.onTrigger = { results: triggerResult?.payload };
   }
 
-  const result = await flow.onExecution(realizedContext as ActionContext<any>, params);
+  const result = await flow.onExecution(realizedContext, params);
 
   return {
     result,
@@ -610,9 +610,35 @@ export class ComponentTestHarness<
  * Create a testing harness to test a custom component's actions, triggers and data sources. See
  * https://prismatic.io/docs/custom-connectors/unit-testing/
  */
-export const createHarness = <TComponent extends Component>(
+export const createHarness = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends InvokeTriggerResult<TAllowsBranching, TPayload> = InvokeTriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  TComponent extends Component<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  > = Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+>(
   component: TComponent,
-): ComponentTestHarness<TComponent> => {
+): ComponentTestHarness<
+  TInputs,
+  TActionInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult,
+  TComponent
+> => {
   return new ComponentTestHarness(component);
 };
 
