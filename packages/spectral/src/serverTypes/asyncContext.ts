@@ -1,4 +1,11 @@
-import { ComponentRegistry, IntegrationDefinition } from "../types";
+import {
+  ComponentRegistry,
+  IntegrationDefinition,
+  Inputs,
+  ConfigVarResultCollection,
+  TriggerPayload,
+  TriggerResult,
+} from "../types";
 import type { ActionContext } from "../types/ActionPerformFunction";
 
 // Only import async_hooks in Node.js environments
@@ -26,10 +33,33 @@ export function requireContext(): ActionContext {
   return context;
 }
 
-export function runWithIntegrationContext<T extends IntegrationDefinition, U>(
-  context: T,
-  fn: () => U,
-): U {
+export function runWithIntegrationContext<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  T extends IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  > = IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
+  U = unknown,
+>(context: T, fn: () => U): U {
   if (!integrationContextStorage) {
     console.warn(
       "Creating integration without context. This may result in errors when generating component manifests.",
@@ -41,7 +71,32 @@ export function runWithIntegrationContext<T extends IntegrationDefinition, U>(
   return integrationContextStorage.run(context, fn);
 }
 
-export function requireIntegrationContext<T extends IntegrationDefinition>(): T {
+export function requireIntegrationContext<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  T extends IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  > = IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
+>(): T {
   const context = integrationContextStorage.getStore();
 
   if (!context) {

@@ -421,10 +421,18 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
  * https://prismatic.io/docs/integrations/triggers/cross-flow/#using-cross-flow-triggers-in-code-native
  */
 export const invokeFlow = async <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TConfigVarValues extends TestConfigVarValues = ToTestValues<TConfigVars>,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends InvokeTriggerResult<TAllowsBranching, TPayload> = InvokeTriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
 >(
-  flow: Flow,
+  flow: Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
   {
     configVars,
     context,
@@ -440,19 +448,23 @@ export const invokeFlow = async <
     ...context,
     configVars: realizedConfigVars,
   });
-  const realizedPayload = { ...defaultTriggerPayload(), ...payload };
+  const realizedPayload = { ...defaultTriggerPayload(), ...payload } as TPayload;
 
   const params: Record<"onTrigger", { results: any }> = {
     onTrigger: { results: realizedPayload },
   };
 
   if ("onTrigger" in flow && typeof flow.onTrigger === "function") {
-    const triggerResult = await flow.onTrigger(realizedContext as any, realizedPayload, params);
+    const triggerResult = await flow.onTrigger(
+      realizedContext as any,
+      realizedPayload,
+      params as ActionInputParameters<TInputs>,
+    );
 
     params.onTrigger = { results: triggerResult?.payload };
   }
 
-  const result = await flow.onExecution(realizedContext as ActionContext<any>, params);
+  const result = await flow.onExecution(realizedContext, params);
 
   return {
     result,
@@ -460,14 +472,35 @@ export const invokeFlow = async <
   };
 };
 
-export class ComponentTestHarness<TComponent extends Component> {
+export class ComponentTestHarness<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends InvokeTriggerResult<TAllowsBranching, TPayload> = InvokeTriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  TComponent extends Component<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  > = Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+> {
   component: TComponent;
 
   constructor(component: TComponent) {
     this.component = component;
   }
 
-  private buildParams(inputs: Input[], params?: Record<string, unknown>): Record<string, unknown> {
+  private buildParams(
+    inputs: Input[],
+    params?: Record<string, unknown>,
+  ): ActionInputParameters<TInputs> {
     const defaults = inputs.reduce<Record<string, string>>(
       (result, { key, default: defaultValue }) => ({
         ...result,
@@ -475,7 +508,7 @@ export class ComponentTestHarness<TComponent extends Component> {
       }),
       {},
     );
-    return { ...defaults, ...params };
+    return { ...defaults, ...params } as ActionInputParameters<TInputs>;
   }
 
   /**
@@ -498,16 +531,26 @@ export class ComponentTestHarness<TComponent extends Component> {
    * Invoke a trigger by its key within a unit test. See
    * https://prismatic.io/docs/custom-connectors/unit-testing/
    */
-  public async trigger<TConfigVars extends ConfigVarResultCollection>(
+  public async trigger(
     key: string,
-    payload?: TriggerPayload,
+    payload?: Partial<TPayload>,
     params?: Record<string, unknown>,
     context?: Partial<ActionContext<TConfigVars>>,
   ): Promise<TriggerResult> {
     const trigger = this.component.triggers[key];
+    const testContext = {
+      ...createActionContext(context),
+      polling: {
+        invokeAction: async () => {
+          throw new Error("invokeAction not available in test context");
+        },
+        getState: () => ({}),
+        setState: () => {},
+      },
+    };
     return trigger.perform(
-      createActionContext(context),
-      { ...defaultTriggerPayload(), ...payload },
+      testContext,
+      { ...defaultTriggerPayload(), ...payload } as TPayload,
       this.buildParams(trigger.inputs, params),
     );
   }
@@ -584,9 +627,35 @@ export class ComponentTestHarness<TComponent extends Component> {
  * Create a testing harness to test a custom component's actions, triggers and data sources. See
  * https://prismatic.io/docs/custom-connectors/unit-testing/
  */
-export const createHarness = <TComponent extends Component>(
+export const createHarness = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends InvokeTriggerResult<TAllowsBranching, TPayload> = InvokeTriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  TComponent extends Component<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  > = Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+>(
   component: TComponent,
-): ComponentTestHarness<TComponent> => {
+): ComponentTestHarness<
+  TInputs,
+  TActionInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult,
+  TComponent
+> => {
   return new ComponentTestHarness(component);
 };
 

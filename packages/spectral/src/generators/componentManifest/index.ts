@@ -8,9 +8,20 @@ import { createTriggers } from "./createTriggers";
 import { removeComponentManifest } from "./removeComponentManifest";
 import { getComponentSignatureWithPrism } from "../utils/prism";
 import type { Component } from "../../serverTypes";
+import { Inputs, ConfigVarResultCollection, TriggerPayload, TriggerResult } from "../../types";
 
-interface CreateComponentManifestProps {
-  component: Component;
+interface CreateComponentManifestProps<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> {
+  component: Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>;
   dryRun: boolean;
   skipSignatureVerify: boolean;
   packageName: string;
@@ -21,7 +32,17 @@ interface CreateComponentManifestProps {
   registry: string | null;
 }
 
-export const createComponentManifest = async ({
+export const createComponentManifest = async <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>({
   component,
   dryRun,
   skipSignatureVerify,
@@ -31,7 +52,14 @@ export const createComponentManifest = async ({
   sourceDir,
   destinationDir,
   registry,
-}: CreateComponentManifestProps) => {
+}: CreateComponentManifestProps<
+  TInputs,
+  TActionInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult
+>) => {
   const signature = await getComponentSignatureWithPrism({
     skipSignatureVerify,
   });

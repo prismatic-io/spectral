@@ -36,7 +36,9 @@ import {
   Inputs,
   TriggerResult as TriggerPerformResult,
   ConfigVarResultCollection,
-  CodeNativePollingTriggerPerformFunction,
+  PollingTriggerType,
+  StandardTriggerType,
+  TriggerPerformFunction,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -45,7 +47,6 @@ import {
   Connection as ServerConnection,
   DataSource as ServerDataSource,
   Trigger as ServerTrigger,
-  TriggerPerformFunction,
   TriggerEventFunction,
   ActionPerformFunction,
   ActionContext,
@@ -54,7 +55,8 @@ import {
   PublishingMetadata,
 } from ".";
 import { convertInput, convertTemplateInput } from "./convertComponent";
-import { createPollingContext } from "./perform";
+import { createCNIPollingPerform, createCNIComponentRefPerform, createCNIPerform } from "./perform";
+import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 import {
   DefinitionVersion,
   RequiredConfigVariable as ServerRequiredConfigVariable,
@@ -69,7 +71,26 @@ import { runWithContext } from "./asyncContext";
 import path from "path";
 import { readFileSync } from "fs";
 
-export const convertIntegration = (definition: IntegrationDefinition): ServerComponent => {
+export const convertIntegration = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  definition: IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
+): ServerComponent<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult> => {
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
   // inline as part of the integration definition.
@@ -169,7 +190,17 @@ export const convertConfigPages = (
   }));
 };
 
-const codeNativeIntegrationYaml = (
+const codeNativeIntegrationYaml = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
   {
     name,
     description,
@@ -185,7 +216,14 @@ const codeNativeIntegrationYaml = (
     scopedConfigVars,
     instanceProfile = "Default Instance Profile",
     componentRegistry = {},
-  }: IntegrationDefinition,
+  }: IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
   metadata?: Record<string, unknown>,
@@ -509,8 +547,21 @@ const codeNativeIntegrationComponentReference = (referenceKey: string) => ({
 /* A flow's trigger gets wrapped in a custom component if there's a defined
  * onTrigger function, or if any custom onInstance behavior is defined.
  * */
-const flowUsesWrapperTrigger = (
-  flow: Pick<Flow, "onTrigger" | "onInstanceDelete" | "onInstanceDeploy">,
+const flowUsesWrapperTrigger = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  flow: Pick<
+    Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+    "onTrigger" | "onInstanceDelete" | "onInstanceDeploy"
+  >,
 ) => {
   return typeof flow.onTrigger === "function" || flow.onInstanceDelete || flow.onInstanceDeploy;
 };
@@ -536,8 +587,18 @@ const convertFlowSchemas = (
 };
 
 /** Converts a Flow into the structure necessary for YAML generation. */
-export const convertFlow = (
-  flow: Flow,
+export const convertFlow = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  flow: Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
   componentRegistry: ComponentRegistry,
   referenceKey: string,
 ): Record<string, unknown> => {
@@ -929,7 +990,7 @@ const flowFunctionKey = (flowName: string, functionName: "onExecution" | "onTrig
 };
 
 /* Generates component argument for invokeTrigger calls. */
-const invokeTriggerComponentInput = (
+export const invokeTriggerComponentInput = (
   componentRef: ServerComponentReference,
   onTrigger: TriggerReference | undefined,
   eventName: "perform" | "onInstanceDeploy" | "onInstanceDelete",
@@ -955,64 +1016,206 @@ const invokeTriggerComponentInput = (
   };
 };
 
-interface GenerateTriggerPerformFn {
+type ComponentRefTrigger = "component-ref";
+
+type PreValidationTriggerPerformConfig<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> = {
   componentRef: ServerComponentReference | undefined;
   onTrigger:
     | TriggerReference
-    | TriggerPerformFunction
-    | CodeNativePollingTriggerPerformFunction
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
+    | PollingTriggerPerformFunction<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >
     | undefined;
   componentRegistry: ComponentRegistry;
   triggerType: FlowTriggerType | undefined;
-}
-/* Generates a wrapper function that calls an existing component trigger's perform. */
-const generateTriggerPerformFn = ({
-  componentRef,
-  onTrigger,
-  componentRegistry,
-  triggerType,
-}: GenerateTriggerPerformFn): TriggerPerformFunction => {
-  if (componentRef && typeof onTrigger !== "function") {
-    return async (context, payload, params) => {
-      // @ts-expect-error: _components isn't part of the public API
-      const _components = context._components ?? {
-        invokeTrigger: () => {},
-      };
-      const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
-      const cniContext = createCNIContext(context, componentRegistry);
-
-      return await invokeTrigger(
-        invokeTriggerComponentInput(componentRef, onTrigger, "perform"),
-        cniContext,
-        payload,
-        params,
-      );
-    };
-  } else {
-    return async (context, payload, params) => {
-      const cniContext = createCNIContext(context, componentRegistry);
-      const finalContext =
-        triggerType === "polling"
-          ? {
-              ...cniContext,
-              ...createPollingContext({
-                context: cniContext,
-                invokeAction: async () => {
-                  throw new Error(
-                    "invokeAction is not available for code-native polling triggers. " +
-                      "Use getState/setState to manage polling state directly in your onTrigger function.",
-                  );
-                },
-              }),
-            }
-          : cniContext;
-
-      return await (onTrigger as TriggerPerformFunction)(finalContext, payload, params);
-    };
-  }
 };
 
-type TriggerActionInvokeFunction = (
+interface GenerateTriggerPerformFn<
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TAllowsBranching extends boolean | undefined,
+  TResult extends TriggerPerformResult<TAllowsBranching, TriggerPayload>,
+> {
+  componentRef: undefined;
+  onTrigger: TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
+  componentRegistry: ComponentRegistry;
+  triggerType: StandardTriggerType;
+}
+
+interface GenerateComponentRefTriggerPerformFn {
+  componentRef: ServerComponentReference;
+  onTrigger: TriggerReference;
+  componentRegistry: ComponentRegistry;
+  triggerType: ComponentRefTrigger;
+}
+
+interface GeneratePollingTriggerPerformFn<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> {
+  onTrigger: PollingTriggerPerformFunction<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >;
+  componentRef: undefined;
+  componentRegistry: ComponentRegistry;
+  triggerType: PollingTriggerType;
+}
+
+/** Type guard to narrow trigger perform functions based on triggerType.
+ * Since TriggerPerformFunction and CodeNativePollingTriggerPerformFunction are
+ * structurally identical, TypeScript cannot distinguish them. This guard uses
+ * triggerType to narrow the function type. */
+const isStandardTriggerPerform = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  fn:
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
+    | PollingTriggerPerformFunction<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >,
+  triggerType: FlowTriggerType | undefined,
+): fn is TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult> =>
+  triggerType !== "polling";
+
+// Force incoming config into a discriminated union type to simplify downstream handling
+function validateTriggerPerformConfig<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  params: PreValidationTriggerPerformConfig<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
+):
+  | GenerateTriggerPerformFn<TInputs, TConfigVars, TAllowsBranching, TResult>
+  | GeneratePollingTriggerPerformFn<
+      TInputs,
+      TActionInputs,
+      TConfigVars,
+      TPayload,
+      TAllowsBranching,
+      TResult
+    >
+  | GenerateComponentRefTriggerPerformFn {
+  const { componentRef, onTrigger, componentRegistry, triggerType } = params;
+  if (componentRef && onTrigger && typeof onTrigger !== "function") {
+    return {
+      componentRef,
+      onTrigger,
+      triggerType: "component-ref",
+      componentRegistry,
+    };
+  } else if (triggerType === "polling" && typeof onTrigger === "function") {
+    return {
+      componentRef: undefined,
+      onTrigger,
+      triggerType,
+      componentRegistry,
+    };
+  } else if (typeof onTrigger === "function" && isStandardTriggerPerform(onTrigger, triggerType)) {
+    return {
+      componentRef: undefined,
+      onTrigger,
+      triggerType: "standard",
+      componentRegistry,
+    };
+  } else {
+    throw new Error(`Invalid trigger configuration detected: ${JSON.stringify(params, null, 2)}`);
+  }
+}
+
+/* Generates a wrapper function that calls an existing component trigger's perform. */
+function generateTriggerPerformFn<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  params: PreValidationTriggerPerformConfig<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
+):
+  | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
+  | CNIPollingPerformFunction<TInputs, TConfigVars, TPayload, TAllowsBranching>
+  | ComponentRefTriggerPerformFunction<TInputs, TConfigVars> {
+  const { componentRef, onTrigger, componentRegistry, triggerType } =
+    validateTriggerPerformConfig(params);
+  switch (triggerType) {
+    case "polling":
+      return createCNIPollingPerform({ onTrigger, componentRegistry });
+    case "standard":
+      return createCNIPerform({ componentRegistry, onTrigger });
+    case "component-ref":
+      return createCNIComponentRefPerform({ componentRegistry, componentRef, onTrigger });
+
+    default:
+      throw new Error(`Invalid trigger configuration detected: ${JSON.stringify(params, null, 2)}`);
+  }
+}
+
+export type TriggerActionInvokeFunction = (
   ref: {
     component: ServerComponentReference["component"];
     key: string;
@@ -1027,12 +1230,29 @@ type TriggerActionInvokeFunction = (
  * or onInstanceDelete, then calls the flow-defined version if it exists.
  * Returns the deep-merged results of the two, prioritizing the custom response
  * if there's a conflict. */
-const generateOnInstanceWrapperFn = (
+const generateOnInstanceWrapperFn = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
   componentRef: ServerComponentReference | undefined,
   onTrigger:
     | TriggerReference
-    | TriggerPerformFunction
-    | CodeNativePollingTriggerPerformFunction
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
+    | PollingTriggerPerformFunction<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >
     | undefined,
   eventName: "onInstanceDeploy" | "onInstanceDelete",
   componentRegistry: ComponentRegistry,
@@ -1100,11 +1320,34 @@ const convertOnExecution =
 
 /** Creates the structure necessary to import a Component as part of a
  *  Code Native integration. */
-const codeNativeIntegrationComponent = (
-  { name, iconPath, description, flows = [], componentRegistry = {} }: IntegrationDefinition,
+const codeNativeIntegrationComponent = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  {
+    name,
+    iconPath,
+    description,
+    flows = [],
+    componentRegistry = {},
+  }: IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
-): ServerComponent => {
+): ServerComponent<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult> => {
   const convertedActions = flows.reduce<Record<string, ServerAction>>(
     (result, { name, onExecution }) => {
       const key = flowFunctionKey(name, "onExecution");
@@ -1127,80 +1370,81 @@ const codeNativeIntegrationComponent = (
     {},
   );
 
-  const convertedTriggers = flows.reduce<Record<string, ServerTrigger>>(
-    (result, { name, onTrigger, onInstanceDeploy, onInstanceDelete, schedule, triggerType }) => {
-      if (
-        !flowUsesWrapperTrigger({
-          onTrigger,
-          onInstanceDelete,
-          onInstanceDeploy,
-        })
-      ) {
-        // In this scenario, the user has defined an existing component trigger
-        // without any custom behavior, so we don't need to wrap anything.
-        return result;
-      }
-
-      const key = flowFunctionKey(name, "onTrigger");
-      const defaultComponentKey = schedule && typeof schedule === "object" ? "schedule" : "webhook";
-      const defaultComponentRef: ServerComponentReference = {
-        component: {
-          key: `${defaultComponentKey}-triggers`,
-          version: "LATEST",
-          isPublic: true,
-        },
-        key: defaultComponentKey,
-      };
-
-      // The component ref here is undefined if onTrigger is a function.
-      const { ref } = isComponentReference(onTrigger)
-        ? convertComponentReference(onTrigger as TriggerReference, componentRegistry, "triggers")
-        : { ref: onTrigger ? undefined : defaultComponentRef };
-
-      const performFn: TriggerPerformFunction = generateTriggerPerformFn({
-        componentRef: ref,
+  const convertedTriggers = flows.reduce<
+    Record<
+      string,
+      ServerTrigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>
+    >
+  >((result, { name, onTrigger, onInstanceDeploy, onInstanceDelete, schedule, triggerType }) => {
+    if (
+      !flowUsesWrapperTrigger({
         onTrigger,
-        componentRegistry,
-        triggerType,
-      });
-      const deleteFn: TriggerEventFunction | undefined = generateOnInstanceWrapperFn(
-        ref,
-        onTrigger,
-        "onInstanceDelete",
-        componentRegistry,
         onInstanceDelete,
-      );
-      const deployFn: TriggerEventFunction | undefined = generateOnInstanceWrapperFn(
-        ref,
-        onTrigger,
-        "onInstanceDeploy",
-        componentRegistry,
         onInstanceDeploy,
-      );
+      })
+    ) {
+      // In this scenario, the user has defined an existing component trigger
+      // without any custom behavior, so we don't need to wrap anything.
+      return result;
+    }
 
-      return {
-        ...result,
-        [key]: {
-          key,
-          display: {
-            label: `${name} - onTrigger`,
-            description:
-              "The function that will be executed by the flow to return an HTTP response.",
-          },
-          perform: performFn,
-          onInstanceDeploy: deployFn,
-          hasOnInstanceDeploy: !!deployFn,
-          onInstanceDelete: deleteFn,
-          hasOnInstanceDelete: !!deleteFn,
-          inputs: [],
-          scheduleSupport: triggerType === "polling" ? "required" : "valid",
-          synchronousResponseSupport: "valid",
-          isPollingTrigger: triggerType === "polling",
+    const key = flowFunctionKey(name, "onTrigger");
+    const defaultComponentKey = schedule && typeof schedule === "object" ? "schedule" : "webhook";
+    const defaultComponentRef: ServerComponentReference = {
+      component: {
+        key: `${defaultComponentKey}-triggers`,
+        version: "LATEST",
+        isPublic: true,
+      },
+      key: defaultComponentKey,
+    };
+
+    // The component ref here is undefined if onTrigger is a function.
+    const { ref } = isComponentReference(onTrigger)
+      ? convertComponentReference(onTrigger, componentRegistry, "triggers")
+      : { ref: onTrigger ? undefined : defaultComponentRef };
+
+    const performFn = generateTriggerPerformFn({
+      componentRef: ref,
+      onTrigger,
+      componentRegistry,
+      triggerType,
+    });
+    const deleteFn = generateOnInstanceWrapperFn(
+      ref,
+      onTrigger,
+      "onInstanceDelete",
+      componentRegistry,
+      onInstanceDelete,
+    );
+    const deployFn = generateOnInstanceWrapperFn(
+      ref,
+      onTrigger,
+      "onInstanceDeploy",
+      componentRegistry,
+      onInstanceDeploy,
+    );
+
+    return {
+      ...result,
+      [key]: {
+        key,
+        display: {
+          label: `${name} - onTrigger`,
+          description: "The function that will be executed by the flow to return an HTTP response.",
         },
-      };
-    },
-    {},
-  );
+        perform: performFn,
+        onInstanceDeploy: deployFn,
+        hasOnInstanceDeploy: !!deployFn,
+        onInstanceDelete: deleteFn,
+        hasOnInstanceDelete: !!deleteFn,
+        inputs: [],
+        scheduleSupport: triggerType === "polling" ? "required" : "valid",
+        synchronousResponseSupport: "valid",
+        isPollingTrigger: triggerType === "polling",
+      },
+    };
+  }, {});
 
   const convertedDataSources = Object.entries(configVars).reduce<Record<string, ServerDataSource>>(
     (result, [key, configVar]) => {
@@ -1283,8 +1527,25 @@ const codeNativeIntegrationComponent = (
   };
 };
 
-const codeNativeIntegrationPublishingMetadata = (
-  definition: IntegrationDefinition,
+const codeNativeIntegrationPublishingMetadata = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>(
+  definition: IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
 ): PublishingMetadata => {
   const customerRequiredSecurityEndpoints = definition.flows
     .filter((flow) => flow.endpointSecurityType === "customer_required")

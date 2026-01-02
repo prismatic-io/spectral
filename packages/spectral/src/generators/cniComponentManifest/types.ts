@@ -1,4 +1,6 @@
-import { Action, Component, DataSource, Trigger } from "../../serverTypes";
+import { Action, Component, DataSource, Trigger, TriggerPayload } from "../../serverTypes";
+import { ConfigVarResultCollection, Inputs } from "../../types";
+import { TriggerResult } from "../../types/TriggerResult";
 
 export interface ComponentNode {
   id: string;
@@ -51,15 +53,45 @@ export interface InputNode {
 }
 
 export type FormattedAction = Pick<Action, "key" | "display" | "inputs" | "examplePayload">;
-export type FormattedTrigger = Pick<Trigger, "key" | "display" | "inputs">;
+export type FormattedTrigger<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> = Pick<
+  Trigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+  "key" | "display" | "inputs"
+>;
 export type FormattedDataSource = Pick<
   DataSource,
   "key" | "display" | "inputs" | "dataSourceType" | "examplePayload"
 >;
 
-export type ComponentForManifest = Pick<Component, "key" | "public" | "display" | "connections"> & {
+export type ComponentForManifest<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> = Pick<
+  Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+  "key" | "public" | "display" | "connections"
+> & {
   actions: Record<string, Action | FormattedAction>;
-  triggers: Record<string, Trigger | FormattedTrigger>;
+  triggers: Record<
+    string,
+    | Trigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>
+    | FormattedTrigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>
+  >;
   dataSources: Record<string, DataSource | FormattedDataSource>;
 };
 

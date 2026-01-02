@@ -7,22 +7,57 @@ import { createTemplate } from "../utils/createTemplate";
 import { createTypeInterface } from "../utils/createTypeInterface";
 import { createImport } from "../utils/createImport";
 import type { ComponentForManifest } from "../cniComponentManifest/types";
+import { Inputs, ConfigVarResultCollection, TriggerPayload, TriggerResult } from "../../types";
 
-interface CreateConnectionsProps {
-  component: ComponentForManifest;
+interface CreateConnectionsProps<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> {
+  component: ComponentForManifest<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >;
   dryRun: boolean;
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
 
-export const createConnections = async ({
+export const createConnections = async <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>({
   component,
   dryRun,
   verbose,
   sourceDir,
   destinationDir,
-}: CreateConnectionsProps) => {
+}: CreateConnectionsProps<
+  TInputs,
+  TActionInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult
+>) => {
   if (verbose) {
     console.info("Creating connections...");
   }
