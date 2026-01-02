@@ -12,8 +12,8 @@ import type {
   TriggerPayload,
   TriggerReference,
   TriggerResult,
+  TriggerPerformFunction,
 } from "../types";
-import { TriggerPerformFunction } from ".";
 import { invokeTriggerComponentInput, TriggerActionInvokeFunction } from "./convertIntegration";
 import { ComponentReference as ServerComponentReference } from "./integration";
 
@@ -289,11 +289,21 @@ interface CreateCNIComponentRefPerform {
   onTrigger: TriggerReference;
 }
 
-export const createCNIComponentRefPerform = ({
+export const createCNIComponentRefPerform = <
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TAllowsBranching extends boolean | undefined,
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
+>({
   componentRegistry,
   componentRef,
   onTrigger,
-}: CreateCNIComponentRefPerform): TriggerPerformFunction => {
+}: CreateCNIComponentRefPerform): TriggerPerformFunction<
+  TInputs,
+  TConfigVars,
+  TAllowsBranching,
+  TResult
+> => {
   return async (context, payload, params) => {
     // @ts-expect-error: _components isn't part of the public API
     const _components = context._components ?? {
@@ -311,15 +321,30 @@ export const createCNIComponentRefPerform = ({
   };
 };
 
-interface CreateCNIPerform {
+interface CreateCNIPerform<
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TAllowsBranching extends boolean | undefined,
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
+> {
   componentRegistry: ComponentRegistry;
-  onTrigger: TriggerPerformFunction;
+  onTrigger: TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
 }
 
-export const createCNIPerform = ({
+export const createCNIPerform = <
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TAllowsBranching extends boolean | undefined,
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
+>({
   componentRegistry,
   onTrigger,
-}: CreateCNIPerform): TriggerPerformFunction => {
+}: CreateCNIPerform<TInputs, TConfigVars, TAllowsBranching, TResult>): TriggerPerformFunction<
+  TInputs,
+  TConfigVars,
+  TAllowsBranching,
+  TResult
+> => {
   return async (context, payload, params) => {
     const cniContext = createCNIContext(context, componentRegistry);
     return await onTrigger(cniContext, payload, params);

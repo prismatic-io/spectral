@@ -19,6 +19,7 @@ import {
   PollingTriggerPerformFunction,
   Inputs,
   TriggerResult as TriggerPerformResult,
+  TriggerPerformFunction,
 } from "../types";
 
 interface DisplayDefinition {
@@ -184,12 +185,6 @@ interface TriggerBranchingResult extends TriggerBaseResult {
 
 export type TriggerResult = TriggerBranchingResult | TriggerBaseResult | undefined;
 
-export type TriggerPerformFunction = (
-  context: ActionContext,
-  payload: TriggerPayload,
-  params: Record<string, unknown>,
-) => Promise<TriggerResult>;
-
 export type TriggerEventFunctionResult = TriggerEventFunctionReturn | void;
 
 export type TriggerEventFunction = (
@@ -217,7 +212,7 @@ export interface Trigger<
   staticBranchNames?: string[];
   dynamicBranchInput?: string;
   perform:
-    | TriggerPerformFunction
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
     | PollingTriggerPerformFunction<
         TInputs,
         TActionInputs,

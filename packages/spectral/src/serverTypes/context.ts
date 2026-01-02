@@ -8,6 +8,8 @@ import {
   ExecutionFrame,
   FlowInvoker,
   MemoryUsage,
+  ConfigVarResultCollection,
+  ComponentManifest,
 } from "../types";
 import { performance } from "node:perf_hooks";
 import { ComponentReference as ServerComponentReference } from "./integration";
@@ -24,10 +26,14 @@ type ComponentActionInvokeFunction = <TValues extends Record<string, any>>(
 
 type ComponentMethods = Record<string, Record<string, ComponentManifestAction["perform"]>>;
 
-export function createCNIContext(
-  context: ActionContext,
-  componentRegistry: ComponentRegistry,
-): ActionContext {
+export function createCNIContext<
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
+    string,
+    ComponentManifest["actions"]
+  >,
+  TFlows extends string[] = string[],
+>(context: ActionContext, componentRegistry: ComponentRegistry): ActionContext {
   // Component, debug, and invokeFlow methods are not provided as part of the server context.
   // They are added to the context via spectral, here.
 
