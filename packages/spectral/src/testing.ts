@@ -421,10 +421,18 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
  * https://prismatic.io/docs/integrations/triggers/cross-flow/#using-cross-flow-triggers-in-code-native
  */
 export const invokeFlow = async <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TConfigVarValues extends TestConfigVarValues = ToTestValues<TConfigVars>,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends InvokeTriggerResult<TAllowsBranching, TPayload> = InvokeTriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
 >(
-  flow: Flow,
+  flow: Flow<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
   {
     configVars,
     context,
@@ -460,7 +468,25 @@ export const invokeFlow = async <
   };
 };
 
-export class ComponentTestHarness<TComponent extends Component> {
+export class ComponentTestHarness<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends InvokeTriggerResult<TAllowsBranching, TPayload> = InvokeTriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  TComponent extends Component<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  > = Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
+> {
   component: TComponent;
 
   constructor(component: TComponent) {
