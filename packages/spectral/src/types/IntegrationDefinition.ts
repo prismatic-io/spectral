@@ -168,8 +168,17 @@ interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload> {
 export type StandardTriggerType = "standard";
 
 /** A standard flow with a webhook or scheduled trigger (non-polling). */
-interface StandardFlow<TTriggerPayload extends TriggerPayload = TriggerPayload>
-  extends FlowBase<TTriggerPayload> {
+interface StandardFlow<
+  TInputs extends Inputs = Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = false,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  TTriggerPayload extends TriggerPayload = TriggerPayload,
+> extends FlowBase<TTriggerPayload> {
   triggerType?: StandardTriggerType;
   /** Schedule configuration that defines the frequency with which this flow will be automatically executed. */
   schedule?: (ValueExpression<string> | ConfigVarExpression) & {
@@ -178,7 +187,7 @@ interface StandardFlow<TTriggerPayload extends TriggerPayload = TriggerPayload>
   /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
   onTrigger?:
     | TriggerReference
-    | TriggerPerformFunction<Inputs, ConfigVars, false, TriggerResult<false, TTriggerPayload>>;
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
 }
 
 export type PollingTriggerType = "polling";
@@ -231,7 +240,7 @@ export type Flow<
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
 > =
-  | StandardFlow<TTriggerPayload>
+  | StandardFlow<TInputs, TConfigVars, TPayload, TAllowsBranching, TResult, TTriggerPayload>
   | PollingFlow<
       TInputs,
       TActionInputs,
