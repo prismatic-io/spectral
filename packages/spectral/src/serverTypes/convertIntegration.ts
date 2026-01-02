@@ -38,6 +38,7 @@ import {
   ConfigVarResultCollection,
   PollingTriggerType,
   StandardTriggerType,
+  TriggerPerformFunction,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -46,7 +47,6 @@ import {
   Connection as ServerConnection,
   DataSource as ServerDataSource,
   Trigger as ServerTrigger,
-  TriggerPerformFunction,
   TriggerEventFunction,
   ActionPerformFunction,
   ActionContext,
@@ -1022,7 +1022,7 @@ type PreValidationTriggerPerformConfig<
   componentRef: ServerComponentReference | undefined;
   onTrigger:
     | TriggerReference
-    | TriggerPerformFunction
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
     | PollingTriggerPerformFunction<
         TInputs,
         TActionInputs,
@@ -1036,9 +1036,14 @@ type PreValidationTriggerPerformConfig<
   triggerType: FlowTriggerType | undefined;
 };
 
-interface GenerateTriggerPerformFn {
+interface GenerateTriggerPerformFn<
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TAllowsBranching extends boolean | undefined,
+  TResult extends TriggerPerformResult<TAllowsBranching, TriggerPayload>,
+> {
   componentRef: undefined;
-  onTrigger: TriggerPerformFunction;
+  onTrigger: TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
   componentRegistry: ComponentRegistry;
   triggerType: StandardTriggerType;
 }
@@ -1090,7 +1095,7 @@ const isStandardTriggerPerform = <
   >,
 >(
   fn:
-    | TriggerPerformFunction
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
     | PollingTriggerPerformFunction<
         TInputs,
         TActionInputs,
@@ -1100,7 +1105,8 @@ const isStandardTriggerPerform = <
         TResult
       >,
   triggerType: FlowTriggerType | undefined,
-): fn is TriggerPerformFunction => triggerType !== "polling";
+): fn is TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult> =>
+  triggerType !== "polling";
 
 // Force incoming config into a discriminated union type to simplify downstream handling
 function validateTriggerPerformConfig<
@@ -1123,7 +1129,7 @@ function validateTriggerPerformConfig<
     TResult
   >,
 ):
-  | GenerateTriggerPerformFn
+  | GenerateTriggerPerformFn<TInputs, TConfigVars, TAllowsBranching, TResult>
   | GeneratePollingTriggerPerformFn<
       TInputs,
       TActionInputs,
@@ -1181,7 +1187,7 @@ function generateTriggerPerformFn<
     TResult
   >,
 ):
-  | TriggerPerformFunction
+  | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
   | PollingTriggerPerformFunction<
       TInputs,
       TActionInputs,
@@ -1234,7 +1240,7 @@ const generateOnInstanceWrapperFn = <
   componentRef: ServerComponentReference | undefined,
   onTrigger:
     | TriggerReference
-    | TriggerPerformFunction
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
     | PollingTriggerPerformFunction<
         TInputs,
         TActionInputs,
@@ -1391,7 +1397,7 @@ const codeNativeIntegrationComponent = <
 
     // The component ref here is undefined if onTrigger is a function.
     const { ref } = isComponentReference(onTrigger)
-      ? convertComponentReference(onTrigger as TriggerReference, componentRegistry, "triggers")
+      ? convertComponentReference(onTrigger, componentRegistry, "triggers")
       : { ref: onTrigger ? undefined : defaultComponentRef };
 
     const performFn = generateTriggerPerformFn({

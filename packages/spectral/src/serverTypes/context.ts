@@ -18,9 +18,17 @@ import axios, { type AxiosRequestConfig } from "axios";
 
 const MEMORY_USAGE_CONVERSION = 1024 * 1024;
 
-type ComponentActionInvokeFunction = <TValues extends Record<string, any>>(
+type ComponentActionInvokeFunction = <
+  TValues extends Record<string, unknown>,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
+    string,
+    ComponentManifest["actions"]
+  >,
+  TFlows extends string[] = string[],
+>(
   ref: ServerComponentReference,
-  context: ActionContext,
+  context: ActionContext<TConfigVars, TComponentActions, TFlows>,
   values: TValues,
 ) => Promise<unknown>;
 
@@ -33,7 +41,10 @@ export function createCNIContext<
     ComponentManifest["actions"]
   >,
   TFlows extends string[] = string[],
->(context: ActionContext, componentRegistry: ComponentRegistry): ActionContext {
+>(
+  context: ActionContext<TConfigVars, TComponentActions, TFlows>,
+  componentRegistry: ComponentRegistry,
+): ActionContext<TConfigVars, TComponentActions, TFlows> {
   // Component, debug, and invokeFlow methods are not provided as part of the server context.
   // They are added to the context via spectral, here.
 
@@ -42,7 +53,9 @@ export function createCNIContext<
   const invoke = (_components as { invoke: ComponentActionInvokeFunction }).invoke;
 
   // Construct the component methods from the component registry
-  const componentMethods = Object.entries(componentRegistry).reduce<ComponentMethods>(
+  const componentMethods = Object.entries(componentRegistry).reduce<
+    ActionContext<TConfigVars, TComponentActions, TFlows>["components"]
+  >(
     (
       accumulator,
       [registryComponentKey, { key: componentKey, actions, public: isPublic, signature }],
@@ -97,7 +110,7 @@ export function createCNIContext<
         [registryComponentKey]: componentActions,
       };
     },
-    {},
+    {} as ActionContext<TConfigVars, TComponentActions, TFlows>["components"],
   );
 
   return {
