@@ -70,7 +70,16 @@ export const integration = <
   >,
 >(
   definition: T,
-): ReturnType<typeof convertIntegration> => {
+): ReturnType<
+  typeof convertIntegration<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >
+> => {
   const integrationDefinition = runWithIntegrationContext(definition, () => {
     return convertIntegration(definition);
   });
