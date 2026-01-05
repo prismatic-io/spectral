@@ -35,6 +35,8 @@ import type {
   ConfigVarResultCollection,
   ComponentManifest,
 } from "./types";
+import { isPollingTriggerDefinition } from "./types/PollingTriggerDefinition";
+import { createPollingContext } from "./serverTypes/perform";
 import { spyOn } from "jest-mock";
 
 /**
@@ -538,18 +540,10 @@ export class ComponentTestHarness<
     context?: Partial<ActionContext<TConfigVars>>,
   ): Promise<TriggerResult> {
     const trigger = this.component.triggers[key];
-    const testContext = {
-      ...createActionContext(context),
-      polling: {
-        invokeAction: async () => {
-          throw new Error("invokeAction not available in test context");
-        },
-        getState: () => ({}),
-        setState: () => {},
-      },
-    };
+
     return trigger.perform(
-      testContext,
+      // @ts-expect-error -- Revisit if this should support polling
+      createActionContext(context),
       { ...defaultTriggerPayload(), ...payload } as TPayload,
       this.buildParams(trigger.inputs, params),
     );
