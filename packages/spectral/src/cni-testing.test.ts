@@ -260,6 +260,58 @@ describe("test convert flow", () => {
   });
 });
 
+describe("test convert flow with queueConfig", () => {
+  const baseTestFlowInput = {
+    name: "Test Flow",
+    stableKey: "my-test-flow",
+    description: "This is a test flow with queue config",
+    onExecution: async () => {
+      return { data: 123 };
+    },
+  };
+
+  it("passes through valid concurrencyLimit values", () => {
+    const testFlow = flow({
+      ...baseTestFlowInput,
+      queueConfig: {
+        concurrencyLimit: 5,
+      },
+    });
+
+    const result = convertFlow(testFlow, {}, "test-reference-key");
+    expect(result.queueConfig).toMatchObject({
+      usesFifoQueue: false,
+      concurrencyLimit: 5,
+    });
+  });
+
+  it("throws error for concurrencyLimit below minimum (1)", () => {
+    const testFlow = flow({
+      ...baseTestFlowInput,
+      queueConfig: {
+        concurrencyLimit: 1,
+      },
+    });
+
+    expect(() => convertFlow(testFlow, {}, "test-reference-key")).toThrow(
+      "Test Flow has an invalid concurrencyLimit of 1. concurrencyLimit must be between 2 and 10.",
+    );
+  });
+
+  it("throws error for concurrencyLimit above maximum (11)", () => {
+    const testFlow = flow({
+      ...baseTestFlowInput,
+      queueConfig: {
+        concurrencyLimit: 11,
+      },
+    });
+
+    expect(() => convertFlow(testFlow, {}, "test-reference-key")).toThrow(
+      "Test Flow has an invalid concurrencyLimit of 11. concurrencyLimit must be between 2 and 10.",
+    );
+  });
+});
+
 describe("test convert CNI component", () => {
   const myIntegrationDefinition: IntegrationDefinition = {
     name: "My integration",

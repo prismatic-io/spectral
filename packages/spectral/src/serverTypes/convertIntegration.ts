@@ -624,6 +624,15 @@ export const convertFlow = (
       );
     }
 
+    if (
+      queueConfig.concurrencyLimit !== undefined &&
+      (queueConfig.concurrencyLimit < 2 || queueConfig.concurrencyLimit > 10)
+    ) {
+      throw new Error(
+        `${flow.name} has an invalid concurrencyLimit of ${queueConfig.concurrencyLimit}. concurrencyLimit must be between 2 and 10.`,
+      );
+    }
+
     result.queueConfig = {
       usesFifoQueue: false, // Should be false by default, even if undefined
       ...queueConfig,
