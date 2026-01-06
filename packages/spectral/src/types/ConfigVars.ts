@@ -296,12 +296,15 @@ type BaseConnectionConfigVar = BaseConfigVar & {
   dataType: "connection";
 };
 
+export type OnPremiseConnectionConfigTypeEnum = "allowed" | "disallowed" | "required";
+
 type ConnectionDefinitionConfigVar =
   ConnectionDefinition extends infer TConnectionDefinitionType extends ConnectionDefinition
     ? TConnectionDefinitionType extends infer TConnectionDefinition extends ConnectionDefinition
       ? BaseConnectionConfigVar &
           Omit<TConnectionDefinition, "inputs" | "display" | "key"> & {
             icons?: TConnectionDefinition["display"]["icons"];
+            onPremConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
             inputs: {
               [Key in keyof TConnectionDefinition["inputs"]]: TConnectionDefinition["inputs"][Key] &
                 ConfigVarInputVisibility;
@@ -309,8 +312,6 @@ type ConnectionDefinitionConfigVar =
           }
       : never
     : never;
-
-type OnPremiseConnectionConfigTypeEnum = "allowed" | "disallowed" | "required";
 
 type ConnectionReferenceConfigVar = ComponentRegistryConnection extends infer TConnectionReference
   ? TConnectionReference extends ComponentRegistryConnection
