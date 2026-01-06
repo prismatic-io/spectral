@@ -48,3 +48,35 @@ expectAssignable<Parameters<FlowExecutionContextActions["slack"]["postMessage"]>
   connection: "testConnection",
   channel: "testChannel",
 });
+
+const withPollingTriggerDefinition = integration({
+  name: "Polling Integration",
+  description: "Integration with polling trigger",
+  category: "Basic",
+  version: "0.0.1",
+  iconPath: "icon.png",
+  flows: [
+    {
+      name: "Polling Flow",
+      stableKey: "pollingFlow",
+      description: "A flow with a polling trigger",
+      triggerType: "polling",
+      schedule: { value: "*/5 * * * *" }, // Required for polling triggers
+      onTrigger: async (context, payload, params) => {
+        // Test polling context methods are available
+        const state = context.polling.getState();
+        context.polling.setState({ lastPoll: new Date().toISOString() });
+
+        return Promise.resolve({
+          payload,
+        });
+      },
+      onExecution: async (context, params) => {
+        return Promise.resolve({
+          data: "SUCCESS",
+        });
+      },
+    },
+  ],
+});
+expectAssignable<Component>(withPollingTriggerDefinition);

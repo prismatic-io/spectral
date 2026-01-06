@@ -3,6 +3,7 @@ import path from "path";
 import { helpers } from "./helpers";
 import { createTemplate } from "../utils/createTemplate";
 import type { Component } from "../../serverTypes";
+import { Inputs, ConfigVarResultCollection, TriggerPayload, TriggerResult } from "../../types";
 
 export interface PackageDependencies {
   spectral: string;
@@ -10,8 +11,18 @@ export interface PackageDependencies {
   devDependencies: Record<string, string>;
 }
 
-interface CreateStaticFilesProps {
-  component: Component;
+interface CreateStaticFilesProps<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> {
+  component: Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>;
   dryRun: boolean;
   signature: string | null;
   packageName: string;
@@ -22,7 +33,17 @@ interface CreateStaticFilesProps {
   registry: string | null;
 }
 
-export const createStaticFiles = async ({
+export const createStaticFiles = async <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>({
   component,
   dryRun,
   signature,
@@ -32,7 +53,14 @@ export const createStaticFiles = async ({
   sourceDir,
   destinationDir,
   registry,
-}: CreateStaticFilesProps) => {
+}: CreateStaticFilesProps<
+  TInputs,
+  TActionInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult
+>) => {
   if (verbose) {
     console.info("Creating static files...");
   }

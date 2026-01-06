@@ -8,22 +8,57 @@ import { createTypeInterface } from "../utils/createTypeInterface";
 import { createImport } from "../utils/createImport";
 import type { DataSourceType } from "../../types";
 import type { ComponentForManifest } from "../cniComponentManifest/types";
+import { Inputs, ConfigVarResultCollection, TriggerPayload, TriggerResult } from "../../types";
 
-interface CreateDataSourcesProps {
-  component: ComponentForManifest;
+interface CreateDataSourcesProps<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> {
+  component: ComponentForManifest<
+    TInputs,
+    TActionInputs,
+    TConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >;
   dryRun: boolean;
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
 }
 
-export const createDataSources = async ({
+export const createDataSources = async <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+>({
   component,
   dryRun,
   verbose,
   sourceDir,
   destinationDir,
-}: CreateDataSourcesProps) => {
+}: CreateDataSourcesProps<
+  TInputs,
+  TActionInputs,
+  TConfigVars,
+  TPayload,
+  TAllowsBranching,
+  TResult
+>) => {
   if (verbose) {
     console.info("Creating data sources...");
   }

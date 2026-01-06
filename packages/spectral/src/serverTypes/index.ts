@@ -16,7 +16,12 @@ import {
   ExecutionFrame,
   DebugContext,
   FlowSchemas,
+  PollingTriggerPerformFunction,
+  Inputs,
+  TriggerResult as TriggerPerformResult,
+  TriggerPerformFunction,
 } from "../types";
+import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 interface DisplayDefinition {
   label: string;
@@ -37,13 +42,26 @@ export interface PublishingMetadata {
   }[];
 }
 
-export interface Component {
+export interface Component<
+  TInputs extends Inputs = Inputs,
+  TActionInputs extends Inputs = Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> {
   key: string;
   public?: boolean;
   documentationUrl?: string;
   display: DisplayDefinition & { category?: string; iconPath?: string };
   actions: Record<string, Action>;
-  triggers: Record<string, Trigger>;
+  triggers: Record<
+    string,
+    Trigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>
+  >;
   dataSources: Record<string, DataSource>;
   connections: Connection[];
   codeNativeIntegrationYAML?: string;
@@ -168,12 +186,6 @@ interface TriggerBranchingResult extends TriggerBaseResult {
 
 export type TriggerResult = TriggerBranchingResult | TriggerBaseResult | undefined;
 
-export type TriggerPerformFunction = (
-  context: ActionContext,
-  payload: TriggerPayload,
-  params: Record<string, unknown>,
-) => Promise<TriggerResult>;
-
 export type TriggerEventFunctionResult = TriggerEventFunctionReturn | void;
 
 export type TriggerEventFunction = (
@@ -181,7 +193,17 @@ export type TriggerEventFunction = (
   params: Record<string, unknown>,
 ) => Promise<TriggerEventFunctionResult>;
 
-export interface Trigger {
+export interface Trigger<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload> = TriggerPerformResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> {
   key: string;
   display: DisplayDefinition & { directions?: string; important?: boolean };
   inputs: Input[];
@@ -190,7 +212,18 @@ export interface Trigger {
   allowsBranching?: boolean;
   staticBranchNames?: string[];
   dynamicBranchInput?: string;
-  perform: TriggerPerformFunction;
+  perform:
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
+    | PollingTriggerPerformFunction<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >
+    | CNIPollingPerformFunction<TInputs, TConfigVars, TPayload, TAllowsBranching>
+    | ComponentRefTriggerPerformFunction<TInputs, TConfigVars>;
   onInstanceDeploy?: TriggerEventFunction;
   hasOnInstanceDeploy?: boolean;
   onInstanceDelete?: TriggerEventFunction;
