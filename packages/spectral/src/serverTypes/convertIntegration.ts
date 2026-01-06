@@ -39,6 +39,7 @@ import {
   PollingTriggerType,
   StandardTriggerType,
   TriggerPerformFunction,
+  OnPremiseConnectionConfigTypeEnum,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -751,6 +752,34 @@ export const convertInputValue = (value: unknown, collectionType: CollectionType
   }));
 };
 
+const validateOnPremConnectionConfig = (
+  connection: ConfigVar,
+): OnPremiseConnectionConfigTypeEnum => {
+  if (isConnectionDefinitionConfigVar(connection)) {
+    const hasOnPremControlledInputs = Object.values(connection.inputs).some((value) => {
+      return "onPremControlled" in value && value.onPremControlled;
+    });
+
+    const { onPremConnectionConfig: config } = connection;
+
+    if (hasOnPremControlledInputs && !config) {
+      throw new Error(
+        `Connection ${connection.stableKey} has onPremControlled inputs but no onPremConnectionConfig value set. Please set an onPremConnectionConfig value for the connection.`,
+      );
+    }
+
+    if (!hasOnPremControlledInputs && config && config !== "disallowed") {
+      throw new Error(
+        `Connection ${connection.stableKey} has onPremConnectionConfig set but no onPremControlled inputs. The connection will not be valid without onPremControlled inputs (host, port).`,
+      );
+    }
+
+    return hasOnPremControlledInputs && config ? config : "disallowed";
+  }
+
+  return "disallowed";
+};
+
 /** Converts a Config Var into the structure necessary for YAML generation. */
 export const convertConfigVar = (
   key: string,
@@ -781,6 +810,7 @@ export const convertConfigVar = (
       description,
       key,
       dataType: "connection",
+      onPremiseConnectionConfig: validateOnPremConnectionConfig(configVar),
       connection: {
         key: camelCase(key),
         component: codeNativeIntegrationComponentReference(referenceKey),

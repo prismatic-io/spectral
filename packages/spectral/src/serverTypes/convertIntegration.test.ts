@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { configPage, configVar, flow } from "..";
-import { convertConfigPages, convertFlow } from "./convertIntegration";
+import { convertConfigPages, convertFlow, convertConfigVar } from "./convertIntegration";
+import type { ConfigVar } from "../types";
 
 describe("convertFlow with polling triggers", () => {
   const baseFlowInput = {
@@ -144,5 +145,134 @@ describe("convertConfigPages", () => {
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("EmptyPage");
     expect(result[0].elements).toHaveLength(0);
+  });
+});
+
+describe("convertConfigVar", () => {
+  const referenceKey = "test-component";
+  const componentRegistry = {};
+
+  describe("onPremConnectionConfig validation", () => {
+    it("should return onPremiseConnectionConfig when connection has onPremControlled inputs and config set", () => {
+      const connectionConfigVar = {
+        stableKey: "test-connection",
+        dataType: "connection",
+        onPremConnectionConfig: "allowed",
+        inputs: {
+          host: {
+            label: "Host",
+            type: "string",
+            onPremControlled: true,
+          },
+          port: {
+            label: "Port",
+            type: "string",
+            onPremControlled: true,
+          },
+        },
+      } as ConfigVar;
+
+      const result = convertConfigVar(
+        "TestConnection",
+        connectionConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+      expect("onPremiseConnectionConfig" in result && result.onPremiseConnectionConfig).toBe(
+        "allowed",
+      );
+    });
+
+    it("should throw when connection has onPremControlled inputs but no onPremConnectionConfig", () => {
+      const connectionConfigVar = {
+        stableKey: "test-connection",
+        dataType: "connection",
+        inputs: {
+          host: {
+            label: "Host",
+            type: "string",
+            onPremControlled: true,
+          },
+          port: {
+            label: "Port",
+            type: "string",
+            onPremControlled: true,
+          },
+        },
+      } as ConfigVar;
+
+      expect(() =>
+        convertConfigVar("TestConnection", connectionConfigVar, referenceKey, componentRegistry),
+      ).toThrow(
+        "Connection test-connection has onPremControlled inputs but no onPremConnectionConfig value set",
+      );
+    });
+
+    it("should default to 'disallowed' when connection has no onPremControlled inputs and no config", () => {
+      const connectionConfigVar = {
+        stableKey: "test-connection",
+        dataType: "connection",
+        inputs: {
+          apiKey: {
+            label: "API Key",
+            type: "string",
+          },
+        },
+      } as ConfigVar;
+
+      const result = convertConfigVar(
+        "TestConnection",
+        connectionConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+      expect("onPremiseConnectionConfig" in result && result.onPremiseConnectionConfig).toBe(
+        "disallowed",
+      );
+    });
+
+    it("should allow 'disallowed' config when connection has no onPremControlled inputs", () => {
+      const connectionConfigVar = {
+        stableKey: "test-connection",
+        dataType: "connection",
+        onPremConnectionConfig: "disallowed",
+        inputs: {
+          apiKey: {
+            label: "API Key",
+            type: "string",
+          },
+        },
+      } as ConfigVar;
+
+      const result = convertConfigVar(
+        "TestConnection",
+        connectionConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+      expect("onPremiseConnectionConfig" in result && result.onPremiseConnectionConfig).toBe(
+        "disallowed",
+      );
+    });
+
+    it("should throw when connection has defined config but no onPremControlled inputs", () => {
+      const connectionConfigVar = {
+        stableKey: "test-connection",
+        dataType: "connection",
+        onPremConnectionConfig: "allowed",
+        inputs: {
+          apiKey: {
+            label: "API Key",
+            type: "string",
+          },
+        },
+      } as ConfigVar;
+
+      expect(() =>
+        convertConfigVar("TestConnection", connectionConfigVar, referenceKey, componentRegistry),
+      ).toThrow(
+        "Connection test-connection has onPremConnectionConfig set but no onPremControlled inputs",
+      );
+    });
   });
 });
