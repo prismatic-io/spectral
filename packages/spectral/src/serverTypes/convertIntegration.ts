@@ -213,7 +213,7 @@ const codeNativeIntegrationYaml = <
     configPages,
     userLevelConfigPages,
     scopedConfigVars,
-    instanceProfile = "Default Instance Profile",
+    instanceProfile,
     componentRegistry = {},
   }: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   referenceKey: string,
@@ -295,7 +295,7 @@ const codeNativeIntegrationYaml = <
       preprocessFlowConfig?.flowNameField,
     ),
     flows: flows.map((flow) => convertFlow(flow, componentRegistry, referenceKey)),
-    defaultInstanceProfile: instanceProfile,
+    ...(instanceProfile && { defaultInstanceProfile: instanceProfile }),
     configPages: [
       ...convertConfigPages(configPages, false),
       ...convertConfigPages(userLevelConfigPages, true),
