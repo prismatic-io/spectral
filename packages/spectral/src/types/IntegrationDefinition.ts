@@ -77,7 +77,7 @@ export type IntegrationDefinition<
   /** Scoped ConfigVars for this integration. */
   scopedConfigVars?: ScopedConfigVarMap;
   /** Instance Profile used for this integration.
-   * @default "Default Instance Profile"
+   * If not specified, the tenant's default Instance Profile will be used.
    */
   instanceProfile?: string;
   /**
