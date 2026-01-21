@@ -537,7 +537,7 @@ const codeNativeIntegrationComponentReference = (referenceKey: string) => ({
 });
 
 /* A flow's trigger gets wrapped in a custom component if there's a defined
- * onTrigger function, or if any custom onInstance behavior is defined.
+ * onTrigger function, or if any custom onInstance or webhook lifecycle behavior is defined.
  * */
 const flowUsesWrapperTrigger = <
   TInputs extends Inputs,
@@ -551,10 +551,15 @@ const flowUsesWrapperTrigger = <
 >(
   flow: Pick<
     Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
-    "onTrigger" | "onInstanceDelete" | "onInstanceDeploy"
+    "onTrigger" | "onInstanceDelete" | "onInstanceDeploy" | "webhookLifecycleHandlers"
   >,
 ) => {
-  return typeof flow.onTrigger === "function" || flow.onInstanceDelete || flow.onInstanceDeploy;
+  return (
+    typeof flow.onTrigger === "function" ||
+    flow.onInstanceDelete ||
+    flow.onInstanceDeploy ||
+    flow.webhookLifecycleHandlers
+  );
 };
 
 const convertFlowSchemas = (
@@ -599,6 +604,7 @@ export const convertFlow = <
   result.trigger = undefined;
   result.onInstanceDeploy = undefined;
   result.onInstanceDelete = undefined;
+  result.webhookLifecycleHandlers = undefined;
   result.onExecution = undefined;
   result.preprocessFlowConfig = undefined;
   result.errorConfig = undefined;
@@ -1012,7 +1018,12 @@ const flowFunctionKey = (flowName: string, functionName: "onExecution" | "onTrig
 export const invokeTriggerComponentInput = (
   componentRef: ServerComponentReference,
   onTrigger: TriggerReference | undefined,
-  eventName: "perform" | "onInstanceDeploy" | "onInstanceDelete",
+  eventName:
+    | "perform"
+    | "onInstanceDeploy"
+    | "onInstanceDelete"
+    | "webhookCreate"
+    | "webhookDelete",
 ) => {
   const { component } = componentRef;
   const inputComponent =
@@ -1238,18 +1249,24 @@ export type TriggerActionInvokeFunction = (
   ref: {
     component: ServerComponentReference["component"];
     key: string;
-    triggerEventFunctionName: "perform" | "onInstanceDeploy" | "onInstanceDelete";
+    triggerEventFunctionName:
+      | "perform"
+      | "onInstanceDeploy"
+      | "onInstanceDelete"
+      | "webhookCreate"
+      | "webhookDelete";
   },
   context: ActionContext,
   payload: TriggerPayload | null,
   params: Record<string, unknown>,
 ) => Promise<TriggerResult>;
 
-/** Generates a wrapper function that calls an existing component's onInstanceDeploy
- * or onInstanceDelete, then calls the flow-defined version if it exists.
+/** Generates a wrapper function that calls an existing component's trigger event function
+ * (onInstanceDeploy, onInstanceDelete, webhookCreate, or webhookDelete), then calls
+ * the flow-defined version if it exists.
  * Returns the deep-merged results of the two, prioritizing the custom response
  * if there's a conflict. */
-const generateOnInstanceWrapperFn = <
+const generateTriggerEventWrapperFn = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
@@ -1273,7 +1290,7 @@ const generateOnInstanceWrapperFn = <
         TResult
       >
     | undefined,
-  eventName: "onInstanceDeploy" | "onInstanceDelete",
+  eventName: "onInstanceDeploy" | "onInstanceDelete" | "webhookCreate" | "webhookDelete",
   componentRegistry: ComponentRegistry,
   customFn?: TriggerEventFunction,
 ): TriggerEventFunction | undefined => {
@@ -1400,76 +1417,110 @@ const codeNativeIntegrationComponent = <
         TResult
       >
     >
-  >((result, { name, onTrigger, onInstanceDeploy, onInstanceDelete, schedule, triggerType }) => {
-    if (
-      !flowUsesWrapperTrigger({
+  >(
+    (
+      result,
+      {
+        name,
         onTrigger,
-        onInstanceDelete,
         onInstanceDeploy,
-      })
-    ) {
-      // In this scenario, the user has defined an existing component trigger
-      // without any custom behavior, so we don't need to wrap anything.
-      return result;
-    }
-
-    const key = flowFunctionKey(name, "onTrigger");
-    const defaultComponentKey = schedule && typeof schedule === "object" ? "schedule" : "webhook";
-    const defaultComponentRef: ServerComponentReference = {
-      component: {
-        key: `${defaultComponentKey}-triggers`,
-        version: "LATEST",
-        isPublic: true,
+        onInstanceDelete,
+        webhookLifecycleHandlers,
+        schedule,
+        triggerType,
       },
-      key: defaultComponentKey,
-    };
+    ) => {
+      if (
+        !flowUsesWrapperTrigger({
+          onTrigger,
+          onInstanceDelete,
+          onInstanceDeploy,
+          webhookLifecycleHandlers,
+        })
+      ) {
+        // In this scenario, the user has defined an existing component trigger
+        // without any custom behavior, so we don't need to wrap anything.
+        return result;
+      }
 
-    // The component ref here is undefined if onTrigger is a function.
-    const { ref } = isComponentReference(onTrigger)
-      ? convertComponentReference(onTrigger, componentRegistry, "triggers")
-      : { ref: onTrigger ? undefined : defaultComponentRef };
-
-    const performFn = generateTriggerPerformFn({
-      componentRef: ref,
-      onTrigger,
-      componentRegistry,
-      triggerType,
-    });
-    const deleteFn = generateOnInstanceWrapperFn(
-      ref,
-      onTrigger,
-      "onInstanceDelete",
-      componentRegistry,
-      onInstanceDelete,
-    );
-    const deployFn = generateOnInstanceWrapperFn(
-      ref,
-      onTrigger,
-      "onInstanceDeploy",
-      componentRegistry,
-      onInstanceDeploy,
-    );
-
-    return {
-      ...result,
-      [key]: {
-        key,
-        display: {
-          label: `${name} - onTrigger`,
-          description: "The function that will be executed by the flow to return an HTTP response.",
+      const key = flowFunctionKey(name, "onTrigger");
+      const defaultComponentKey = schedule && typeof schedule === "object" ? "schedule" : "webhook";
+      const defaultComponentRef: ServerComponentReference = {
+        component: {
+          key: `${defaultComponentKey}-triggers`,
+          version: "LATEST",
+          isPublic: true,
         },
-        perform: performFn,
-        onInstanceDeploy: deployFn,
-        hasOnInstanceDeploy: !!deployFn,
-        onInstanceDelete: deleteFn,
-        hasOnInstanceDelete: !!deleteFn,
-        inputs: [],
-        scheduleSupport: triggerType === "polling" ? "required" : "valid",
-        synchronousResponseSupport: "valid",
-        isPollingTrigger: triggerType === "polling",
-      },
-    };
-  }, {});
+        key: defaultComponentKey,
+      };
+
+      // The component ref here is undefined if onTrigger is a function.
+      const { ref } = isComponentReference(onTrigger)
+        ? convertComponentReference(onTrigger, componentRegistry, "triggers")
+        : { ref: onTrigger ? undefined : defaultComponentRef };
+
+      const performFn = generateTriggerPerformFn({
+        componentRef: ref,
+        onTrigger,
+        componentRegistry,
+        triggerType,
+      });
+      const deleteFn = generateTriggerEventWrapperFn(
+        ref,
+        onTrigger,
+        "onInstanceDelete",
+        componentRegistry,
+        onInstanceDelete,
+      );
+      const deployFn = generateTriggerEventWrapperFn(
+        ref,
+        onTrigger,
+        "onInstanceDeploy",
+        componentRegistry,
+        onInstanceDeploy,
+      );
+      const webhookCreateFn = generateTriggerEventWrapperFn(
+        ref,
+        onTrigger,
+        "webhookCreate",
+        componentRegistry,
+        webhookLifecycleHandlers?.create,
+      );
+      const webhookDeleteFn = generateTriggerEventWrapperFn(
+        ref,
+        onTrigger,
+        "webhookDelete",
+        componentRegistry,
+        webhookLifecycleHandlers?.delete,
+      );
+
+      return {
+        ...result,
+        [key]: {
+          key,
+          display: {
+            label: `${name} - onTrigger`,
+            description:
+              "The function that will be executed by the flow to return an HTTP response.",
+          },
+          perform: performFn,
+          onInstanceDeploy: deployFn,
+          hasOnInstanceDeploy: !!deployFn,
+          onInstanceDelete: deleteFn,
+          hasOnInstanceDelete: !!deleteFn,
+          webhookCreate: webhookCreateFn,
+          hasWebhookCreateFunction: !!webhookCreateFn,
+          webhookDelete: webhookDeleteFn,
+          hasWebhookDeleteFunction: !!webhookDeleteFn,
+          inputs: [],
+          scheduleSupport: triggerType === "polling" ? "required" : "valid",
+          synchronousResponseSupport: "valid",
+          isPollingTrigger: triggerType === "polling",
+        },
+      };
+    },
+    {},
+  );
 
   const convertedDataSources = Object.entries(configVars).reduce<Record<string, ServerDataSource>>(
     (result, [key, configVar]) => {
