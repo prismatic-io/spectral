@@ -160,6 +160,16 @@ interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload> {
    * https://prismatic.io/docs/custom-connectors/triggers/#instance-deploy-and-delete-events-for-triggers
    */
   onInstanceDelete?: TriggerEventFunction<Inputs, ConfigVars>;
+  /**
+   * Optional webhook lifecycle handlers for create and delete operations. See
+   * https://prismatic.io/docs/custom-connectors/triggers/#webhook-lifecycle-events
+   */
+  webhookLifecycleHandlers?: {
+    /** Function to execute to configure a webhook. */
+    create: TriggerEventFunction<Inputs, ConfigVars>;
+    /** Function to execute for webhook teardown. */
+    delete: TriggerEventFunction<Inputs, ConfigVars>;
+  };
   /** Specifies the main function for this flow which is run when this flow is invoked. */
   onExecution: FlowOnExecution<TTriggerPayload>;
 }

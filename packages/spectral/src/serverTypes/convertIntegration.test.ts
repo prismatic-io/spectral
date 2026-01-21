@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { configPage, configVar, flow } from "..";
+import { configPage, configVar, flow, integration } from "..";
 import { convertConfigPages, convertFlow, convertConfigVar } from "./convertIntegration";
 import type { ConfigVar } from "../types";
 
@@ -274,5 +274,55 @@ describe("convertConfigVar", () => {
         "Connection test-connection has onPremConnectionConfig set but no onPremControlled inputs",
       );
     });
+  });
+});
+
+describe("webhookLifecycleHandlers", () => {
+  const mockWebhookCreate = async () => {};
+  const mockWebhookDelete = async () => {};
+
+  it("strips webhookLifecycleHandlers from convertFlow output", () => {
+    const testFlow = flow({
+      name: "Webhook Flow",
+      stableKey: "webhook-flow",
+      description: "Flow with webhook lifecycle handlers",
+      onExecution: async () => ({ data: "test" }),
+      webhookLifecycleHandlers: {
+        create: mockWebhookCreate,
+        delete: mockWebhookDelete,
+      },
+    });
+
+    const result = convertFlow(testFlow, {}, "test-ref");
+
+    expect(result.webhookLifecycleHandlers).toBeUndefined();
+  });
+
+  it("creates trigger functions and generates valid YAML", () => {
+    const testIntegration = integration({
+      name: "test-webhook-integration",
+      description: "Test integration with webhook handlers",
+      flows: [
+        flow({
+          name: "Webhook Flow",
+          stableKey: "webhook-flow",
+          description: "Flow with webhook lifecycle handlers",
+          onTrigger: async (_context, payload) => ({ payload }),
+          onExecution: async () => ({ data: "test" }),
+          webhookLifecycleHandlers: {
+            create: mockWebhookCreate,
+            delete: mockWebhookDelete,
+          },
+        }),
+      ],
+    });
+
+    const trigger = testIntegration.triggers["webhookFlow_onTrigger"];
+    expect(trigger.hasWebhookCreateFunction).toBe(true);
+    expect(trigger.hasWebhookDeleteFunction).toBe(true);
+    expect(trigger.webhookCreate).toBeInstanceOf(Function);
+    expect(trigger.webhookDelete).toBeInstanceOf(Function);
+
+    expect(testIntegration.codeNativeIntegrationYAML).not.toContain("webhookLifecycleHandlers");
   });
 });
