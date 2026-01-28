@@ -280,7 +280,7 @@ export type QueueConfig = {
   dedupeIdField?: string;
   /** Determines whether the flow should be setup for singleton executions. Only valid for scheduled/polling trigger-based flows. */
   singletonExecutions?: boolean;
-  /** The maximum number of concurrent executions for this flow. Must be between 2 and 10. */
+  /** The maximum number of concurrent executions for this flow. Must be between 2 and 15. */
   concurrencyLimit?: number;
 };
 
