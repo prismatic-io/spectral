@@ -727,10 +727,10 @@ export const convertFlow = <
 
     if (
       queueConfig.concurrencyLimit !== undefined &&
-      (queueConfig.concurrencyLimit < 2 || queueConfig.concurrencyLimit > 10)
+      (queueConfig.concurrencyLimit < 2 || queueConfig.concurrencyLimit > 15)
     ) {
       throw new Error(
-        `${flow.name} has an invalid concurrencyLimit of ${queueConfig.concurrencyLimit}. concurrencyLimit must be between 2 and 10.`,
+        `${flow.name} has an invalid concurrencyLimit of ${queueConfig.concurrencyLimit}. concurrencyLimit must be between 2 and 15.`,
       );
     }
 
