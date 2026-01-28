@@ -295,20 +295,20 @@ describe("test convert flow with queueConfig", () => {
     });
 
     expect(() => convertFlow(testFlow, {}, "test-reference-key")).toThrow(
-      "Test Flow has an invalid concurrencyLimit of 1. concurrencyLimit must be between 2 and 10.",
+      "Test Flow has an invalid concurrencyLimit of 1. concurrencyLimit must be between 2 and 15.",
     );
   });
 
-  it("throws error for concurrencyLimit above maximum (11)", () => {
+  it("throws error for concurrencyLimit above maximum (16)", () => {
     const testFlow = flow({
       ...baseTestFlowInput,
       queueConfig: {
-        concurrencyLimit: 11,
+        concurrencyLimit: 16,
       },
     });
 
     expect(() => convertFlow(testFlow, {}, "test-reference-key")).toThrow(
-      "Test Flow has an invalid concurrencyLimit of 11. concurrencyLimit must be between 2 and 10.",
+      "Test Flow has an invalid concurrencyLimit of 16. concurrencyLimit must be between 2 and 15.",
     );
   });
 
@@ -408,7 +408,7 @@ describe("test convert flow with queueConfig", () => {
       });
 
       expect(() => convertFlow(testFlow, {}, "test-reference-key")).toThrow(
-        "Test Flow has an invalid concurrencyLimit of 1. concurrencyLimit must be between 2 and 10.",
+        "Test Flow has an invalid concurrencyLimit of 1. concurrencyLimit must be between 2 and 15.",
       );
     });
   });
