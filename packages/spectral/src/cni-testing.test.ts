@@ -311,6 +311,107 @@ describe("test convert flow with queueConfig", () => {
       "Test Flow has an invalid concurrencyLimit of 11. concurrencyLimit must be between 2 and 10.",
     );
   });
+
+  describe("typed queue configs", () => {
+    it("converts parallel queue config to usesFifoQueue: false", () => {
+      const testFlow = flow({
+        ...baseTestFlowInput,
+        queueConfig: {
+          type: "parallel",
+        },
+      });
+
+      const result = convertFlow(testFlow, {}, "test-reference-key");
+      expect(result.queueConfig).toMatchObject({
+        usesFifoQueue: false,
+      });
+    });
+
+    it("converts throttled queue config to usesFifoQueue: true with concurrencyLimit", () => {
+      const testFlow = flow({
+        ...baseTestFlowInput,
+        queueConfig: {
+          type: "throttled",
+          concurrencyLimit: 5,
+        },
+      });
+
+      const result = convertFlow(testFlow, {}, "test-reference-key");
+      expect(result.queueConfig).toMatchObject({
+        usesFifoQueue: true,
+        concurrencyLimit: 5,
+      });
+    });
+
+    it("converts sequential queue config to usesFifoQueue: true", () => {
+      const testFlow = flow({
+        ...baseTestFlowInput,
+        queueConfig: {
+          type: "sequential",
+        },
+      });
+
+      const result = convertFlow(testFlow, {}, "test-reference-key");
+      expect(result.queueConfig).toMatchObject({
+        usesFifoQueue: true,
+      });
+      expect((result.queueConfig as Record<string, unknown>).concurrencyLimit).toBeUndefined();
+    });
+
+    it("preserves dedupeIdField for throttled config", () => {
+      const testFlow = flow({
+        ...baseTestFlowInput,
+        queueConfig: {
+          type: "throttled",
+          concurrencyLimit: 3,
+          dedupeIdField: "requestId",
+        },
+      });
+
+      const result = convertFlow(testFlow, {}, "test-reference-key");
+      expect(result.queueConfig).toMatchObject({
+        usesFifoQueue: true,
+        concurrencyLimit: 3,
+        dedupeIdField: {
+          type: "reference",
+          value: "onTrigger.results.requestId",
+        },
+      });
+    });
+
+    it("preserves dedupeIdField for sequential config", () => {
+      const testFlow = flow({
+        ...baseTestFlowInput,
+        queueConfig: {
+          type: "sequential",
+          dedupeIdField: "orderId",
+        },
+      });
+
+      const result = convertFlow(testFlow, {}, "test-reference-key");
+      expect(result.queueConfig).toMatchObject({
+        usesFifoQueue: true,
+        dedupeIdField: {
+          type: "reference",
+          value: "onTrigger.results.orderId",
+        },
+      });
+    });
+
+    it("throws error for throttled config with invalid concurrencyLimit", () => {
+      const testFlow = flow({
+        ...baseTestFlowInput,
+        queueConfig: {
+          type: "throttled",
+          concurrencyLimit: 1,
+        },
+      });
+
+      expect(() => convertFlow(testFlow, {}, "test-reference-key")).toThrow(
+        "Test Flow has an invalid concurrencyLimit of 1. concurrencyLimit must be between 2 and 10.",
+      );
+    });
+  });
 });
 
 describe("test convert CNI component", () => {
