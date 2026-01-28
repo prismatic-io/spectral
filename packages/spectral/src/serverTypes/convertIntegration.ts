@@ -40,6 +40,8 @@ import {
   StandardTriggerType,
   TriggerPerformFunction,
   OnPremiseConnectionConfigTypeEnum,
+  QueueConfig,
+  StandardQueueConfig,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -562,6 +564,34 @@ const flowUsesWrapperTrigger = <
   );
 };
 
+/** Converts typed QueueConfig to legacy format with usesFifoQueue and concurrencyLimit. */
+export const convertQueueConfig = (queueConfig: QueueConfig): StandardQueueConfig => {
+  if (!("type" in queueConfig)) {
+    return queueConfig;
+  }
+
+  switch (queueConfig.type) {
+    case "parallel":
+      return { usesFifoQueue: false };
+
+    case "throttled":
+      return {
+        usesFifoQueue: true,
+        concurrencyLimit: queueConfig.concurrencyLimit,
+        dedupeIdField: queueConfig.dedupeIdField,
+      };
+
+    case "sequential":
+      return {
+        usesFifoQueue: true,
+        dedupeIdField: queueConfig.dedupeIdField,
+      };
+
+    default:
+      return queueConfig;
+  }
+};
+
 const convertFlowSchemas = (
   flowKey: string,
   schemas: Record<string, FlowDefinitionFlowSchema>,
@@ -679,7 +709,7 @@ export const convertFlow = <
   }
 
   if ("queueConfig" in flow && typeof flow.queueConfig === "object") {
-    const { queueConfig } = flow;
+    const queueConfig = convertQueueConfig(flow.queueConfig);
 
     if (hasSchedule && queueConfig.usesFifoQueue) {
       throw new Error(
