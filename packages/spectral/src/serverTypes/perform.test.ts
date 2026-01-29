@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from "vitest";
 import { cleanParams, createPollingContext, type CleanFn } from "./perform";
 import type { ActionContext } from "../types";
 
@@ -11,7 +12,7 @@ describe("createPollingContext", () => {
     const context = createMockContext({});
     const pollingContext = createPollingContext({
       context,
-      invokeAction: jest.fn(),
+      invokeAction: vi.fn(),
     });
 
     expect(pollingContext.polling.getState()).toEqual({});
@@ -23,7 +24,7 @@ describe("createPollingContext", () => {
     });
     const pollingContext = createPollingContext({
       context,
-      invokeAction: jest.fn(),
+      invokeAction: vi.fn(),
     });
 
     expect(pollingContext.polling.getState()).toEqual({});
@@ -36,7 +37,7 @@ describe("createPollingContext", () => {
     });
     const pollingContext = createPollingContext({
       context,
-      invokeAction: jest.fn(),
+      invokeAction: vi.fn(),
     });
 
     expect(pollingContext.polling.getState()).toEqual(pollingState);
@@ -46,7 +47,7 @@ describe("createPollingContext", () => {
     const context = createMockContext({});
     const pollingContext = createPollingContext({
       context,
-      invokeAction: jest.fn(),
+      invokeAction: vi.fn(),
     });
 
     pollingContext.polling.setState({ cursor: "new-cursor" });
@@ -62,7 +63,7 @@ describe("createPollingContext", () => {
     });
     const pollingContext = createPollingContext({
       context,
-      invokeAction: jest.fn(),
+      invokeAction: vi.fn(),
     });
 
     pollingContext.polling.setState({ cursor: "new-cursor" });
@@ -79,7 +80,7 @@ describe("createPollingContext", () => {
     });
     const pollingContext = createPollingContext({
       context,
-      invokeAction: jest.fn(),
+      invokeAction: vi.fn(),
     });
 
     pollingContext.polling.setState({ newKey: "new-value" });
@@ -90,7 +91,7 @@ describe("createPollingContext", () => {
   });
 
   it("invokeAction is passed through correctly", async () => {
-    const mockInvokeAction = jest.fn().mockResolvedValue({ data: "result" });
+    const mockInvokeAction = vi.fn().mockResolvedValue({ data: "result" });
     const context = createMockContext({});
     const pollingContext = createPollingContext({
       context,
@@ -109,7 +110,7 @@ describe("createPollingContext", () => {
     });
     const pollingContext = createPollingContext({
       context,
-      invokeAction: jest.fn(),
+      invokeAction: vi.fn(),
     });
 
     expect(pollingContext.polling.getState()).toEqual({});

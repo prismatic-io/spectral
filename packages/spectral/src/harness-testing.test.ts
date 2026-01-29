@@ -1,3 +1,4 @@
+import { describe, expect, it, beforeEach } from "vitest";
 import { createHarness, ComponentTestHarness } from "./testing";
 import { component, connection, input, action, trigger, dataSource } from ".";
 import type { ConnectionValue } from "./serverTypes";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
 import { configPage, configVar, flow, integration } from "..";
 import { convertConfigPages, convertFlow, convertConfigVar } from "./convertIntegration";
 import type { ConfigVar } from "../types";
@@ -317,7 +317,7 @@ describe("webhookLifecycleHandlers", () => {
       ],
     });
 
-    const trigger = testIntegration.triggers["webhookFlow_onTrigger"];
+    const trigger = testIntegration.triggers.webhookFlow_onTrigger;
     expect(trigger.hasWebhookCreateFunction).toBe(true);
     expect(trigger.hasWebhookDeleteFunction).toBe(true);
     expect(trigger.webhookCreate).toBeInstanceOf(Function);
