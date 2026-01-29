@@ -1,4 +1,5 @@
-import fc from "fast-check";
+import { describe, expect } from "vitest";
+import { test, fc } from "@fast-check/vitest";
 import {
   ConditionalExpression,
   BooleanExpression,
@@ -256,37 +257,29 @@ describe("evaluate", () => {
       orFalseExpressions,
     );
 
-    it("should evaluate expressions", () => {
-      fc.assert(
-        fc.property(trueExpressions, (expression) =>
-          expect(evaluate(expression)).toStrictEqual(true),
-        ),
-      );
+    test.prop([trueExpressions])("should evaluate expressions", (expression) => {
+      expect(evaluate(expression)).toBe(true);
     });
 
-    it("should evaluate false expressions", () => {
-      fc.assert(
-        fc.property(falseExpressions, (expression) =>
-          expect(evaluate(expression)).toStrictEqual(false),
-        ),
-      );
+    test.prop([falseExpressions])("should evaluate false expressions", (expression) => {
+      expect(evaluate(expression)).toBe(false);
     });
 
-    it("should deep compare equality while attempting to convert types", () => {
+    test("should deep compare equality while attempting to convert types", () => {
       expect(evaluate([BinaryOperator.equal, { a: "" }, { a: false }])).toStrictEqual(true);
     });
 
-    it("should strictly deep compare equality", () => {
+    test("should strictly deep compare equality", () => {
       expect(evaluate([BinaryOperator.exactlyMatches, { a: "" }, { a: false }])).toStrictEqual(
         false,
       );
     });
 
-    it("should deep compare inequality while attempting to convert types", () => {
+    test("should deep compare inequality while attempting to convert types", () => {
       expect(evaluate([BinaryOperator.notEqual, { a: "" }, { a: false }])).toStrictEqual(false);
     });
 
-    it("should strictly deep compare inequality", () => {
+    test("should strictly deep compare inequality", () => {
       expect(evaluate([BinaryOperator.doesNotExactlyMatch, { a: "" }, { a: false }])).toStrictEqual(
         true,
       );
@@ -323,29 +316,15 @@ describe("evaluate", () => {
       fc.string(),
     );
 
-    it("should throw error on invalid expression", () => {
-      fc.assert(
-        fc.property(invalidExpressions, (expression) =>
-          expect(() => evaluate(expression as any)).toThrow(),
-        ),
-      );
+    test.prop([invalidExpressions])("should throw error on invalid expression", (expression) => {
+      expect(() => evaluate(expression as any)).toThrow();
     });
 
-    it("Expect isEmpty to Validate correctly", () => {
-      fc.assert(
-        fc.property(invalidExpressions, () => {
-          const res = evaluate([UnaryOperator.isEmpty, []]);
-          expect(res).toBe(true);
-        }),
-      );
+    test("Expect isEmpty to Validate correctly", () => {
+      expect(evaluate([UnaryOperator.isEmpty, []])).toStrictEqual(true);
       expect(evaluate([UnaryOperator.isEmpty, ""])).toStrictEqual(true);
       expect(evaluate([UnaryOperator.isEmpty, "abc"])).toStrictEqual(false);
-      fc.assert(
-        fc.property(invalidExpressions, () => {
-          const res = evaluate([UnaryOperator.isEmpty, ["Hello ", "World"]]);
-          expect(res).toBe(false);
-        }),
-      );
+      expect(evaluate([UnaryOperator.isEmpty, ["Hello ", "World"]])).toStrictEqual(false);
     });
   });
 

@@ -1,5 +1,4 @@
 import type { ActionContext, ActionPerformFunction } from "./ActionPerformFunction";
-import type { ActionInputParameters } from "./ActionInputParameters";
 import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type {
   ComponentRegistry,

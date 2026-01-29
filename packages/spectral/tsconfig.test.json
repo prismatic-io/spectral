@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "noEmit": true, "types": ["node", "jest"] },
+  "compilerOptions": { "noEmit": true, "types": ["node"] },
   "include": ["**/*.test.ts", "**/*.test-d.ts"],
   "exclude": []
 }

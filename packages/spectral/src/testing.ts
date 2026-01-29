@@ -35,8 +35,6 @@ import type {
   ConfigVarResultCollection,
   ComponentManifest,
 } from "./types";
-import { isPollingTriggerDefinition } from "./types/PollingTriggerDefinition";
-import { createPollingContext } from "./serverTypes/perform";
 import { spyOn } from "jest-mock";
 
 /**
