@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { action, input, pollingTrigger, trigger } from ".";
 import { convertTrigger } from "./serverTypes/convertComponent";
-import { createPollingPerform, PerformFn } from "./serverTypes/perform";
+import { PerformFn } from "./serverTypes/perform";
 
 describe("test convert trigger", () => {
   const triggerPerform: PerformFn = async (context, payload, params) =>

@@ -24,7 +24,8 @@
         "noConfusingVoidType": "off"
       },
       "correctness": {
-        "noUnsafeOptionalChaining": "off"
+        "noUnsafeOptionalChaining": "off",
+        "noUnusedImports": "error"
       },
       "style": {
         "useNodejsImportProtocol": "off",
