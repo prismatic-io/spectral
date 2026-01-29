@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { connection, input } from "..";
 import { convertConnection, convertInput, convertTemplateInput } from "./convertComponent";
 

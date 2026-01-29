@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { action, trigger, connection, dataSource } from ".";
 import { invoke, invokeTrigger, invokeDataSource, createConnection } from "./testing";
 
