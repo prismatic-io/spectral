@@ -79,9 +79,12 @@ describe("util", () => {
       },
     );
 
-    test.prop([emptyStrings()])("allows for boolean default of true for empty string inputs", (v) => {
-      expect(util.types.toBool(v, true)).toBe(true);
-    });
+    test.prop([emptyStrings()])(
+      "allows for boolean default of true for empty string inputs",
+      (v) => {
+        expect(util.types.toBool(v, true)).toBe(true);
+      },
+    );
   });
 
   describe("integer", () => {
@@ -101,12 +104,11 @@ describe("util", () => {
       expect(util.types.toInt(v.toString())).toBe(v);
     });
 
-    test.prop([fc.float({ noNaN: true }).filter((v) => !Number.isInteger(v) && Number.isFinite(v))])(
-      "coerces a float to an int",
-      (v) => {
-        expect(util.types.toInt(v)).toBe(~~v);
-      },
-    );
+    test.prop([
+      fc.float({ noNaN: true }).filter((v) => !Number.isInteger(v) && Number.isFinite(v)),
+    ])("coerces a float to an int", (v) => {
+      expect(util.types.toInt(v)).toBe(~~v);
+    });
 
     test.prop([invalidValues])("throws when coercing non-integer values", (v) => {
       expect(() => util.types.toInt(v)).toThrow("cannot be coerced to int");
@@ -411,7 +413,7 @@ describe("util", () => {
 
   //TODO add an arbitrary for KeyValueList to test unique values
   describe("KeyValueList", () => {
-    test.prop([bufferArbitrary])("coerces KeyValueList to object", () => {
+    test("coerces KeyValueList to object", () => {
       const fakeData = [
         { key: "foo", value: "bar" },
         { key: "myKey", value: "myValue" },
