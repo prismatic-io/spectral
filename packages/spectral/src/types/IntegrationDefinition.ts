@@ -273,16 +273,43 @@ export type RetryConfig = {
 };
 
 /** Defines attributes of a queue configuration used by a flow of an integration. */
-export type QueueConfig = {
+export type StandardQueueConfig = {
   /** Determines whether the flow should be executed using FIFO ordering. Not valid for synchronous or scheduled flows. */
   usesFifoQueue?: boolean;
   /** Reference to the field in the flow's trigger return payload; used to determine whether to queue the execution. */
   dedupeIdField?: string;
   /** Determines whether the flow should be setup for singleton executions. Only valid for scheduled/polling trigger-based flows. */
   singletonExecutions?: boolean;
-  /** The maximum number of concurrent executions for this flow. Must be between 2 and 10. */
+  /** The maximum number of concurrent executions for this flow. Must be between 2 and 15. */
   concurrencyLimit?: number;
 };
+
+export type ParallelQueueConfig = {
+  /** No limits. All requests processed simultaneously. */
+  type: "parallel";
+};
+
+export type ThrottledQueueConfig = {
+  /** Set the max concurrent executions per instance. */
+  type: "throttled";
+  /** The maximum number of concurrent executions for this flow. Must be between 2 and 15. */
+  concurrencyLimit?: number;
+  /** Reference to the field in the flow's trigger return payload; used to determine whether to queue the execution. */
+  dedupeIdField?: string;
+};
+
+export type SequentialQueueConfig = {
+  /** Processed one at a time, in order received. */
+  type: "sequential";
+  /** Reference to the field in the flow's trigger return payload; used to determine whether to queue the execution. */
+  dedupeIdField?: string;
+};
+
+export type QueueConfig =
+  | ParallelQueueConfig
+  | ThrottledQueueConfig
+  | SequentialQueueConfig
+  | StandardQueueConfig;
 
 /** Defines attributes of a step error configuration used to determine how to handle errors during flow step execution. */
 export type StepErrorConfig = {

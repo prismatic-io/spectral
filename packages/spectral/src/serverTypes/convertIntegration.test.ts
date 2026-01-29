@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { configPage, configVar, flow, integration } from "..";
-import { convertConfigPages, convertFlow, convertConfigVar } from "./convertIntegration";
-import type { ConfigVar } from "../types";
+import {
+  convertConfigPages,
+  convertFlow,
+  convertConfigVar,
+  convertQueueConfig,
+} from "./convertIntegration";
+import { ConfigVar } from "../types";
 
 describe("convertFlow with polling triggers", () => {
   const baseFlowInput = {
@@ -273,6 +278,87 @@ describe("convertConfigVar", () => {
       ).toThrow(
         "Connection test-connection has onPremConnectionConfig set but no onPremControlled inputs",
       );
+    });
+  });
+});
+
+describe("convertQueueConfig", () => {
+  describe("parallel queue config", () => {
+    it("converts to usesFifoQueue: false", () => {
+      const input = { type: "parallel" as const };
+      const result = convertQueueConfig(input);
+
+      expect(result.usesFifoQueue).toBe(false);
+    });
+  });
+
+  describe("throttled queue config", () => {
+    it("converts to usesFifoQueue: true with concurrencyLimit", () => {
+      const input = {
+        type: "throttled" as const,
+        concurrencyLimit: 5,
+      };
+      const result = convertQueueConfig(input);
+
+      expect(result.usesFifoQueue).toBe(true);
+      expect(result.concurrencyLimit).toBe(5);
+    });
+
+    it("preserves dedupeIdField", () => {
+      const input = {
+        type: "throttled" as const,
+        concurrencyLimit: 3,
+        dedupeIdField: "requestId",
+      };
+      const result = convertQueueConfig(input);
+
+      expect(result.usesFifoQueue).toBe(true);
+      expect(result.concurrencyLimit).toBe(3);
+      expect(result.dedupeIdField).toBe("requestId");
+    });
+  });
+
+  describe("sequential queue config", () => {
+    it("converts to usesFifoQueue: true (processes one at a time)", () => {
+      const input = { type: "sequential" as const };
+      const result = convertQueueConfig(input);
+
+      expect(result.usesFifoQueue).toBe(true);
+      expect(result.concurrencyLimit).toBeUndefined();
+    });
+
+    it("preserves dedupeIdField", () => {
+      const input = {
+        type: "sequential" as const,
+        dedupeIdField: "orderId",
+      };
+      const result = convertQueueConfig(input);
+
+      expect(result.usesFifoQueue).toBe(true);
+      expect(result.dedupeIdField).toBe("orderId");
+    });
+  });
+
+  describe("legacy StandardQueueConfig", () => {
+    it("passes through unchanged when no type property", () => {
+      const input = {
+        usesFifoQueue: true,
+        concurrencyLimit: 4,
+        dedupeIdField: "myField",
+      };
+      const result = convertQueueConfig(input);
+
+      expect(result).toEqual(input);
+    });
+
+    it("passes through singletonExecutions config", () => {
+      const input = {
+        usesFifoQueue: false,
+        singletonExecutions: true,
+      };
+      const result = convertQueueConfig(input);
+
+      expect(result).toEqual(input);
     });
   });
 });

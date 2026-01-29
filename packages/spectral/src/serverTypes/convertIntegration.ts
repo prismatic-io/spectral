@@ -40,6 +40,8 @@ import {
   StandardTriggerType,
   TriggerPerformFunction,
   OnPremiseConnectionConfigTypeEnum,
+  QueueConfig,
+  StandardQueueConfig,
 } from "../types";
 import {
   Component as ServerComponent,
@@ -71,6 +73,9 @@ import { createCNIContext, logDebugResults } from "./context";
 import { runWithContext } from "./asyncContext";
 import path from "path";
 import { readFileSync } from "fs";
+
+export const CONCURRENCY_LIMIT_MAX = 15;
+export const CONCURRENCY_LIMIT_MIN = 2;
 
 export const convertIntegration = <
   TInputs extends Inputs,
@@ -562,6 +567,34 @@ const flowUsesWrapperTrigger = <
   );
 };
 
+/** Converts typed QueueConfig to legacy format with usesFifoQueue and concurrencyLimit. */
+export const convertQueueConfig = (queueConfig: QueueConfig): StandardQueueConfig => {
+  if (!("type" in queueConfig)) {
+    return queueConfig;
+  }
+
+  switch (queueConfig.type) {
+    case "parallel":
+      return { usesFifoQueue: false };
+
+    case "throttled":
+      return {
+        usesFifoQueue: true,
+        concurrencyLimit: queueConfig.concurrencyLimit,
+        dedupeIdField: queueConfig.dedupeIdField,
+      };
+
+    case "sequential":
+      return {
+        usesFifoQueue: true,
+        dedupeIdField: queueConfig.dedupeIdField,
+      };
+
+    default:
+      return queueConfig;
+  }
+};
+
 const convertFlowSchemas = (
   flowKey: string,
   schemas: Record<string, FlowDefinitionFlowSchema>,
@@ -679,7 +712,7 @@ export const convertFlow = <
   }
 
   if ("queueConfig" in flow && typeof flow.queueConfig === "object") {
-    const { queueConfig } = flow;
+    const queueConfig = convertQueueConfig(flow.queueConfig);
 
     if (hasSchedule && queueConfig.usesFifoQueue) {
       throw new Error(
@@ -697,10 +730,11 @@ export const convertFlow = <
 
     if (
       queueConfig.concurrencyLimit !== undefined &&
-      (queueConfig.concurrencyLimit < 2 || queueConfig.concurrencyLimit > 10)
+      (queueConfig.concurrencyLimit < CONCURRENCY_LIMIT_MIN ||
+        queueConfig.concurrencyLimit > CONCURRENCY_LIMIT_MAX)
     ) {
       throw new Error(
-        `${flow.name} has an invalid concurrencyLimit of ${queueConfig.concurrencyLimit}. concurrencyLimit must be between 2 and 10.`,
+        `${flow.name} has an invalid concurrencyLimit of ${queueConfig.concurrencyLimit}. concurrencyLimit must be between ${CONCURRENCY_LIMIT_MIN} and ${CONCURRENCY_LIMIT_MAX}.`,
       );
     }
 
