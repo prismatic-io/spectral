@@ -74,6 +74,9 @@ import { runWithContext } from "./asyncContext";
 import path from "path";
 import { readFileSync } from "fs";
 
+export const CONCURRENCY_LIMIT_MAX = 15;
+export const CONCURRENCY_LIMIT_MIN = 2;
+
 export const convertIntegration = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
@@ -727,10 +730,11 @@ export const convertFlow = <
 
     if (
       queueConfig.concurrencyLimit !== undefined &&
-      (queueConfig.concurrencyLimit < 2 || queueConfig.concurrencyLimit > 15)
+      (queueConfig.concurrencyLimit < CONCURRENCY_LIMIT_MIN ||
+        queueConfig.concurrencyLimit > CONCURRENCY_LIMIT_MAX)
     ) {
       throw new Error(
-        `${flow.name} has an invalid concurrencyLimit of ${queueConfig.concurrencyLimit}. concurrencyLimit must be between 2 and 15.`,
+        `${flow.name} has an invalid concurrencyLimit of ${queueConfig.concurrencyLimit}. concurrencyLimit must be between ${CONCURRENCY_LIMIT_MIN} and ${CONCURRENCY_LIMIT_MAX}.`,
       );
     }
 

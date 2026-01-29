@@ -12,7 +12,12 @@ import {
   TriggerBaseResult,
   TriggerPayload,
 } from ".";
-import { convertConfigVar, convertFlow } from "./serverTypes/convertIntegration";
+import {
+  CONCURRENCY_LIMIT_MAX,
+  CONCURRENCY_LIMIT_MIN,
+  convertConfigVar,
+  convertFlow,
+} from "./serverTypes/convertIntegration";
 import { connectionValue, defaultConnectionValueEnvironmentVariable, invokeFlow } from "./testing";
 
 describe("default onTrigger", () => {
@@ -295,7 +300,7 @@ describe("test convert flow with queueConfig", () => {
     });
 
     expect(() => convertFlow(testFlow, {}, "test-reference-key")).toThrow(
-      "Test Flow has an invalid concurrencyLimit of 1. concurrencyLimit must be between 2 and 15.",
+      `Test Flow has an invalid concurrencyLimit of 1. concurrencyLimit must be between ${CONCURRENCY_LIMIT_MIN} and ${CONCURRENCY_LIMIT_MAX}.`,
     );
   });
 
@@ -308,7 +313,7 @@ describe("test convert flow with queueConfig", () => {
     });
 
     expect(() => convertFlow(testFlow, {}, "test-reference-key")).toThrow(
-      "Test Flow has an invalid concurrencyLimit of 16. concurrencyLimit must be between 2 and 15.",
+      `Test Flow has an invalid concurrencyLimit of 16. concurrencyLimit must be between ${CONCURRENCY_LIMIT_MIN} and ${CONCURRENCY_LIMIT_MAX}.`,
     );
   });
 
@@ -408,7 +413,7 @@ describe("test convert flow with queueConfig", () => {
       });
 
       expect(() => convertFlow(testFlow, {}, "test-reference-key")).toThrow(
-        "Test Flow has an invalid concurrencyLimit of 1. concurrencyLimit must be between 2 and 15.",
+        `Test Flow has an invalid concurrencyLimit of 1. concurrencyLimit must be between ${CONCURRENCY_LIMIT_MIN} and ${CONCURRENCY_LIMIT_MAX}.`,
       );
     });
   });
