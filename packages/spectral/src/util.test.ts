@@ -1,5 +1,5 @@
 import { describe, expect } from "vitest";
-import { test as it, fc } from "@fast-check/vitest";
+import { test, fc } from "@fast-check/vitest";
 import util from "./util";
 
 describe("util", () => {
@@ -34,52 +34,52 @@ describe("util", () => {
       fc.double(),
     );
 
-    it.prop([fc.boolean()])("detects boolean value", (v) => {
+    test.prop([fc.boolean()])("detects boolean value", (v) => {
       expect(util.types.isBool(v)).toBe(true);
     });
 
-    it.prop([invalidValues])("detects non-boolean value", (v) => {
+    test.prop([invalidValues])("detects non-boolean value", (v) => {
       expect(util.types.isBool(v)).toBe(false);
     });
 
-    it.prop([truthy()])("coerces truthy values to true", (v) => {
+    test.prop([truthy()])("coerces truthy values to true", (v) => {
       expect(util.types.toBool(v)).toBe(true);
     });
 
-    it.prop([falsy()])("coerces falsy values to false", (v) => {
+    test.prop([falsy()])("coerces falsy values to false", (v) => {
       expect(util.types.toBool(v)).toBe(false);
     });
 
-    it.prop([unknowns()])(
+    test.prop([unknowns()])(
       "allows for boolean default to false for undefined inputs and undefined default",
       (v) => {
         expect(util.types.toBool(v)).toBe(false);
       },
     );
 
-    it.prop([unknowns()])("allows for boolean default of false for undefined inputs", (v) => {
+    test.prop([unknowns()])("allows for boolean default of false for undefined inputs", (v) => {
       expect(util.types.toBool(v, false)).toBe(false);
     });
 
-    it.prop([unknowns()])("allows for boolean default of true for undefined inputs", (v) => {
+    test.prop([unknowns()])("allows for boolean default of true for undefined inputs", (v) => {
       expect(util.types.toBool(v, true)).toBe(true);
     });
 
-    it.prop([emptyStrings()])(
+    test.prop([emptyStrings()])(
       "allows for boolean default to false for empty string inputs and undefined default",
       (v) => {
         expect(util.types.toBool(v)).toBe(false);
       },
     );
 
-    it.prop([emptyStrings()])(
+    test.prop([emptyStrings()])(
       "allows for boolean default of false for empty string inputs",
       (v) => {
         expect(util.types.toBool(v, false)).toBe(false);
       },
     );
 
-    it.prop([emptyStrings()])("allows for boolean default of true for empty string inputs", (v) => {
+    test.prop([emptyStrings()])("allows for boolean default of true for empty string inputs", (v) => {
       expect(util.types.toBool(v, true)).toBe(true);
     });
   });
@@ -89,42 +89,42 @@ describe("util", () => {
       fc.string().filter((v) => Number.isNaN(Number.parseInt(v)) && v !== ""),
     );
 
-    it.prop([fc.integer()])("detects integer value", (v) => {
+    test.prop([fc.integer()])("detects integer value", (v) => {
       expect(util.types.isInt(v)).toBe(true);
     });
 
-    it.prop([invalidValues])("detects non-integer value", (v) => {
+    test.prop([invalidValues])("detects non-integer value", (v) => {
       expect(util.types.isInt(v)).toBe(false);
     });
 
-    it.prop([fc.integer()])("coerces integer values", (v) => {
+    test.prop([fc.integer()])("coerces integer values", (v) => {
       expect(util.types.toInt(v.toString())).toBe(v);
     });
 
-    it.prop([fc.float({ noNaN: true }).filter((v) => !Number.isInteger(v) && Number.isFinite(v))])(
+    test.prop([fc.float({ noNaN: true }).filter((v) => !Number.isInteger(v) && Number.isFinite(v))])(
       "coerces a float to an int",
       (v) => {
         expect(util.types.toInt(v)).toBe(~~v);
       },
     );
 
-    it.prop([invalidValues])("throws when coercing non-integer values", (v) => {
+    test.prop([invalidValues])("throws when coercing non-integer values", (v) => {
       expect(() => util.types.toInt(v)).toThrow("cannot be coerced to int");
     });
 
-    it.prop([unknowns()])("Allows for default value of 0 when value is undefined", (v) => {
+    test.prop([unknowns()])("Allows for default value of 0 when value is undefined", (v) => {
       expect(util.types.toInt(v)).toBe(0);
     });
 
-    it.prop([unknowns()])("Allows for default values when value is undefined", (v) => {
+    test.prop([unknowns()])("Allows for default values when value is undefined", (v) => {
       expect(util.types.toInt(v, 20)).toBe(20);
     });
 
-    it.prop([emptyStrings()])("Allows for default value of 0 when value is empty string", (v) => {
+    test.prop([emptyStrings()])("Allows for default value of 0 when value is empty string", (v) => {
       expect(util.types.toInt(v)).toBe(0);
     });
 
-    it.prop([emptyStrings()])("Allows for default values when value is empty string", (v) => {
+    test.prop([emptyStrings()])("Allows for default values when value is empty string", (v) => {
       expect(util.types.toInt(v, 20)).toBe(20);
     });
   });
@@ -133,41 +133,41 @@ describe("util", () => {
     const validValues = fc.string().filter((v) => !Number.isNaN(Number(v)));
     const invalidValues = fc.string().filter((v) => Number.isNaN(Number(v)));
 
-    it.prop([validValues])("detects things that can be cast to a number", (v) => {
+    test.prop([validValues])("detects things that can be cast to a number", (v) => {
       expect(util.types.isNumber(v)).toBe(true);
     });
 
-    it.prop([invalidValues])("detects things that cannot be cast to a number", (v) => {
+    test.prop([invalidValues])("detects things that cannot be cast to a number", (v) => {
       expect(util.types.isNumber(v)).toBe(false);
     });
 
-    it.prop([fc.float({ noNaN: true }).filter((v) => Number.isFinite(v))])(
+    test.prop([fc.float({ noNaN: true }).filter((v) => Number.isFinite(v))])(
       "returns a number when given a number",
       (v) => {
         expect(util.types.toNumber(v)).toBe(v);
       },
     );
 
-    it.prop([validValues])(
+    test.prop([validValues])(
       "returns a number when given something that can be cast to number",
       (v) => {
         expect(util.types.toNumber(v)).toBe(Number(v));
       },
     );
 
-    it.prop([invalidValues])("throws when coercing non-number values", (v) => {
+    test.prop([invalidValues])("throws when coercing non-number values", (v) => {
       expect(() => util.types.toNumber(v)).toThrow("cannot be coerced to a number");
     });
 
-    it.prop([unknowns()])("returns the default value when a value is undefined", (v) => {
+    test.prop([unknowns()])("returns the default value when a value is undefined", (v) => {
       expect(util.types.toNumber(v, 5.5)).toBe(5.5);
     });
 
-    it.prop([emptyStrings()])("returns the default value when a value is empty string", (v) => {
+    test.prop([emptyStrings()])("returns the default value when a value is empty string", (v) => {
       expect(util.types.toNumber(v, 5.5)).toBe(5.5);
     });
 
-    it.prop([nulls()])("returns the default value when a value is null", (v) => {
+    test.prop([nulls()])("returns the default value when a value is null", (v) => {
       expect(util.types.toNumber(v, 5.5)).toBe(5.5);
     });
   });
@@ -182,19 +182,19 @@ describe("util", () => {
       }
     });
 
-    it.prop([fc.bigInt()])("detects bigint value", (v) => {
+    test.prop([fc.bigInt()])("detects bigint value", (v) => {
       expect(util.types.isBigInt(v)).toBe(true);
     });
 
-    it.prop([invalidValues])("detects non-bigint value", (v) => {
+    test.prop([invalidValues])("detects non-bigint value", (v) => {
       expect(util.types.isBigInt(v)).toBe(false);
     });
 
-    it.prop([fc.bigInt()])("coerces bigint values", (v) => {
+    test.prop([fc.bigInt()])("coerces bigint values", (v) => {
       expect(util.types.toBigInt(v.toString())).toBe(v);
     });
 
-    it.prop([invalidValues])("throws when coercing non-bigint values", (v) => {
+    test.prop([invalidValues])("throws when coercing non-bigint values", (v) => {
       expect(() => util.types.toBigInt(v)).toThrow("cannot be coerced to bigint");
     });
   });
@@ -208,20 +208,20 @@ describe("util", () => {
         .filter((v) => !Number.parseInt(v)),
     );
 
-    it.prop([fc.date({ noInvalidDate: true })])("detects date value", (v) => {
+    test.prop([fc.date({ noInvalidDate: true })])("detects date value", (v) => {
       expect(util.types.isDate(v)).toBe(true);
     });
 
-    it.prop([invalidValues])("detects non-date value", (v) => {
+    test.prop([invalidValues])("detects non-date value", (v) => {
       expect(util.types.isDate(v)).toBe(false);
     });
 
-    it.prop([fc.date({ noInvalidDate: true })])("coerces date values", (v) => {
+    test.prop([fc.date({ noInvalidDate: true })])("coerces date values", (v) => {
       const result = util.types.toDate(v.toISOString());
       expect(result.toISOString()).toBe(v.toISOString());
     });
 
-    it.prop([invalidValues])("throws when coercing non-date values", (v) => {
+    test.prop([invalidValues])("throws when coercing non-date values", (v) => {
       expect(() => util.types.toDate(v)).toThrow("cannot be coerced to date");
     });
   });
@@ -229,7 +229,7 @@ describe("util", () => {
   describe("url", () => {
     const invalidValues = fc.oneof(fc.string());
 
-    it.prop([
+    test.prop([
       fc.oneof(
         fc.webUrl(),
         fc.domain().map((v) => `https://${v}`),
@@ -238,13 +238,13 @@ describe("util", () => {
       expect(util.types.isUrl(v)).toBe(true);
     });
 
-    it.prop([invalidValues])("detects non-url value", (v) => {
+    test.prop([invalidValues])("detects non-url value", (v) => {
       expect(util.types.isUrl(v)).toBe(false);
     });
   });
 
   describe("buffer data payload", () => {
-    it.prop([
+    test.prop([
       fc.record(
         {
           data: bufferArbitrary,
@@ -256,14 +256,14 @@ describe("util", () => {
       expect(util.types.isBufferDataPayload(v)).toBe(true);
     });
 
-    it.prop([fc.record({ data: bufferArbitrary }, { noNullPrototype: true })])(
+    test.prop([fc.record({ data: bufferArbitrary }, { noNullPrototype: true })])(
       "detects buffer data payload missing optional content type",
       (v) => {
         expect(util.types.isBufferDataPayload(v)).toBe(true);
       },
     );
 
-    it.prop([
+    test.prop([
       fc.record(
         {
           data: fc.oneof(fc.string(), fc.object()),
@@ -274,14 +274,14 @@ describe("util", () => {
       expect(util.types.isBufferDataPayload(v)).toBe(false);
     });
 
-    it.prop([fc.string()])("coerces string to plain text buffer", (v) => {
+    test.prop([fc.string()])("coerces string to plain text buffer", (v) => {
       const result = util.types.toBufferDataPayload(v);
       expect(result.contentType).toBe("text/plain");
       expect(Buffer.isBuffer(result.data)).toBe(true);
       expect(result.data.equals(Buffer.from(v, "utf-8"))).toBe(true);
     });
 
-    it.prop([fc.oneof(fc.array(fc.anything()), fc.object())])(
+    test.prop([fc.oneof(fc.array(fc.anything()), fc.object())])(
       "serializes data to JSON and coerces to json text buffer",
       (v) => {
         const result = util.types.toBufferDataPayload(v);
@@ -291,7 +291,7 @@ describe("util", () => {
       },
     );
 
-    it.prop([
+    test.prop([
       fc.record(
         {
           data: bufferArbitrary,
@@ -308,14 +308,14 @@ describe("util", () => {
       expect(result.data.equals(v.data)).toBe(true);
     });
 
-    it.prop([bufferArbitrary])("returns buffer with unknown content type", (v) => {
+    test.prop([bufferArbitrary])("returns buffer with unknown content type", (v) => {
       const result = util.types.toBufferDataPayload(v);
       expect(result.contentType).toBe("application/octet-stream");
       expect(Buffer.isBuffer(result.data)).toBe(true);
       expect(result.data.equals(v)).toBe(true);
     });
 
-    it.prop([uint8ArrayArbitrary])("handles Uint8Array as a Buffer", (v) => {
+    test.prop([uint8ArrayArbitrary])("handles Uint8Array as a Buffer", (v) => {
       const result = util.types.toBufferDataPayload(v);
       expect(result.contentType).toBe("application/octet-stream");
       expect(Buffer.isBuffer(result.data)).toBe(true);
@@ -324,7 +324,7 @@ describe("util", () => {
   });
 
   describe("data", () => {
-    it.prop([
+    test.prop([
       fc.record(
         {
           data: bufferArbitrary,
@@ -336,14 +336,14 @@ describe("util", () => {
       expect(util.types.isData(v)).toBe(true);
     });
 
-    it.prop([fc.string()])("coerces string to plain text buffer", (v) => {
+    test.prop([fc.string()])("coerces string to plain text buffer", (v) => {
       const result = util.types.toData(v);
       expect(result.contentType).toBe("text/plain");
       expect(Buffer.isBuffer(result.data)).toBe(true);
       expect(result.data.equals(Buffer.from(v, "utf-8"))).toBe(true);
     });
 
-    it.prop([fc.oneof(fc.array(fc.anything()), fc.object())])(
+    test.prop([fc.oneof(fc.array(fc.anything()), fc.object())])(
       "serializes data to JSON and coerces to json text buffer",
       (v) => {
         const result = util.types.toData(v);
@@ -353,7 +353,7 @@ describe("util", () => {
       },
     );
 
-    it.prop([
+    test.prop([
       fc.record(
         {
           data: bufferArbitrary,
@@ -370,14 +370,14 @@ describe("util", () => {
       expect(result.data.equals(v.data)).toBe(true);
     });
 
-    it.prop([bufferArbitrary])("returns buffer with unknown content type", (v) => {
+    test.prop([bufferArbitrary])("returns buffer with unknown content type", (v) => {
       const result = util.types.toData(v);
       expect(result.contentType).toBe("application/octet-stream");
       expect(Buffer.isBuffer(result.data)).toBe(true);
       expect(result.data.equals(v)).toBe(true);
     });
 
-    it.prop([uint8ArrayArbitrary])("handles Uint8Array as a Buffer", (v) => {
+    test.prop([uint8ArrayArbitrary])("handles Uint8Array as a Buffer", (v) => {
       const result = util.types.toData(v);
       expect(result.contentType).toBe("application/octet-stream");
       expect(Buffer.isBuffer(result.data)).toBe(true);
@@ -386,32 +386,32 @@ describe("util", () => {
   });
 
   describe("string", () => {
-    it("detects a string value", () => {
+    test("detects a string value", () => {
       expect(util.types.isString("value")).toStrictEqual(true);
       expect(util.types.isString(new String("value"))).toStrictEqual(true);
     });
 
-    it("detects a non-string value", () => {
+    test("detects a non-string value", () => {
       expect(util.types.isString(["value"])).toStrictEqual(false);
       expect(util.types.isString(4)).toStrictEqual(false);
     });
 
-    it.prop([bufferArbitrary])("coerces plain text buffer to string", (v) => {
+    test.prop([bufferArbitrary])("coerces plain text buffer to string", (v) => {
       expect(util.types.toString(v)).toBe(v.toString());
     });
 
-    it.prop([unknowns()])("coerces unknown value to empty string", (v) => {
+    test.prop([unknowns()])("coerces unknown value to empty string", (v) => {
       expect(util.types.toString(v)).toBe("");
     });
 
-    it.prop([unknowns()])("coerces unknown value to given default string", (v) => {
+    test.prop([unknowns()])("coerces unknown value to given default string", (v) => {
       expect(util.types.toString(v, "hello, world")).toBe("hello, world");
     });
   });
 
   //TODO add an arbitrary for KeyValueList to test unique values
   describe("KeyValueList", () => {
-    it.prop([bufferArbitrary])("coerces KeyValueList to object", () => {
+    test.prop([bufferArbitrary])("coerces KeyValueList to object", () => {
       const fakeData = [
         { key: "foo", value: "bar" },
         { key: "myKey", value: "myValue" },
@@ -420,7 +420,7 @@ describe("util", () => {
       expect(util.types.keyValPairListToObject(fakeData)).toStrictEqual(expectedData);
     });
 
-    it.each([undefined, null, ""])("handles invalid values", (value) => {
+    test.each([undefined, null, ""])("handles invalid values", (value) => {
       expect(util.types.keyValPairListToObject(value as unknown as any)).toStrictEqual({});
     });
   });
@@ -428,48 +428,48 @@ describe("util", () => {
   const validJSON = fc.jsonValue().map((x) => JSON.stringify(x));
   const invalidJSON = fc.constantFrom("", "['']", "someString", null, undefined);
   describe("JSON", () => {
-    it.prop([validJSON])("returns true in the case of actual JSON", (v) => {
+    test.prop([validJSON])("returns true in the case of actual JSON", (v) => {
       expect(util.types.isJSON(v)).toBe(true);
     });
 
-    it.prop([invalidJSON])("returns false in the case of invalid JSON", (v) => {
+    test.prop([invalidJSON])("returns false in the case of invalid JSON", (v) => {
       expect(util.types.isJSON(util.types.toString(v))).toBe(false);
     });
 
-    it.prop([validJSON])("serializes JSON", (v) => {
+    test.prop([validJSON])("serializes JSON", (v) => {
       expect(() => util.types.toJSON(v)).not.toThrow();
     });
 
-    it("serialize JSON with default options", () => {
+    test("serialize JSON with default options", () => {
       const payload = { foo: "bar", baz: "buz" };
       expect(util.types.toJSON(payload)).toStrictEqual(`{\n  "baz": "buz",\n  "foo": "bar"\n}`);
     });
 
-    it("serialize JSON with pretty print and retain key order", () => {
+    test("serialize JSON with pretty print and retain key order", () => {
       const payload = { foo: "bar", baz: "buz" };
       expect(util.types.toJSON(payload, true, true)).toStrictEqual(
         `{\n  "foo": "bar",\n  "baz": "buz"\n}`,
       );
     });
 
-    it("serialize JSON without pretty print and retain key order", () => {
+    test("serialize JSON without pretty print and retain key order", () => {
       const payload = { foo: "bar", baz: "buz" };
       expect(util.types.toJSON(payload, false, true)).toStrictEqual('{"foo":"bar","baz":"buz"}');
     });
 
-    it("serialize JSON with pretty print and don't retain key order", () => {
+    test("serialize JSON with pretty print and don't retain key order", () => {
       const payload = { foo: "bar", baz: "buz" };
       expect(util.types.toJSON(payload, true, false)).toStrictEqual(
         `{\n  "baz": "buz",\n  "foo": "bar"\n}`,
       );
     });
 
-    it("serialize JSON without pretty print and don't retain key order", () => {
+    test("serialize JSON without pretty print and don't retain key order", () => {
       const payload = { foo: "bar", baz: "buz" };
       expect(util.types.toJSON(payload, false, false)).toStrictEqual('{"baz":"buz","foo":"bar"}');
     });
 
-    it("removes functions", () => {
+    test("removes functions", () => {
       const value = {
         foo: () => {
           return;
@@ -478,7 +478,7 @@ describe("util", () => {
       expect(util.types.toJSON(value)).toStrictEqual("{}");
     });
 
-    it("removes cyclic data", () => {
+    test("removes cyclic data", () => {
       const value: Record<string, unknown> = {};
       value.value = value;
       expect(util.types.toJSON(value)).toStrictEqual("{}");
@@ -486,7 +486,7 @@ describe("util", () => {
   });
 
   describe("headers", () => {
-    it("lowercase headers", () => {
+    test("lowercase headers", () => {
       expect(util.types.lowerCaseHeaders({ "Content-Type": "Application/Json" })).toStrictEqual({
         "content-type": "Application/Json",
       });
@@ -494,25 +494,25 @@ describe("util", () => {
   });
 
   describe("objectSelection", () => {
-    it("detects valid values", () => {
+    test("detects valid values", () => {
       const v = [{ object: "foo" }];
       expect(util.types.isObjectSelection(v)).toStrictEqual(true);
       expect(util.types.isObjectSelection(JSON.stringify(v))).toStrictEqual(true);
     });
 
-    it("detects invalid values", () => {
+    test("detects invalid values", () => {
       const v = [{ missingObjectKey: "foo" }];
       expect(util.types.isObjectSelection(v)).toStrictEqual(false);
       expect(util.types.isObjectSelection(JSON.stringify(v))).toStrictEqual(false);
     });
 
-    it("coerces valid values", () => {
+    test("coerces valid values", () => {
       const v = [{ object: "foo" }];
       expect(util.types.toObjectSelection(v)).toStrictEqual(v);
       expect(util.types.toObjectSelection(JSON.stringify(v))).toStrictEqual(v);
     });
 
-    it("throws on invalid values", () => {
+    test("throws on invalid values", () => {
       const v = [{ missingObjectKey: "foo" }];
       const error = "cannot be coerced to ObjectSelection";
       expect(() => util.types.toObjectSelection(v)).toThrow(error);
@@ -521,13 +521,13 @@ describe("util", () => {
   });
 
   describe("objectFieldMap", () => {
-    it("detects valid values", () => {
+    test("detects valid values", () => {
       const v = { fields: [{ field: { key: "foo" } }] };
       expect(util.types.isObjectFieldMap(v)).toStrictEqual(true);
       expect(util.types.isObjectFieldMap(JSON.stringify(v))).toStrictEqual(true);
     });
 
-    it("detects invalid values", () => {
+    test("detects invalid values", () => {
       const v1 = { missingFields: [{ field: { key: "foo" } }] };
       const v2 = { fields: [{ missingField: { key: "foo" } }] };
       const v3 = { fields: [{ field: { missingKey: "foo" } }] };
@@ -539,13 +539,13 @@ describe("util", () => {
       expect(util.types.isObjectFieldMap(JSON.stringify(v3))).toStrictEqual(false);
     });
 
-    it("coerces valid values", () => {
+    test("coerces valid values", () => {
       const v = { fields: [{ field: { key: "foo" } }] };
       expect(util.types.toObjectFieldMap(v)).toStrictEqual(v);
       expect(util.types.toObjectFieldMap(JSON.stringify(v))).toStrictEqual(v);
     });
 
-    it("throws on invalid values", () => {
+    test("throws on invalid values", () => {
       const v1 = { missingFields: [{ field: { key: "foo" } }] };
       const v2 = { fields: [{ missingField: { key: "foo" } }] };
       const v3 = { fields: [{ field: { missingKey: "foo" } }] };
@@ -560,13 +560,13 @@ describe("util", () => {
   });
 
   describe("jsonForm", () => {
-    it("detects valid values", () => {
+    test("detects valid values", () => {
       const v = { schema: {}, uiSchema: {}, data: {} };
       expect(util.types.isJSONForm(v)).toStrictEqual(true);
       expect(util.types.isJSONForm(JSON.stringify(v))).toStrictEqual(true);
     });
 
-    it("detects invalid values", () => {
+    test("detects invalid values", () => {
       const v1 = { missingSchema: {}, uiSchema: {}, data: {} };
       const v2 = { schema: {}, missingUiSchema: {}, data: {} };
       const v3 = { schema: {}, uiSchema: {}, missingData: {} };
@@ -578,13 +578,13 @@ describe("util", () => {
       expect(util.types.isJSONForm(JSON.stringify(v3))).toStrictEqual(false);
     });
 
-    it("coerces valid values", () => {
+    test("coerces valid values", () => {
       const v = { schema: {}, uiSchema: {}, data: {} };
       expect(util.types.toJSONForm(v)).toStrictEqual(v);
       expect(util.types.toJSONForm(JSON.stringify(v))).toStrictEqual(v);
     });
 
-    it("throws on invalid values", () => {
+    test("throws on invalid values", () => {
       const v1 = { missingSchema: {}, uiSchema: {}, data: {} };
       const v2 = { schema: {}, missingUiSchema: {}, data: {} };
       const v3 = { schema: {}, uiSchema: {}, missingData: {} };
@@ -599,7 +599,7 @@ describe("util", () => {
   });
 
   describe("picklist", () => {
-    it("detects picklist value", () => {
+    test("detects picklist value", () => {
       const v1 = ["value", new String("value")];
       const v2: unknown = [];
       const v3 = [{ key: "foo" }, { key: "foo", label: "Foo" }];
@@ -608,7 +608,7 @@ describe("util", () => {
       expect(util.types.isPicklist(v3)).toStrictEqual(true);
     });
 
-    it("detects non-picklist value", () => {
+    test("detects non-picklist value", () => {
       const v1 = "value";
       const v2 = ["value", 4];
       const v3 = [{ missingKey: "foo" }];
@@ -619,7 +619,7 @@ describe("util", () => {
   });
 
   describe("schedule", () => {
-    it("detects schedule value", () => {
+    test("detects schedule value", () => {
       const v1 = { value: "00 00 * * 2,3" };
       const v2 = {
         value: "00 00 * * 2,3",
@@ -630,7 +630,7 @@ describe("util", () => {
       expect(util.types.isSchedule(v2)).toStrictEqual(true);
     });
 
-    it("detects non-schedule value", () => {
+    test("detects non-schedule value", () => {
       const v = {
         missingValue: "00 00 * * 2,3",
         timeZone: "America/Chicago",
@@ -646,7 +646,7 @@ describe("util", () => {
       label: "My connection",
     };
 
-    it("detects valid connection", () => {
+    test("detects valid connection", () => {
       const v1 = {
         ...baseConnection,
         oauth2Type: "authorization_code",
@@ -684,7 +684,7 @@ describe("util", () => {
       expect(util.types.isConnection(v3)).toStrictEqual(true);
     });
 
-    it("detects invalid connection", () => {
+    test("detects invalid connection", () => {
       const v1 = {
         ...baseConnection,
         oauth2Type: "authorization_code",
@@ -714,19 +714,19 @@ describe("util", () => {
   });
 
   describe("toObject", () => {
-    it("parses JSON correctly", () => {
+    test("parses JSON correctly", () => {
       const value = '{"foo":"bar","baz":123,"buz":false}';
       const expectedResult = { foo: "bar", baz: 123, buz: false };
       expect(util.types.toObject(value)).toStrictEqual(expectedResult);
     });
-    it("objects remain objects", () => {
+    test("objects remain objects", () => {
       const value = { foo: "bar", baz: 123, buz: false };
       expect(util.types.toObject(value)).toStrictEqual(value);
     });
   });
 
   describe("cleanObject", () => {
-    it('removes undefined, null and "" by default', () => {
+    test('removes undefined, null and "" by default', () => {
       const input = {
         foo: "bar",
         bar: undefined,
@@ -738,7 +738,7 @@ describe("util", () => {
       expect(util.types.cleanObject(input)).toStrictEqual(expectedResult);
     });
 
-    it("allows for custom predicates to be defined", () => {
+    test("allows for custom predicates to be defined", () => {
       const input = { foo: 1, bar: 2, baz: 3 };
       const predicate = (v: number) => v % 2 === 0;
       const expectedResult = { foo: 1, baz: 3 };
