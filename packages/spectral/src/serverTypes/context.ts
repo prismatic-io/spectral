@@ -149,10 +149,7 @@ export function createDebugContext(context: ServerActionContext): DebugContext {
     },
     memoryUsage: (actionContext: ActionContext, label: string, showDetail?: boolean) => {
       if (globalDebug) {
-        const usage = showDetail
-          ? memoryUsageInMB()
-          : // @ts-expect-error: memoryUsage.rss() is documented but not typed
-            (memoryUsage.rss() as number) / MEMORY_USAGE_CONVERSION;
+        const usage = showDetail ? memoryUsageInMB() : memoryUsage.rss() / MEMORY_USAGE_CONVERSION;
 
         actionContext.debug.results.memoryUsage.push({
           mark: label,
