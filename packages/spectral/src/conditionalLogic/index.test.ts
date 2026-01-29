@@ -1,4 +1,5 @@
-import fc from "fast-check";
+import { describe, expect } from "vitest";
+import { test as it, test, fc } from "@fast-check/vitest";
 import {
   ConditionalExpression,
   BooleanExpression,
@@ -256,20 +257,12 @@ describe("evaluate", () => {
       orFalseExpressions,
     );
 
-    it("should evaluate expressions", () => {
-      fc.assert(
-        fc.property(trueExpressions, (expression) =>
-          expect(evaluate(expression)).toStrictEqual(true),
-        ),
-      );
+    it.prop([trueExpressions])("should evaluate expressions", (expression) => {
+      expect(evaluate(expression)).toBe(true);
     });
 
-    it("should evaluate false expressions", () => {
-      fc.assert(
-        fc.property(falseExpressions, (expression) =>
-          expect(evaluate(expression)).toStrictEqual(false),
-        ),
-      );
+    it.prop([falseExpressions])("should evaluate false expressions", (expression) => {
+      expect(evaluate(expression)).toBe(false);
     });
 
     it("should deep compare equality while attempting to convert types", () => {
@@ -293,23 +286,23 @@ describe("evaluate", () => {
     });
   });
 
-  test("evaluate BinaryOperator.in with array of numbers and value that is a number", () => {
+  it("evaluate BinaryOperator.in with array of numbers and value that is a number", () => {
     expect(evaluate([BinaryOperator.in, 2, [1, 2, 3]])).toStrictEqual(true);
   });
 
-  test("evaluate BinaryOperator.in with array of numbers and value that is a stringified number", () => {
+  it("evaluate BinaryOperator.in with array of numbers and value that is a stringified number", () => {
     expect(evaluate([BinaryOperator.in, "2", [1, 2, 3]])).toStrictEqual(true);
   });
 
-  test("evaluate BinaryOperator.in with array of stringified numbers and value that is a stringified number", () => {
+  it("evaluate BinaryOperator.in with array of stringified numbers and value that is a stringified number", () => {
     expect(evaluate([BinaryOperator.in, "2", ["1", "2", "3"]])).toStrictEqual(true);
   });
 
-  test("evaluate BinaryOperator.in with array of numbers including zero and value that is a stringified false", () => {
+  it("evaluate BinaryOperator.in with array of numbers including zero and value that is a stringified false", () => {
     expect(evaluate([BinaryOperator.in, "false", [0, 1, 2]])).toStrictEqual(false);
   });
 
-  test("evaluate BinaryOperator.in with array of numbers including zero and value that is a false", () => {
+  it("evaluate BinaryOperator.in with array of numbers including zero and value that is a false", () => {
     expect(evaluate([BinaryOperator.in, false, [0, 1, 2]])).toStrictEqual(false);
   });
 
@@ -323,61 +316,47 @@ describe("evaluate", () => {
       fc.string(),
     );
 
-    it("should throw error on invalid expression", () => {
-      fc.assert(
-        fc.property(invalidExpressions, (expression) =>
-          expect(() => evaluate(expression as any)).toThrow(),
-        ),
-      );
+    it.prop([invalidExpressions])("should throw error on invalid expression", (expression) => {
+      expect(() => evaluate(expression as any)).toThrow();
     });
 
     it("Expect isEmpty to Validate correctly", () => {
-      fc.assert(
-        fc.property(invalidExpressions, () => {
-          const res = evaluate([UnaryOperator.isEmpty, []]);
-          expect(res).toBe(true);
-        }),
-      );
+      expect(evaluate([UnaryOperator.isEmpty, []])).toStrictEqual(true);
       expect(evaluate([UnaryOperator.isEmpty, ""])).toStrictEqual(true);
       expect(evaluate([UnaryOperator.isEmpty, "abc"])).toStrictEqual(false);
-      fc.assert(
-        fc.property(invalidExpressions, () => {
-          const res = evaluate([UnaryOperator.isEmpty, ["Hello ", "World"]]);
-          expect(res).toBe(false);
-        }),
-      );
+      expect(evaluate([UnaryOperator.isEmpty, ["Hello ", "World"]])).toStrictEqual(false);
     });
   });
 
   describe("test contains", () => {
-    test("test string contains with two strings", () => {
+    it("test string contains with two strings", () => {
       expect(contains("foo", "oo")).toStrictEqual(true);
     });
-    test("test string contains with a numeric string and a number", () => {
+    it("test string contains with a numeric string and a number", () => {
       expect(contains("123", 2)).toStrictEqual(true);
     });
-    test("test string contains with a non-numeric string a number", () => {
+    it("test string contains with a non-numeric string a number", () => {
       expect(contains("foo", 2)).toStrictEqual(false);
     });
-    test("test array contains when item in array", () => {
+    it("test array contains when item in array", () => {
       expect(contains([1, 2, 3], 2)).toStrictEqual(true);
     });
-    test("test array contains when subarray in array", () => {
+    it("test array contains when subarray in array", () => {
       expect(contains([1, 2, 3, [4, 5]], [4, 5])).toStrictEqual(false);
     });
-    test("test array contains when item not in array", () => {
+    it("test array contains when item not in array", () => {
       expect(contains([1, 2, 3], 9)).toStrictEqual(false);
     });
-    test("test 'array' contains when item in 'set'", () => {
+    it("test 'array' contains when item in 'set'", () => {
       expect(contains([{ foo: null, bar: null }], { foo: null, bar: null })).toStrictEqual(false);
     });
-    test("test 'set' contains when item in 'set'", () => {
+    it("test 'set' contains when item in 'set'", () => {
       expect(contains({ foo: null, bar: null }, "bar")).toStrictEqual(true);
     });
-    test("test 'set' contains when item not in 'set'", () => {
+    it("test 'set' contains when item not in 'set'", () => {
       expect(contains({ foo: null, bar: null }, "baz")).toStrictEqual(false);
     });
-    test("test 'set' contains subset", () => {
+    it("test 'set' contains subset", () => {
       expect(contains({ key: { foo: null, bar: null } }, { foo: null, bar: null })).toStrictEqual(
         false,
       );
