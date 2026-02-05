@@ -61,7 +61,10 @@ interface RetryConfig extends Omit<IAxiosRetryConfig, "retryDelay"> {
    * a retryCondition function to determine when retries should occur.
    */
   retryAllErrors?: boolean;
-  /** When true, double the retry delay after each attempt (e.g. 1000ms, 2000ms, 4000ms, 8000ms, etc.). */
+  /**
+   * When true, double the retryDelay after each attempt (e.g. 1000ms, 2000ms, 4000ms, 8000ms, etc.).
+   * If no retryDelay is specified, defaults to axios-retry's exponentialDelay function.
+   */
   useExponentialBackoff?: boolean;
 }
 
@@ -87,12 +90,15 @@ const computeRetryDelay = (
   useExponentialBackoff: RetryConfig["useExponentialBackoff"],
 ): IAxiosRetryConfig["retryDelay"] => {
   if (useExponentialBackoff) {
-    return exponentialDelay;
+    return typeof retryDelay === "number"
+      ? (retryCount) => 2 ** (retryCount - 1) * retryDelay
+      : exponentialDelay;
   }
+  // retryDelay is either a number or a function
   return typeof retryDelay === "number" ? () => retryDelay : retryDelay;
 };
 
-const toAxiosRetryConfig = ({
+export const toAxiosRetryConfig = ({
   retryDelay,
   retryAllErrors,
   retryCondition,
