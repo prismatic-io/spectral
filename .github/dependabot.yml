@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directories:
+      - "/"
+      - "/packages/spectral"
+    schedule:
+      interval: "weekly"
+    groups:
+      lodash:
+        patterns:
+          - "lodash"
+          - "@types/lodash"
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - update-types: ["version-update:semver-major"]
+    open-pull-requests-limit: 3
