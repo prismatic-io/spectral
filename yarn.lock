@@ -49,45 +49,99 @@
     "@biomejs/cli-win32-arm64" "1.6.3"
     "@biomejs/cli-win32-x64" "1.6.3"
 
+"@biomejs/biome@^1.6.3":
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/@biomejs/biome/-/biome-1.9.4.tgz#89766281cbc3a0aae865a7ff13d6aaffea2842bf"
+  integrity sha512-1rkd7G70+o9KkTn5KLmDYXihGoTaIGO9PIIN2ZB7UJxFrWw04CZHPYiMRjYsaDvVV7hP1dYNRLxSANLaBFGpog==
+  optionalDependencies:
+    "@biomejs/cli-darwin-arm64" "1.9.4"
+    "@biomejs/cli-darwin-x64" "1.9.4"
+    "@biomejs/cli-linux-arm64" "1.9.4"
+    "@biomejs/cli-linux-arm64-musl" "1.9.4"
+    "@biomejs/cli-linux-x64" "1.9.4"
+    "@biomejs/cli-linux-x64-musl" "1.9.4"
+    "@biomejs/cli-win32-arm64" "1.9.4"
+    "@biomejs/cli-win32-x64" "1.9.4"
+
 "@biomejs/cli-darwin-arm64@1.6.3":
   version "1.6.3"
   resolved "https://registry.npmjs.org/@biomejs/cli-darwin-arm64/-/cli-darwin-arm64-1.6.3.tgz"
   integrity sha512-0E8PGu3/8HSkBJdtjno+niJE1ANS/12D7sPK65vw5lTBYmmaYwJdfclDp6XO0IAX7uVd3/YtXlsEua0SVrNt3Q==
+
+"@biomejs/cli-darwin-arm64@1.9.4":
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-darwin-arm64/-/cli-darwin-arm64-1.9.4.tgz#dfa376d23a54a2d8f17133c92f23c1bf2e62509f"
+  integrity sha512-bFBsPWrNvkdKrNCYeAp+xo2HecOGPAy9WyNyB/jKnnedgzl4W4Hb9ZMzYNbf8dMCGmUdSavlYHiR01QaYR58cw==
 
 "@biomejs/cli-darwin-x64@1.6.3":
   version "1.6.3"
   resolved "https://registry.yarnpkg.com/@biomejs/cli-darwin-x64/-/cli-darwin-x64-1.6.3.tgz#c2c9f8ae4b95b8dd8d8a5d220c3c49fa2476f6c5"
   integrity sha512-UWu0We/aIRtWXgJKe6ygWt2xR0yXs64BwWqtZbfxBojRn3jgW8UdFAkV5yiUOX3TQlsV6BZH1EQaUAVsccUeeA==
 
+"@biomejs/cli-darwin-x64@1.9.4":
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-darwin-x64/-/cli-darwin-x64-1.9.4.tgz#eafc2ce3849d385fc02238aad1ca4a73395a64d9"
+  integrity sha512-ngYBh/+bEedqkSevPVhLP4QfVPCpb+4BBe2p7Xs32dBgs7rh9nY2AIYUL6BgLw1JVXV8GlpKmb/hNiuIxfPfZg==
+
 "@biomejs/cli-linux-arm64-musl@1.6.3":
   version "1.6.3"
   resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-arm64-musl/-/cli-linux-arm64-musl-1.6.3.tgz#52e2eba24476d5f2c58d2e5d5d331ae8e5c23b9d"
   integrity sha512-AntGCSfLN1nPcQj4VOk3X2JgnDw07DaPC8BuBmRcsRmn+7GPSWLllVN5awIKlRPZEbGJtSnLkTiDc5Bxw8OiuA==
+
+"@biomejs/cli-linux-arm64-musl@1.9.4":
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-arm64-musl/-/cli-linux-arm64-musl-1.9.4.tgz#d780c3e01758fc90f3268357e3f19163d1f84fca"
+  integrity sha512-v665Ct9WCRjGa8+kTr0CzApU0+XXtRgwmzIf1SeKSGAv+2scAlW6JR5PMFo6FzqqZ64Po79cKODKf3/AAmECqA==
 
 "@biomejs/cli-linux-arm64@1.6.3":
   version "1.6.3"
   resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-arm64/-/cli-linux-arm64-1.6.3.tgz#58bc8b8e48d5e69ef7dc07e925fb1f9f2fa45f99"
   integrity sha512-wFVkQw38kOssfnkbpSh6ums5TaElw3RAt5i/VZwHmgR2nQgE0fHXLO7HwIE9VBkOEdbiIFq+2PxvFIHuJF3z3Q==
 
+"@biomejs/cli-linux-arm64@1.9.4":
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-arm64/-/cli-linux-arm64-1.9.4.tgz#8ed1dd0e89419a4b66a47f95aefb8c46ae6041c9"
+  integrity sha512-fJIW0+LYujdjUgJJuwesP4EjIBl/N/TcOX3IvIHJQNsAqvV2CHIogsmA94BPG6jZATS4Hi+xv4SkBBQSt1N4/g==
+
 "@biomejs/cli-linux-x64-musl@1.6.3":
   version "1.6.3"
   resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-x64-musl/-/cli-linux-x64-musl-1.6.3.tgz#013e93e8e0fb355bc8ab6ba0fa899f7f76963a56"
   integrity sha512-GelAvGsUwbxfFpKLG+7+dvDmbrfkGqn08sL8CMQrGnhjE1krAqHWiXQsjfmi0UMFdMsk7hbc4oSAP+1+mrXcHQ==
+
+"@biomejs/cli-linux-x64-musl@1.9.4":
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-x64-musl/-/cli-linux-x64-musl-1.9.4.tgz#f36982b966bd671a36671e1de4417963d7db15fb"
+  integrity sha512-gEhi/jSBhZ2m6wjV530Yy8+fNqG8PAinM3oV7CyO+6c3CEh16Eizm21uHVsyVBEB6RIM8JHIl6AGYCv6Q6Q9Tg==
 
 "@biomejs/cli-linux-x64@1.6.3":
   version "1.6.3"
   resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-x64/-/cli-linux-x64-1.6.3.tgz#697f5005412a5cce9976eec5478f4788c95d2ad7"
   integrity sha512-vyn8TQaTZg617hjqFitwGmb1St5XXvq6I3vmxU/QFalM74BryMSvYCrYWb2Yw/TkykdEwZTMGYp+SWHRb04fTg==
 
+"@biomejs/cli-linux-x64@1.9.4":
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-x64/-/cli-linux-x64-1.9.4.tgz#a0a7f56680c76b8034ddc149dbf398bdd3a462e8"
+  integrity sha512-lRCJv/Vi3Vlwmbd6K+oQ0KhLHMAysN8lXoCI7XeHlxaajk06u7G+UsFSO01NAs5iYuWKmVZjmiOzJ0OJmGsMwg==
+
 "@biomejs/cli-win32-arm64@1.6.3":
   version "1.6.3"
   resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-arm64/-/cli-win32-arm64-1.6.3.tgz#d90c5010f3559c76d65ec4835c57dc9ec272f59e"
   integrity sha512-Gx8N2Tixke6pAI1BniteCVZgUUmaFEDYosdWxoaCus15BZI/7RcBxhsRM0ZL/lC66StSQ8vHl8JBrrld1k570Q==
 
+"@biomejs/cli-win32-arm64@1.9.4":
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-arm64/-/cli-win32-arm64-1.9.4.tgz#e2ef4e0084e76b7e26f0fc887c5ef1265ea56200"
+  integrity sha512-tlbhLk+WXZmgwoIKwHIHEBZUwxml7bRJgk0X2sPyNR3S93cdRq6XulAZRQJ17FYGGzWne0fgrXBKpl7l4M87Hg==
+
 "@biomejs/cli-win32-x64@1.6.3":
   version "1.6.3"
   resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-x64/-/cli-win32-x64-1.6.3.tgz#88bf315e96c9a56f904cb33d6db1499fb2cd9964"
   integrity sha512-meungPJw64SqoR7LXY1wG7GC4+4wgpyThdFUMGXa6PCe0BLFOIOcZ9VMj9PstuczMPdgmt/BUMPsj25dK1VO8A==
+
+"@biomejs/cli-win32-x64@1.9.4":
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-x64/-/cli-win32-x64-1.9.4.tgz#4c7afa90e3970213599b4095e62f87e5972b2340"
+  integrity sha512-8Y5wMhVIPaWe6jw2H+KlEm4wP/f7EW3810ZLmDlrEEy5KvBsb9ECEfu/kMWD484ijfQ8+nIi0giMgu9g1UAuuA==
 
 "@emnapi/core@^1.4.3":
   version "1.8.1"
@@ -571,9 +625,9 @@
   resolved "https://registry.yarnpkg.com/@types/deep-eql/-/deep-eql-4.0.2.tgz#334311971d3a07121e7eb91b684a605e7eea9cbd"
   integrity sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==
 
-"@types/ejs@3.1.5":
+"@types/ejs@^3.1.5":
   version "3.1.5"
-  resolved "https://registry.npmjs.org/@types/ejs/-/ejs-3.1.5.tgz"
+  resolved "https://registry.yarnpkg.com/@types/ejs/-/ejs-3.1.5.tgz#49d738257cc73bafe45c13cb8ff240683b4d5117"
   integrity sha512-nv+GSx77ZtXiJzwKdsASqi+YQ5Z7vwHsTP0JY2SiQgjGckkBRKZnk8nIM+7oUZ1VCtuTz0+By4qVR7fqzp/Dfg==
 
 "@types/eslint@9.6.1":
@@ -607,9 +661,9 @@
   resolved "https://registry.npmjs.org/@types/estree/-/estree-1.0.7.tgz"
   integrity sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==
 
-"@types/fs-extra@11.0.4":
+"@types/fs-extra@^11.0.4":
   version "11.0.4"
-  resolved "https://registry.npmjs.org/@types/fs-extra/-/fs-extra-11.0.4.tgz"
+  resolved "https://registry.yarnpkg.com/@types/fs-extra/-/fs-extra-11.0.4.tgz#e16a863bb8843fba8c5004362b5a73e17becca45"
   integrity sha512-yTbItCNreRooED33qjunPthRcSjERP1r4MqCZc7wv0u2sUkzTFp45tgUfS5+r7FrZPdmCCNflLhVSP/o+SemsQ==
   dependencies:
     "@types/jsonfile" "*"
@@ -651,9 +705,9 @@
   dependencies:
     "@types/node" "*"
 
-"@types/lodash@4.17.23":
+"@types/lodash@^4.17.23":
   version "4.17.23"
-  resolved "https://registry.npmjs.org/@types/lodash/-/lodash-4.17.23.tgz"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.17.23.tgz#c1bb06db218acc8fc232da0447473fc2fb9d9841"
   integrity sha512-RDvF6wTulMPjrNdCoYRC8gNR880JNGT8uB+REUpC2Ns4pRqQJhGz90wh7rgdXDPpCczF3VGktDuFGVnz8zP7HA==
 
 "@types/minimist@^1.2.0":
@@ -685,32 +739,27 @@
   resolved "https://registry.npmjs.org/@types/normalize-package-data/-/normalize-package-data-2.4.1.tgz"
   integrity sha512-Gj7cI7z+98M282Tqmp2K5EIsoouUEzbBJhQQzDE3jSIRk6r9gsz0oUokqIUR4u1R3dMHo0pDHM7sNOHyhulypw==
 
-"@types/prettier@2.6.2":
-  version "2.6.2"
-  resolved "https://registry.npmjs.org/@types/prettier/-/prettier-2.6.2.tgz"
-  integrity sha512-dOW37mq8TBPPI8YIkmN/EDJFWBgvjEmQP8OmODSl26B4fud0sa3ohpTSi5AuhwSfkaY4kYBptSilmS6cBO0DVw==
-
-"@types/sax@1.2.4":
-  version "1.2.4"
-  resolved "https://registry.npmjs.org/@types/sax/-/sax-1.2.4.tgz"
-  integrity sha512-pSAff4IAxJjfAXUG6tFkO7dsSbTmf8CtUpfhhZ5VhkRpC4628tJhh3+V6H1E+/Gs9piSzYKT5yzHO5M4GG9jkw==
+"@types/sax@^1.2.4":
+  version "1.2.7"
+  resolved "https://registry.yarnpkg.com/@types/sax/-/sax-1.2.7.tgz#ba5fe7df9aa9c89b6dff7688a19023dd2963091d"
+  integrity sha512-rO73L89PJxeYM3s3pPPjiPgVVcymqU490g0YO5n5By0k2Erzj6tay/4lr1CHAAU4JyOWd1rpQ8bCf6cZfHU96A==
   dependencies:
     "@types/node" "*"
 
-"@types/url-join@4.0.1":
-  version "4.0.1"
-  resolved "https://registry.npmjs.org/@types/url-join/-/url-join-4.0.1.tgz"
-  integrity sha512-wDXw9LEEUHyV+7UWy7U315nrJGJ7p1BzaCxDpEoLr789Dk1WDVMMlf3iBfbG2F8NdWnYyFbtTxUn2ZNbm1Q4LQ==
+"@types/url-join@^4.0.1":
+  version "4.0.3"
+  resolved "https://registry.yarnpkg.com/@types/url-join/-/url-join-4.0.3.tgz#09ede6753b846a274301b9bd3a6ed117050daecd"
+  integrity sha512-3l1qMm3wqO0iyC5gkADzT95UVW7C/XXcdvUcShOideKF0ddgVRErEQQJXBd2kvQm+aSgqhBGHGB38TgMeT57Ww==
 
-"@types/uuid@8.3.4":
+"@types/uuid@^8.3.4":
   version "8.3.4"
-  resolved "https://registry.npmjs.org/@types/uuid/-/uuid-8.3.4.tgz"
+  resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-8.3.4.tgz#bd86a43617df0594787d38b735f55c805becf1bc"
   integrity sha512-c/I8ZRb51j+pYGAu5CrFMRxqZ2ke4y2grEBO5AUjgSkSk+qT2Ea+OdWElz/OiMf5MNpn2b17kuVBwZLQJXzihw==
 
-"@types/valid-url@1.0.3":
-  version "1.0.3"
-  resolved "https://registry.npmjs.org/@types/valid-url/-/valid-url-1.0.3.tgz"
-  integrity sha512-+33x29mg+ecU88ODdWpqaie2upIuRkhujVLA7TuJjM823cNMbeggfI6NhxewaRaRF8dy+g33e4uIg/m5Mb3xDQ==
+"@types/valid-url@^1.0.3":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@types/valid-url/-/valid-url-1.0.7.tgz#f99e3d89dea90f34a7cc695a6f152728abfb245a"
+  integrity sha512-tgsWVG80dM5PVEBSbXUttPJTBCOo0IKbBh4R4z/SHsC5C81A3aaUH4fsbj+JYk7fopApU/Mao1c0EWTE592TSg==
 
 "@types/yargs-parser@*":
   version "20.2.0"
@@ -2974,9 +3023,9 @@ lodash.merge@^4.6.2:
   resolved "https://registry.npmjs.org/lodash.merge/-/lodash.merge-4.6.2.tgz"
   integrity sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==
 
-lodash@4.17.23:
+lodash@^4.17.23:
   version "4.17.23"
-  resolved "https://registry.npmjs.org/lodash/-/lodash-4.17.23.tgz"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.23.tgz#f113b0378386103be4f6893388c73d0bde7f2c5a"
   integrity sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==
 
 log-symbols@^4.0.0:
