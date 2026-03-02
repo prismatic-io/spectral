@@ -1,8 +1,10 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "10.16.2",
+  "version": "10.16.3",
   "description": "Utility library for building Prismatic connectors and code-native integrations",
-  "keywords": ["prismatic"],
+  "keywords": [
+    "prismatic"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://prismatic.io",
@@ -38,7 +40,9 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui"
   },
-  "files": ["dist/"],
+  "files": [
+    "dist/"
+  ],
   "dependencies": {
     "axios": "1.13.5",
     "axios-retry": "4.5.0",
