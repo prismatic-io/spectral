@@ -4,15 +4,11 @@
   "packageManager": "bun@1.3.10",
   "workspaces": ["packages/*"],
   "scripts": {
-    "build": "turbo run build",
-    "test": "turbo run test",
-    "tsd": "turbo run tsd",
-    "check": "turbo run check",
-    "lint": "turbo run lint",
-    "docs": "turbo run docs",
-    "all": "turbo run all"
-  },
-  "devDependencies": {
-    "turbo": "^2.8.13"
+    "build": "bun run --filter @prismatic-io/eslint-config-spectral build && bun run --filter @prismatic-io/spectral build && bun run --filter spectral-test build",
+    "test": "bun run --filter @prismatic-io/spectral test",
+    "tsd": "bun run --filter spectral-test tsd",
+    "check": "bun run --filter @prismatic-io/spectral check",
+    "lint": "bun run --filter @prismatic-io/spectral lint",
+    "all": "bun run check && bun run lint && bun run build && bun run test && bun run tsd"
   }
 }
