@@ -21,11 +21,11 @@
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "yarn run format && yarn run lint && yarn run clean && tsc",
-    "prepack": "yarn run build",
+    "build": "bun run format && bun run lint && bun run clean && tsc",
+    "prepack": "bun run build",
     "lint": "biome lint .",
     "lint-fix": "biome lint --apply-unsafe .",
-    "format": "yarn run lint-fix && biome format --write .",
+    "format": "bun run lint-fix && biome format --write .",
     "check-format": "biome format .",
     "tsd": "tsd"
   },

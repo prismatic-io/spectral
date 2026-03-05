@@ -1,5 +1,7 @@
 {
+  "name": "spectral-monorepo",
   "private": true,
+  "packageManager": "bun@1.3.10",
   "workspaces": ["packages/*"],
   "scripts": {
     "build": "turbo run build",
@@ -11,6 +13,6 @@
     "all": "turbo run all"
   },
   "devDependencies": {
-    "turbo": "^1.10.12"
+    "turbo": "^2.8.13"
   }
 }
