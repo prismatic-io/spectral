@@ -1,4 +1,4 @@
-import { fetchComponentDataForManifest } from ".";
+import { fetchComponentDataForManifest, fetchConnectionStableKeys } from ".";
 import { createFlagHelpText } from "../utils/createFlagHelpText";
 import { getFlagsBooleanValue } from "../utils/getFlagBooleanValue";
 import { mkdirSync } from "node:fs";
@@ -75,6 +75,11 @@ export const runMain = async (process: NodeJS.Process) => {
     isPrivate: flags.isPrivate.value || false,
   });
 
+  const reusableConnectionStableKeys = await fetchConnectionStableKeys({
+    componentKey: component.key,
+    isPrivate: flags.isPrivate.value || false,
+  });
+
   // Generate the manifest
   const destinationDir = path.join(process.cwd(), "src", "manifests", component.key);
   const templatesDir = path.join(__dirname, "..", "componentManifest", "templates");
@@ -123,6 +128,7 @@ export const runMain = async (process: NodeJS.Process) => {
     verbose,
     sourceDir: templatesDir,
     destinationDir,
+    reusableConnectionStableKeys,
   });
 
   await createDataSources({

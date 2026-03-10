@@ -182,6 +182,17 @@ export const fetchComponentDataForManifest = async <
   }
 };
 
+// This is a mock now and will be filled in with a graphql query to fetch stable keys.
+export const fetchConnectionStableKeys = async ({
+  componentKey,
+  isPrivate,
+}: {
+  componentKey: string;
+  isPrivate: boolean;
+}): Promise<string[]> => {
+  return [];
+};
+
 async function getComponentActions(componentId: string, prismaticUrl: string, accessToken: string) {
   let hasNextPage = true;
   let cursor: string | null = null;
