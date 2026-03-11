@@ -512,9 +512,9 @@ const convertComponentRegistry = (
 ): Array<ServerComponentReference["component"]> => {
   const convertedRegistry: Array<ServerComponentReference["component"]> = Object.values(
     componentRegistry,
-  ).map(({ key, public: isPublic, signature }) => ({
+  ).map(({ key, public: isPublic }) => ({
     key,
-    signature: signature ?? "",
+    version: "LATEST",
     isPublic,
   }));
 
