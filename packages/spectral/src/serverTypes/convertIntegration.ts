@@ -514,8 +514,8 @@ const convertComponentRegistry = (
     componentRegistry,
   ).map(({ key, public: isPublic, signature }) => ({
     key,
-    signature: signature ?? "",
     isPublic,
+    ...(signature ? { signature } : { version: "LATEST" }),
   }));
 
   if (publicSupplementalComponent) {
