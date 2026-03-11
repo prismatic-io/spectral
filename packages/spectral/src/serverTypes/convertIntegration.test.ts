@@ -412,3 +412,85 @@ describe("webhookLifecycleHandlers", () => {
     expect(testIntegration.codeNativeIntegrationYAML).not.toContain("webhookLifecycleHandlers");
   });
 });
+
+describe("convertFlow supplementalComponents", () => {
+  const baseFlowInput = {
+    name: "Test Flow",
+    stableKey: "test-flow",
+    description: "A test flow",
+    onExecution: async () => ({ data: "test" }),
+  };
+
+  it("uses signature when component manifest has a non-null signature", () => {
+    const registry = {
+      "my-component": {
+        key: "my-component",
+        public: true,
+        signature: "abc123",
+        actions: {},
+        triggers: {},
+        dataSources: {},
+        connections: {},
+      },
+    };
+
+    const testFlow = flow({ ...baseFlowInput });
+    const result = convertFlow(testFlow, registry, "test-ref");
+    const supplemental = result.supplementalComponents as Array<Record<string, unknown>>;
+
+    const component = supplemental.find((c) => c.key === "my-component");
+    expect(component).toEqual({
+      key: "my-component",
+      isPublic: true,
+      signature: "abc123",
+    });
+    expect(component).not.toHaveProperty("version");
+  });
+
+  it("falls back to version LATEST when component manifest has null signature", () => {
+    const registry = {
+      "my-component": {
+        key: "my-component",
+        public: true,
+        signature: null,
+        actions: {},
+        triggers: {},
+        dataSources: {},
+        connections: {},
+      },
+    };
+
+    const testFlow = flow({ ...baseFlowInput });
+    const result = convertFlow(testFlow, registry, "test-ref");
+    const supplemental = result.supplementalComponents as Array<Record<string, unknown>>;
+
+    const component = supplemental.find((c) => c.key === "my-component");
+    expect(component).toEqual({
+      key: "my-component",
+      isPublic: true,
+      version: "LATEST",
+    });
+    expect(component).not.toHaveProperty("signature");
+  });
+
+  it("does not produce an empty string signature", () => {
+    const registry = {
+      "my-component": {
+        key: "my-component",
+        public: true,
+        signature: null,
+        actions: {},
+        triggers: {},
+        dataSources: {},
+        connections: {},
+      },
+    };
+
+    const testFlow = flow({ ...baseFlowInput });
+    const result = convertFlow(testFlow, registry, "test-ref");
+    const supplemental = result.supplementalComponents as Array<Record<string, unknown>>;
+
+    const component = supplemental.find((c) => c.key === "my-component");
+    expect(component?.signature).not.toBe("");
+  });
+});
