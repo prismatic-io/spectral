@@ -5,7 +5,7 @@ import type { CustomerActivatedConnectionConfigVar, OrganizationActivatedConnect
 <%- include('../partials/importBarrel.ejs', { imports }) -%>
 <% if (reusableConnectionStableKeys.length > 0) { %>
 export const <%- helpers.camelCase(componentKey) %>ReusableConnection = (
-  stableKey: <%- reusableConnectionStableKeys.map(k => JSON.stringify(k)).join(" | ") %>,
+  stableKey: <%- reusableConnectionStableKeys.map(k => JSON.stringify(k)).join(" | ") %> | (string & {}),
 ): OrganizationActivatedConnectionConfigVar | CustomerActivatedConnectionConfigVar => ({
   stableKey,
   dataType: "connection",
