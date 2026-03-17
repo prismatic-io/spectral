@@ -182,6 +182,54 @@ export const fetchComponentDataForManifest = async <
   }
 };
 
+export const fetchConnectionStableKeys = async ({
+  componentKey,
+  isPrivate,
+}: {
+  componentKey: string;
+  isPrivate: boolean;
+}): Promise<string[]> => {
+  const accessToken = await getPrismAccessToken();
+  const prismaticUrl = process.env.PRISMATIC_URL ?? "https://app.prismatic.io";
+
+  const query = `
+    query connectionStableKeysQuery($componentSelector: [ComponentSelector]!) {
+      scopedConfigVariables(connection_Component_In: $componentSelector) {
+        nodes {
+          stableKey
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      new URL("/api", prismaticUrl).toString(),
+      {
+        query,
+        variables: {
+          componentSelector: [{ key: componentKey, isPublic: !isPrivate }],
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Prismatic-Client": "spectral",
+        },
+      },
+    );
+
+    const nodes = response.data?.data?.scopedConfigVariables?.nodes ?? [];
+    return nodes.map((node: { stableKey: string }) => node.stableKey);
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.data?.errors) {
+      throw new Error(JSON.stringify(error.response.data.errors, null, 2));
+    }
+    throw error;
+  }
+};
+
 async function getComponentActions(componentId: string, prismaticUrl: string, accessToken: string) {
   let hasNextPage = true;
   let cursor: string | null = null;

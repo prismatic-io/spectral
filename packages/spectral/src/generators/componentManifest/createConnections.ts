@@ -32,6 +32,7 @@ interface CreateConnectionsProps<
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
+  reusableConnectionStableKeys?: string[];
 }
 
 export const createConnections = async <
@@ -50,6 +51,7 @@ export const createConnections = async <
   verbose,
   sourceDir,
   destinationDir,
+  reusableConnectionStableKeys = [],
 }: CreateConnectionsProps<
   TInputs,
   TActionInputs,
@@ -72,6 +74,8 @@ export const createConnections = async <
     verbose,
     sourceDir,
     destinationDir,
+    reusableConnectionStableKeys,
+    componentKey: component.key,
   });
 
   const connections = await Promise.all(
@@ -130,6 +134,8 @@ interface RenderConnectionsIndexProps {
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
+  reusableConnectionStableKeys?: string[];
+  componentKey: string;
 }
 
 const renderConnectionsIndex = async ({
@@ -138,12 +144,17 @@ const renderConnectionsIndex = async ({
   verbose,
   sourceDir,
   destinationDir,
+  reusableConnectionStableKeys = [],
+  componentKey,
 }: RenderConnectionsIndexProps) => {
   return await createTemplate({
     source: path.join(sourceDir, "connections", "index.ts.ejs"),
     destination: path.join(destinationDir, "connections", "index.ts"),
     data: {
       imports,
+      reusableConnectionStableKeys,
+      componentKey,
+      helpers,
     },
     dryRun,
     verbose,
