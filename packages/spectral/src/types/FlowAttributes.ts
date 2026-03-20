@@ -4,4 +4,6 @@ export interface FlowAttributes {
   id: string;
   /** The name of the currently running flow. */
   name: string;
+  /** The stable ID of the currently running flow. */
+  stableId?: string;
 }
