@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral",
-  "version": "10.17.0",
+  "version": "10.17.1",
   "description": "Utility library for building Prismatic connectors and code-native integrations",
   "keywords": ["prismatic"],
   "main": "dist/index.js",
@@ -47,7 +47,7 @@
     "form-data": "4.0.4",
     "fs-extra": "^11.2.0",
     "jest-mock": "29.7.0",
-    "lodash": "4.17.23",
+    "lodash": "^4.18.1",
     "object-sizeof": "^2.6.4",
     "prettier": "2.6.2",
     "safe-stable-stringify": "2.3.1",
@@ -55,7 +55,7 @@
     "url-join": "5.0.0",
     "uuid": "8.3.2",
     "valid-url": "1.0.9",
-    "yaml": "2.3.4"
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@biomejs/biome": "1.6.3",
