@@ -115,8 +115,31 @@ export const toAxiosRetryConfig = ({
 });
 
 /**
- * Creates a reusable Axios HTTP client. See
- * https://prismatic.io/docs/custom-connectors/connections/#using-the-built-in-createclient-http-client
+ * Creates a reusable Axios HTTP client pre-configured with a base URL,
+ * headers, timeout, and optional retry logic. This is the recommended
+ * way to make HTTP requests from custom component actions.
+ *
+ * @param props Configuration for the HTTP client.
+ * @returns An Axios instance configured with the provided options.
+ * @see {@link https://prismatic.io/docs/custom-connectors/connections/#using-the-built-in-createclient-http-client | Using the Built-in HTTP Client}
+ * @example
+ * import { createClient } from "@prismatic-io/spectral/dist/clients/http";
+ *
+ * const client = createClient({
+ *   baseUrl: "https://api.acme.com/v2",
+ *   headers: { Authorization: `Bearer ${accessToken}` },
+ *   responseType: "json",
+ *   timeout: 30000,
+ *   debug: false,
+ *   retryConfig: {
+ *     retries: 3,
+ *     retryDelay: 1000,
+ *     useExponentialBackoff: true,
+ *     retryAllErrors: false,
+ *   },
+ * });
+ *
+ * const { data } = await client.get("/items");
  */
 export const createClient = ({
   baseUrl,
@@ -191,13 +214,25 @@ export const createClient = ({
 
 /**
  * A global error handler that examines a thrown error and yields additional
- * information if the error was produced by Spectral's HTTP client. See
- * https://prismatic.io/docs/custom-connectors/error-handling/
- * and
- * https://prismatic.io/docs/custom-connectors/connections/#using-the-built-in-createclient-http-client
+ * information if the error was produced by Spectral's HTTP client. If the
+ * error is an Axios error, returns a structured object with the response
+ * `data`, `status`, and `headers`. Otherwise, returns the error as-is.
  *
- * @param error A JavaScript error to handle
- * @returns An error with data, status and headers if it was an Axios error, or the error otherwise
+ * Commonly used as a component-level `hooks.error` handler.
+ *
+ * @param error A JavaScript error to handle.
+ * @returns An error with data, status and headers if it was an Axios error, or the error otherwise.
+ * @see {@link https://prismatic.io/docs/custom-connectors/error-handling/ | Error Handling}
+ * @example
+ * import { component } from "@prismatic-io/spectral";
+ * import { handleErrors } from "@prismatic-io/spectral/dist/clients/http";
+ *
+ * export default component({
+ *   key: "acme",
+ *   display: { label: "Acme", description: "Acme connector", iconPath: "icon.png" },
+ *   hooks: { error: handleErrors },
+ *   actions: { ... },
+ * });
  */
 export const handleErrors = (error: unknown): unknown => {
   if (axios.isAxiosError(error)) {
@@ -215,14 +250,28 @@ export const handleErrors = (error: unknown): unknown => {
 type SendRawRequestValues = ActionInputParameters<typeof inputs>;
 
 /**
- * This function allows you to build a generic "Raw Request" action
- * for a custom connector. See
- * https://prismatic.io/docs/integrations/low-code-integration-designer/raw-request-actions/#building-an-http-raw-request-action-in-your-custom-component
+ * This function sends a raw HTTP request with full control over method, URL,
+ * headers, query parameters, and body. Used internally by `buildRawRequestAction`.
  *
- * @param baseUrl The base URL of the API you're integrating with
- * @param values An object comprising the HTTP request you'd like to make
- * @param authorizationHeaders Auth headers to apply to the request
- * @returns The response to the request
+ * @param baseUrl The base URL of the API you're integrating with.
+ * @param values An object comprising the HTTP request you'd like to make.
+ * @param authorizationHeaders Auth headers to apply to the request.
+ * @returns The Axios response to the request.
+ * @see {@link https://prismatic.io/docs/integrations/low-code-integration-designer/raw-request-actions/#building-an-http-raw-request-action-in-your-custom-component | Raw Request Actions}
+ * @example
+ * import { sendRawRequest } from "@prismatic-io/spectral/dist/clients/http";
+ *
+ * const response = await sendRawRequest(
+ *   "https://api.acme.com/v2",
+ *   {
+ *     method: "GET",
+ *     url: "/items",
+ *     headers: [],
+ *     queryParams: [{ key: "limit", value: "10" }],
+ *     responseType: "json",
+ *   },
+ *   { Authorization: "Bearer my-token" },
+ * );
  */
 export const sendRawRequest = async (
   baseUrl: string,
@@ -264,6 +313,25 @@ export const sendRawRequest = async (
   });
 };
 
+/**
+ * Builds a pre-configured "Raw Request" action for a custom connector.
+ * This action exposes a full HTTP interface (method, URL, headers, query
+ * params, body) so integration builders can make arbitrary API calls.
+ *
+ * @param baseUrl The base URL of the API you're integrating with.
+ * @param label The display label for the action. Defaults to `"Raw Request"`.
+ * @param description The display description for the action. Defaults to `"Issue a raw HTTP request"`.
+ * @returns An action definition for the raw request action.
+ * @see {@link https://prismatic.io/docs/integrations/low-code-integration-designer/raw-request-actions/#building-an-http-raw-request-action-in-your-custom-component | Raw Request Actions}
+ * @example
+ * import { buildRawRequestAction } from "@prismatic-io/spectral/dist/clients/http";
+ *
+ * // Add a raw request action to your component
+ * const actions = {
+ *   listItems: action({ ... }),
+ *   rawRequest: buildRawRequestAction("https://api.acme.com/v2"),
+ * };
+ */
 export const buildRawRequestAction = (
   baseUrl: string,
   label = "Raw Request",
