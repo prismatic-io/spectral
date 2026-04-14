@@ -1,7 +1,7 @@
 {
   "name": "spectral-monorepo",
   "private": true,
-  "packageManager": "bun@1.3.10",
+  "packageManager": "bun@1.3.12",
   "workspaces": ["packages/*"],
   "scripts": {
     "build": "bun run --filter @prismatic-io/eslint-config-spectral build && bun run --filter @prismatic-io/spectral build && bun run --filter spectral-test build",
