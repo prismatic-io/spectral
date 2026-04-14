@@ -1,44 +1,21 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.6.3/schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
+  "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
+  "extends": ["../../biome.jsonc"],
   "files": {
-    "ignore": ["dist", "node_modules", "bin"]
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 100
+    "includes": ["!**/dist", "!**/node_modules", "!**/bin"]
   },
   "linter": {
-    "enabled": true,
     "rules": {
-      "recommended": true,
       "suspicious": {
-        "noExplicitAny": "off",
         "noEmptyInterface": "off",
         "noShadowRestrictedNames": "off",
         "noDoubleEquals": "off",
         "noConfusingVoidType": "off"
       },
       "correctness": {
-        "noUnsafeOptionalChaining": "off",
         "noUnusedImports": "error"
       },
       "style": {
-        "useNodejsImportProtocol": "off",
-        "noUselessElse": "off",
-        "useImportType": "off"
-      },
-      "complexity": {
-        "noForEach": "off"
-      },
-      "performance": {
-        "noAccumulatingSpread": "off"
-      },
-      "nursery": {
         "noRestrictedImports": {
           "level": "error",
           "options": {
@@ -52,10 +29,10 @@
   },
   "overrides": [
     {
-      "include": ["src/types/**/*"],
+      "includes": ["**/src/types/**/*"],
       "linter": {
         "rules": {
-          "nursery": {
+          "style": {
             "noRestrictedImports": {
               "level": "error",
               "options": {

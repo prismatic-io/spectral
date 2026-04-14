@@ -1,16 +1,15 @@
-import { describe, expect } from "vitest";
-import { test, fc } from "@fast-check/vitest";
+import { fc, test as fcTest } from "@fast-check/vitest";
+import { isAfter, isBefore } from "date-fns";
+import { describe, expect, test } from "vitest";
+import { contains, evaluate, parseDate } from "./index";
 import {
-  ConditionalExpression,
+  BinaryOperator,
   BooleanExpression,
   BooleanOperator,
-  BinaryOperator,
-  UnaryOperator,
+  ConditionalExpression,
   TermOperatorPhrase,
+  UnaryOperator,
 } from "./types";
-import { isBefore, isAfter } from "date-fns";
-
-import { evaluate, contains, parseDate } from "./index";
 
 // Look for leading and trailing braces, square brackets, or quotes.
 const jsonLikeRegex = new RegExp(/^[[{"].*[\]}"]$/);
@@ -51,8 +50,8 @@ describe("evaluate", () => {
     .string()
     // Ignore the JSON.parse edge cases (matching double quotes get stripped etc).
     .filter((v) => !isJsonLike(v))
-    .filter((v) => Number.isNaN(Number.parseInt(v)));
-  const integerOnlyString = fc.string().filter((v) => !Number.isNaN(Number.parseInt(v)));
+    .filter((v) => Number.isNaN(Number.parseInt(v, 10)));
+  const integerOnlyString = fc.string().filter((v) => !Number.isNaN(Number.parseInt(v, 10)));
 
   describe("true expressions", () => {
     const simpleTrueExpression = fc.oneof(
@@ -190,9 +189,7 @@ describe("evaluate", () => {
         .filter((left) => Boolean(left) === false)
         .map((left): ConditionalExpression => [UnaryOperator.isFalse, left]),
       // doesNotExist
-      fc
-        .falsy()
-        .map((left): ConditionalExpression => [UnaryOperator.doesNotExist, left]),
+      fc.falsy().map((left): ConditionalExpression => [UnaryOperator.doesNotExist, left]),
       // dateTimeAfter
       fc
         .tuple(fc.date(), fc.date())
@@ -214,9 +211,7 @@ describe("evaluate", () => {
           ([left, right]): ConditionalExpression => [BinaryOperator.dateTimeBefore, left, right],
         ),
       // dateTimeSame
-      fc
-        .date()
-        .map((left): ConditionalExpression => [BinaryOperator.dateTimeSame, left, left]),
+      fc.date().map((left): ConditionalExpression => [BinaryOperator.dateTimeSame, left, left]),
       fc
         .tuple(equivalentDates(), equivalentDates())
         .map(([left, right]): ConditionalExpression => [BinaryOperator.dateTimeSame, left, right]),
@@ -257,11 +252,11 @@ describe("evaluate", () => {
       orFalseExpressions,
     );
 
-    test.prop([trueExpressions])("should evaluate expressions", (expression) => {
+    fcTest.prop([trueExpressions])("should evaluate expressions", (expression) => {
       expect(evaluate(expression)).toBe(true);
     });
 
-    test.prop([falseExpressions])("should evaluate false expressions", (expression) => {
+    fcTest.prop([falseExpressions])("should evaluate false expressions", (expression) => {
       expect(evaluate(expression)).toBe(false);
     });
 
@@ -316,7 +311,7 @@ describe("evaluate", () => {
       fc.string(),
     );
 
-    test.prop([invalidExpressions])("should throw error on invalid expression", (expression) => {
+    fcTest.prop([invalidExpressions])("should throw error on invalid expression", (expression) => {
       expect(() => evaluate(expression as any)).toThrow();
     });
 

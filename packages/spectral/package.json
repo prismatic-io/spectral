@@ -2,7 +2,9 @@
   "name": "@prismatic-io/spectral",
   "version": "10.17.2",
   "description": "Utility library for building Prismatic connectors and code-native integrations",
-  "keywords": ["prismatic"],
+  "keywords": [
+    "prismatic"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://prismatic.io",
@@ -24,21 +26,21 @@
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "bun run format && bun run lint && bun run clean && tsc",
+    "build": "bun run format && bun run clean && tsc",
     "build:templates": "copyfiles --error -u 1 src/**/templates/**/*.ejs dist",
     "dev": "tsc -w",
     "postbuild": "bun run build:templates",
     "prepack": "bun run build",
     "lint": "biome lint .",
-    "lint-fix": "biome lint --apply-unsafe .",
-    "format": "bun run lint-fix && biome format --write .",
-    "check-format": "biome format .",
-    "check": "bun run check-format && bun run lint",
+    "format": "biome check --write --unsafe .",
+    "check": "biome check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui"
   },
-  "files": ["dist/"],
+  "files": [
+    "dist/"
+  ],
   "dependencies": {
     "axios": "^1.15.0",
     "axios-retry": "4.5.0",
@@ -49,7 +51,7 @@
     "jest-mock": "29.7.0",
     "lodash": "^4.18.1",
     "object-sizeof": "^2.6.4",
-    "prettier": "2.6.2",
+    "prettier": "^3.8.2",
     "safe-stable-stringify": "2.3.1",
     "serialize-error": "8.1.0",
     "url-join": "5.0.0",
@@ -58,21 +60,21 @@
     "yaml": "^2.8.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.6.3",
-    "@fast-check/vitest": "^0.2.4",
+    "@biomejs/biome": "^2.4.11",
+    "@fast-check/vitest": "^0.4.0",
     "@types/ejs": "3.1.5",
     "@types/fs-extra": "11.0.4",
-    "@types/lodash": "4.17.23",
+    "@types/lodash": "^4.17.24",
     "@types/node": "^22.19.7",
-    "@types/prettier": "2.6.2",
-    "@types/sax": "1.2.4",
+    "@types/prettier": "^3.0.0",
+    "@types/sax": "^1.2.7",
     "@types/url-join": "4.0.1",
     "@types/uuid": "8.3.4",
-    "@types/valid-url": "1.0.3",
-    "@vitest/ui": "^4.0.18",
+    "@types/valid-url": "^1.0.7",
+    "@vitest/ui": "^4.1.4",
     "copyfiles": "2.4.1",
-    "fast-check": "^4.5.3",
+    "fast-check": "^4.6.0",
     "typescript": "5.5.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.4"
   }
 }

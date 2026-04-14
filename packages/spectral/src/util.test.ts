@@ -1,5 +1,5 @@
-import { describe, expect } from "vitest";
-import { test, fc } from "@fast-check/vitest";
+import { fc, test as fcTest } from "@fast-check/vitest";
+import { describe, expect, test } from "vitest";
 import util from "./util";
 
 describe("util", () => {
@@ -34,52 +34,52 @@ describe("util", () => {
       fc.double(),
     );
 
-    test.prop([fc.boolean()])("detects boolean value", (v) => {
+    fcTest.prop([fc.boolean()])("detects boolean value", (v) => {
       expect(util.types.isBool(v)).toBe(true);
     });
 
-    test.prop([invalidValues])("detects non-boolean value", (v) => {
+    fcTest.prop([invalidValues])("detects non-boolean value", (v) => {
       expect(util.types.isBool(v)).toBe(false);
     });
 
-    test.prop([truthy()])("coerces truthy values to true", (v) => {
+    fcTest.prop([truthy()])("coerces truthy values to true", (v) => {
       expect(util.types.toBool(v)).toBe(true);
     });
 
-    test.prop([falsy()])("coerces falsy values to false", (v) => {
+    fcTest.prop([falsy()])("coerces falsy values to false", (v) => {
       expect(util.types.toBool(v)).toBe(false);
     });
 
-    test.prop([unknowns()])(
+    fcTest.prop([unknowns()])(
       "allows for boolean default to false for undefined inputs and undefined default",
       (v) => {
         expect(util.types.toBool(v)).toBe(false);
       },
     );
 
-    test.prop([unknowns()])("allows for boolean default of false for undefined inputs", (v) => {
+    fcTest.prop([unknowns()])("allows for boolean default of false for undefined inputs", (v) => {
       expect(util.types.toBool(v, false)).toBe(false);
     });
 
-    test.prop([unknowns()])("allows for boolean default of true for undefined inputs", (v) => {
+    fcTest.prop([unknowns()])("allows for boolean default of true for undefined inputs", (v) => {
       expect(util.types.toBool(v, true)).toBe(true);
     });
 
-    test.prop([emptyStrings()])(
+    fcTest.prop([emptyStrings()])(
       "allows for boolean default to false for empty string inputs and undefined default",
       (v) => {
         expect(util.types.toBool(v)).toBe(false);
       },
     );
 
-    test.prop([emptyStrings()])(
+    fcTest.prop([emptyStrings()])(
       "allows for boolean default of false for empty string inputs",
       (v) => {
         expect(util.types.toBool(v, false)).toBe(false);
       },
     );
 
-    test.prop([emptyStrings()])(
+    fcTest.prop([emptyStrings()])(
       "allows for boolean default of true for empty string inputs",
       (v) => {
         expect(util.types.toBool(v, true)).toBe(true);
@@ -89,44 +89,44 @@ describe("util", () => {
 
   describe("integer", () => {
     const invalidValues = fc.oneof(
-      fc.string().filter((v) => Number.isNaN(Number.parseInt(v)) && v !== ""),
+      fc.string().filter((v) => Number.isNaN(Number.parseInt(v, 10)) && v !== ""),
     );
 
-    test.prop([fc.integer()])("detects integer value", (v) => {
+    fcTest.prop([fc.integer()])("detects integer value", (v) => {
       expect(util.types.isInt(v)).toBe(true);
     });
 
-    test.prop([invalidValues])("detects non-integer value", (v) => {
+    fcTest.prop([invalidValues])("detects non-integer value", (v) => {
       expect(util.types.isInt(v)).toBe(false);
     });
 
-    test.prop([fc.integer()])("coerces integer values", (v) => {
+    fcTest.prop([fc.integer()])("coerces integer values", (v) => {
       expect(util.types.toInt(v.toString())).toBe(v);
     });
 
-    test.prop([
+    fcTest.prop([
       fc.float({ noNaN: true }).filter((v) => !Number.isInteger(v) && Number.isFinite(v)),
     ])("coerces a float to an int", (v) => {
       expect(util.types.toInt(v)).toBe(~~v);
     });
 
-    test.prop([invalidValues])("throws when coercing non-integer values", (v) => {
+    fcTest.prop([invalidValues])("throws when coercing non-integer values", (v) => {
       expect(() => util.types.toInt(v)).toThrow("cannot be coerced to int");
     });
 
-    test.prop([unknowns()])("Allows for default value of 0 when value is undefined", (v) => {
+    fcTest.prop([unknowns()])("Allows for default value of 0 when value is undefined", (v) => {
       expect(util.types.toInt(v)).toBe(0);
     });
 
-    test.prop([unknowns()])("Allows for default values when value is undefined", (v) => {
+    fcTest.prop([unknowns()])("Allows for default values when value is undefined", (v) => {
       expect(util.types.toInt(v, 20)).toBe(20);
     });
 
-    test.prop([emptyStrings()])("Allows for default value of 0 when value is empty string", (v) => {
+    fcTest.prop([emptyStrings()])("Allows for default value of 0 when value is empty string", (v) => {
       expect(util.types.toInt(v)).toBe(0);
     });
 
-    test.prop([emptyStrings()])("Allows for default values when value is empty string", (v) => {
+    fcTest.prop([emptyStrings()])("Allows for default values when value is empty string", (v) => {
       expect(util.types.toInt(v, 20)).toBe(20);
     });
   });
@@ -135,41 +135,41 @@ describe("util", () => {
     const validValues = fc.string().filter((v) => !Number.isNaN(Number(v)));
     const invalidValues = fc.string().filter((v) => Number.isNaN(Number(v)));
 
-    test.prop([validValues])("detects things that can be cast to a number", (v) => {
+    fcTest.prop([validValues])("detects things that can be cast to a number", (v) => {
       expect(util.types.isNumber(v)).toBe(true);
     });
 
-    test.prop([invalidValues])("detects things that cannot be cast to a number", (v) => {
+    fcTest.prop([invalidValues])("detects things that cannot be cast to a number", (v) => {
       expect(util.types.isNumber(v)).toBe(false);
     });
 
-    test.prop([fc.float({ noNaN: true }).filter((v) => Number.isFinite(v))])(
+    fcTest.prop([fc.float({ noNaN: true }).filter((v) => Number.isFinite(v))])(
       "returns a number when given a number",
       (v) => {
         expect(util.types.toNumber(v)).toBe(v);
       },
     );
 
-    test.prop([validValues])(
+    fcTest.prop([validValues])(
       "returns a number when given something that can be cast to number",
       (v) => {
         expect(util.types.toNumber(v)).toBe(Number(v));
       },
     );
 
-    test.prop([invalidValues])("throws when coercing non-number values", (v) => {
+    fcTest.prop([invalidValues])("throws when coercing non-number values", (v) => {
       expect(() => util.types.toNumber(v)).toThrow("cannot be coerced to a number");
     });
 
-    test.prop([unknowns()])("returns the default value when a value is undefined", (v) => {
+    fcTest.prop([unknowns()])("returns the default value when a value is undefined", (v) => {
       expect(util.types.toNumber(v, 5.5)).toBe(5.5);
     });
 
-    test.prop([emptyStrings()])("returns the default value when a value is empty string", (v) => {
+    fcTest.prop([emptyStrings()])("returns the default value when a value is empty string", (v) => {
       expect(util.types.toNumber(v, 5.5)).toBe(5.5);
     });
 
-    test.prop([nulls()])("returns the default value when a value is null", (v) => {
+    fcTest.prop([nulls()])("returns the default value when a value is null", (v) => {
       expect(util.types.toNumber(v, 5.5)).toBe(5.5);
     });
   });
@@ -179,24 +179,24 @@ describe("util", () => {
       try {
         BigInt(v);
         return false;
-      } catch (error) {
+      } catch (_error) {
         return true;
       }
     });
 
-    test.prop([fc.bigInt()])("detects bigint value", (v) => {
+    fcTest.prop([fc.bigInt()])("detects bigint value", (v) => {
       expect(util.types.isBigInt(v)).toBe(true);
     });
 
-    test.prop([invalidValues])("detects non-bigint value", (v) => {
+    fcTest.prop([invalidValues])("detects non-bigint value", (v) => {
       expect(util.types.isBigInt(v)).toBe(false);
     });
 
-    test.prop([fc.bigInt()])("coerces bigint values", (v) => {
+    fcTest.prop([fc.bigInt()])("coerces bigint values", (v) => {
       expect(util.types.toBigInt(v.toString())).toBe(v);
     });
 
-    test.prop([invalidValues])("throws when coercing non-bigint values", (v) => {
+    fcTest.prop([invalidValues])("throws when coercing non-bigint values", (v) => {
       expect(() => util.types.toBigInt(v)).toThrow("cannot be coerced to bigint");
     });
   });
@@ -205,25 +205,23 @@ describe("util", () => {
     const invalidValues = fc.oneof(
       // Filter out numerical strings as many of those are valid enough for ISO
       // TODO: Figure out if this is fine or if we should only accept specific formats
-      fc
-        .string()
-        .filter((v) => !Number.parseInt(v)),
+      fc.string().filter((v) => !Number.parseInt(v, 10)),
     );
 
-    test.prop([fc.date({ noInvalidDate: true })])("detects date value", (v) => {
+    fcTest.prop([fc.date({ noInvalidDate: true })])("detects date value", (v) => {
       expect(util.types.isDate(v)).toBe(true);
     });
 
-    test.prop([invalidValues])("detects non-date value", (v) => {
+    fcTest.prop([invalidValues])("detects non-date value", (v) => {
       expect(util.types.isDate(v)).toBe(false);
     });
 
-    test.prop([fc.date({ noInvalidDate: true })])("coerces date values", (v) => {
+    fcTest.prop([fc.date({ noInvalidDate: true })])("coerces date values", (v) => {
       const result = util.types.toDate(v.toISOString());
       expect(result.toISOString()).toBe(v.toISOString());
     });
 
-    test.prop([invalidValues])("throws when coercing non-date values", (v) => {
+    fcTest.prop([invalidValues])("throws when coercing non-date values", (v) => {
       expect(() => util.types.toDate(v)).toThrow("cannot be coerced to date");
     });
   });
@@ -231,7 +229,7 @@ describe("util", () => {
   describe("url", () => {
     const invalidValues = fc.oneof(fc.string());
 
-    test.prop([
+    fcTest.prop([
       fc.oneof(
         fc.webUrl(),
         fc.domain().map((v) => `https://${v}`),
@@ -240,13 +238,13 @@ describe("util", () => {
       expect(util.types.isUrl(v)).toBe(true);
     });
 
-    test.prop([invalidValues])("detects non-url value", (v) => {
+    fcTest.prop([invalidValues])("detects non-url value", (v) => {
       expect(util.types.isUrl(v)).toBe(false);
     });
   });
 
   describe("buffer data payload", () => {
-    test.prop([
+    fcTest.prop([
       fc.record(
         {
           data: bufferArbitrary,
@@ -258,14 +256,14 @@ describe("util", () => {
       expect(util.types.isBufferDataPayload(v)).toBe(true);
     });
 
-    test.prop([fc.record({ data: bufferArbitrary }, { noNullPrototype: true })])(
+    fcTest.prop([fc.record({ data: bufferArbitrary }, { noNullPrototype: true })])(
       "detects buffer data payload missing optional content type",
       (v) => {
         expect(util.types.isBufferDataPayload(v)).toBe(true);
       },
     );
 
-    test.prop([
+    fcTest.prop([
       fc.record(
         {
           data: fc.oneof(fc.string(), fc.object()),
@@ -276,14 +274,14 @@ describe("util", () => {
       expect(util.types.isBufferDataPayload(v)).toBe(false);
     });
 
-    test.prop([fc.string()])("coerces string to plain text buffer", (v) => {
+    fcTest.prop([fc.string()])("coerces string to plain text buffer", (v) => {
       const result = util.types.toBufferDataPayload(v);
       expect(result.contentType).toBe("text/plain");
       expect(Buffer.isBuffer(result.data)).toBe(true);
       expect(result.data.equals(Buffer.from(v, "utf-8"))).toBe(true);
     });
 
-    test.prop([fc.oneof(fc.array(fc.anything()), fc.object())])(
+    fcTest.prop([fc.oneof(fc.array(fc.anything()), fc.object())])(
       "serializes data to JSON and coerces to json text buffer",
       (v) => {
         const result = util.types.toBufferDataPayload(v);
@@ -293,7 +291,7 @@ describe("util", () => {
       },
     );
 
-    test.prop([
+    fcTest.prop([
       fc.record(
         {
           data: bufferArbitrary,
@@ -310,14 +308,14 @@ describe("util", () => {
       expect(result.data.equals(v.data)).toBe(true);
     });
 
-    test.prop([bufferArbitrary])("returns buffer with unknown content type", (v) => {
+    fcTest.prop([bufferArbitrary])("returns buffer with unknown content type", (v) => {
       const result = util.types.toBufferDataPayload(v);
       expect(result.contentType).toBe("application/octet-stream");
       expect(Buffer.isBuffer(result.data)).toBe(true);
       expect(result.data.equals(v)).toBe(true);
     });
 
-    test.prop([uint8ArrayArbitrary])("handles Uint8Array as a Buffer", (v) => {
+    fcTest.prop([uint8ArrayArbitrary])("handles Uint8Array as a Buffer", (v) => {
       const result = util.types.toBufferDataPayload(v);
       expect(result.contentType).toBe("application/octet-stream");
       expect(Buffer.isBuffer(result.data)).toBe(true);
@@ -326,7 +324,7 @@ describe("util", () => {
   });
 
   describe("data", () => {
-    test.prop([
+    fcTest.prop([
       fc.record(
         {
           data: bufferArbitrary,
@@ -338,14 +336,14 @@ describe("util", () => {
       expect(util.types.isData(v)).toBe(true);
     });
 
-    test.prop([fc.string()])("coerces string to plain text buffer", (v) => {
+    fcTest.prop([fc.string()])("coerces string to plain text buffer", (v) => {
       const result = util.types.toData(v);
       expect(result.contentType).toBe("text/plain");
       expect(Buffer.isBuffer(result.data)).toBe(true);
       expect(result.data.equals(Buffer.from(v, "utf-8"))).toBe(true);
     });
 
-    test.prop([fc.oneof(fc.array(fc.anything()), fc.object())])(
+    fcTest.prop([fc.oneof(fc.array(fc.anything()), fc.object())])(
       "serializes data to JSON and coerces to json text buffer",
       (v) => {
         const result = util.types.toData(v);
@@ -355,7 +353,7 @@ describe("util", () => {
       },
     );
 
-    test.prop([
+    fcTest.prop([
       fc.record(
         {
           data: bufferArbitrary,
@@ -372,14 +370,14 @@ describe("util", () => {
       expect(result.data.equals(v.data)).toBe(true);
     });
 
-    test.prop([bufferArbitrary])("returns buffer with unknown content type", (v) => {
+    fcTest.prop([bufferArbitrary])("returns buffer with unknown content type", (v) => {
       const result = util.types.toData(v);
       expect(result.contentType).toBe("application/octet-stream");
       expect(Buffer.isBuffer(result.data)).toBe(true);
       expect(result.data.equals(v)).toBe(true);
     });
 
-    test.prop([uint8ArrayArbitrary])("handles Uint8Array as a Buffer", (v) => {
+    fcTest.prop([uint8ArrayArbitrary])("handles Uint8Array as a Buffer", (v) => {
       const result = util.types.toData(v);
       expect(result.contentType).toBe("application/octet-stream");
       expect(Buffer.isBuffer(result.data)).toBe(true);
@@ -398,15 +396,15 @@ describe("util", () => {
       expect(util.types.isString(4)).toStrictEqual(false);
     });
 
-    test.prop([bufferArbitrary])("coerces plain text buffer to string", (v) => {
+    fcTest.prop([bufferArbitrary])("coerces plain text buffer to string", (v) => {
       expect(util.types.toString(v)).toBe(v.toString());
     });
 
-    test.prop([unknowns()])("coerces unknown value to empty string", (v) => {
+    fcTest.prop([unknowns()])("coerces unknown value to empty string", (v) => {
       expect(util.types.toString(v)).toBe("");
     });
 
-    test.prop([unknowns()])("coerces unknown value to given default string", (v) => {
+    fcTest.prop([unknowns()])("coerces unknown value to given default string", (v) => {
       expect(util.types.toString(v, "hello, world")).toBe("hello, world");
     });
   });
@@ -430,15 +428,15 @@ describe("util", () => {
   const validJSON = fc.jsonValue().map((x) => JSON.stringify(x));
   const invalidJSON = fc.constantFrom("", "['']", "someString", null, undefined);
   describe("JSON", () => {
-    test.prop([validJSON])("returns true in the case of actual JSON", (v) => {
+    fcTest.prop([validJSON])("returns true in the case of actual JSON", (v) => {
       expect(util.types.isJSON(v)).toBe(true);
     });
 
-    test.prop([invalidJSON])("returns false in the case of invalid JSON", (v) => {
+    fcTest.prop([invalidJSON])("returns false in the case of invalid JSON", (v) => {
       expect(util.types.isJSON(util.types.toString(v))).toBe(false);
     });
 
-    test.prop([validJSON])("serializes JSON", (v) => {
+    fcTest.prop([validJSON])("serializes JSON", (v) => {
       expect(() => util.types.toJSON(v)).not.toThrow();
     });
 
