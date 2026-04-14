@@ -1,7 +1,7 @@
 import {
   ComponentRegistry,
-  IntegrationDefinition,
   Inputs,
+  IntegrationDefinition,
   TriggerPayload,
   TriggerResult,
 } from "../types";

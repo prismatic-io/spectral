@@ -3,18 +3,17 @@
  * to run on the Prismatic platform.
  */
 
+export * from "./errors";
 export {
-  component,
   action,
-  trigger,
-  pollingTrigger,
+  component,
+  connection,
   dataSource,
   input,
-  connection,
-  onPremConnection,
   oauth2Connection,
+  onPremConnection,
+  pollingTrigger,
+  trigger,
 } from "./index";
-
-export { default as util } from "./util";
 export * from "./types/typeExportComponent";
-export * from "./errors";
+export { default as util } from "./util";

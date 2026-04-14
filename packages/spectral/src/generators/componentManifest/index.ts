@@ -1,14 +1,13 @@
 import path from "path";
-
+import type { Component } from "../../serverTypes";
+import { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
+import { getComponentSignatureWithPrism } from "../utils/prism";
 import { createActions } from "./createActions";
 import { createConnections } from "./createConnections";
 import { createDataSources } from "./createDataSources";
 import { createStaticFiles, type PackageDependencies } from "./createStaticFiles";
 import { createTriggers } from "./createTriggers";
 import { removeComponentManifest } from "./removeComponentManifest";
-import { getComponentSignatureWithPrism } from "../utils/prism";
-import type { Component } from "../../serverTypes";
-import { Inputs, ConfigVarResultCollection, TriggerPayload, TriggerResult } from "../../types";
 
 interface CreateComponentManifestProps<
   TInputs extends Inputs,

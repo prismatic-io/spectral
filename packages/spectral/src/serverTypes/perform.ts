@@ -1,3 +1,4 @@
+import uniq from "lodash/uniq";
 import type {
   ActionContext,
   ActionDefinition,
@@ -10,16 +11,14 @@ import type {
   PollingTriggerDefinition,
   PollingTriggerPerformFunction,
   TriggerPayload,
+  TriggerPerformFunction,
   TriggerReference,
   TriggerResult,
-  TriggerPerformFunction,
 } from "../types";
+import { createCNIContext, createDebugContext, createInvokeFlow, logDebugResults } from "./context";
 import { invokeTriggerComponentInput, TriggerActionInvokeFunction } from "./convertIntegration";
 import { ComponentReference as ServerComponentReference } from "./integration";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
-
-import uniq from "lodash/uniq";
-import { createCNIContext, createDebugContext, createInvokeFlow, logDebugResults } from "./context";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
 

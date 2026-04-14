@@ -6,36 +6,36 @@
  */
 
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
+import { spyOn } from "jest-mock";
 import type {
-  ActionPerformReturn as ServerActionPerformReturn,
-  TriggerPayload,
-  TriggerResult,
-  ConnectionValue,
   ActionLogger,
   ActionLoggerFunction,
   Component,
+  ConnectionValue,
+  DataSourceContext,
   DataSourceResult,
   Input,
-  DataSourceContext,
+  ActionPerformReturn as ServerActionPerformReturn,
+  TriggerPayload,
+  TriggerResult,
 } from "./serverTypes";
 import type {
   ActionContext,
-  ConnectionDefinition,
   ActionDefinition,
-  TriggerDefinition,
-  Inputs,
   ActionInputParameters,
-  DataSourceDefinition,
-  ActionPerformReturn as InvokeActionPerformReturn,
-  TriggerResult as InvokeTriggerResult,
-  DataSourceType,
-  DataSourceResult as InvokeDataSourceResult,
-  TriggerEventFunctionReturn,
-  Flow,
-  ConfigVarResultCollection,
   ComponentManifest,
+  ConfigVarResultCollection,
+  ConnectionDefinition,
+  DataSourceDefinition,
+  DataSourceType,
+  Flow,
+  Inputs,
+  ActionPerformReturn as InvokeActionPerformReturn,
+  DataSourceResult as InvokeDataSourceResult,
+  TriggerResult as InvokeTriggerResult,
+  TriggerDefinition,
+  TriggerEventFunctionReturn,
 } from "./types";
-import { spyOn } from "jest-mock";
 
 /**
  * Create a test connection to use when testing your custom component locally. See
@@ -89,9 +89,9 @@ export const loggerMock = (): ActionLogger => ({
 });
 
 async function invokeFlowTest(
-  flowName: string,
-  data?: Record<string, unknown>,
-  config?: AxiosRequestConfig<any>,
+  _flowName: string,
+  _data?: Record<string, unknown>,
+  _config?: AxiosRequestConfig<any>,
 ) {
   return Promise.resolve({} as AxiosResponse<any, any>);
 }
@@ -202,14 +202,14 @@ const createActionContext = <
     debug: {
       enabled: false,
       timeElapsed: {
-        mark: (context: ActionContext, label: string) => {},
+        mark: (_context: ActionContext, _label: string) => {},
         measure: (
-          context: ActionContext,
-          label: string,
-          marks: { start: string; end: string },
+          _context: ActionContext,
+          _label: string,
+          _marks: { start: string; end: string },
         ) => {},
       },
-      memoryUsage: (context: ActionContext, label: string, showDetail?: boolean) => {},
+      memoryUsage: (_context: ActionContext, _label: string, _showDetail?: boolean) => {},
       results: {
         timeElapsed: { marks: {}, measurements: {} },
         memoryUsage: [],

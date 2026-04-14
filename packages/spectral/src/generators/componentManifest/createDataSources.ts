@@ -1,14 +1,13 @@
 import path from "path";
-
-import { type Input, getInputs } from "./getInputs";
-import { type Imports, getImports } from "./getImports";
-import { helpers } from "./helpers";
+import type { DataSourceType } from "../../types";
+import { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
+import type { ComponentForManifest } from "../cniComponentManifest/types";
+import { createImport } from "../utils/createImport";
 import { createTemplate } from "../utils/createTemplate";
 import { createTypeInterface } from "../utils/createTypeInterface";
-import { createImport } from "../utils/createImport";
-import type { DataSourceType } from "../../types";
-import type { ComponentForManifest } from "../cniComponentManifest/types";
-import { Inputs, ConfigVarResultCollection, TriggerPayload, TriggerResult } from "../../types";
+import { getImports, type Imports } from "./getImports";
+import { getInputs, type Input } from "./getInputs";
+import { helpers } from "./helpers";
 
 interface CreateDataSourcesProps<
   TInputs extends Inputs,

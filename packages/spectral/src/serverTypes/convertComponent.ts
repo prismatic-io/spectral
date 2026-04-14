@@ -1,35 +1,35 @@
+import omit from "lodash/omit";
 import {
   ActionDefinition,
-  InputFieldDefinition,
   ComponentDefinition,
-  ConnectionDefinition,
-  Inputs,
-  TriggerDefinition,
-  InputFieldDefaultMap,
   ComponentHooks,
-  DataSourceDefinition,
   ConfigVarResultCollection,
+  ConnectionDefinition,
+  ConnectionInput,
+  ConnectionTemplateInputField,
+  DataSourceDefinition,
+  InputFieldDefaultMap,
+  InputFieldDefinition,
+  Inputs,
   OnPremConnectionInput,
+  TriggerDefinition,
   TriggerOptionChoice,
   TriggerPayload,
-  ConnectionTemplateInputField,
-  ConnectionInput,
   TriggerResult,
 } from "../types";
-import {
-  Component as ServerComponent,
-  Connection as ServerConnection,
-  Action as ServerAction,
-  Trigger as ServerTrigger,
-  Input as ServerInput,
-  DataSource as ServerDataSource,
-} from ".";
-import { InputCleaners, PerformFn, createPerform, createPollingPerform } from "./perform";
-import omit from "lodash/omit";
 import {
   isPollingTriggerDefinition,
   PollingTriggerDefinition,
 } from "../types/PollingTriggerDefinition";
+import {
+  Action as ServerAction,
+  Component as ServerComponent,
+  Connection as ServerConnection,
+  DataSource as ServerDataSource,
+  Input as ServerInput,
+  Trigger as ServerTrigger,
+} from ".";
+import { createPerform, createPollingPerform, InputCleaners, PerformFn } from "./perform";
 
 export const convertInput = (
   key: string,

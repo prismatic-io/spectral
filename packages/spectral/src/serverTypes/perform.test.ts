@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { cleanParams, createPollingContext, type CleanFn } from "./perform";
 import type { ActionContext } from "../types";
+import { type CleanFn, cleanParams, createPollingContext } from "./perform";
 
 describe("createPollingContext", () => {
   const createMockContext = (instanceState: Record<string, unknown> = {}): ActionContext =>
@@ -133,13 +133,13 @@ describe("cleanParams", () => {
     // Ensure matched cleaners produce expected result
     {
       params: { foo: null },
-      cleaners: { foo: (v: unknown) => "changed" },
+      cleaners: { foo: (_v: unknown) => "changed" },
       expected: { foo: "changed" },
     },
     // Ensure cleaners run even if input value not explicitly provided
     {
       params: {},
-      cleaners: { foo: (v: unknown) => "ran" },
+      cleaners: { foo: (_v: unknown) => "ran" },
       expected: { foo: "ran" },
     },
   ])("runs input clean functions", ({ params, cleaners, expected }) => {

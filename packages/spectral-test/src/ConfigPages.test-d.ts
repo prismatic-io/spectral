@@ -1,14 +1,14 @@
 import {
+  Connection,
   flow,
   integration,
-  Connection,
-  TriggerPayload,
-  TriggerEventFunctionReturn,
   ObjectSelection,
+  TriggerEventFunctionReturn,
+  TriggerPayload,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 
-import { configPages, componentRegistry } from "./testData.test-d";
+import { componentRegistry, configPages } from "./testData.test-d";
 
 const basicFlow = flow({
   name: "Basic Flow",

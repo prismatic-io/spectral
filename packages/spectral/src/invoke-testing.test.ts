@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { action, trigger, connection, dataSource } from ".";
-import { invoke, invokeTrigger, invokeDataSource, createConnection } from "./testing";
+import { action, connection, dataSource, trigger } from ".";
+import { createConnection, invoke, invokeDataSource, invokeTrigger } from "./testing";
 
 const myConnection = connection({
   key: "myConnection",
@@ -41,7 +41,7 @@ const branchingTrigger = trigger({
   scheduleSupport: "invalid",
   synchronousResponseSupport: "invalid",
   inputs: {},
-  perform: async (context, payload) => Promise.resolve({ payload, branch: "Foo" }),
+  perform: async (_context, payload) => Promise.resolve({ payload, branch: "Foo" }),
 });
 
 const basicDataSource = dataSource({

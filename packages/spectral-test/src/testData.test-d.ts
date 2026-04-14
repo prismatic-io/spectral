@@ -1,14 +1,14 @@
 import {
-  configVar,
-  connectionConfigVar,
-  OAuth2Type,
-  input,
-  configPage,
-  dataSourceConfigVar,
   ConfigVarResultCollection,
   componentManifest,
-  ObjectSelection,
+  configPage,
+  configVar,
+  connectionConfigVar,
+  dataSourceConfigVar,
+  input,
   JSONForm,
+  OAuth2Type,
+  ObjectSelection,
   organizationActivatedConnection,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
@@ -213,11 +213,8 @@ export const componentRegistry = {
     },
     connections: {
       slackOAuth: {
-        perform: (inputs: {
-          clientId: string;
-          clientSecret: string;
-          signingSecret: string;
-        }) => Promise.resolve<unknown>(inputs),
+        perform: (inputs: { clientId: string; clientSecret: string; signingSecret: string }) =>
+          Promise.resolve<unknown>(inputs),
         inputs: {},
         key: "slackOAuth",
       },

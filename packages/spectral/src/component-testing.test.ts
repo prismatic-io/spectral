@@ -4,7 +4,7 @@ import { convertTrigger } from "./serverTypes/convertComponent";
 import { PerformFn } from "./serverTypes/perform";
 
 describe("test convert trigger", () => {
-  const triggerPerform: PerformFn = async (context, payload, params) =>
+  const triggerPerform: PerformFn = async (_context, payload, _params) =>
     Promise.resolve({ payload });
 
   const myTrigger = trigger({
@@ -34,7 +34,7 @@ describe("test convert trigger", () => {
         type: "string",
       },
     },
-    perform: async (context, params) => {
+    perform: async (_context, _params) => {
       return Promise.resolve({ data: 1 });
     },
   });
@@ -51,7 +51,7 @@ describe("test convert trigger", () => {
         type: "string",
       },
     },
-    perform: async (context, payload, params) => {
+    perform: async (_context, payload, _params) => {
       return Promise.resolve({ payload });
     },
   });
@@ -68,7 +68,7 @@ describe("test convert trigger", () => {
         type: "string",
       },
     },
-    perform: async (context, payload, params) => {
+    perform: async (_context, payload, _params) => {
       return Promise.resolve({ payload });
     },
   });
@@ -84,7 +84,7 @@ describe("test convert trigger", () => {
         type: "string",
       }),
     },
-    perform: async (context, payload, params) => {
+    perform: async (_context, payload, _params) => {
       return Promise.resolve({ payload });
     },
     webhookLifecycleHandlers: {

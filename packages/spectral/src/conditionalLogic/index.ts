@@ -1,14 +1,14 @@
+import { isAfter, isBefore, isEqual as isDateEqual, isValid, parse, parseISO } from "date-fns";
+import _isEqual from "lodash/isEqual";
+import _isEqualWith from "lodash/isEqualWith";
+import util from "../util";
 import {
-  ConditionalExpression,
+  BinaryOperator,
   BooleanOperator,
+  ConditionalExpression,
   TermExpression,
   UnaryOperator,
-  BinaryOperator,
 } from "./types";
-import { isBefore, isAfter, parse, parseISO, isValid, isEqual as isDateEqual } from "date-fns";
-import _isEqualWith from "lodash/isEqualWith";
-import _isEqual from "lodash/isEqual";
-import util from "../util";
 
 export type ValidationResult = [boolean] | [boolean, string];
 
@@ -67,7 +67,7 @@ export const contains = (container: unknown, containee: unknown): boolean => {
       return container.includes(containee) || container.includes(parseValue(containee));
     }
     // Object attribute check (set membership).
-    return Object.prototype.hasOwnProperty.call(container, `${containee}`);
+    return Object.hasOwn(container, `${containee}`);
   }
 
   throw new Error("Invalid arguments set to 'contains'.");

@@ -3,19 +3,18 @@
  * that can run on the Prismatic platform.
  */
 
+export * from "./errors";
 export {
-  integration,
-  flow,
-  configVar,
-  dataSourceConfigVar,
-  connectionConfigVar,
-  customerActivatedConnection,
-  organizationActivatedConnection,
   componentManifest,
   componentManifests,
-  onPremConnection,
+  configVar,
+  connectionConfigVar,
+  customerActivatedConnection,
+  dataSourceConfigVar,
+  flow,
+  integration,
   oauth2Connection,
+  onPremConnection,
+  organizationActivatedConnection,
 } from "./index";
-
 export * from "./types/typeExportIntegration";
-export * from "./errors";

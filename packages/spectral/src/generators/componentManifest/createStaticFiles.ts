@@ -1,9 +1,8 @@
 import path from "path";
-
-import { helpers } from "./helpers";
-import { createTemplate } from "../utils/createTemplate";
 import type { Component } from "../../serverTypes";
-import { Inputs, ConfigVarResultCollection, TriggerPayload, TriggerResult } from "../../types";
+import { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
+import { createTemplate } from "../utils/createTemplate";
+import { helpers } from "./helpers";
 
 export interface PackageDependencies {
   spectral: string;

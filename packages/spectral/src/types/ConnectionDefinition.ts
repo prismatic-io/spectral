@@ -1,10 +1,10 @@
 import merge from "lodash/merge";
+import type { ConnectionDisplayDefinition } from "./DisplayDefinition";
 import type {
   ConnectionInput,
   ConnectionTemplateInputField,
   OnPremConnectionInput,
 } from "./Inputs";
-import type { ConnectionDisplayDefinition } from "./DisplayDefinition";
 
 export enum OAuth2Type {
   /**

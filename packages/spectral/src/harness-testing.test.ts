@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createHarness, ComponentTestHarness } from "./testing";
-import { component, connection, input, action, trigger, dataSource } from ".";
+import { action, component, connection, dataSource, input, trigger } from ".";
 import type { ConnectionValue } from "./serverTypes";
+import { ComponentTestHarness, createHarness } from "./testing";
 import { OAuth2Type } from "./types";
 import util from "./util";
 
@@ -116,7 +116,7 @@ const fooAction = action({
     description: "Foo",
   },
   inputs: { connectionInput, fooInput },
-  perform: async (context, params) => {
+  perform: async (_context, params) => {
     return Promise.resolve({ data: params });
   },
 });
@@ -124,7 +124,7 @@ const fooAction = action({
 const cleanAction = action({
   display: { label: "Clean", description: "Clean" },
   inputs: { cleanInput },
-  perform: async (context, params) => {
+  perform: async (_context, params) => {
     return Promise.resolve({ data: params });
   },
 });
@@ -135,7 +135,7 @@ const cleanDefaultedAction = action({
     description: "Clean Defaulted Action",
   },
   inputs: { defaultedInput, defaultedCleanInput },
-  perform: async (context, params) => {
+  perform: async (_context, params) => {
     return Promise.resolve({ data: params });
   },
 });
@@ -146,7 +146,7 @@ const fooTrigger = trigger({
     description: "Foo",
   },
   inputs: { connectionInput },
-  perform: async (context, payload, params) => {
+  perform: async (_context, payload, params) => {
     return Promise.resolve({ payload, params });
   },
   scheduleSupport: "invalid",
@@ -159,7 +159,7 @@ const cleanTrigger = trigger({
     description: "Clean",
   },
   inputs: { connectionInput, cleanInput },
-  perform: async (context, payload, params) => {
+  perform: async (_context, payload, params) => {
     return Promise.resolve({ payload, params });
   },
   scheduleSupport: "invalid",
@@ -172,7 +172,7 @@ const fooDataSource = dataSource({
     description: "Foo",
   },
   inputs: { connectionInput, fooInput },
-  perform: async (context, { fooInput }) => {
+  perform: async (_context, { fooInput }) => {
     return Promise.resolve({ result: `${fooInput}` });
   },
   dataSourceType: "string",
@@ -184,7 +184,7 @@ const cleanDataSource = dataSource({
     description: "clean",
   },
   inputs: { connectionInput, cleanInput },
-  perform: async (context, { cleanInput }) => {
+  perform: async (_context, { cleanInput }) => {
     return Promise.resolve({ result: cleanInput });
   },
   dataSourceType: "number",

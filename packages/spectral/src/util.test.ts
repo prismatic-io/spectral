@@ -122,9 +122,12 @@ describe("util", () => {
       expect(util.types.toInt(v, 20)).toBe(20);
     });
 
-    fcTest.prop([emptyStrings()])("Allows for default value of 0 when value is empty string", (v) => {
-      expect(util.types.toInt(v)).toBe(0);
-    });
+    fcTest.prop([emptyStrings()])(
+      "Allows for default value of 0 when value is empty string",
+      (v) => {
+        expect(util.types.toInt(v)).toBe(0);
+      },
+    );
 
     fcTest.prop([emptyStrings()])("Allows for default values when value is empty string", (v) => {
       expect(util.types.toInt(v, 20)).toBe(20);

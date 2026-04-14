@@ -1,4 +1,4 @@
-import { PollingTriggerDefinition, action, pollingTrigger } from "@prismatic-io/spectral";
+import { action, PollingTriggerDefinition, pollingTrigger } from "@prismatic-io/spectral";
 import { expectAssignable, expectNotType } from "tsd";
 
 const myAction = action({
@@ -18,7 +18,7 @@ const myPollingTrigger = pollingTrigger({
     description: "My Polling Trigger Description",
   },
   pollAction: myAction,
-  perform: async (context, payload, params) => {
+  perform: async (_context, payload, _params) => {
     return Promise.resolve({ payload, polledNoChanges: true });
   },
 });
@@ -28,7 +28,7 @@ const pollingTriggerWithoutAction = pollingTrigger({
     label: "My Polling Trigger",
     description: "My Polling Trigger Description",
   },
-  perform: async (context, payload, params) => {
+  perform: async (_context, payload, _params) => {
     return Promise.resolve({ payload, polledNoChanges: true });
   },
 });

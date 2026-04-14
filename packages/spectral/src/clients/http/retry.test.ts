@@ -1,6 +1,6 @@
-import { describe, expect } from "vitest";
 import { test } from "@fast-check/vitest";
 import type { AxiosError } from "axios";
+import { describe, expect } from "vitest";
 import { toAxiosRetryConfig } from ".";
 
 describe("Ensure retry configuration functions work as expected", () => {
