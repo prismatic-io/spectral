@@ -1,4 +1,30 @@
 [tools]
 node = "22.19.0"
-bun = "1.3.10"
+bun = "1.3.12"
 github-cli = "2.79.0"
+
+[tasks.install]
+description = "Install dependencies with a frozen lockfile"
+run = "bun install --frozen-lockfile"
+
+[tasks.check]
+description = "Check formatting and lint"
+run = "bun run check"
+
+[tasks.build]
+description = "Build all workspace packages"
+run = "bun run build"
+
+[tasks.test]
+description = "Run unit tests"
+depends = ["build"]
+run = "bun run test"
+
+[tasks.tsd]
+description = "Run type regression tests"
+depends = ["build"]
+run = "bun run tsd"
+
+[tasks.validate]
+description = "Run all CI validation checks"
+depends = ["check", "test", "tsd"]
