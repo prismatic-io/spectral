@@ -42,25 +42,23 @@ if [ ! -d "packages/$PACKAGE" ]; then
 fi
 cd "packages/$PACKAGE"
 if [ "$BUMP_TYPE" = "preview" ]; then
-  npm version prerelease --preid=preview --no-git-tag-version
+  bun pm version prerelease --preid=preview --no-git-tag-version
 else
-  npm version "$BUMP_TYPE" --no-git-tag-version
+  bun pm version "$BUMP_TYPE" --no-git-tag-version
 fi
 """
 
 [tasks.release]
-description = "Trigger a release (usage: mise run release -- <spectral|eslint-config-spectral> <patch|minor|major|preview>)"
+description = "Trigger a release workflow on GitHub"
+usage = '''
+arg "<package>" help="Package to release" {
+  choices "spectral" "eslint-config-spectral"
+}
+arg "<bump>" help="Version bump type" {
+  choices "patch" "minor" "major" "preview"
+}
+'''
 run = """
-PACKAGE="{{arg(i=0, name='package', required=true)}}"
-BUMP="{{arg(i=1, name='bump', required=true)}}"
-if [ "$PACKAGE" != "spectral" ] && [ "$PACKAGE" != "eslint-config-spectral" ]; then
-  echo "ERROR: Invalid package '$PACKAGE'. Must be spectral or eslint-config-spectral."
-  exit 1
-fi
-if [ "$BUMP" != "patch" ] && [ "$BUMP" != "minor" ] && [ "$BUMP" != "major" ] && [ "$BUMP" != "preview" ]; then
-  echo "ERROR: Invalid bump type '$BUMP'. Must be patch, minor, major, or preview."
-  exit 1
-fi
-gh workflow run release.yml -f package="$PACKAGE" -f bump="$BUMP"
-echo "Release workflow triggered for $PACKAGE with bump=$BUMP"
+gh workflow run release.yml -f package="$usage_package" -f bump="$usage_bump"
+echo "Release workflow triggered for $usage_package with bump=$usage_bump"
 """
