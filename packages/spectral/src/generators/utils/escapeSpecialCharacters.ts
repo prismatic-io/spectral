@@ -5,7 +5,7 @@
  * as discovered.
  */
 
-const escapeRegEx = /(\/|\\|\`|\$)/g;
+const escapeRegEx = /(\/|\\|`|\$)/g;
 
 export const escapeSpecialCharacters = (value = ""): string => {
   return value.replace(escapeRegEx, "\\$&");

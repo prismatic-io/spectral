@@ -1,78 +1,78 @@
-import YAML from "yaml";
-import { v4 as uuid } from "uuid";
+import { readFileSync } from "fs";
 import assign from "lodash/assign";
 import camelCase from "lodash/camelCase";
+import merge from "lodash/merge";
 import pick from "lodash/pick";
+import path from "path";
+import { v4 as uuid } from "uuid";
+import YAML from "yaml";
 import {
-  IntegrationDefinition,
-  FlowTriggerType,
-  ConfigVar,
-  Flow,
-  EndpointType,
-  ConfigPages,
-  isDataSourceDefinitionConfigVar,
-  isConnectionDefinitionConfigVar,
-  isScheduleConfigVar,
-  isConnectionReferenceConfigVar,
-  ComponentReference,
-  isComponentReference,
-  isDataSourceReferenceConfigVar,
-  ComponentRegistry,
-  PermissionAndVisibilityType,
+  CollectionType,
   ComponentManifest,
+  ComponentReference,
+  ComponentRegistry,
+  ConfigPages,
+  ConfigVar,
+  ConfigVarResultCollection,
+  ConnectionTemplateInputField,
+  DEFAULT_JSON_SCHEMA_VERSION,
+  EndpointType,
+  Flow,
+  FlowDefinitionFlowSchema,
+  FlowSchema,
+  FlowTriggerType,
+  Inputs,
+  IntegrationDefinition,
+  isComponentReference,
+  isConnectionDefinitionConfigVar,
+  isConnectionReferenceConfigVar,
+  isConnectionScopedConfigVar,
+  isDataSourceDefinitionConfigVar,
+  isDataSourceReferenceConfigVar,
+  isHtmlElementConfigVar,
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
-  TriggerReference,
-  TriggerEventFunctionReturn,
-  isConnectionScopedConfigVar,
-  isHtmlElementConfigVar,
-  CollectionType,
+  isScheduleConfigVar,
   KeyValuePair,
-  FlowSchema,
-  DEFAULT_JSON_SCHEMA_VERSION,
-  FlowDefinitionFlowSchema,
-  ConnectionTemplateInputField,
-  PollingTriggerPerformFunction,
-  Inputs,
-  TriggerResult as TriggerPerformResult,
-  ConfigVarResultCollection,
-  PollingTriggerType,
-  StandardTriggerType,
-  TriggerPerformFunction,
   OnPremiseConnectionConfigTypeEnum,
+  PermissionAndVisibilityType,
+  PollingTriggerPerformFunction,
+  PollingTriggerType,
   QueueConfig,
   StandardQueueConfig,
+  StandardTriggerType,
+  TriggerEventFunctionReturn,
+  TriggerPerformFunction,
+  TriggerResult as TriggerPerformResult,
+  TriggerReference,
 } from "../types";
 import {
-  Component as ServerComponent,
+  ActionContext,
+  ActionPerformFunction,
+  PublishingMetadata,
   Action as ServerAction,
   ActionPerformFunction as ServerActionPerformFunction,
+  Component as ServerComponent,
   Connection as ServerConnection,
   DataSource as ServerDataSource,
   Trigger as ServerTrigger,
   TriggerEventFunction,
-  ActionPerformFunction,
-  ActionContext,
   TriggerPayload,
   TriggerResult,
-  PublishingMetadata,
 } from ".";
+import { runWithContext } from "./asyncContext";
+import { createCNIContext, logDebugResults } from "./context";
 import { convertInput, convertTemplateInput } from "./convertComponent";
-import { createCNIPollingPerform, createCNIComponentRefPerform, createCNIPerform } from "./perform";
-import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 import {
   DefinitionVersion,
-  RequiredConfigVariable as ServerRequiredConfigVariable,
+  ComponentReference as ServerComponentReference,
+  ConfigPage as ServerConfigPage,
   DefaultRequiredConfigVariable as ServerDefaultRequiredConfigVariable,
   Input as ServerInput,
-  ConfigPage as ServerConfigPage,
-  ComponentReference as ServerComponentReference,
+  RequiredConfigVariable as ServerRequiredConfigVariable,
 } from "./integration";
-import merge from "lodash/merge";
-import { createCNIContext, logDebugResults } from "./context";
-import { runWithContext } from "./asyncContext";
-import path from "path";
-import { readFileSync } from "fs";
+import { createCNIComponentRefPerform, createCNIPerform, createCNIPollingPerform } from "./perform";
+import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 export const CONCURRENCY_LIMIT_MAX = 15;
 export const CONCURRENCY_LIMIT_MIN = 2;
@@ -140,7 +140,7 @@ export const convertIntegration = <
     const metaDataPath = path.join("..", ".spectral", "metadata.json");
     const file = readFileSync(metaDataPath, { encoding: "utf-8" });
     metadata = JSON.parse(file);
-  } catch (e) {
+  } catch (_e) {
     // No-op. If there's no metadata file then we move on.
   }
 
@@ -168,7 +168,7 @@ export const convertConfigPages = (
     tagline,
     ...(userLevelConfigured ? { userLevelConfigured } : {}),
     elements: Object.entries(elements)
-      .filter(([key, value]) => !isConnectionScopedConfigVar(value))
+      .filter(([_key, value]) => !isConnectionScopedConfigVar(value))
       .map(([key, value]) => {
         if (typeof value === "string") {
           return {
@@ -437,7 +437,7 @@ const convertComponentReference = (
           ? manifestEntryInput.default === ""
             ? []
             : manifestEntryInput.default
-          : manifestEntryInput.default ?? "",
+          : (manifestEntryInput.default ?? ""),
       };
 
       const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
@@ -902,7 +902,7 @@ export const convertConfigVar = (
       orgOnly,
       meta: {
         ...meta,
-        ...("oauth2Config" in configVar ? configVar.oauth2Config ?? {} : {}),
+        ...("oauth2Config" in configVar ? (configVar.oauth2Config ?? {}) : {}),
       },
     };
   }
@@ -934,7 +934,7 @@ export const convertConfigVar = (
       orgOnly,
       meta: {
         ...meta,
-        ...("oauth2Config" in configVar ? configVar.oauth2Config ?? {} : {}),
+        ...("oauth2Config" in configVar ? (configVar.oauth2Config ?? {}) : {}),
       },
     };
   }

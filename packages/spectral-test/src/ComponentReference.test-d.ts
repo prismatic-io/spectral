@@ -1,8 +1,8 @@
 import {
-  DataSourceReference,
-  ConnectionReference,
-  TriggerReference,
   ActionReference,
+  ConnectionReference,
+  DataSourceReference,
+  TriggerReference,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 

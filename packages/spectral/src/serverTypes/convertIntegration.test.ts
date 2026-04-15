@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { configPage, configVar, flow, integration } from "..";
+import { ConfigVar } from "../types";
 import {
   convertConfigPages,
-  convertFlow,
   convertConfigVar,
+  convertFlow,
   convertQueueConfig,
 } from "./convertIntegration";
-import { ConfigVar } from "../types";
 
 describe("convertFlow with polling triggers", () => {
   const baseFlowInput = {

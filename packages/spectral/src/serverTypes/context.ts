@@ -1,20 +1,20 @@
+import { performance } from "node:perf_hooks";
 import { memoryUsage } from "node:process";
-import { ActionContext as ServerActionContext } from ".";
+import axios, { type AxiosRequestConfig } from "axios";
 import {
   ActionContext,
+  ComponentManifest,
   ComponentManifestAction,
   ComponentRegistry,
+  ConfigVarResultCollection,
   DebugContext,
   ExecutionFrame,
   FlowInvoker,
   MemoryUsage,
-  ConfigVarResultCollection,
-  ComponentManifest,
 } from "../types";
-import { performance } from "node:perf_hooks";
-import { ComponentReference as ServerComponentReference } from "./integration";
+import { ActionContext as ServerActionContext } from ".";
 import { convertInputValue } from "./convertIntegration";
-import axios, { type AxiosRequestConfig } from "axios";
+import { ComponentReference as ServerComponentReference } from "./integration";
 
 const MEMORY_USAGE_CONVERSION = 1024 * 1024;
 

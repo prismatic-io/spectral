@@ -1,4 +1,4 @@
-import { rmSync, existsSync } from "fs";
+import { existsSync, rmSync } from "fs";
 
 interface RemoveComponentManifestProps {
   destinationDir: string;

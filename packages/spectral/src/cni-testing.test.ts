@@ -5,8 +5,8 @@ import {
   connectionConfigVar,
   dataSourceConfigVar,
   flow,
-  integration,
   IntegrationDefinition,
+  integration,
   OAuth2PkceMethod,
   OAuth2Type,
   TriggerBaseResult,
@@ -25,7 +25,7 @@ describe("default onTrigger", () => {
     name: "Basic Flow",
     stableKey: "basic-flow",
     description: "This is a basic flow",
-    onExecution: async (context, params) => {
+    onExecution: async (_context, params) => {
       return Promise.resolve({ data: params.onTrigger.results.body.data });
     },
   });
@@ -200,7 +200,7 @@ describe("test convert flow", () => {
     it("creates a custom trigger component and returns the expected converted flow object", async () => {
       const testFlow = flow({
         ...baseTestFlowInput,
-        onTrigger: async (context, payload, params) => {
+        onTrigger: async (_context, payload, _params) => {
           const result: TriggerBaseResult<TriggerPayload> = {
             payload,
           };
@@ -426,15 +426,15 @@ describe("test convert CNI component", () => {
     flows: [
       flow({
         name: "My flow 1",
-        onTrigger: async (context, payload, params) => {
+        onTrigger: async (_context, payload, _params) => {
           return Promise.resolve({ payload: { ...payload, body: { data: "from onTrigger" } } });
         },
-        onExecution: async (context, params) => {
+        onExecution: async (_context, _params) => {
           return Promise.resolve({ data: "from onExecution" });
         },
         stableKey: "my-flow-1",
-        onInstanceDeploy: async (context, params) => Promise.resolve({}),
-        onInstanceDelete: async (context, params) => Promise.resolve({}),
+        onInstanceDeploy: async (_context, _params) => Promise.resolve({}),
+        onInstanceDelete: async (_context, _params) => Promise.resolve({}),
       }),
     ],
     configPages: {
@@ -485,7 +485,7 @@ describe("test convert CNI component", () => {
           myDataSource: dataSourceConfigVar({
             stableKey: "ds-config-var",
             dataSourceType: "picklist",
-            perform: async (context, params) => {
+            perform: async (_context, _params) => {
               return Promise.resolve({
                 result: ["item 1", "item 2"],
               });

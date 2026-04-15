@@ -1,14 +1,14 @@
-import { fetchComponentDataForManifest, fetchConnectionStableKeys } from ".";
-import { createFlagHelpText } from "../utils/createFlagHelpText";
-import { getFlagsBooleanValue } from "../utils/getFlagBooleanValue";
 import { mkdirSync } from "node:fs";
+import path from "node:path";
 import { createActions } from "../componentManifest/createActions";
-import { createTriggers } from "../componentManifest/createTriggers";
 import { createConnections } from "../componentManifest/createConnections";
 import { createDataSources } from "../componentManifest/createDataSources";
-import path from "node:path";
+import { createTriggers } from "../componentManifest/createTriggers";
 import { removeComponentManifest } from "../componentManifest/removeComponentManifest";
+import { createFlagHelpText } from "../utils/createFlagHelpText";
 import { createTemplate } from "../utils/createTemplate";
+import { getFlagsBooleanValue } from "../utils/getFlagBooleanValue";
+import { fetchComponentDataForManifest, fetchConnectionStableKeys } from ".";
 
 export const runMain = async (process: NodeJS.Process) => {
   const args = process.argv.slice(2);

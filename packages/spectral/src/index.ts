@@ -4,35 +4,35 @@
  * that can run on the Prismatic platform.
  */
 
-import {
-  ActionDefinition,
-  InputFieldDefinition,
-  ComponentDefinition,
-  DefaultConnectionDefinition,
-  OAuth2ConnectionDefinition,
-  Inputs,
-  TriggerDefinition,
-  ActionPerformReturn,
-  TriggerResult,
-  DataSourceDefinition,
-  DataSourceType,
-  IntegrationDefinition,
-  Flow,
-  ConfigPage,
-  StandardConfigVar,
-  ConnectionConfigVar,
-  ConfigVarResultCollection,
-  TriggerPayload,
-  DataSourceConfigVar,
-  OnPremConnectionDefinition,
-  ComponentManifest,
-  OrganizationActivatedConnectionConfigVar,
-  CustomerActivatedConnectionConfigVar,
-} from "./types";
+import { runWithIntegrationContext } from "./serverTypes";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
+import {
+  ActionDefinition,
+  ActionPerformReturn,
+  ComponentDefinition,
+  ComponentManifest,
+  ConfigPage,
+  ConfigVarResultCollection,
+  ConnectionConfigVar,
+  CustomerActivatedConnectionConfigVar,
+  DataSourceConfigVar,
+  DataSourceDefinition,
+  DataSourceType,
+  DefaultConnectionDefinition,
+  Flow,
+  InputFieldDefinition,
+  Inputs,
+  IntegrationDefinition,
+  OAuth2ConnectionDefinition,
+  OnPremConnectionDefinition,
+  OrganizationActivatedConnectionConfigVar,
+  StandardConfigVar,
+  TriggerDefinition,
+  TriggerPayload,
+  TriggerResult,
+} from "./types";
 import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
-import { runWithIntegrationContext } from "./serverTypes";
 
 /**
  * This function creates a code-native integration object that can be
@@ -349,7 +349,7 @@ export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(definitio
 export const componentManifests = <T extends Record<string, ComponentManifest>>(definition: T): T =>
   definition;
 
-export { default as util } from "./util";
-export * from "./types";
-export { default as testing } from "./testing";
 export * from "./errors";
+export { default as testing } from "./testing";
+export * from "./types";
+export { default as util } from "./util";

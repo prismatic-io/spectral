@@ -4,22 +4,22 @@
  * For example, `util.types.toInt("5.5")` will return an integer, `5`.
  */
 
+import fromUnixTime from "date-fns/fromUnixTime";
+import dateIsDate from "date-fns/isDate";
+import dateIsValid from "date-fns/isValid";
 /** */
 import parseISODate from "date-fns/parseISO";
-import dateIsValid from "date-fns/isValid";
-import dateIsDate from "date-fns/isDate";
-import fromUnixTime from "date-fns/fromUnixTime";
 import omitBy from "lodash/omitBy";
 import { configure } from "safe-stable-stringify";
 import { isWebUri } from "valid-url";
 import {
-  KeyValuePair,
-  DataPayload,
-  ObjectSelection,
-  ObjectFieldMap,
-  JSONForm,
   ConnectionDefinition,
+  DataPayload,
   Element,
+  JSONForm,
+  KeyValuePair,
+  ObjectFieldMap,
+  ObjectSelection,
 } from "./types";
 
 export const isObjectWithOneTruthyKey = (value: unknown, keys: string[]): boolean => {
@@ -226,7 +226,7 @@ const toInt = (value: unknown, defaultValue?: number): number => {
   }
 
   if (typeof value === "string") {
-    const intValue = Number.parseInt(value);
+    const intValue = Number.parseInt(value, 10);
     if (!Number.isNaN(intValue)) {
       return intValue;
     }
@@ -305,7 +305,7 @@ const toBigInt = (value: unknown): bigint => {
 
   try {
     return BigInt(toString(value));
-  } catch (error) {
+  } catch (_error) {
     throw new Error(`Value '${value}' cannot be coerced to bigint.`);
   }
 };
@@ -615,8 +615,8 @@ const cleanObject = (
   return omitBy(obj, predicate || defaultPredicate);
 };
 
-export * from "./errors";
 export * from "./conditionalLogic";
+export * from "./errors";
 
 export default {
   types: {

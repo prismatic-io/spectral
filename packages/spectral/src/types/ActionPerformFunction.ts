@@ -1,15 +1,15 @@
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
-import type { ConfigVarResultCollection, Inputs } from "./Inputs";
-import type { ComponentManifest } from "./ComponentManifest";
-import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type { ActionInputParameters } from "./ActionInputParameters";
 import type { ActionLogger } from "./ActionLogger";
+import type { ActionPerformReturn } from "./ActionPerformReturn";
+import type { ComponentManifest } from "./ComponentManifest";
 import type { CustomerAttributes } from "./CustomerAttributes";
-import type { InstanceAttributes } from "./InstanceAttributes";
-import type { UserAttributes } from "./UserAttributes";
-import type { IntegrationAttributes } from "./IntegrationAttributes";
 import type { FlowAttributes } from "./FlowAttributes";
 import type { FlowSchemas } from "./FlowSchemas";
+import type { ConfigVarResultCollection, Inputs } from "./Inputs";
+import type { InstanceAttributes } from "./InstanceAttributes";
+import type { IntegrationAttributes } from "./IntegrationAttributes";
+import type { UserAttributes } from "./UserAttributes";
 
 interface StandardLineage {
   componentActionKey: string;

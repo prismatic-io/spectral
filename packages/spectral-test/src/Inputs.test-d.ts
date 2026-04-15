@@ -1,8 +1,8 @@
 import {
-  Connection,
-  input,
-  InputCleanFunction,
   ConditionalExpression,
+  Connection,
+  InputCleanFunction,
+  input,
 } from "@prismatic-io/spectral";
 import { expectType } from "tsd";
 

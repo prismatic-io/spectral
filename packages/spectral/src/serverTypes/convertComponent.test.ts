@@ -126,10 +126,12 @@ describe("convertTemplateInput", () => {
         expected: `Template input "authUrl": Invalid keys were found in the template string. All referenced keys must be non-template inputs declared in the first argument: domain`,
       },
     ],
-  ])(
-    "correctly handles valid template input values: %s",
-    (_scenario, { key, templateInput, inputs, expected }) => {
-      expect(() => convertTemplateInput(key, templateInput, inputs)).toThrow(expected);
-    },
-  );
+  ])("correctly handles valid template input values: %s", (_scenario, {
+    key,
+    templateInput,
+    inputs,
+    expected,
+  }) => {
+    expect(() => convertTemplateInput(key, templateInput, inputs)).toThrow(expected);
+  });
 });

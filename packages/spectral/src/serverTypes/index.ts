@@ -2,24 +2,24 @@
  * component and integration definitions. */
 
 import {
-  InstanceAttributes,
-  CustomerAttributes,
-  DataSourceType,
-  DataSourceResultType,
-  UserAttributes,
-  TriggerEventFunctionReturn,
-  IntegrationAttributes,
-  FlowAttributes,
-  ConfigVarResultCollection,
   ComponentManifest,
-  FlowInvoker,
-  ExecutionFrame,
+  ConfigVarResultCollection,
+  CustomerAttributes,
+  DataSourceResultType,
+  DataSourceType,
   DebugContext,
+  ExecutionFrame,
+  FlowAttributes,
+  FlowInvoker,
   FlowSchemas,
-  PollingTriggerPerformFunction,
   Inputs,
-  TriggerResult as TriggerPerformResult,
+  InstanceAttributes,
+  IntegrationAttributes,
+  PollingTriggerPerformFunction,
+  TriggerEventFunctionReturn,
   TriggerPerformFunction,
+  TriggerResult as TriggerPerformResult,
+  UserAttributes,
 } from "../types";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
@@ -28,12 +28,14 @@ interface DisplayDefinition {
   description: string;
 }
 
-export { InstanceAttributes } from "../types";
-export { CustomerAttributes } from "../types";
-export { UserAttributes } from "../types";
-export { IntegrationAttributes } from "../types";
-export { FlowAttributes } from "../types";
-export { FlowSchemas } from "../types";
+export {
+  CustomerAttributes,
+  FlowAttributes,
+  FlowSchemas,
+  InstanceAttributes,
+  IntegrationAttributes,
+  UserAttributes,
+} from "../types";
 
 export interface PublishingMetadata {
   flowsWithCustomerRequiredAPIKeys: {

@@ -1,7 +1,7 @@
 import {
-  integration,
   FlowExecutionContext,
   FlowExecutionContextActions,
+  integration,
 } from "@prismatic-io/spectral";
 import { Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable } from "tsd";
@@ -62,16 +62,16 @@ const withPollingTriggerDefinition = integration({
       description: "A flow with a polling trigger",
       triggerType: "polling",
       schedule: { value: "*/5 * * * *" }, // Required for polling triggers
-      onTrigger: async (context, payload, params) => {
+      onTrigger: async (context, payload, _params) => {
         // Test polling context methods are available
-        const state = context.polling.getState();
+        const _state = context.polling.getState();
         context.polling.setState({ lastPoll: new Date().toISOString() });
 
         return Promise.resolve({
           payload,
         });
       },
-      onExecution: async (context, params) => {
+      onExecution: async (_context, _params) => {
         return Promise.resolve({
           data: "SUCCESS",
         });

@@ -1,21 +1,21 @@
 import axios, { AxiosError } from "axios";
 import type {
+  ConfigVarResultCollection,
   DataSourceType,
   Inputs,
-  ConfigVarResultCollection,
   TriggerPayload,
   TriggerResult,
 } from "../../types";
+import { getPrismAccessToken } from "../utils/prism";
 import {
+  ActionNode,
+  ComponentActionsQueryResponse,
   ComponentNode,
-  InputNode,
   FormattedAction,
   FormattedDataSource,
   FormattedTrigger,
-  ActionNode,
-  ComponentActionsQueryResponse,
+  InputNode,
 } from "./types";
-import { getPrismAccessToken } from "../utils/prism";
 
 // Helper to transform input nodes from GraphQL response to the expected format
 function transformInputNodes(inputs: InputNode[]) {
@@ -41,7 +41,10 @@ export const fetchComponentDataForManifest = async <
 >({
   componentKey,
   isPrivate,
-}: { componentKey: string; isPrivate: boolean }) => {
+}: {
+  componentKey: string;
+  isPrivate: boolean;
+}) => {
   const accessToken = await getPrismAccessToken();
   const prismaticUrl = process.env.PRISMATIC_URL ?? "https://app.prismatic.io";
 

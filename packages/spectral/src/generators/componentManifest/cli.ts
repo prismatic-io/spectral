@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import path from "path";
-import { readJsonSync, existsSync } from "fs-extra";
 
-import { createComponentManifest } from "./index";
-import { createFlagHelpText } from "../utils/createFlagHelpText";
-import { getFlagsStringValue } from "../utils/getFlagStringValue";
-import { getFlagsBooleanValue } from "../utils/getFlagBooleanValue";
+import { existsSync, readJsonSync } from "fs-extra";
+import path from "path";
 import { isObjectWithOneTruthyKey, isObjectWithTruthyKeys } from "../../util";
+import { createFlagHelpText } from "../utils/createFlagHelpText";
+import { getFlagsBooleanValue } from "../utils/getFlagBooleanValue";
+import { getFlagsStringValue } from "../utils/getFlagStringValue";
+import { createComponentManifest } from "./index";
 
 export const runMain = async (process: NodeJS.Process) => {
   const componentDir = process.cwd();

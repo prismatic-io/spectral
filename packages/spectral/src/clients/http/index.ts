@@ -1,12 +1,12 @@
-import isEmpty from "lodash/isEmpty";
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import axios from "axios";
-import type { AxiosInstance, AxiosResponse, AxiosRequestConfig } from "axios";
 import axiosRetry, {
-  IAxiosRetryConfig,
   exponentialDelay,
+  IAxiosRetryConfig,
   isNetworkOrIdempotentRequestError,
 } from "axios-retry";
 import FormData from "form-data";
+import isEmpty from "lodash/isEmpty";
 import objectSizeof from "object-sizeof";
 
 import { action } from "../..";
@@ -275,7 +275,7 @@ export const buildRawRequestAction = (
       connection: { label: "Connection", type: "connection", required: true },
       ...inputs,
     },
-    perform: async (context, { connection, ...httpInputValues }) => {
+    perform: async (_context, { connection, ...httpInputValues }) => {
       const { data } = await sendRawRequest(
         baseUrl,
         httpInputValues,
