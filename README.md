@@ -7,8 +7,9 @@ This monorepo contains packages to build custom Prismatic connectors and code-na
 
 ## Building Locally
 
-You will need `yarn` and `node` installed.
-Run `yarn turbo run build` to build and `yarn turbo run test` to run the test suites. `yarn pack` and `yarn link` are both useful for testing changes locally.
+This repo uses [`mise`](https://mise.jdx.dev/) to manage toolchain versions (`node`, `bun`, and `gh`) and common tasks. With `mise` installed, run `mise install` from the repo root to provision the required tools.
+
+Run `bun install` to install node dependencies, `mise run build` to build all workspace packages and `mise run test` to run the test suites. `bun pack` and `bun link` are both useful for testing changes locally.
 
 ## What is Prismatic?
 
