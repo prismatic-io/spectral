@@ -1,0 +1,66 @@
+[tools]
+node = "22.19.0"
+bun = "1.3.12"
+github-cli = "2.79.0"
+
+[tasks.install]
+description = "Install dependencies with a frozen lockfile"
+run = "bun install --frozen-lockfile"
+
+[tasks.check]
+description = "Check formatting and lint"
+run = "bun run check"
+
+[tasks.build]
+description = "Build all workspace packages"
+run = "bun run build"
+
+[tasks.test]
+description = "Run unit tests"
+depends = ["build"]
+run = "bun run test"
+
+[tasks.tsd]
+description = "Run type regression tests"
+depends = ["build"]
+run = "bun run tsd"
+
+[tasks.validate]
+description = "Run all CI validation checks"
+depends = ["check", "test", "tsd"]
+
+[tasks.version-bump]
+description = "Bump a package's version (set PACKAGE=spectral|eslint-config-spectral and BUMP_TYPE=patch|minor|major|preview)"
+run = """
+if [ -z "$PACKAGE" ]; then
+  echo "ERROR: PACKAGE env var is required (spectral|eslint-config-spectral)."
+  exit 1
+fi
+if [ ! -d "packages/$PACKAGE" ]; then
+  echo "ERROR: packages/$PACKAGE does not exist."
+  exit 1
+fi
+cd "packages/$PACKAGE"
+if [ "$BUMP_TYPE" = "preview" ]; then
+  npm version prerelease --preid=preview --no-git-tag-version
+else
+  npm version "$BUMP_TYPE" --no-git-tag-version
+fi
+"""
+
+[tasks.release]
+description = "Trigger a release (usage: mise run release -- <spectral|eslint-config-spectral> <patch|minor|major|preview>)"
+run = """
+PACKAGE="{{arg(i=0, name='package', required=true)}}"
+BUMP="{{arg(i=1, name='bump', required=true)}}"
+if [ "$PACKAGE" != "spectral" ] && [ "$PACKAGE" != "eslint-config-spectral" ]; then
+  echo "ERROR: Invalid package '$PACKAGE'. Must be spectral or eslint-config-spectral."
+  exit 1
+fi
+if [ "$BUMP" != "patch" ] && [ "$BUMP" != "minor" ] && [ "$BUMP" != "major" ] && [ "$BUMP" != "preview" ]; then
+  echo "ERROR: Invalid bump type '$BUMP'. Must be patch, minor, major, or preview."
+  exit 1
+fi
+gh workflow run release.yml -f package="$PACKAGE" -f bump="$BUMP"
+echo "Release workflow triggered for $PACKAGE with bump=$BUMP"
+"""

@@ -1,0 +1,113 @@
+name: Release
+run-name: Release ${{ inputs.package }} (${{ inputs.bump }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to release"
+        required: true
+        type: choice
+        options:
+          - spectral
+          - eslint-config-spectral
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - preview
+
+concurrency:
+  group: release-${{ inputs.package }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    name: Release ${{ inputs.package }} (${{ inputs.bump }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: jdx/mise-action@v4
+
+      - run: mise run install
+
+      - name: Bump version
+        id: bump
+        run: |
+          mise run version-bump
+          bun install
+          VERSION=$(node -p "require('./packages/${PACKAGE}/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=${PACKAGE}-v$VERSION" >> "$GITHUB_OUTPUT"
+        env:
+          PACKAGE: ${{ inputs.package }}
+          BUMP_TYPE: ${{ inputs.bump }}
+
+      - name: Commit and tag
+        run: |
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ secrets.RELEASE_APP_ID }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          git add "packages/${PACKAGE}/package.json" bun.lock
+          git commit -m "Release ${PACKAGE} v${VERSION}"
+          git tag "${TAG}"
+          git push origin HEAD "${TAG}"
+        env:
+          PACKAGE: ${{ inputs.package }}
+          VERSION: ${{ steps.bump.outputs.version }}
+          TAG: ${{ steps.bump.outputs.tag }}
+
+  publish:
+    name: Publish ${{ inputs.package }} v${{ needs.release.outputs.version }}
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - uses: jdx/mise-action@v4
+
+      - run: mise run install
+
+      - run: mise run validate
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release.outputs.tag }}
+          name: ${{ inputs.package }} v${{ needs.release.outputs.version }}
+          generate_release_notes: true
+          prerelease: ${{ contains(needs.release.outputs.version, 'preview') }}
+
+      - name: Publish to npm
+        working-directory: packages/${{ inputs.package }}
+        run: |
+          if [[ "$VERSION" == *preview* ]]; then
+            npm publish --tag preview
+          else
+            npm publish
+          fi
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
