@@ -63,7 +63,7 @@
     "@types/ejs": "3.1.5",
     "@types/fs-extra": "11.0.4",
     "@types/lodash": "^4.17.24",
-    "@types/node": "^22.19.7",
+    "@types/node": "^25.6.0",
     "@types/prettier": "^3.0.0",
     "@types/sax": "^1.2.7",
     "@types/valid-url": "^1.0.7",
