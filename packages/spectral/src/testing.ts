@@ -38,8 +38,29 @@ import type {
 } from "./types";
 
 /**
- * Create a test connection to use when testing your custom component locally. See
- * https://prismatic.io/docs/custom-connectors/unit-testing/#providing-test-connection-inputs-to-an-action-test
+ * Create a test connection to use when testing your custom component locally.
+ * This builds a `ConnectionValue` from your connection definition and
+ * test credential values.
+ *
+ * @param connectionDef The connection definition (only `key` is used).
+ * @param values A record of field values for the connection (e.g. `apiKey`, `baseUrl`).
+ * @param tokenValues Optional OAuth 2.0 token values (e.g. `access_token`, `refresh_token`).
+ * @param displayName Optional display name for the connection config variable.
+ * @returns A `ConnectionValue` object suitable for use in test invocations.
+ * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/#providing-test-connection-inputs-to-an-action-test | Test Connection Inputs}
+ * @example
+ * import { testing } from "@prismatic-io/spectral";
+ * import { apiKeyConnection } from "./connections";
+ *
+ * const testConnection = testing.createConnection(apiKeyConnection, {
+ *   apiKey: "test-api-key-123",
+ *   baseUrl: "https://api.acme.com/v2",
+ * });
+ *
+ * // Use with testing.invoke()
+ * const { result } = await testing.invoke(myAction, {
+ *   connection: testConnection,
+ * });
  */
 export const createConnection = <T extends ConnectionDefinition>(
   { key }: T,
@@ -56,8 +77,21 @@ export const createConnection = <T extends ConnectionDefinition>(
 export const defaultConnectionValueEnvironmentVariable = "PRISMATIC_CONNECTION_VALUE";
 
 /**
- * Source a test connection from an environment variable for local testing. See
- * https://prismatic.io/docs/custom-connectors/unit-testing/#access-connections-for-local-testing
+ * Source a test connection from an environment variable for local testing.
+ * The environment variable should contain a JSON-serialized connection value.
+ * Defaults to reading from `PRISMATIC_CONNECTION_VALUE`.
+ *
+ * @param envVarKey The name of the environment variable to read. Defaults to `"PRISMATIC_CONNECTION_VALUE"`.
+ * @returns A `ConnectionValue` parsed from the environment variable.
+ * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/#access-connections-for-local-testing | Access Connections for Local Testing}
+ * @example
+ * import { testing } from "@prismatic-io/spectral";
+ *
+ * // Reads from PRISMATIC_CONNECTION_VALUE env var (default)
+ * const conn = testing.connectionValue();
+ *
+ * // Or specify a custom env var
+ * const conn = testing.connectionValue("MY_ACME_CONNECTION");
  */
 export const connectionValue = (
   envVarKey = defaultConnectionValueEnvironmentVariable,
@@ -74,9 +108,17 @@ export const connectionValue = (
 };
 
 /**
- * Pre-built mock of ActionLogger. Suitable for asserting logs are created as expected. See
- * https://prismatic.io/docs/custom-connectors/unit-testing/#verifying-correct-logging-in-action-tests
- * for information on testing correct logging behavior in your custom component.
+ * Pre-built mock of ActionLogger. All log methods (`info`, `warn`, `error`, etc.)
+ * are Jest spies, so you can assert that your actions log the expected messages.
+ *
+ * @returns A mock `ActionLogger` with Jest spy methods.
+ * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/#verifying-correct-logging-in-action-tests | Verifying Logging}
+ * @example
+ * import { testing } from "@prismatic-io/spectral";
+ *
+ * const logger = testing.loggerMock();
+ * // Pass logger in context, then assert:
+ * expect(logger.info).toHaveBeenCalledWith("Processing started");
  */
 export const loggerMock = (): ActionLogger => ({
   metric: console.log as ActionLoggerFunction,
@@ -97,14 +139,27 @@ async function invokeFlowTest(
 }
 
 /**
- * Creates basic component mocks based on the CNI's component registry.
- * You may pass mock overrides in the second argument, e.g.:
+ * Creates basic component action mocks based on a code-native integration's
+ * component registry. Each action mock returns the action's `examplePayload`
+ * by default. Pass overrides in the second argument to customize specific mocks.
  *
- * createMockContextComponents(myManifest, {
+ * @param registry The component registry (or subset) to mock.
+ * @param mocks Optional overrides for specific component actions.
+ * @returns An object of mocked component actions, suitable for use in test context.
+ * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/ | Unit Testing}
+ * @example
+ * import { createMockContextComponents } from "@prismatic-io/spectral/dist/testing";
+ * import { componentRegistry } from "./componentRegistry";
+ *
+ * // Default mocks (uses examplePayload from the manifest)
+ * const components = createMockContextComponents(componentRegistry);
+ *
+ * // With custom overrides
+ * const components = createMockContextComponents(componentRegistry, {
  *   actions: {
- *     myComponentName: {
- *        myComponentAction: () => Promise.resolve({ data: "my test data "}),
- *     }
+ *     slack: {
+ *       postMessage: () => Promise.resolve({ data: { ok: true } }),
+ *     },
  *   },
  * });
  */
@@ -255,10 +310,27 @@ interface InvokeReturn<ReturnData> {
 }
 
 /**
- * Invokes specified ActionDefinition perform function using supplied params
- * and optional context. Accepts a generic type matching ActionPerformReturn as a convenience
- * to avoid extra casting within test methods. Returns an InvokeResult containing both the
- * action result and a mock logger for asserting logging.
+ * Invokes a custom component action's `perform` function within a test harness.
+ * Returns both the action result and a mock logger for asserting logging behavior.
+ *
+ * @param actionDef The action definition to test (only `perform` is used).
+ * @param params Input parameter values to pass to the action's `perform` function.
+ * @param context Optional partial context overrides (e.g. custom `configVars` or `instanceState`).
+ * @returns An object with `result` (the action's return value) and `loggerMock` (for asserting logs).
+ * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/ | Unit Testing}
+ * @example
+ * import { testing } from "@prismatic-io/spectral";
+ * import { myAction } from "./actions";
+ *
+ * it("should return items", async () => {
+ *   const { result, loggerMock } = await testing.invoke(myAction, {
+ *     connection: testConnection,
+ *     limit: "10",
+ *   });
+ *
+ *   expect(result.data).toHaveProperty("items");
+ *   expect(loggerMock.info).toHaveBeenCalled();
+ * });
  */
 export const invoke = async <
   TInputs extends Inputs,
@@ -336,10 +408,33 @@ export const defaultTriggerPayload = (): TriggerPayload => {
 };
 
 /**
- * Invokes specified TriggerDefinition perform function using supplied params
- * and optional context. Accepts a generic type matching TriggerResult as a convenience
- * to avoid extra casting within test methods. Returns an InvokeResult containing both the
- * trigger result and a mock logger for asserting logging.
+ * Invokes a custom component trigger's `perform` function within a test harness.
+ * Provides a default trigger payload that can be overridden. Returns both the
+ * trigger result and a mock logger for asserting logging behavior.
+ *
+ * @param triggerDef The trigger definition to test (only `perform` is used).
+ * @param context Optional partial context overrides.
+ * @param payload Optional partial trigger payload overrides (merged with defaults).
+ * @param params Optional input parameter values for the trigger.
+ * @returns An object with `result` (the trigger's return value) and `loggerMock`.
+ * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/ | Unit Testing}
+ * @example
+ * import { testing } from "@prismatic-io/spectral";
+ * import { webhookTrigger } from "./triggers";
+ *
+ * it("should process the webhook payload", async () => {
+ *   const { result } = await testing.invokeTrigger(
+ *     webhookTrigger,
+ *     undefined, // use default context
+ *     {
+ *       body: { data: JSON.stringify({ event: "created" }) },
+ *       headers: { "x-webhook-secret": "test-secret" },
+ *     },
+ *     { secret: "test-secret" },
+ *   );
+ *
+ *   expect(result.payload).toBeDefined();
+ * });
  */
 export const invokeTrigger = async <
   TInputs extends Inputs,
@@ -365,9 +460,27 @@ export const invokeTrigger = async <
 };
 
 /**
- * Invokes specified DataSourceDefinition perform function using supplied params.
- * Accepts a generic type matching DataSourceResult as a convenience to avoid extra
- * casting within test methods. Returns a DataSourceResult.
+ * Invokes a custom component data source's `perform` function within a test harness.
+ * Returns the data source result directly.
+ *
+ * @param dataSourceDef The data source definition to test (only `perform` is used).
+ * @param params Input parameter values to pass to the data source's `perform` function.
+ * @param context Optional partial context overrides.
+ * @returns The data source result (e.g. a picklist, JSON form, or other data source type).
+ * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/ | Unit Testing}
+ * @example
+ * import { testing } from "@prismatic-io/spectral";
+ * import { selectChannel } from "./dataSources";
+ *
+ * it("should return a list of channels", async () => {
+ *   const result = await testing.invokeDataSource(selectChannel, {
+ *     connection: testConnection,
+ *   });
+ *
+ *   expect(result.result).toContainEqual(
+ *     expect.objectContaining({ label: "General" }),
+ *   );
+ * });
  */
 export const invokeDataSource = async <
   TInputs extends Inputs,
@@ -416,9 +529,35 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
 };
 
 /**
- * Invokes specified Flow of a Code Native Integration using supplied params.
- * Runs the Trigger and then the Action function and returns the result of the Action. See
- * https://prismatic.io/docs/integrations/triggers/cross-flow/#using-cross-flow-triggers-in-code-native
+ * Invokes a code-native integration flow within a test harness. Runs the
+ * flow's `onTrigger` (if defined) followed by `onExecution`, and returns
+ * the execution result. Accepts optional config variables, context overrides,
+ * and a custom trigger payload.
+ *
+ * @param flow The flow definition to test.
+ * @param options Optional config variables, context overrides, and trigger payload.
+ * @returns An object with `result` (the flow execution return value) and `loggerMock`.
+ * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/ | Unit Testing}
+ * @example
+ * import { invokeFlow } from "@prismatic-io/spectral/dist/testing";
+ * import { myFlow } from "./flows";
+ *
+ * it("should execute the flow end-to-end", async () => {
+ *   const { result } = await invokeFlow(myFlow, {
+ *     configVars: {
+ *       "Acme API Endpoint": "https://api.acme.com",
+ *       "Acme Connection": {
+ *         fields: { apiKey: "test-key" },
+ *         key: "apiKey",
+ *       },
+ *     },
+ *     payload: {
+ *       body: { data: JSON.stringify({ event: "created" }) },
+ *     },
+ *   });
+ *
+ *   expect(result.data).toBeDefined();
+ * });
  */
 export const invokeFlow = async <
   TInputs extends Inputs,
@@ -616,8 +755,33 @@ export class ComponentTestHarness<
 }
 
 /**
- * Create a testing harness to test a custom component's actions, triggers and data sources. See
- * https://prismatic.io/docs/custom-connectors/unit-testing/
+ * Create a testing harness to test a custom component's actions, triggers
+ * and data sources by key. The harness automatically provides default input
+ * values and mock context.
+ *
+ * @param component The compiled component object (the result of calling `component()`).
+ * @returns A `ComponentTestHarness` instance with `.action()`, `.trigger()`, and `.dataSource()` methods.
+ * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/ | Unit Testing}
+ * @example
+ * import { testing } from "@prismatic-io/spectral";
+ * import myComponent from ".";
+ *
+ * const harness = testing.createHarness(myComponent);
+ *
+ * it("should list items", async () => {
+ *   const result = await harness.action("listItems", {
+ *     connection: testConnection,
+ *     limit: "10",
+ *   });
+ *   expect(result.data).toHaveProperty("items");
+ * });
+ *
+ * it("should handle a webhook trigger", async () => {
+ *   const result = await harness.trigger("webhook", {
+ *     body: { data: '{"event":"created"}' },
+ *   });
+ *   expect(result.payload).toBeDefined();
+ * });
  */
 export const createHarness = <
   TInputs extends Inputs,
