@@ -52,7 +52,7 @@
     "lodash": "^4.18.1",
     "object-sizeof": "^2.6.4",
     "prettier": "^3.8.2",
-    "safe-stable-stringify": "2.3.1",
+    "safe-stable-stringify": "2.5.0",
     "serialize-error": "8.1.0",
     "url-join": "5.0.0",
     "uuid": "8.3.2",
