@@ -51,7 +51,7 @@
     "jest-mock": "^30.3.0",
     "lodash": "^4.18.1",
     "object-sizeof": "^2.6.4",
-    "prettier": "^3.8.2",
+    "prettier": "^3.8.3",
     "safe-stable-stringify": "^2.5.0",
     "uuid": "^13.0.0",
     "valid-url": "1.0.9",
