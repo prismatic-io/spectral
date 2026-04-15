@@ -4,11 +4,10 @@
  * For example, `util.types.toInt("5.5")` will return an integer, `5`.
  */
 
-import fromUnixTime from "date-fns/fromUnixTime";
-import dateIsDate from "date-fns/isDate";
-import dateIsValid from "date-fns/isValid";
-/** */
-import parseISODate from "date-fns/parseISO";
+import { fromUnixTime } from "date-fns/fromUnixTime";
+import { isDate as dateIsDate } from "date-fns/isDate";
+import { isValid as dateIsValid } from "date-fns/isValid";
+import { parseISO as parseISODate } from "date-fns/parseISO";
 import omitBy from "lodash/omitBy";
 import { configure } from "safe-stable-stringify";
 import { isWebUri } from "valid-url";
@@ -562,7 +561,8 @@ const toJSON = (value: unknown, prettyPrint = true, retainKeyOrder = false): str
     circularValue: undefined,
     deterministic: !retainKeyOrder,
   });
-  return prettyPrint ? stringify(value, null, 2) : stringify(value);
+  const result = prettyPrint ? stringify(value, null, 2) : stringify(value);
+  return result ?? "";
 };
 
 /**
