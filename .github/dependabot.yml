@@ -1,14 +1,16 @@
 version: 2
 updates:
+  # Roll all non-security version bumps into a single weekly PR. Security
+  # updates are not affected by version-update groups and continue to open
+  # individually so CVEs stay visible.
   - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
     groups:
-      dev-dependencies:
-        dependency-type: "development"
-        update-types: ["minor", "patch"]
+      all-dependencies:
+        patterns:
+          - "*"
     ignore:
       # Biome bumps require updating the $schema URL in biome.json files,
       # which dependabot doesn't do. Bump manually.
@@ -18,3 +20,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      all-actions:
+        patterns:
+          - "*"
