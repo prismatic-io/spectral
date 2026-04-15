@@ -9,6 +9,10 @@ updates:
       dev-dependencies:
         dependency-type: "development"
         update-types: ["minor", "patch"]
+    ignore:
+      # Biome bumps require updating the $schema URL in biome.json files,
+      # which dependabot doesn't do. Bump manually.
+      - dependency-name: "@biomejs/biome"
 
   - package-ecosystem: "github-actions"
     directory: "/"
