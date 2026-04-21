@@ -5,11 +5,13 @@
     "lib": ["esnext", "DOM"],
     "strict": true,
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "types": ["node"],
     "declaration": true,
     "outDir": "dist",
+    "rootDir": "src",
     "skipLibCheck": true
   },
   "include": ["src"]
