@@ -242,6 +242,7 @@ const createActionContext = <
     flow: {
       id: "flowId",
       name: "Flow 1",
+      stableId: "flowStableId",
     },
     startedAt: new Date().toISOString(),
     invokeFlow: invokeFlowTest,
@@ -401,6 +402,7 @@ export const defaultTriggerPayload = (): TriggerPayload => {
     flow: {
       id: "flowId",
       name: "Flow 1",
+      stableId: "flowStableId",
     },
     startedAt: new Date().toISOString(),
     globalDebug: false,
