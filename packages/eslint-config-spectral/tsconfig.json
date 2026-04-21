@@ -5,6 +5,7 @@
     "module": "commonjs",
     "strict": true,
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "types": ["node"],
