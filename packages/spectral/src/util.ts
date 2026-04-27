@@ -125,7 +125,7 @@ const isObjectFieldMap = (value: unknown): value is ObjectFieldMap => {
     return isObjectFieldMap(JSON.parse(value));
   }
 
-  if (Boolean(value) && typeof value === "object") {
+  if (value && typeof value === "object") {
     const { fields } = value as Record<string, unknown>;
     return (
       Array.isArray(fields) &&
@@ -729,7 +729,7 @@ const isConnection = (value: unknown): value is ConnectionDefinition => {
     return isConnection(JSON.parse(value));
   }
 
-  if (Boolean(value) && typeof value === "object") {
+  if (value && typeof value === "object") {
     const { inputs } = value as Record<string, unknown>;
 
     if (isObjectWithTruthyKeys(value, ["key", "label", "oauth2Type"])) {

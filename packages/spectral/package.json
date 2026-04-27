@@ -53,7 +53,7 @@
     "object-sizeof": "^2.6.4",
     "prettier": "^3.8.3",
     "safe-stable-stringify": "^2.5.0",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.0",
     "valid-url": "1.0.9",
     "yaml": "^2.8.3"
   },
