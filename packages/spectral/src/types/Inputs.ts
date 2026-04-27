@@ -92,6 +92,7 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = 
   timestamp: "",
   flow: "",
   template: "",
+  structuredObject: undefined,
 };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -139,7 +140,8 @@ export type InputFieldDefinition =
   | DynamicFieldSelectionInputField
   | DateInputField
   | DateTimeInputField
-  | FlowInputField;
+  | FlowInputField
+  | StructuredObjectInputField;
 
 export type InputCleanFunction<TValue, TResult = TValue> = (value: TValue) => TResult;
 
@@ -379,6 +381,48 @@ export type DateTimeInputField = BaseInputField & {
   /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
+
+/**
+ * The non-structuredObject member of `InputFieldDefinition`. Used as the value
+ * type for `StructuredObjectInputField.inputs` to enforce the depth-1 cap at
+ * the type level — a structuredObject's children may not themselves be
+ * structuredObjects, which matches the platform-side validator.
+ */
+export type LeafInputFieldDefinition =
+  | StringInputField
+  | DataInputField
+  | TextInputField
+  | PasswordInputField
+  | BooleanInputField
+  | CodeInputField
+  | ConditionalInputField
+  | ConnectionInputField
+  | ConnectionTemplateInputField
+  | ObjectSelectionInputField
+  | ObjectFieldMapInputField
+  | JSONFormInputField
+  | DynamicObjectSelectionInputField
+  | DynamicFieldSelectionInputField
+  | DateInputField
+  | DateTimeInputField
+  | FlowInputField;
+
+/**
+ * Defines attributes of a StructuredObjectInputField. A structuredObject input
+ * groups a set of related primitive inputs under a single named container —
+ * the platform stores it as a flat list with a parent pointer; the FE
+ * reconstructs the tree for rendering. Children are restricted to
+ * non-structuredObject types (depth-1 cap).
+ */
+export type StructuredObjectInputField = Omit<BaseInputField, "dataSource"> & {
+  /** Data type the input will collect. */
+  type: "structuredObject";
+  /**
+   * Nested input fields keyed by their local key. Children may not themselves
+   * be structuredObject inputs.
+   */
+  inputs: Record<string, LeafInputFieldDefinition>;
+};
 
 /** Defines a single Choice option for a InputField. */
 export interface InputFieldChoice {

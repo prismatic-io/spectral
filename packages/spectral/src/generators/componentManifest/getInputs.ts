@@ -98,6 +98,11 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   timestamp: "string",
   flow: "string",
   template: "string",
+  // TODO: emit a typed record matching the structuredObject's declared
+  // children. `unknown` is the safe fallback until the code-native
+  // action-calling type generator is taught to recurse into nested
+  // children and emit a precise per-field record type.
+  structuredObject: "unknown",
 };
 
 const getInputValueType = (input: ServerTypeInput): ValueType => {
