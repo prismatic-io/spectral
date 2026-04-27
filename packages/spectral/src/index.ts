@@ -28,6 +28,7 @@ import {
   OnPremConnectionDefinition,
   OrganizationActivatedConnectionConfigVar,
   StandardConfigVar,
+  StructuredObjectInputField,
   TriggerDefinition,
   TriggerPayload,
   TriggerResult,
@@ -668,6 +669,41 @@ export const dataSource = <
  * });
  */
 export const input = <T extends InputFieldDefinition>(definition: T): T => definition;
+
+/**
+ * This function creates a structured object input that groups a set of related
+ * primitive inputs under a single named container. Use it when an action
+ * input is a record with named properties (e.g. an `address` containing
+ * `line1`, `city`, `state`, `zip`).
+ *
+ * Children are restricted to non-structuredObject types — a structuredObject
+ * input may not contain another structuredObject. The TypeScript signature
+ * enforces this at compile time.
+ *
+ * The platform stores structuredObject inputs as a flat list with parent
+ * pointers; the conversion layer handles emitting the nested wire shape.
+ *
+ * @param definition A StructuredObjectInputField object that describes the
+ *   container and its child inputs.
+ * @returns The same definition object, typed as a StructuredObjectInputField.
+ * @example
+ * import { input, structuredObjectInput } from "@prismatic-io/spectral";
+ *
+ * const name = structuredObjectInput({
+ *   label: "Name",
+ *   inputs: {
+ *     first: input({ type: "string", label: "First Name", required: true }),
+ *     last: input({ type: "string", label: "Last Name", required: true }),
+ *     prefix: input({ type: "string", label: "Prefix" }),
+ *   },
+ * });
+ */
+export const structuredObjectInput = <T extends Omit<StructuredObjectInputField, "type">>(
+  definition: T,
+): T & { type: "structuredObject" } => ({
+  ...definition,
+  type: "structuredObject" as const,
+});
 
 /**
  * This function creates a connection that can be used by a code-native integration

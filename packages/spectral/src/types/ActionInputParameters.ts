@@ -5,7 +5,35 @@ import type {
   InputFieldCollection,
   Inputs,
   KeyValuePair,
+  StructuredObjectInputField,
 } from "./Inputs";
+
+/**
+ * Resolves a single InputFieldDefinition's runtime value type.
+ *
+ * StructuredObject is dispatched first so the rest of the chain doesn't try
+ * to index `clean`/`default`/`collection` against a member of the union that
+ * lacks them. The runtime value for a structuredObject is a record of
+ * resolved child values; emitting a precise typed record (matching the
+ * declared children) is a follow-up to this work. Until that lands,
+ * `unknown` is the safe fallback so the union of all per-field resolutions
+ * still simplifies to `unknown` and doesn't break code that passes around a
+ * generic `ActionInputParameters<Inputs>`.
+ */
+type InputValue<T> = T extends StructuredObjectInputField
+  ? unknown
+  : T extends { clean: InputCleanFunction<any> }
+    ? ReturnType<T["clean"]>
+    : T extends { type: "connection"; collection?: infer C }
+      ? ExtractValue<Connection, C extends InputFieldCollection | undefined ? C : undefined>
+      : T extends { type: "conditional"; collection?: infer C }
+        ? ExtractValue<
+            ConditionalExpression,
+            C extends InputFieldCollection | undefined ? C : undefined
+          >
+        : T extends { default?: infer D; collection?: infer C }
+          ? ExtractValue<D, C extends InputFieldCollection | undefined ? C : undefined>
+          : unknown;
 
 /**
  * Collection of input parameters.
@@ -13,13 +41,7 @@ import type {
  * references to previous steps' outputs.
  */
 export type ActionInputParameters<TInputs extends Inputs> = {
-  [Property in keyof TInputs]: TInputs[Property]["clean"] extends InputCleanFunction<any>
-    ? ReturnType<TInputs[Property]["clean"]>
-    : TInputs[Property]["type"] extends "connection"
-      ? ExtractValue<Connection, TInputs[Property]["collection"]>
-      : TInputs[Property]["type"] extends "conditional"
-        ? ExtractValue<ConditionalExpression, TInputs[Property]["collection"]>
-        : ExtractValue<TInputs[Property]["default"], TInputs[Property]["collection"]>;
+  [Property in keyof TInputs]: InputValue<TInputs[Property]>;
 };
 
 export type ExtractValue<
