@@ -25,19 +25,19 @@
   },
   "files": ["dist"],
   "dependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.58.2",
-    "@typescript-eslint/parser": "^8.58.2",
-    "eslint-plugin-import": "2.31.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "eslint-plugin-import": "2.32.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "^5.5.5"
   },
   "devDependencies": {
     "@types/eslint": "9.6.1",
-    "@types/node": "22.14.1",
-    "eslint": "^9.31.0",
+    "@types/node": "25.6.0",
+    "eslint": "^10.2.1",
     "prettier": "^3",
-    "typescript": "^5"
+    "typescript": "^6"
   },
   "peerDependencies": {
     "eslint": ">=8",
