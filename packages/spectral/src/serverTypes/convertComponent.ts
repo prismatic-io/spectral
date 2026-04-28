@@ -31,11 +31,6 @@ import {
 } from ".";
 import { CleanFn, createPerform, createPollingPerform, InputCleaners, PerformFn } from "./perform";
 
-/**
- * StructuredObject inputs do not carry a `clean` function (they have no
- * per-field value to clean — children carry their own). All other input
- * variants of InputFieldDefinition optionally carry `clean`.
- */
 const cleanerFor = (input: InputFieldDefinition): CleanFn | undefined =>
   "clean" in input ? (input.clean as CleanFn | undefined) : undefined;
 
@@ -43,10 +38,8 @@ export const convertInput = (
   key: string,
   definition: InputFieldDefinition | OnPremConnectionInput | ConnectionInput,
 ): ServerInput => {
-  // Cast for destructure: TypeScript can't safely destructure properties
-  // that exist on only some members of the union (e.g. `default` is on
-  // leaves but not StructuredObjectInputField). The runtime checks below
-  // make this safe.
+  // Cast: union members don't all carry `default`/`collection`/`inputs`;
+  // runtime guards below handle the differences.
   const {
     default: defaultValue,
     type,
@@ -214,11 +207,8 @@ export const convertTrigger = <
   let performToUse: PerformFn;
 
   if (isPollingTrigger) {
-    // Pull inputs up from the action and make them available on the trigger.
-    // The inline cast is needed because isPollingTriggerDefinition()'s type
-    // guard narrows on the call site only — assigning the result to the
-    // `isPollingTrigger` variable (used elsewhere in this function) doesn't
-    // carry the narrowing here.
+    // Cast: the type-guard call's narrowing doesn't survive being stored in
+    // `isPollingTrigger` and read here.
     const { pollAction: action } = trigger as PollingTriggerDefinition<
       Inputs,
       ConfigVarResultCollection,

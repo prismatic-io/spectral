@@ -8,18 +8,8 @@ import type {
   StructuredObjectInputField,
 } from "./Inputs";
 
-/**
- * Resolves a single InputFieldDefinition's runtime value type.
- *
- * StructuredObject is dispatched first so the rest of the chain doesn't try
- * to index `clean`/`default`/`collection` against a member of the union that
- * lacks them. The runtime value for a structuredObject is a record of
- * resolved child values; emitting a precise typed record (matching the
- * declared children) is a follow-up to this work. Until that lands,
- * `unknown` is the safe fallback so the union of all per-field resolutions
- * still simplifies to `unknown` and doesn't break code that passes around a
- * generic `ActionInputParameters<Inputs>`.
- */
+/** Resolves a single InputFieldDefinition's runtime value type. structuredObject
+ * resolves to `unknown` until the per-field record-type recursion lands. */
 type InputValue<T> = T extends StructuredObjectInputField
   ? unknown
   : T extends { clean: InputCleanFunction<any> }

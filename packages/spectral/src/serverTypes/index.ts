@@ -364,12 +364,7 @@ export interface Input {
   onPremiseControlled?: boolean;
   dataSource?: string;
   shown?: boolean;
-  /**
-   * Nested child inputs. Only populated when `type === "structuredObject"`.
-   * The platform's recursive InputFieldDefinition GraphQL input type accepts
-   * this shape and the publish pipeline walks the nested tree to write
-   * InputField rows with parent pointers.
-   */
+  /** Nested child inputs; populated only when `type === "structuredObject"`. */
   inputs?: Input[];
 }
 

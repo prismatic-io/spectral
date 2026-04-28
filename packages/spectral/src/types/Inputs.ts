@@ -382,12 +382,8 @@ export type DateTimeInputField = BaseInputField & {
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
-/**
- * The non-structuredObject member of `InputFieldDefinition`. Used as the value
- * type for `StructuredObjectInputField.inputs` to enforce the depth-1 cap at
- * the type level — a structuredObject's children may not themselves be
- * structuredObjects, which matches the platform-side validator.
- */
+/** `InputFieldDefinition` minus `StructuredObjectInputField`; used to cap
+ * structuredObject nesting at one level. */
 export type LeafInputFieldDefinition =
   | StringInputField
   | DataInputField
@@ -407,20 +403,12 @@ export type LeafInputFieldDefinition =
   | DateTimeInputField
   | FlowInputField;
 
-/**
- * Defines attributes of a StructuredObjectInputField. A structuredObject input
- * groups a set of related primitive inputs under a single named container —
- * the platform stores it as a flat list with a parent pointer; the FE
- * reconstructs the tree for rendering. Children are restricted to
- * non-structuredObject types (depth-1 cap).
- */
+/** Groups related primitive inputs under a single named container.
+ * Nesting is capped at one level. */
 export type StructuredObjectInputField = Omit<BaseInputField, "dataSource"> & {
   /** Data type the input will collect. */
   type: "structuredObject";
-  /**
-   * Nested input fields keyed by their local key. Children may not themselves
-   * be structuredObject inputs.
-   */
+  /** Nested input fields keyed by their local key. */
   inputs: Record<string, LeafInputFieldDefinition>;
 };
 
