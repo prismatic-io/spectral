@@ -671,21 +671,10 @@ export const dataSource = <
 export const input = <T extends InputFieldDefinition>(definition: T): T => definition;
 
 /**
- * This function creates a structured object input that groups a set of related
- * primitive inputs under a single named container. Use it when an action
- * input is a record with named properties (e.g. an `address` containing
- * `line1`, `city`, `state`, `zip`).
+ * Groups related primitive inputs under a single named container. Children
+ * may not themselves be structuredObject inputs (the type signature enforces
+ * this at compile time).
  *
- * Children are restricted to non-structuredObject types — a structuredObject
- * input may not contain another structuredObject. The TypeScript signature
- * enforces this at compile time.
- *
- * The platform stores structuredObject inputs as a flat list with parent
- * pointers; the conversion layer handles emitting the nested wire shape.
- *
- * @param definition A StructuredObjectInputField object that describes the
- *   container and its child inputs.
- * @returns The same definition object, typed as a StructuredObjectInputField.
  * @example
  * import { input, structuredObjectInput } from "@prismatic-io/spectral";
  *
@@ -694,7 +683,6 @@ export const input = <T extends InputFieldDefinition>(definition: T): T => defin
  *   inputs: {
  *     first: input({ type: "string", label: "First Name", required: true }),
  *     last: input({ type: "string", label: "Last Name", required: true }),
- *     prefix: input({ type: "string", label: "Prefix" }),
  *   },
  * });
  */
