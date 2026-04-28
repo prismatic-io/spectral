@@ -171,8 +171,8 @@ interface HttpResponse {
   body?: string;
 }
 
-interface TriggerBaseResult {
-  payload: TriggerPayload;
+interface TriggerBaseResult<TPayload extends TriggerPayload = TriggerPayload> {
+  payload: TPayload;
   response?: HttpResponse;
   instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
@@ -182,11 +182,15 @@ interface TriggerBaseResult {
   error?: Record<string, unknown>;
 }
 
-interface TriggerBranchingResult extends TriggerBaseResult {
+interface TriggerBranchingResult<TPayload extends TriggerPayload = TriggerPayload>
+  extends TriggerBaseResult<TPayload> {
   branch: string;
 }
 
-export type TriggerResult = TriggerBranchingResult | TriggerBaseResult | undefined;
+export type TriggerResult<TPayload extends TriggerPayload = TriggerPayload> =
+  | TriggerBranchingResult<TPayload>
+  | TriggerBaseResult<TPayload>
+  | undefined;
 
 export type TriggerEventFunctionResult = TriggerEventFunctionReturn | void;
 
@@ -195,6 +199,12 @@ export type TriggerEventFunction = (
   params: Record<string, unknown>,
 ) => Promise<TriggerEventFunctionResult>;
 
+/**
+ * Wire format the platform expects for a trigger. Note: function references
+ * (perform, resolveTriggerItems, getNextDiscoveryState, ...) don't survive JSON
+ * serialization, so each callback has a paired `hasXxx: boolean` flag the
+ * server reads to detect presence. Keep the flag and its callback in sync.
+ */
 export interface Trigger<
   TInputs extends Inputs,
   TActionInputs extends Inputs,
@@ -240,6 +250,18 @@ export interface Trigger<
   hasWebhookDeleteFunction?: boolean;
   scheduleSupport: TriggerOptionChoice;
   synchronousResponseSupport: TriggerOptionChoice;
+  triggerResolverSupport?: TriggerOptionChoice;
+  triggerResolverDefaultBatchSize?: number;
+  resolveTriggerItems?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => unknown[];
+  hasResolveTriggerItems?: boolean;
+  getNextDiscoveryState?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => Record<string, unknown> | null;
+  hasGetNextDiscoveryState?: boolean;
   examplePayload?: unknown;
   isCommonTrigger?: boolean;
   isPollingTrigger?: boolean;

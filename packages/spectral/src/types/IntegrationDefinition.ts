@@ -9,13 +9,13 @@ import type {
 import type { ConfigPages, UserLevelConfigPages } from "./ConfigPages";
 import type { ConfigVars } from "./ConfigVars";
 import type { FlowDefinitionFlowSchema } from "./FlowSchemas";
-import type { Inputs } from "./Inputs";
+import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { PollingTriggerPerformFunction } from "./PollingTriggerDefinition";
 import type { ScopedConfigVarMap } from "./ScopedConfigVars";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
 import type { TriggerPayload } from "./TriggerPayload";
 import type { TriggerPerformFunction } from "./TriggerPerformFunction";
-import type { TriggerResult } from "./TriggerResult";
+import type { TriggerBaseResult, TriggerResult } from "./TriggerResult";
 
 /**
  * Defines attributes of a code-native integration. See
@@ -143,6 +143,13 @@ interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload> {
    */
   organizationApiKeys?: string[];
   testApiKeys?: string[];
+  /**
+   * Trigger resolver configuration: batches the records returned by the
+   * trigger into parallel dispatches. When using an existing component
+   * trigger, that trigger must declare `triggerResolverSupport`. CNI flows
+   * infer support from the resolver's presence.
+   */
+  triggerResolver?: TriggerResolverConfig<ConfigVars, TTriggerPayload>;
   /** Error handling configuration. */
   errorConfig?: StepErrorConfig;
   /** Optional schemas definitions for the flow. Currently only for use with AI agents. */
@@ -337,3 +344,25 @@ export type EndpointSecurityType =
 
 /** Choices of Step Error Handlers that define the behavior when a step error occurs. */
 export type StepErrorHandlerType = "fail" | "ignore" | "retry";
+
+/** Configures how trigger items are batched when the trigger supports a resolver. */
+export type TriggerResolverConfig<
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TItem = unknown,
+> = {
+  /** Number of items per batch. Must be an integer >= 1. `1` dispatches each item individually; `>1` groups items into batches. */
+  batchSize: number;
+  /** Extracts an array of items from the trigger result for batched dispatch. Receives the same context as the trigger's perform function. */
+  resolveItems?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => TItem[];
+  /** Called after each trigger run. When defined and returns a non-null object, the platform
+   *  queues another pagination round (re-invokes the trigger) and stamps the returned object
+   *  onto `payload.discoveryState` for that next invocation. Return `null` to stop. */
+  getNextDiscoveryState?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => Record<string, unknown> | null;
+};

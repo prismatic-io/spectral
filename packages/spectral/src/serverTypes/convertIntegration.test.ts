@@ -58,6 +58,34 @@ describe("convertFlow with polling triggers", () => {
 
     expect(result.name).toBe("Test Polling Flow");
   });
+
+  it("emits triggerResolver { batchSize } and strips resolveItems on the flow result", () => {
+    const triggerResolverFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => ({ payload }),
+      triggerResolver: {
+        batchSize: 25,
+        resolveItems: () => [1, 2, 3],
+      },
+    });
+
+    const result = convertFlow(triggerResolverFlow, {}, "test-ref");
+
+    expect(result.triggerResolver).toEqual({ batchSize: 25 });
+  });
+
+  it("throws when flow-level triggerResolver batchSize is invalid", () => {
+    const invalidFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => ({ payload }),
+      // @ts-expect-error - intentionally invalid batchSize for runtime validation
+      triggerResolver: { batchSize: 0 },
+    });
+
+    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
+      /invalid triggerResolver batchSize of 0/,
+    );
+  });
 });
 
 describe("convertConfigPages", () => {
