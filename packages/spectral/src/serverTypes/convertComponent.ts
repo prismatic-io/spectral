@@ -21,6 +21,7 @@ import {
   isPollingTriggerDefinition,
   type PollingTriggerDefinition,
 } from "../types/PollingTriggerDefinition";
+import type { TriggerResolver } from "../types/TriggerDefinition";
 import type {
   Action as ServerAction,
   Component as ServerComponent,
@@ -30,6 +31,56 @@ import type {
   Trigger as ServerTrigger,
 } from ".";
 import { createPerform, createPollingPerform, type InputCleaners, type PerformFn } from "./perform";
+
+/**
+ * Throws if `batchSize` isn't a positive integer; otherwise returns it.
+ * Shared by both component-trigger (`TriggerResolver.default.batchSize`) and
+ * CNI flow (`TriggerResolverConfig.batchSize`) validation paths.
+ */
+export const validateBatchSize = (
+  ownerLabel: string,
+  fieldName: string,
+  batchSize: unknown,
+): number => {
+  if (typeof batchSize !== "number" || !Number.isInteger(batchSize) || batchSize < 1) {
+    throw new Error(
+      `${ownerLabel} has an invalid ${fieldName} batchSize of ${String(batchSize)}. batchSize must be an integer >= 1.`,
+    );
+  }
+  return batchSize;
+};
+
+const buildTriggerResolverFields = <
+  TConfigVars extends ConfigVarResultCollection,
+  TPayload extends TriggerPayload,
+>(
+  triggerLabel: string,
+  support: TriggerOptionChoice,
+  resolver: TriggerResolver<TConfigVars, TPayload> | undefined,
+) => {
+  if (!resolver) {
+    return support === "invalid" ? {} : { triggerResolverDefaultBatchSize: 1 };
+  }
+  return {
+    triggerResolverDefaultBatchSize: validateBatchSize(
+      `Trigger "${triggerLabel}"`,
+      "triggerResolver.default",
+      resolver.default.batchSize,
+    ),
+    ...(resolver.resolveItems
+      ? {
+          resolveTriggerItems: resolver.resolveItems,
+          hasResolveTriggerItems: true,
+        }
+      : {}),
+    ...(resolver.getNextDiscoveryState
+      ? {
+          getNextDiscoveryState: resolver.getNextDiscoveryState,
+          hasGetNextDiscoveryState: true,
+        }
+      : {}),
+  };
+};
 
 export const convertInput = (
   key: string,
@@ -181,6 +232,25 @@ export const convertTrigger = <
 
   let scheduleSupport: TriggerOptionChoice =
     "scheduleSupport" in trigger ? trigger.scheduleSupport : "invalid";
+
+  const triggerResolver = "triggerResolver" in trigger ? trigger.triggerResolver : undefined;
+  const triggerResolverSupport: TriggerOptionChoice =
+    "triggerResolverSupport" in trigger && trigger.triggerResolverSupport !== undefined
+      ? trigger.triggerResolverSupport
+      : triggerResolver
+        ? "valid"
+        : "invalid";
+  if (triggerResolverSupport === "required" && !triggerResolver) {
+    throw new Error(
+      `Trigger "${trigger.display.label}" declares triggerResolverSupport "required" but is missing triggerResolver.`,
+    );
+  }
+  if (triggerResolverSupport === "invalid" && triggerResolver) {
+    throw new Error(
+      `Trigger "${trigger.display.label}" declares triggerResolver but triggerResolverSupport is "invalid".`,
+    );
+  }
+
   let convertedActionInputs: Array<ServerInput> = [];
   let performToUse: PerformFn;
 
@@ -246,6 +316,8 @@ export const convertTrigger = <
         : scheduleSupport === "invalid"
           ? "valid"
           : "invalid",
+    triggerResolverSupport,
+    ...buildTriggerResolverFields(trigger.display.label, triggerResolverSupport, triggerResolver),
     ...(isPollingTrigger ? { isPollingTrigger: true } : {}),
   };
 

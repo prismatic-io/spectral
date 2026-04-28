@@ -1,9 +1,30 @@
+import type { ActionContext } from "./ActionPerformFunction";
 import type { ActionDisplayDefinition } from "./DisplayDefinition";
 import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
 import type { TriggerPayload } from "./TriggerPayload";
 import type { TriggerPerformFunction } from "./TriggerPerformFunction";
-import type { TriggerResult } from "./TriggerResult";
+import type { TriggerBaseResult, TriggerResult } from "./TriggerResult";
+
+/**
+ * Encodes the relationship between `triggerResolverSupport` and `triggerResolver`:
+ * - absent or `"invalid"`: no resolver allowed
+ * - `"valid"`: resolver optional
+ * - `"required"`: resolver required
+ */
+export type TriggerResolverDecl<
+  TConfigVars extends ConfigVarResultCollection,
+  TPayload extends TriggerPayload,
+> =
+  | { triggerResolverSupport?: "invalid" | undefined; triggerResolver?: undefined }
+  | {
+      triggerResolverSupport: "valid";
+      triggerResolver?: TriggerResolver<TConfigVars, TPayload>;
+    }
+  | {
+      triggerResolverSupport: "required";
+      triggerResolver: TriggerResolver<TConfigVars, TPayload>;
+    };
 
 const optionChoices = ["invalid", "valid", "required"] as const;
 
@@ -11,12 +32,49 @@ export type TriggerOptionChoice = (typeof optionChoices)[number];
 
 export const TriggerOptionChoices: TriggerOptionChoice[] = [...optionChoices];
 
+export interface TriggerResolver<
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TItem = unknown,
+> {
+  /** Author-declared defaults for how this trigger's items are batched. */
+  default: {
+    /** Number of items per batch. Must be an integer >= 1. `1` dispatches each item individually; `>1` groups items into batches. */
+    batchSize: number;
+  };
+  /** Extracts an array of items from the trigger result for batched dispatch. Receives the same context as the trigger's perform function. */
+  resolveItems?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => TItem[];
+  /** Extracts data from the trigger result to be passed to the next trigger invocation to fetch another page of data. */
+  getNextDiscoveryState?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => Record<string, unknown> | null;
+}
+
 /**
  * TriggerDefinition is the type of the object that is passed in to `trigger` function to
  * define a component trigger. See
  * https://prismatic.io/docs/custom-connectors/triggers/
+ *
+ * Composed from `TriggerDefinitionBase` (static fields) plus the discriminated union
+ * `TriggerResolverDecl`, which enforces the resolver support relationship at the type
+ * level.
  */
-export interface TriggerDefinition<
+export type TriggerDefinition<
+  TInputs extends Inputs = Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TriggerPayload> = TriggerResult<
+    TAllowsBranching,
+    TriggerPayload
+  >,
+> = TriggerDefinitionBase<TInputs, TConfigVars, TAllowsBranching, TResult> &
+  TriggerResolverDecl<TConfigVars, TriggerPayload>;
+
+interface TriggerDefinitionBase<
   TInputs extends Inputs = Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TAllowsBranching extends boolean = boolean,

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { connection, input } from "..";
-import { convertConnection, convertInput, convertTemplateInput } from "./convertComponent";
+import { connection, input, trigger } from "..";
+import {
+  convertConnection,
+  convertInput,
+  convertTemplateInput,
+  convertTrigger,
+} from "./convertComponent";
 
 describe("convertConnection", () => {
   const label = "My Basic Connection";
@@ -133,5 +138,99 @@ describe("convertTemplateInput", () => {
     expected,
   }) => {
     expect(() => convertTemplateInput(key, templateInput, inputs)).toThrow(expected);
+  });
+});
+
+const baseTrigger = {
+  display: { label: "My Trigger", description: "" },
+  perform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+  inputs: {},
+  scheduleSupport: "invalid" as const,
+  synchronousResponseSupport: "invalid" as const,
+};
+
+describe("convertTrigger triggerResolver", () => {
+  it("defaults triggerResolverSupport to 'valid' when triggerResolver is declared without explicit support", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        triggerResolver: { default: { batchSize: 50 } },
+      }),
+    );
+    expect(result.triggerResolverSupport).toBe("valid");
+    expect(result.triggerResolverDefaultBatchSize).toBe(50);
+  });
+
+  it("defaults triggerResolverSupport to 'invalid' when no triggerResolver is declared", () => {
+    const result = convertTrigger("myTrigger", trigger(baseTrigger));
+    expect(result.triggerResolverSupport).toBe("invalid");
+    expect(result.triggerResolverDefaultBatchSize).toBeUndefined();
+    expect(result.hasResolveTriggerItems).toBeUndefined();
+  });
+
+  it("emits default batchSize 1 when triggerResolverSupport is 'valid' without a triggerResolver", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        triggerResolverSupport: "valid",
+      }),
+    );
+    expect(result.triggerResolverSupport).toBe("valid");
+    expect(result.triggerResolverDefaultBatchSize).toBe(1);
+  });
+
+  it("rejects triggerResolverSupport='required' without triggerResolver", () => {
+    expect(() =>
+      convertTrigger(
+        "myTrigger",
+        trigger({
+          ...baseTrigger,
+          triggerResolverSupport: "required",
+        }),
+      ),
+    ).toThrow(/triggerResolverSupport "required" but is missing triggerResolver/);
+  });
+
+  it("rejects triggerResolverSupport='invalid' when triggerResolver is set", () => {
+    expect(() =>
+      convertTrigger(
+        "myTrigger",
+        trigger({
+          ...baseTrigger,
+          triggerResolverSupport: "invalid",
+          triggerResolver: { default: { batchSize: 50 } },
+        }),
+      ),
+    ).toThrow(/triggerResolver but triggerResolverSupport is "invalid"/);
+  });
+
+  it("rejects triggerResolver with batchSize < 1", () => {
+    expect(() =>
+      convertTrigger(
+        "myTrigger",
+        trigger({
+          ...baseTrigger,
+          triggerResolver: { default: { batchSize: 0 } },
+        }),
+      ),
+    ).toThrow(/invalid triggerResolver\.default batchSize of 0/);
+  });
+
+  it("preserves resolveItems on triggerResolver", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        triggerResolver: {
+          default: { batchSize: 25 },
+          resolveItems: () => [1, 2, 3],
+        },
+      }),
+    );
+    expect(result.hasResolveTriggerItems).toBe(true);
+    expect(result.triggerResolverDefaultBatchSize).toBe(25);
+    expect(typeof result.resolveTriggerItems).toBe("function");
   });
 });
