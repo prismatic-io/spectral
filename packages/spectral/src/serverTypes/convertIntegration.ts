@@ -1,10 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "fs";
 import assign from "lodash/assign";
 import camelCase from "lodash/camelCase";
 import merge from "lodash/merge";
 import pick from "lodash/pick";
 import path from "path";
-import { v4 as uuid } from "uuid";
 import YAML from "yaml";
 import {
   CollectionType,
@@ -99,7 +99,7 @@ export const convertIntegration = <
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
   // inline as part of the integration definition.
-  const referenceKey = uuid();
+  const referenceKey = randomUUID();
 
   const scopedConfigVars = definition.scopedConfigVars ?? {};
   const configVars: Record<string, ConfigVar> = Object.values({
