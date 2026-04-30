@@ -29,20 +29,41 @@ import {
   Input as ServerInput,
   Trigger as ServerTrigger,
 } from ".";
-import { createPerform, createPollingPerform, InputCleaners, PerformFn } from "./perform";
+import { CleanFn, createPerform, createPollingPerform, InputCleaners, PerformFn } from "./perform";
+
+const cleanerFor = (input: InputFieldDefinition): CleanFn | undefined =>
+  "clean" in input ? (input.clean as CleanFn | undefined) : undefined;
 
 export const convertInput = (
   key: string,
-  {
+  definition: InputFieldDefinition | OnPremConnectionInput | ConnectionInput,
+): ServerInput => {
+  // Cast: union members don't all carry `default`/`collection`/`inputs`;
+  // runtime guards below handle the differences.
+  const {
     default: defaultValue,
     type,
     label,
     collection,
+    inputs: childInputs,
     ...rest
-  }: InputFieldDefinition | OnPremConnectionInput | ConnectionInput,
-): ServerInput => {
+  } = definition as {
+    default?: unknown;
+    type: InputFieldDefinition["type"] | "template";
+    label: string | { key: string; value: string };
+    collection?: "valuelist" | "keyvaluelist";
+    inputs?: Record<string, InputFieldDefinition>;
+    [key: string]: unknown;
+  };
   const keyLabel =
     collection === "keyvaluelist" && typeof label === "object" ? label.key : undefined;
+
+  const nestedInputs =
+    type === "structuredObject" && childInputs
+      ? Object.entries(childInputs).map(([childKey, childDef]) =>
+          convertInput(childKey, childDef as InputFieldDefinition),
+        )
+      : undefined;
 
   return {
     ...omit(rest, [
@@ -57,7 +78,8 @@ export const convertInput = (
     collection,
     label: typeof label === "string" ? label : label.value,
     keyLabel,
-    onPremiseControlled: ("onPremControlled" in rest && rest.onPremControlled) || undefined,
+    onPremiseControlled: rest.onPremControlled === true ? true : undefined,
+    inputs: nestedInputs,
   };
 };
 
@@ -131,7 +153,7 @@ const convertAction = (
 ): ServerAction => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
   const inputCleaners = Object.entries(inputs).reduce<InputCleaners>(
-    (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+    (result, [key, value]) => ({ ...result, [key]: cleanerFor(value) }),
     {},
   );
 
@@ -175,7 +197,7 @@ export const convertTrigger = <
   });
 
   const triggerInputCleaners = Object.entries(inputs).reduce<InputCleaners>(
-    (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+    (result, [key, value]) => ({ ...result, [key]: cleanerFor(value) }),
     {},
   );
 
@@ -185,8 +207,16 @@ export const convertTrigger = <
   let performToUse: PerformFn;
 
   if (isPollingTrigger) {
-    // Pull inputs up from the action and make them available on the trigger
-    const { pollAction: action } = trigger;
+    // Cast: the type-guard call's narrowing doesn't survive being stored in
+    // `isPollingTrigger` and read here.
+    const { pollAction: action } = trigger as PollingTriggerDefinition<
+      Inputs,
+      ConfigVarResultCollection,
+      TriggerPayload,
+      boolean,
+      any,
+      any
+    >;
     let actionInputCleaners: InputCleaners = {};
     scheduleSupport = "required";
 
@@ -199,14 +229,17 @@ export const convertTrigger = <
             );
           }
 
-          accum.push(convertInput(key, value));
+          accum.push(convertInput(key, value as InputFieldDefinition));
           return accum;
         },
         [],
       );
 
       actionInputCleaners = Object.entries(action.inputs).reduce<InputCleaners>(
-        (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+        (result, [key, value]) => ({
+          ...result,
+          [key]: cleanerFor(value as InputFieldDefinition),
+        }),
         {},
       );
     }
@@ -218,7 +251,7 @@ export const convertTrigger = <
       errorHandler: hooks?.error,
     });
   } else {
-    performToUse = createPerform(trigger.perform, {
+    performToUse = createPerform((trigger as TriggerDefinition<any>).perform, {
       inputCleaners: triggerInputCleaners,
       errorHandler: hooks?.error,
     });
@@ -293,7 +326,7 @@ const convertDataSource = (
 ): ServerDataSource => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
   const inputCleaners = Object.entries(inputs).reduce<InputCleaners>(
-    (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+    (result, [key, value]) => ({ ...result, [key]: cleanerFor(value) }),
     {},
   );
 

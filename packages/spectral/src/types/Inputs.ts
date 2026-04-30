@@ -92,6 +92,7 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = 
   timestamp: "",
   flow: "",
   template: "",
+  structuredObject: undefined,
 };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -139,7 +140,8 @@ export type InputFieldDefinition =
   | DynamicFieldSelectionInputField
   | DateInputField
   | DateTimeInputField
-  | FlowInputField;
+  | FlowInputField
+  | StructuredObjectInputField;
 
 export type InputCleanFunction<TValue, TResult = TValue> = (value: TValue) => TResult;
 
@@ -379,6 +381,36 @@ export type DateTimeInputField = BaseInputField & {
   /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
+
+/** `InputFieldDefinition` minus `StructuredObjectInputField`; used to cap
+ * structuredObject nesting at one level. */
+export type LeafInputFieldDefinition =
+  | StringInputField
+  | DataInputField
+  | TextInputField
+  | PasswordInputField
+  | BooleanInputField
+  | CodeInputField
+  | ConditionalInputField
+  | ConnectionInputField
+  | ConnectionTemplateInputField
+  | ObjectSelectionInputField
+  | ObjectFieldMapInputField
+  | JSONFormInputField
+  | DynamicObjectSelectionInputField
+  | DynamicFieldSelectionInputField
+  | DateInputField
+  | DateTimeInputField
+  | FlowInputField;
+
+/** Groups related primitive inputs under a single named container.
+ * Nesting is capped at one level. */
+export type StructuredObjectInputField = Omit<BaseInputField, "dataSource"> & {
+  /** Data type the input will collect. */
+  type: "structuredObject";
+  /** Nested input fields keyed by their local key. */
+  inputs: Record<string, LeafInputFieldDefinition>;
+};
 
 /** Defines a single Choice option for a InputField. */
 export interface InputFieldChoice {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { action, input, pollingTrigger, trigger } from ".";
+import { action, component, input, pollingTrigger, structuredObjectInput, trigger } from ".";
 import { convertTrigger } from "./serverTypes/convertComponent";
 import { PerformFn } from "./serverTypes/perform";
 
@@ -199,5 +199,69 @@ describe("test convert trigger", () => {
         throw e;
       }
     }
+  });
+});
+
+describe("structuredObject inputs in a published component", () => {
+  const createContact = action({
+    display: {
+      label: "Create Contact",
+      description: "Create a new contact",
+    },
+    inputs: {
+      name: structuredObjectInput({
+        label: "Name",
+        inputs: {
+          first: input({ type: "string", label: "First Name", required: true }),
+          last: input({ type: "string", label: "Last Name", required: true }),
+          prefix: input({ type: "string", label: "Prefix" }),
+        },
+      }),
+      email: input({ type: "string", label: "Email", required: true }),
+    },
+    perform: async (_context, _params) => Promise.resolve({ data: null }),
+  });
+
+  it("publishes the action with a structuredObject parent and nested children", () => {
+    const converted = component({
+      key: "crm",
+      public: false,
+      display: { label: "CRM", description: "Test CRM component", iconPath: "icon.png" },
+      actions: { createContact },
+    });
+
+    const action = converted.actions.createContact;
+    expect(action.inputs).toHaveLength(2);
+
+    const nameInput = action.inputs.find((i: { key: string }) => i.key === "name");
+    expect(nameInput).toMatchObject({
+      key: "name",
+      type: "structuredObject",
+      label: "Name",
+    });
+    expect(nameInput?.inputs).toHaveLength(3);
+    expect(nameInput?.inputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: "first", type: "string", required: true }),
+        expect.objectContaining({ key: "last", type: "string", required: true }),
+        expect.objectContaining({ key: "prefix", type: "string" }),
+      ]),
+    );
+
+    const emailInput = action.inputs.find((i: { key: string }) => i.key === "email");
+    expect(emailInput).toMatchObject({ key: "email", type: "string", required: true });
+    expect(emailInput?.inputs).toBeUndefined();
+  });
+
+  it("structuredObjectInput factory forces type to 'structuredObject'", () => {
+    const fromFactory = structuredObjectInput({
+      label: "Address",
+      inputs: {
+        line1: input({ type: "string", label: "Line 1" }),
+      },
+    });
+    expect(fromFactory.type).toBe("structuredObject");
+    expect(fromFactory.label).toBe("Address");
+    expect(Object.keys(fromFactory.inputs)).toEqual(["line1"]);
   });
 });
