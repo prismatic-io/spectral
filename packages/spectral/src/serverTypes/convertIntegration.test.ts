@@ -280,6 +280,116 @@ describe("convertConfigVar", () => {
       );
     });
   });
+
+  describe("schedule config var handling", () => {
+    // In low-code, schedule-typed config variables can have a default of
+    // "Never" (scheduleType "none"), "Minute", "Hour", "Day", "Week", or
+    // "Custom" (a CRON expression). CNI should support the same set of
+    // defaults rather than always forcing scheduleType to "custom".
+
+    it("should default to scheduleType 'none' when no defaultValue is provided (Never)", () => {
+      const scheduleConfigVar = configVar({
+        stableKey: "test-schedule",
+        dataType: "schedule",
+      });
+
+      const result = convertConfigVar(
+        "TestSchedule",
+        scheduleConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+
+      expect("scheduleType" in result && result.scheduleType).toBe("none");
+      expect("defaultValue" in result && result.defaultValue).toBeUndefined();
+    });
+
+    it("should treat an empty-string defaultValue as the 'Never' schedule (scheduleType 'none')", () => {
+      const scheduleConfigVar = configVar({
+        stableKey: "test-schedule",
+        dataType: "schedule",
+        defaultValue: "",
+      });
+
+      const result = convertConfigVar(
+        "TestSchedule",
+        scheduleConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+
+      expect("scheduleType" in result && result.scheduleType).toBe("none");
+    });
+
+    it("should set scheduleType to 'custom' when a CRON expression is provided as defaultValue", () => {
+      const scheduleConfigVar = configVar({
+        stableKey: "test-schedule",
+        dataType: "schedule",
+        defaultValue: "*/5 * * * *",
+      });
+
+      const result = convertConfigVar(
+        "TestSchedule",
+        scheduleConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+
+      expect("scheduleType" in result && result.scheduleType).toBe("custom");
+      expect("defaultValue" in result && result.defaultValue).toBe("*/5 * * * *");
+    });
+
+    it("should respect a user-specified scheduleType (e.g. 'hour')", () => {
+      const scheduleConfigVar = configVar({
+        stableKey: "test-schedule",
+        dataType: "schedule",
+        scheduleType: "hour",
+      });
+
+      const result = convertConfigVar(
+        "TestSchedule",
+        scheduleConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+
+      expect("scheduleType" in result && result.scheduleType).toBe("hour");
+    });
+
+    it("should respect a user-specified scheduleType of 'none' (Never)", () => {
+      const scheduleConfigVar = configVar({
+        stableKey: "test-schedule",
+        dataType: "schedule",
+        scheduleType: "none",
+      });
+
+      const result = convertConfigVar(
+        "TestSchedule",
+        scheduleConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+
+      expect("scheduleType" in result && result.scheduleType).toBe("none");
+    });
+
+    it("should preserve timeZone on schedule config vars", () => {
+      const scheduleConfigVar = configVar({
+        stableKey: "test-schedule",
+        dataType: "schedule",
+        timeZone: "America/Chicago",
+      });
+
+      const result = convertConfigVar(
+        "TestSchedule",
+        scheduleConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+
+      expect("timeZone" in result && result.timeZone).toBe("America/Chicago");
+    });
+  });
 });
 
 describe("convertQueueConfig", () => {
