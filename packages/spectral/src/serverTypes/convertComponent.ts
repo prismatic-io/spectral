@@ -32,7 +32,7 @@ import {
 import { CleanFn, createPerform, createPollingPerform, InputCleaners, PerformFn } from "./perform";
 
 const cleanerFor = (input: InputFieldDefinition): CleanFn | undefined =>
-  "clean" in input ? (input.clean as CleanFn | undefined) : undefined;
+  "clean" in input ? (input.clean as CleanFn) : undefined;
 
 export const convertInput = (
   key: string,
@@ -189,7 +189,6 @@ export const convertTrigger = <
   const webhookLifecycleHandlers =
     "webhookLifecycleHandlers" in trigger ? trigger.webhookLifecycleHandlers : undefined;
   const inputs: Inputs = trigger.inputs ?? {};
-  const isPollingTrigger = isPollingTriggerDefinition(trigger);
 
   const triggerInputKeys = Object.keys(inputs);
   const convertedTriggerInputs = Object.entries(inputs).map(([key, value]) => {
@@ -206,17 +205,8 @@ export const convertTrigger = <
   let convertedActionInputs: Array<ServerInput> = [];
   let performToUse: PerformFn;
 
-  if (isPollingTrigger) {
-    // Cast: the type-guard call's narrowing doesn't survive being stored in
-    // `isPollingTrigger` and read here.
-    const { pollAction: action } = trigger as PollingTriggerDefinition<
-      Inputs,
-      ConfigVarResultCollection,
-      TriggerPayload,
-      boolean,
-      any,
-      any
-    >;
+  if (isPollingTriggerDefinition(trigger)) {
+    const { pollAction: action } = trigger;
     let actionInputCleaners: InputCleaners = {};
     scheduleSupport = "required";
 
@@ -251,7 +241,7 @@ export const convertTrigger = <
       errorHandler: hooks?.error,
     });
   } else {
-    performToUse = createPerform((trigger as TriggerDefinition<any>).perform, {
+    performToUse = createPerform(trigger.perform, {
       inputCleaners: triggerInputCleaners,
       errorHandler: hooks?.error,
     });
@@ -279,7 +269,7 @@ export const convertTrigger = <
         : scheduleSupport === "invalid"
           ? "valid"
           : "invalid",
-    ...(isPollingTrigger ? { isPollingTrigger: true } : {}),
+    ...(isPollingTriggerDefinition(trigger) ? { isPollingTrigger: true } : {}),
   };
 
   if (onInstanceDeploy) {

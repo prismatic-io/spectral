@@ -264,4 +264,24 @@ describe("structuredObject inputs in a published component", () => {
     expect(fromFactory.label).toBe("Address");
     expect(Object.keys(fromFactory.inputs)).toEqual(["line1"]);
   });
+
+  it("rejects a stray `type` key and nested structuredObject children at compile time", () => {
+    structuredObjectInput({
+      label: "Bad",
+      // @ts-expect-error -- factory disallows callers from setting `type`.
+      type: "string",
+      inputs: { line1: input({ type: "string", label: "Line 1" }) },
+    });
+
+    structuredObjectInput({
+      label: "Outer",
+      inputs: {
+        // @ts-expect-error -- nesting is capped at one level by LeafInputFieldDefinition.
+        inner: structuredObjectInput({
+          label: "Inner",
+          inputs: { x: input({ type: "string", label: "X" }) },
+        }),
+      },
+    });
+  });
 });

@@ -686,7 +686,9 @@ export const input = <T extends InputFieldDefinition>(definition: T): T => defin
  *   },
  * });
  */
-export const structuredObjectInput = <T extends Omit<StructuredObjectInputField, "type">>(
+export const structuredObjectInput = <
+  T extends Omit<StructuredObjectInputField, "type"> & { type?: never },
+>(
   definition: T,
 ): T & { type: "structuredObject" } => ({
   ...definition,

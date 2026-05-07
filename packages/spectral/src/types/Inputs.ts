@@ -384,24 +384,7 @@ export type DateTimeInputField = BaseInputField & {
 
 /** `InputFieldDefinition` minus `StructuredObjectInputField`; used to cap
  * structuredObject nesting at one level. */
-export type LeafInputFieldDefinition =
-  | StringInputField
-  | DataInputField
-  | TextInputField
-  | PasswordInputField
-  | BooleanInputField
-  | CodeInputField
-  | ConditionalInputField
-  | ConnectionInputField
-  | ConnectionTemplateInputField
-  | ObjectSelectionInputField
-  | ObjectFieldMapInputField
-  | JSONFormInputField
-  | DynamicObjectSelectionInputField
-  | DynamicFieldSelectionInputField
-  | DateInputField
-  | DateTimeInputField
-  | FlowInputField;
+export type LeafInputFieldDefinition = Exclude<InputFieldDefinition, StructuredObjectInputField>;
 
 /** Groups related primitive inputs under a single named container.
  * Nesting is capped at one level. */

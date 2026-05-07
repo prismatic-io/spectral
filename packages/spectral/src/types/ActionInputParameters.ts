@@ -14,15 +14,12 @@ type InputValue<T> = T extends StructuredObjectInputField
   ? unknown
   : T extends { clean: InputCleanFunction<any> }
     ? ReturnType<T["clean"]>
-    : T extends { type: "connection"; collection?: infer C }
-      ? ExtractValue<Connection, C extends InputFieldCollection | undefined ? C : undefined>
-      : T extends { type: "conditional"; collection?: infer C }
-        ? ExtractValue<
-            ConditionalExpression,
-            C extends InputFieldCollection | undefined ? C : undefined
-          >
-        : T extends { default?: infer D; collection?: infer C }
-          ? ExtractValue<D, C extends InputFieldCollection | undefined ? C : undefined>
+    : T extends { type: "connection"; collection?: InputFieldCollection }
+      ? ExtractValue<Connection, T["collection"]>
+      : T extends { type: "conditional"; collection?: InputFieldCollection }
+        ? ExtractValue<ConditionalExpression, T["collection"]>
+        : T extends { default?: unknown; collection?: InputFieldCollection }
+          ? ExtractValue<T["default"], T["collection"]>
           : unknown;
 
 /**
