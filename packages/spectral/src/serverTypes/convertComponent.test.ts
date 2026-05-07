@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { connection, input } from "..";
+import { connection, input, structuredObjectInput } from "..";
 import { convertConnection, convertInput, convertTemplateInput } from "./convertComponent";
 
 describe("convertConnection", () => {
@@ -37,6 +37,40 @@ describe("convertInput", () => {
 
     expect(convertedInput.key).toBe(basicInputWithDataSourceKey);
     expect(convertedInput.dataSource).toBe(dataSourceKey);
+  });
+
+  it("converts a structuredObject input with nested children", () => {
+    const name = structuredObjectInput({
+      label: "Name",
+      inputs: {
+        first: input({ type: "string", label: "First Name", required: true }),
+        last: input({ type: "string", label: "Last Name", required: true }),
+        prefix: input({ type: "string", label: "Prefix" }),
+      },
+    });
+
+    const converted = convertInput("name", name);
+
+    expect(converted.key).toBe("name");
+    expect(converted.type).toBe("structuredObject");
+    expect(converted.inputs).toHaveLength(3);
+    expect(converted.inputs?.[0]).toMatchObject({
+      key: "first",
+      type: "string",
+      label: "First Name",
+      required: true,
+    });
+    expect(converted.inputs?.[2]).toMatchObject({
+      key: "prefix",
+      type: "string",
+      label: "Prefix",
+    });
+  });
+
+  it("does not emit `inputs` on a non-structuredObject input", () => {
+    const basicInput = input({ type: "string", label: "Basic" });
+    const converted = convertInput("basic", basicInput);
+    expect(converted.inputs).toBeUndefined();
   });
 });
 
