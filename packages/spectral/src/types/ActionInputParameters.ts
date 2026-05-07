@@ -5,7 +5,22 @@ import type {
   InputFieldCollection,
   Inputs,
   KeyValuePair,
+  StructuredObjectInputField,
 } from "./Inputs";
+
+/** Resolves a single InputFieldDefinition's runtime value type. structuredObject
+ * resolves to `unknown` until the per-field record-type recursion lands. */
+type InputValue<T> = T extends StructuredObjectInputField
+  ? unknown
+  : T extends { clean: InputCleanFunction<any> }
+    ? ReturnType<T["clean"]>
+    : T extends { type: "connection"; collection?: InputFieldCollection }
+      ? ExtractValue<Connection, T["collection"]>
+      : T extends { type: "conditional"; collection?: InputFieldCollection }
+        ? ExtractValue<ConditionalExpression, T["collection"]>
+        : T extends { default?: unknown; collection?: InputFieldCollection }
+          ? ExtractValue<T["default"], T["collection"]>
+          : unknown;
 
 /**
  * Collection of input parameters.
@@ -13,13 +28,7 @@ import type {
  * references to previous steps' outputs.
  */
 export type ActionInputParameters<TInputs extends Inputs> = {
-  [Property in keyof TInputs]: TInputs[Property]["clean"] extends InputCleanFunction<any>
-    ? ReturnType<TInputs[Property]["clean"]>
-    : TInputs[Property]["type"] extends "connection"
-      ? ExtractValue<Connection, TInputs[Property]["collection"]>
-      : TInputs[Property]["type"] extends "conditional"
-        ? ExtractValue<ConditionalExpression, TInputs[Property]["collection"]>
-        : ExtractValue<TInputs[Property]["default"], TInputs[Property]["collection"]>;
+  [Property in keyof TInputs]: InputValue<TInputs[Property]>;
 };
 
 export type ExtractValue<
