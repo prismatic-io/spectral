@@ -364,6 +364,8 @@ export interface Input {
   onPremiseControlled?: boolean;
   dataSource?: string;
   shown?: boolean;
+  /** Nested child inputs; populated only when `type === "structuredObject"`. */
+  inputs?: Input[];
 }
 
 export * from "./asyncContext";
