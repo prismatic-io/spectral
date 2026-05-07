@@ -197,9 +197,23 @@ type BooleanConfigVar = CreateStandardConfigVar<"boolean">;
 
 type NumberConfigVar = CreateStandardConfigVar<"number">;
 
+/**
+ * Schedule type for a schedule-typed config variable. Mirrors the options
+ * available in low-code:
+ * - `"none"` (Never) - no schedule is set; the default when no `defaultValue` is provided.
+ * - `"minute"` / `"hour"` / `"day"` / `"week"` - run on the corresponding interval.
+ * - `"custom"` - run on a custom CRON expression supplied via `defaultValue`.
+ */
+export type ScheduleType = "none" | "custom" | "minute" | "hour" | "day" | "week";
+
 type ScheduleConfigVar = CreateStandardConfigVar<"schedule"> & {
   /** Timezone for the schedule. */
   timeZone?: string;
+  /**
+   * Optional schedule type. If omitted, this is inferred from `defaultValue`
+   * (`"none"` when there is no/empty `defaultValue`, otherwise `"custom"`).
+   */
+  scheduleType?: ScheduleType;
 };
 
 type ObjectSelectionConfigVar = CreateStandardConfigVar<"objectSelection">;
