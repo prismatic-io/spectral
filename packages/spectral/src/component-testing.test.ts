@@ -284,4 +284,27 @@ describe("structuredObject inputs in a published component", () => {
       },
     });
   });
+
+  it("exposes structuredObject params as a record keyed by declared children inside perform", () => {
+    action({
+      display: { label: "Create Contact", description: "Create a new contact" },
+      inputs: {
+        name: structuredObjectInput({
+          label: "Name",
+          inputs: {
+            first: input({ type: "string", label: "First Name", required: true }),
+            last: input({ type: "string", label: "Last Name", required: true }),
+          },
+        }),
+      },
+      perform: async (_context, params) => {
+        // Declared children are accessible (would error if params.name were `unknown`).
+        const _first = params.name.first;
+        const _last = params.name.last;
+        // @ts-expect-error -- structuredObject params only expose declared children.
+        params.name.nonexistent;
+        return Promise.resolve({ data: null });
+      },
+    });
+  });
 });
