@@ -1,4 +1,4 @@
-import { componentRegistry, configPages, scopedConfigVars } from "./testData.test-d";
+import type { componentRegistry, configPages, scopedConfigVars } from "./testData.test-d";
 
 type TConfigPages = typeof configPages;
 type TComponentRegistry = typeof componentRegistry;

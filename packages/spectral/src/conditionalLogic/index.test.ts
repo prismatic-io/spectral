@@ -4,9 +4,9 @@ import { describe, expect, test } from "vitest";
 import { contains, evaluate, parseDate } from "./index";
 import {
   BinaryOperator,
-  BooleanExpression,
+  type BooleanExpression,
   BooleanOperator,
-  ConditionalExpression,
+  type ConditionalExpression,
   TermOperatorPhrase,
   UnaryOperator,
 } from "./types";

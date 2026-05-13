@@ -1,4 +1,4 @@
-import { ExtractValue, KeyValuePair } from "@prismatic-io/spectral";
+import type { ExtractValue, KeyValuePair } from "@prismatic-io/spectral";
 import { expectType } from "tsd";
 
 const scalar: ExtractValue<boolean, undefined> = Boolean();

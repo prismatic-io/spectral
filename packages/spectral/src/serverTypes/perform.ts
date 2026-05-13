@@ -16,8 +16,11 @@ import type {
   TriggerResult,
 } from "../types";
 import { createCNIContext, createDebugContext, createInvokeFlow, logDebugResults } from "./context";
-import { invokeTriggerComponentInput, TriggerActionInvokeFunction } from "./convertIntegration";
-import { ComponentReference as ServerComponentReference } from "./integration";
+import {
+  invokeTriggerComponentInput,
+  type TriggerActionInvokeFunction,
+} from "./convertIntegration";
+import type { ComponentReference as ServerComponentReference } from "./integration";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 export type PerformFn = (...args: any[]) => Promise<any>;

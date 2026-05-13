@@ -1,6 +1,6 @@
 import path from "path";
 import type { Component } from "../../serverTypes";
-import { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
+import type { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
 import { createTemplate } from "../utils/createTemplate";
 import { helpers } from "./helpers";
 

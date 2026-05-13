@@ -1,6 +1,6 @@
 import path from "path";
 import type { Component } from "../../serverTypes";
-import { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
+import type { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
 import { getComponentSignatureWithPrism } from "../utils/prism";
 import { createActions } from "./createActions";
 import { createConnections } from "./createConnections";

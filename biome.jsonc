@@ -22,8 +22,7 @@
       },
       "style": {
         "useNodejsImportProtocol": "off",
-        "noUselessElse": "off",
-        "useImportType": "off"
+        "noUselessElse": "off"
       },
       "complexity": {
         "noForEach": "off"

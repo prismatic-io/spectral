@@ -5,8 +5,8 @@ import util from "../util";
 import {
   BinaryOperator,
   BooleanOperator,
-  ConditionalExpression,
-  TermExpression,
+  type ConditionalExpression,
+  type TermExpression,
   UnaryOperator,
 } from "./types";
 
