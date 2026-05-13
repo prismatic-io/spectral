@@ -1,9 +1,9 @@
 import {
-  FlowExecutionContext,
-  FlowExecutionContextActions,
+  type FlowExecutionContext,
+  type FlowExecutionContextActions,
   integration,
 } from "@prismatic-io/spectral";
-import { Component } from "@prismatic-io/spectral/dist/serverTypes";
+import type { Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable } from "tsd";
 
 const basicDefinition = integration({

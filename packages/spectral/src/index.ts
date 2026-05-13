@@ -7,7 +7,7 @@
 import { runWithIntegrationContext } from "./serverTypes";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
-import {
+import type {
   ActionDefinition,
   ActionPerformReturn,
   ComponentDefinition,

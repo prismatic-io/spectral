@@ -1,5 +1,5 @@
 import { component } from "@prismatic-io/spectral";
-import { Component } from "@prismatic-io/spectral/dist/serverTypes";
+import type { Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable } from "tsd";
 
 const privateDefinition = component({

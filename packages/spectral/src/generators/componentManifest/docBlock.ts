@@ -1,5 +1,5 @@
 import { escapeSpecialCharacters } from "../utils/escapeSpecialCharacters";
-import { ServerTypeInput } from "./getInputs";
+import type { ServerTypeInput } from "./getInputs";
 
 export const DOC_BLOCK_DEFAULT = (input: ServerTypeInput): string => {
   const comments = addPunctuation(input.comments);

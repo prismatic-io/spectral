@@ -1,10 +1,10 @@
 import {
-  Connection,
+  type Connection,
   flow,
   integration,
-  ObjectSelection,
-  TriggerEventFunctionReturn,
-  TriggerPayload,
+  type ObjectSelection,
+  type TriggerEventFunctionReturn,
+  type TriggerPayload,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 

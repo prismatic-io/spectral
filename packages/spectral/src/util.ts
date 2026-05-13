@@ -11,7 +11,7 @@ import { parseISO as parseISODate } from "date-fns/parseISO";
 import omitBy from "lodash/omitBy";
 import { configure } from "safe-stable-stringify";
 import { isWebUri } from "valid-url";
-import {
+import type {
   ConnectionDefinition,
   DataPayload,
   Element,

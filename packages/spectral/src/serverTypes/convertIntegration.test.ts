@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { configPage, configVar, flow, integration } from "..";
-import { ConfigVar } from "../types";
+import type { ConfigVar } from "../types";
 import {
   convertConfigPages,
   convertConfigVar,
