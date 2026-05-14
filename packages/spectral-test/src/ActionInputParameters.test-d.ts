@@ -3,9 +3,10 @@ import {
   type ConditionalExpression,
   type Connection,
   input,
+  structuredObjectInput,
   util,
 } from "@prismatic-io/spectral";
-import { expectType } from "tsd";
+import { expectError, expectType } from "tsd";
 
 const inputs = {
   plain: input({
@@ -42,3 +43,20 @@ expectType<{
 }>(result);
 expectType<Connection>(result.connection);
 expectType<ConditionalExpression[]>(result.conditional);
+
+const structuredInputs = {
+  name: structuredObjectInput({
+    label: "Name",
+    inputs: {
+      first: input({ type: "string", label: "First Name", required: true }),
+      last: input({ type: "string", label: "Last Name", required: true }),
+    },
+  }),
+};
+
+const structuredResult: ActionInputParameters<typeof structuredInputs> = {
+  name: { first: "Ada", last: "Lovelace" },
+};
+expectType<unknown>(structuredResult.name.first);
+expectType<unknown>(structuredResult.name.last);
+expectError(structuredResult.name.nonexistent);
