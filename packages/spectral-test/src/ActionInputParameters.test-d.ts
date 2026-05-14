@@ -6,7 +6,7 @@ import {
   structuredObjectInput,
   util,
 } from "@prismatic-io/spectral";
-import { expectError, expectType } from "tsd";
+import { expectType } from "tsd";
 
 const inputs = {
   plain: input({
@@ -59,4 +59,5 @@ const structuredResult: ActionInputParameters<typeof structuredInputs> = {
 };
 expectType<unknown>(structuredResult.name.first);
 expectType<unknown>(structuredResult.name.last);
-expectError(structuredResult.name.nonexistent);
+// @ts-expect-error: structuredObject params only expose declared children.
+structuredResult.name.nonexistent;
