@@ -1,7 +1,7 @@
 import {
-  ConditionalExpression,
-  Connection,
-  InputCleanFunction,
+  type ConditionalExpression,
+  type Connection,
+  type InputCleanFunction,
   input,
 } from "@prismatic-io/spectral";
 import { expectType } from "tsd";

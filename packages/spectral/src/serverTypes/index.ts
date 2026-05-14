@@ -1,7 +1,7 @@
 /* Types used to describe the format the platform expects for
  * component and integration definitions. */
 
-import {
+import type {
   ComponentManifest,
   ConfigVarResultCollection,
   CustomerAttributes,

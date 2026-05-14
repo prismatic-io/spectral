@@ -1,14 +1,14 @@
 import {
-  ConfigVarResultCollection,
+  type ConfigVarResultCollection,
   componentManifest,
   configPage,
   configVar,
   connectionConfigVar,
   dataSourceConfigVar,
   input,
-  JSONForm,
+  type JSONForm,
   OAuth2Type,
-  ObjectSelection,
+  type ObjectSelection,
   organizationActivatedConnection,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";

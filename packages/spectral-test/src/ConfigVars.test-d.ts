@@ -5,7 +5,7 @@ import type {
   Connection,
   DataSourceConfigVar,
 } from "@prismatic-io/spectral";
-import { ValueOf } from "@prismatic-io/spectral/dist/types";
+import type { ValueOf } from "@prismatic-io/spectral/dist/types";
 import { expectAssignable, expectNotType } from "tsd";
 
 type RawConnectionElems = ValueOf<ConfigPages>["elements"];

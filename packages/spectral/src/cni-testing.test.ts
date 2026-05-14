@@ -5,12 +5,12 @@ import {
   connectionConfigVar,
   dataSourceConfigVar,
   flow,
-  IntegrationDefinition,
+  type IntegrationDefinition,
   integration,
   OAuth2PkceMethod,
   OAuth2Type,
-  TriggerBaseResult,
-  TriggerPayload,
+  type TriggerBaseResult,
+  type TriggerPayload,
 } from ".";
 import {
   CONCURRENCY_LIMIT_MAX,

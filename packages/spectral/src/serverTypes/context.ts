@@ -1,7 +1,7 @@
 import { performance } from "node:perf_hooks";
 import { memoryUsage } from "node:process";
 import axios, { type AxiosRequestConfig } from "axios";
-import {
+import type {
   ActionContext,
   ComponentManifest,
   ComponentManifestAction,
@@ -12,9 +12,9 @@ import {
   FlowInvoker,
   MemoryUsage,
 } from "../types";
-import { ActionContext as ServerActionContext } from ".";
+import type { ActionContext as ServerActionContext } from ".";
 import { convertInputValue } from "./convertIntegration";
-import { ComponentReference as ServerComponentReference } from "./integration";
+import type { ComponentReference as ServerComponentReference } from "./integration";
 
 const MEMORY_USAGE_CONVERSION = 1024 * 1024;
 

@@ -1,6 +1,6 @@
-import { Action, Component, DataSource, Trigger, TriggerPayload } from "../../serverTypes";
-import { ConfigVarResultCollection, Inputs } from "../../types";
-import { TriggerResult } from "../../types/TriggerResult";
+import type { Action, Component, DataSource, Trigger, TriggerPayload } from "../../serverTypes";
+import type { ConfigVarResultCollection, Inputs } from "../../types";
+import type { TriggerResult } from "../../types/TriggerResult";
 
 export interface ComponentNode {
   id: string;

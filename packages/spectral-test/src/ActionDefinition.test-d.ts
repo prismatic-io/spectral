@@ -1,10 +1,10 @@
 import {
-  ActionPerformDataReturn,
-  ActionPerformFunction,
+  type ActionPerformDataReturn,
+  type ActionPerformFunction,
   action,
-  ComponentManifestAction,
-  ConfigVarResultCollection,
-  Inputs,
+  type ComponentManifestAction,
+  type ConfigVarResultCollection,
+  type Inputs,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 

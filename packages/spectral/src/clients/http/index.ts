@@ -2,7 +2,7 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import axios from "axios";
 import axiosRetry, {
   exponentialDelay,
-  IAxiosRetryConfig,
+  type IAxiosRetryConfig,
   isNetworkOrIdempotentRequestError,
 } from "axios-retry";
 import FormData from "form-data";

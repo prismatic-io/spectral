@@ -1,4 +1,4 @@
-import { action, PollingTriggerDefinition, pollingTrigger } from "@prismatic-io/spectral";
+import { action, type PollingTriggerDefinition, pollingTrigger } from "@prismatic-io/spectral";
 import { expectAssignable, expectNotType } from "tsd";
 
 const myAction = action({

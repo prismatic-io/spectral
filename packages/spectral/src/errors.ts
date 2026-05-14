@@ -1,4 +1,4 @@
-import { Connection } from ".";
+import type { Connection } from ".";
 
 /**
  * Base error class for Spectral-specific errors. Extends the standard

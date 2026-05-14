@@ -1,27 +1,27 @@
 import omit from "lodash/omit";
 import {
-  ActionDefinition,
-  ComponentDefinition,
-  ComponentHooks,
-  ConfigVarResultCollection,
-  ConnectionDefinition,
-  ConnectionInput,
-  ConnectionTemplateInputField,
-  DataSourceDefinition,
+  type ActionDefinition,
+  type ComponentDefinition,
+  type ComponentHooks,
+  type ConfigVarResultCollection,
+  type ConnectionDefinition,
+  type ConnectionInput,
+  type ConnectionTemplateInputField,
+  type DataSourceDefinition,
   InputFieldDefaultMap,
-  InputFieldDefinition,
-  Inputs,
-  OnPremConnectionInput,
-  TriggerDefinition,
-  TriggerOptionChoice,
-  TriggerPayload,
-  TriggerResult,
+  type InputFieldDefinition,
+  type Inputs,
+  type OnPremConnectionInput,
+  type TriggerDefinition,
+  type TriggerOptionChoice,
+  type TriggerPayload,
+  type TriggerResult,
 } from "../types";
 import {
   isPollingTriggerDefinition,
-  PollingTriggerDefinition,
+  type PollingTriggerDefinition,
 } from "../types/PollingTriggerDefinition";
-import {
+import type {
   Action as ServerAction,
   Component as ServerComponent,
   Connection as ServerConnection,
@@ -29,7 +29,13 @@ import {
   Input as ServerInput,
   Trigger as ServerTrigger,
 } from ".";
-import { CleanFn, createPerform, createPollingPerform, InputCleaners, PerformFn } from "./perform";
+import {
+  type CleanFn,
+  createPerform,
+  createPollingPerform,
+  type InputCleaners,
+  type PerformFn,
+} from "./perform";
 
 const cleanerFor = (input: InputFieldDefinition): CleanFn | undefined =>
   "clean" in input ? (input.clean as CleanFn) : undefined;

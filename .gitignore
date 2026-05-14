@@ -120,3 +120,6 @@ package/
 # Generator
 packages/generator-spectral/generators
 tmp
+
+# Claude Code local settings
+.claude/settings.local.json

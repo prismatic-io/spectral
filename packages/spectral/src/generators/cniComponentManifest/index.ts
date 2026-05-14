@@ -7,7 +7,7 @@ import type {
   TriggerResult,
 } from "../../types";
 import { getPrismAccessToken } from "../utils/prism";
-import {
+import type {
   ActionNode,
   ComponentActionsQueryResponse,
   ComponentNode,

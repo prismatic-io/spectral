@@ -1,7 +1,7 @@
 import {
-  ActionInputParameters,
-  ConditionalExpression,
-  Connection,
+  type ActionInputParameters,
+  type ConditionalExpression,
+  type Connection,
   input,
   util,
 } from "@prismatic-io/spectral";

@@ -1,6 +1,11 @@
 import path from "path";
-import type { DataSourceType } from "../../types";
-import { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
+import type {
+  ConfigVarResultCollection,
+  DataSourceType,
+  Inputs,
+  TriggerPayload,
+  TriggerResult,
+} from "../../types";
 import type { ComponentForManifest } from "../cniComponentManifest/types";
 import { createImport } from "../utils/createImport";
 import { createTemplate } from "../utils/createTemplate";
