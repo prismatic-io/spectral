@@ -8,10 +8,11 @@ import type {
   StructuredObjectInputField,
 } from "./Inputs";
 
-/** Resolves a single InputFieldDefinition's runtime value type. structuredObject
- * resolves to `unknown` until the per-field record-type recursion lands. */
+/** Resolves a single InputFieldDefinition's runtime value type. A structuredObject
+ * resolves to a record of its declared children's resolved value types; the
+ * depth-1 nesting cap (`LeafInputFieldDefinition`) prevents unbounded recursion. */
 type InputValue<T> = T extends StructuredObjectInputField
-  ? unknown
+  ? { [K in keyof T["inputs"]]: InputValue<T["inputs"][K]> }
   : T extends { clean: InputCleanFunction<any> }
     ? ReturnType<T["clean"]>
     : T extends { type: "connection"; collection?: InputFieldCollection }
