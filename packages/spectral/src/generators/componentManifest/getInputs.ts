@@ -101,6 +101,9 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   // TODO: emit a typed record matching the declared children once the
   // code-native action-calling type generator handles structuredObject.
   structuredObject: "unknown",
+  // TODO: emit a precise discriminated-union type matching the declared
+  // configurations once the CNI manifest generator handles dynamicObject.
+  dynamicObject: "unknown",
 };
 
 const getInputValueType = (input: ServerTypeInput): ValueType => {

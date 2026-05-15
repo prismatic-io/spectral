@@ -2,6 +2,7 @@ import {
   type ActionInputParameters,
   type ConditionalExpression,
   type Connection,
+  dynamicObjectInput,
   input,
   structuredObjectInput,
   util,
@@ -61,3 +62,96 @@ expectType<unknown>(structuredResult.name.first);
 expectType<unknown>(structuredResult.name.last);
 // @ts-expect-error: structuredObject params only expose declared children.
 structuredResult.name.nonexistent;
+
+const dynamicInputs = {
+  data: dynamicObjectInput({
+    label: "Record Data",
+    required: true,
+    configurations: {
+      contact: {
+        label: "Contact",
+        inputs: {
+          name: structuredObjectInput({
+            label: "Name",
+            inputs: {
+              first: input({ type: "string", label: "First", required: true }),
+              last: input({ type: "string", label: "Last", required: true }),
+            },
+          }),
+          email: input({ type: "string", label: "Email", required: true }),
+        },
+      },
+      account: {
+        label: "Account",
+        inputs: {
+          companyName: input({ type: "string", label: "Company Name", required: true }),
+        },
+      },
+    },
+  }),
+};
+
+const dynamicResult: ActionInputParameters<typeof dynamicInputs> = {
+  data: {
+    configuration: "contact",
+    values: { name: { first: "Ada", last: "Lovelace" }, email: "ada@example.com" },
+  },
+};
+if (dynamicResult.data.configuration === "contact") {
+  expectType<unknown>(dynamicResult.data.values.email);
+  expectType<unknown>(dynamicResult.data.values.name.first);
+  // @ts-expect-error: companyName is on the `account` variant, not `contact`.
+  dynamicResult.data.values.companyName;
+}
+if (dynamicResult.data.configuration === "account") {
+  expectType<unknown>(dynamicResult.data.values.companyName);
+  // @ts-expect-error: email is on the `contact` variant, not `account`.
+  dynamicResult.data.values.email;
+}
+// @ts-expect-error: only declared configuration keys are valid discriminants.
+if (dynamicResult.data.configuration === "nonexistent") {
+  /* unreachable */
+}
+
+dynamicObjectInput({
+  label: "Bad",
+  // @ts-expect-error: factory disallows callers from setting `type`.
+  type: "string",
+  configurations: {
+    contact: {
+      label: "Contact",
+      inputs: { email: input({ type: "string", label: "Email" }) },
+    },
+  },
+});
+
+dynamicObjectInput({
+  label: "Outer",
+  configurations: {
+    contact: {
+      label: "Contact",
+      inputs: {
+        // @ts-expect-error: dynamicObject configurations cannot contain a nested dynamicObject.
+        nested: dynamicObjectInput({
+          label: "Inner",
+          configurations: {
+            x: { label: "X", inputs: { y: input({ type: "string", label: "Y" }) } },
+          },
+        }),
+      },
+    },
+  },
+});
+
+structuredObjectInput({
+  label: "Parent",
+  inputs: {
+    // @ts-expect-error: structuredObject children cannot be a dynamicObject.
+    bad: dynamicObjectInput({
+      label: "Inner Dynamic",
+      configurations: {
+        x: { label: "X", inputs: { y: input({ type: "string", label: "Y" }) } },
+      },
+    }),
+  },
+});
