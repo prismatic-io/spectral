@@ -76,16 +76,9 @@ expectAssignable<DataSourceConfigVar>({
 
 const createDataSourceConfigVar = (configVar: DataSourceConfigVar) => configVar;
 
-// biome-ignore lint/suspicious/noTsIgnore: type system does not currently error here, but @ts-expect-error causes tsc to fail
-// @ts-ignore Collection type is not supported for this data source type.
 createDataSourceConfigVar({
   perform: async () => Promise.resolve({ result: { value: "string" } }),
   stableKey: "ds",
-  // TODO: This causes a compile erorr when it's `jsonForm`
-  // Need to figure out why that is happening. It also only happens when running
-  // tsc via the cli instead of surfacing in my editor
   dataSourceType: "schedule",
-  // biome-ignore lint/suspicious/noTsIgnore: type system does not currently error here, but @ts-expect-error causes tsc to fail
-  // @ts-ignore `collectionType` is not a valid property for this data source type.
   collectionType: "valuelist",
 });
