@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { action, component, input, pollingTrigger, structuredObjectInput, trigger } from ".";
+import {
+  action,
+  component,
+  dynamicObjectInput,
+  input,
+  pollingTrigger,
+  structuredObjectInput,
+  trigger,
+} from ".";
 import { convertTrigger } from "./serverTypes/convertComponent";
 import type { PerformFn } from "./serverTypes/perform";
 
@@ -283,5 +291,21 @@ describe("structuredObject inputs in a published component", () => {
         }),
       },
     });
+  });
+});
+
+describe("dynamicObject inputs in a published component", () => {
+  it("dynamicObjectInput factory forces type to 'dynamicObject'", () => {
+    const fromFactory = dynamicObjectInput({
+      label: "Record Data",
+      configurations: {
+        contact: {
+          label: "Contact",
+          inputs: { email: input({ type: "string", label: "Email" }) },
+        },
+      },
+    });
+    expect(fromFactory.type).toBe("dynamicObject");
+    expect(Object.keys(fromFactory.configurations)).toEqual(["contact"]);
   });
 });
