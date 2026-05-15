@@ -20,6 +20,7 @@ import type {
   DataSourceDefinition,
   DataSourceType,
   DefaultConnectionDefinition,
+  DynamicObjectInputField,
   Flow,
   InputFieldDefinition,
   Inputs,
@@ -693,6 +694,52 @@ export const structuredObjectInput = <
 ): T & { type: "structuredObject" } => ({
   ...definition,
   type: "structuredObject" as const,
+});
+
+/**
+ * Presents a discriminated set of input configurations; the integration builder
+ * picks a configuration and its inputs become available. Configurations may
+ * contain leaf inputs and structuredObject inputs but not nested dynamicObjects
+ * (the type signature enforces this at compile time).
+ *
+ * @example
+ * import { input, structuredObjectInput, dynamicObjectInput } from "@prismatic-io/spectral";
+ *
+ * const recordData = dynamicObjectInput({
+ *   label: "Record Data",
+ *   required: true,
+ *   configurations: {
+ *     contact: {
+ *       label: "Contact",
+ *       description: "Create a new contact",
+ *       inputs: {
+ *         name: structuredObjectInput({
+ *           label: "Name",
+ *           inputs: {
+ *             first: input({ type: "string", label: "First Name", required: true }),
+ *             last: input({ type: "string", label: "Last Name", required: true }),
+ *           },
+ *         }),
+ *         email: input({ type: "string", label: "Email", required: true }),
+ *       },
+ *     },
+ *     account: {
+ *       label: "Account",
+ *       description: "Create a new account",
+ *       inputs: {
+ *         companyName: input({ type: "string", label: "Company Name", required: true }),
+ *       },
+ *     },
+ *   },
+ * });
+ */
+export const dynamicObjectInput = <
+  T extends Omit<DynamicObjectInputField, "type"> & { type?: never },
+>(
+  definition: T,
+): T & { type: "dynamicObject" } => ({
+  ...definition,
+  type: "dynamicObject" as const,
 });
 
 /**

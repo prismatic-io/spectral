@@ -44,7 +44,7 @@ export const convertInput = (
   key: string,
   definition: InputFieldDefinition | OnPremConnectionInput | ConnectionInput,
 ): ServerInput => {
-  // Cast: union members don't all carry `default`/`collection`/`inputs`;
+  // Cast: union members don't all carry `default`/`collection`/`inputs`/`configurations`;
   // runtime guards below handle the differences.
   const {
     default: defaultValue,
@@ -52,6 +52,7 @@ export const convertInput = (
     label,
     collection,
     inputs: childInputs,
+    configurations,
     ...rest
   } = definition as {
     default?: unknown;
@@ -59,6 +60,14 @@ export const convertInput = (
     label: string | { key: string; value: string };
     collection?: "valuelist" | "keyvaluelist";
     inputs?: Record<string, InputFieldDefinition>;
+    configurations?: Record<
+      string,
+      {
+        label: string | { key: string; value: string };
+        description?: string;
+        inputs: Record<string, InputFieldDefinition>;
+      }
+    >;
     [key: string]: unknown;
   };
   const keyLabel =
@@ -69,6 +78,19 @@ export const convertInput = (
       ? Object.entries(childInputs).map(([childKey, childDef]) =>
           convertInput(childKey, childDef as InputFieldDefinition),
         )
+      : undefined;
+
+  const convertedConfigurations =
+    type === "dynamicObject" && configurations
+      ? Object.entries(configurations).map(([configKey, configDef]) => ({
+          key: configKey,
+          type: "configuration",
+          label: typeof configDef.label === "string" ? configDef.label : configDef.label.value,
+          description: configDef.description,
+          inputs: Object.entries(configDef.inputs).map(([childKey, childDef]) =>
+            convertInput(childKey, childDef as InputFieldDefinition),
+          ),
+        }))
       : undefined;
 
   return {
@@ -86,6 +108,7 @@ export const convertInput = (
     keyLabel,
     onPremiseControlled: rest.onPremControlled === true ? true : undefined,
     inputs: nestedInputs,
+    configurations: convertedConfigurations,
   };
 };
 
