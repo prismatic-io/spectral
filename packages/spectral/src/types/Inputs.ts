@@ -93,6 +93,7 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = 
   flow: "",
   template: "",
   structuredObject: undefined,
+  dynamicObject: undefined,
 };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -141,7 +142,8 @@ export type InputFieldDefinition =
   | DateInputField
   | DateTimeInputField
   | FlowInputField
-  | StructuredObjectInputField;
+  | StructuredObjectInputField
+  | DynamicObjectInputField;
 
 export type InputCleanFunction<TValue, TResult = TValue> = (value: TValue) => TResult;
 
@@ -382,9 +384,20 @@ export type DateTimeInputField = BaseInputField & {
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
-/** `InputFieldDefinition` minus `StructuredObjectInputField`; used to cap
- * structuredObject nesting at one level. */
-export type LeafInputFieldDefinition = Exclude<InputFieldDefinition, StructuredObjectInputField>;
+/** `InputFieldDefinition` minus container input types; used to cap
+ * structuredObject nesting at one level and to enforce leaf-only positions. */
+export type LeafInputFieldDefinition = Exclude<
+  InputFieldDefinition,
+  StructuredObjectInputField | DynamicObjectInputField
+>;
+
+/** `InputFieldDefinition` minus `DynamicObjectInputField`; used inside a
+ * dynamicObject's `configurations.<key>.inputs` to allow leaves *and*
+ * structuredObject children while still rejecting nested dynamicObjects. */
+export type StructuredOrLeafInputFieldDefinition = Exclude<
+  InputFieldDefinition,
+  DynamicObjectInputField
+>;
 
 /** Groups related primitive inputs under a single named container.
  * Nesting is capped at one level. */
@@ -393,6 +406,32 @@ export type StructuredObjectInputField = Omit<BaseInputField, "dataSource"> & {
   type: "structuredObject";
   /** Nested input fields keyed by their local key. */
   inputs: Record<string, LeafInputFieldDefinition>;
+};
+
+/** A single configuration within a dynamicObject. Each configuration declares
+ * a labeled set of inputs that become available when this configuration is
+ * selected at runtime. */
+export interface DynamicObjectConfiguration {
+  /** Name of this configuration to present in the UI. */
+  label: { key: string; value: string } | string;
+  /** Additional text to give guidance to the user when this configuration is selected. */
+  description?: string;
+  /** Inputs that become available when this configuration is selected. May
+   * include leaf inputs and structuredObject inputs; nested dynamicObjects
+   * are rejected at the type level. */
+  inputs: Record<string, StructuredOrLeafInputFieldDefinition>;
+}
+
+/** Presents a discriminated set of input groups; the user picks a configuration
+ * at integration-build time and that configuration's inputs become available.
+ * Nesting is capped: configurations may contain structuredObject children
+ * (depth-1) but never another dynamicObject. */
+export type DynamicObjectInputField = Omit<BaseInputField, "dataSource"> & {
+  /** Data type the input will collect. */
+  type: "dynamicObject";
+  /** Available configurations keyed by their local key (used as the
+   * runtime discriminant). */
+  configurations: Record<string, DynamicObjectConfiguration>;
 };
 
 /** Defines a single Choice option for a InputField. */
