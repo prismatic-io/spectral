@@ -14,8 +14,8 @@ import type {
  * - dynamicObject: discriminated union keyed by the selected configuration,
  *   with the configuration's resolved inputs nested under `values` to avoid
  *   collisions with the `configuration` discriminant key.
- * The depth caps (`LeafInputFieldDefinition`, `StructuredOrLeafInputFieldDefinition`)
- * prevent unbounded recursion. */
+ * The depth cap (`LeafInputFieldDefinition`, plus the `Child` parameter on
+ * `StructuredObjectInputField`) prevents unbounded recursion. */
 type InputValue<T> = T extends StructuredObjectInputField
   ? { [K in keyof T["inputs"]]: InputValue<T["inputs"][K]> }
   : T extends DynamicObjectInputField

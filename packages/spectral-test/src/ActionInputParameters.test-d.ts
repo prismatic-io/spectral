@@ -68,7 +68,7 @@ const dynamicInputs = {
     label: "Record Data",
     required: true,
     configurations: {
-      contact: {
+      contact: structuredObjectInput({
         label: "Contact",
         inputs: {
           name: structuredObjectInput({
@@ -80,13 +80,13 @@ const dynamicInputs = {
           }),
           email: input({ type: "string", label: "Email", required: true }),
         },
-      },
-      account: {
+      }),
+      account: structuredObjectInput({
         label: "Account",
         inputs: {
           companyName: input({ type: "string", label: "Company Name", required: true }),
         },
-      },
+      }),
     },
   }),
 };
@@ -100,6 +100,7 @@ const dynamicResult: ActionInputParameters<typeof dynamicInputs> = {
 if (dynamicResult.data.configuration === "contact") {
   expectType<unknown>(dynamicResult.data.values.email);
   expectType<unknown>(dynamicResult.data.values.name.first);
+  expectType<unknown>(dynamicResult.data.values.name.last);
   // @ts-expect-error: companyName is on the `account` variant, not `contact`.
   dynamicResult.data.values.companyName;
 }
@@ -118,28 +119,31 @@ dynamicObjectInput({
   // @ts-expect-error: factory disallows callers from setting `type`.
   type: "string",
   configurations: {
-    contact: {
+    contact: structuredObjectInput({
       label: "Contact",
       inputs: { email: input({ type: "string", label: "Email" }) },
-    },
+    }),
   },
 });
 
 dynamicObjectInput({
   label: "Outer",
   configurations: {
-    contact: {
+    contact: structuredObjectInput({
       label: "Contact",
       inputs: {
-        // @ts-expect-error: dynamicObject configurations cannot contain a nested dynamicObject.
+        // @ts-expect-error: configuration children cannot be a dynamicObject.
         nested: dynamicObjectInput({
           label: "Inner",
           configurations: {
-            x: { label: "X", inputs: { y: input({ type: "string", label: "Y" }) } },
+            x: structuredObjectInput({
+              label: "X",
+              inputs: { y: input({ type: "string", label: "Y" }) },
+            }),
           },
         }),
       },
-    },
+    }),
   },
 });
 
@@ -150,8 +154,21 @@ structuredObjectInput({
     bad: dynamicObjectInput({
       label: "Inner Dynamic",
       configurations: {
-        x: { label: "X", inputs: { y: input({ type: "string", label: "Y" }) } },
+        x: structuredObjectInput({
+          label: "X",
+          inputs: { y: input({ type: "string", label: "Y" }) },
+        }),
       },
+    }),
+  },
+});
+
+structuredObjectInput({
+  label: "Parent",
+  inputs: {
+    nested: structuredObjectInput({
+      label: "Inner Structured",
+      inputs: { y: input({ type: "string", label: "Y" }) },
     }),
   },
 });

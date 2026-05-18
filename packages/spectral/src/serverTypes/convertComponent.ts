@@ -60,14 +60,7 @@ export const convertInput = (
     label: string | { key: string; value: string };
     collection?: "valuelist" | "keyvaluelist";
     inputs?: Record<string, InputFieldDefinition>;
-    configurations?: Record<
-      string,
-      {
-        label: string | { key: string; value: string };
-        comments?: string;
-        inputs: Record<string, InputFieldDefinition>;
-      }
-    >;
+    configurations?: Record<string, InputFieldDefinition>;
     [key: string]: unknown;
   };
   const keyLabel =
@@ -78,20 +71,11 @@ export const convertInput = (
       ? Object.entries(childInputs).map(([childKey, childDef]) =>
           convertInput(childKey, childDef as InputFieldDefinition),
         )
-      : undefined;
-
-  const convertedConfigurations =
-    type === "dynamicObject" && configurations
-      ? Object.entries(configurations).map(([configKey, configDef]) => ({
-          key: configKey,
-          type: "configuration",
-          label: typeof configDef.label === "string" ? configDef.label : configDef.label.value,
-          comments: configDef.comments,
-          inputs: Object.entries(configDef.inputs).map(([childKey, childDef]) =>
-            convertInput(childKey, childDef as InputFieldDefinition),
-          ),
-        }))
-      : undefined;
+      : type === "dynamicObject" && configurations
+        ? Object.entries(configurations).map(([configKey, configDef]) =>
+            convertInput(configKey, configDef as InputFieldDefinition),
+          )
+        : undefined;
 
   return {
     ...omit(rest, [
@@ -108,7 +92,6 @@ export const convertInput = (
     keyLabel,
     onPremiseControlled: rest.onPremControlled === true ? true : undefined,
     inputs: nestedInputs,
-    configurations: convertedConfigurations,
   };
 };
 

@@ -672,9 +672,8 @@ export const dataSource = <
 export const input = <T extends InputFieldDefinition>(definition: T): T => definition;
 
 /**
- * Groups related primitive inputs under a single named container. Children
- * may not themselves be structuredObject inputs (the type signature enforces
- * this at compile time).
+ * Groups related primitive inputs under a single named container. Use inside
+ * a `dynamicObjectInput` configuration to nest structured fields.
  *
  * @example
  * import { input, structuredObjectInput } from "@prismatic-io/spectral";
@@ -698,9 +697,8 @@ export const structuredObjectInput = <
 
 /**
  * Presents a discriminated set of input configurations; the integration builder
- * picks a configuration and its inputs become available. Configurations may
- * contain leaf inputs and structuredObject inputs but not nested dynamicObjects
- * (the type signature enforces this at compile time).
+ * picks a configuration and its inputs become available. Each configuration is
+ * a structuredObject built via `structuredObjectInput`.
  *
  * @example
  * import { input, structuredObjectInput, dynamicObjectInput } from "@prismatic-io/spectral";
@@ -709,7 +707,7 @@ export const structuredObjectInput = <
  *   label: "Record Data",
  *   required: true,
  *   configurations: {
- *     contact: {
+ *     contact: structuredObjectInput({
  *       label: "Contact",
  *       comments: "Create a new contact",
  *       inputs: {
@@ -722,14 +720,14 @@ export const structuredObjectInput = <
  *         }),
  *         email: input({ type: "string", label: "Email", required: true }),
  *       },
- *     },
- *     account: {
+ *     }),
+ *     account: structuredObjectInput({
  *       label: "Account",
  *       comments: "Create a new account",
  *       inputs: {
  *         companyName: input({ type: "string", label: "Company Name", required: true }),
  *       },
- *     },
+ *     }),
  *   },
  * });
  */

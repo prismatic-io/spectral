@@ -364,12 +364,10 @@ export interface Input {
   onPremiseControlled?: boolean;
   dataSource?: string;
   shown?: boolean;
-  /** Nested child inputs; populated when `type === "structuredObject"` or for
-   * a `configuration` entry inside a `dynamicObject`'s `configurations`. */
+  /** Nested child inputs. Populated when `type === "structuredObject"` (the
+   * declared children) or `type === "dynamicObject"` (each entry is itself a
+   * `structuredObject` representing one configuration option). */
   inputs?: Input[];
-  /** Configurations of a `dynamicObject` input. Each entry has
-   * `type: "configuration"` and carries its own `inputs`. */
-  configurations?: Input[];
 }
 
 export * from "./asyncContext";
