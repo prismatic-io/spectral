@@ -72,6 +72,10 @@ export type DynamicObjectSelection = string;
 
 export type DynamicFieldSelection = string;
 
+export type StructuredObject = Record<string, unknown>;
+
+export type DynamicObject = Record<string, unknown>;
+
 /** InputField type enumeration. */
 export type InputFieldType = InputFieldDefinition["type"];
 export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = {
