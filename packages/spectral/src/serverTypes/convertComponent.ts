@@ -44,8 +44,7 @@ export const convertInput = (
   key: string,
   definition: InputFieldDefinition | OnPremConnectionInput | ConnectionInput,
 ): ServerInput => {
-  // Cast: union members don't all carry `default`/`collection`/`inputs`/`configurations`;
-  // runtime guards below handle the differences.
+  // Cast: the field union is wider than any single member; runtime guards below handle it.
   const {
     default: defaultValue,
     type,
@@ -78,20 +77,17 @@ export const convertInput = (
       ? Object.entries(childInputs).map(([childKey, childDef]) =>
           convertInput(childKey, childDef as InputFieldDefinition),
         )
-      : undefined;
-
-  const convertedConfigurations =
-    type === "dynamicObject" && configurations
-      ? Object.entries(configurations).map(([configKey, configDef]) => ({
-          key: configKey,
-          type: "configuration",
-          label: typeof configDef.label === "string" ? configDef.label : configDef.label.value,
-          comments: configDef.comments,
-          inputs: Object.entries(configDef.inputs).map(([childKey, childDef]) =>
-            convertInput(childKey, childDef as InputFieldDefinition),
-          ),
-        }))
-      : undefined;
+      : type === "dynamicObject" && configurations
+        ? Object.entries(configurations).map(([configKey, configDef]) => ({
+            key: configKey,
+            type: "structuredObject",
+            label: typeof configDef.label === "string" ? configDef.label : configDef.label.value,
+            comments: configDef.comments,
+            inputs: Object.entries(configDef.inputs).map(([childKey, childDef]) =>
+              convertInput(childKey, childDef as InputFieldDefinition),
+            ),
+          }))
+        : undefined;
 
   return {
     ...omit(rest, [
@@ -108,7 +104,6 @@ export const convertInput = (
     keyLabel,
     onPremiseControlled: rest.onPremControlled === true ? true : undefined,
     inputs: nestedInputs,
-    configurations: convertedConfigurations,
   };
 };
 
