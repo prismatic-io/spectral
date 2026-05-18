@@ -80,7 +80,7 @@ describe("convertInput", () => {
       configurations: {
         contact: {
           label: "Contact",
-          description: "Create a new contact",
+          comments: "Create a new contact",
           inputs: {
             name: structuredObjectInput({
               label: "Name",
@@ -94,7 +94,7 @@ describe("convertInput", () => {
         },
         account: {
           label: "Account",
-          description: "Create a new account",
+          comments: "Create a new account",
           inputs: {
             companyName: input({ type: "string", label: "Company Name", required: true }),
           },
@@ -114,7 +114,7 @@ describe("convertInput", () => {
       key: "contact",
       type: "configuration",
       label: "Contact",
-      description: "Create a new contact",
+      comments: "Create a new contact",
     });
     expect(contact?.inputs).toHaveLength(2);
     const contactName = contact?.inputs?.find((i) => i.key === "name");

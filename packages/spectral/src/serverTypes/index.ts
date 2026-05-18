@@ -364,7 +364,6 @@ export interface Input {
   onPremiseControlled?: boolean;
   dataSource?: string;
   shown?: boolean;
-  description?: string;
   /** Nested child inputs; populated when `type === "structuredObject"` or for
    * a `configuration` entry inside a `dynamicObject`'s `configurations`. */
   inputs?: Input[];

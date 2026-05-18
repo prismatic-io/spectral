@@ -64,7 +64,7 @@ export const convertInput = (
       string,
       {
         label: string | { key: string; value: string };
-        description?: string;
+        comments?: string;
         inputs: Record<string, InputFieldDefinition>;
       }
     >;
@@ -86,7 +86,7 @@ export const convertInput = (
           key: configKey,
           type: "configuration",
           label: typeof configDef.label === "string" ? configDef.label : configDef.label.value,
-          description: configDef.description,
+          comments: configDef.comments,
           inputs: Object.entries(configDef.inputs).map(([childKey, childDef]) =>
             convertInput(childKey, childDef as InputFieldDefinition),
           ),
