@@ -25,15 +25,6 @@ interface GetInputsProps {
   docBlock?: (input: ServerTypeInput) => string;
 }
 
-const getDefaultValue = (value: ServerTypeInput["default"], isCollection: boolean) => {
-  if (value === undefined || value === "") {
-    return isCollection ? [] : value;
-  }
-
-  const stringValue = typeof value === "string" ? value : JSON.stringify(value);
-  return escapeSpecialCharacters(stringValue);
-};
-
 export const getInputs = ({ inputs, docBlock = DOC_BLOCK_DEFAULT }: GetInputsProps): Input[] => {
   return inputs.reduce((acc, input) => {
     if (
@@ -98,16 +89,27 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   timestamp: "string",
   flow: "string",
   template: "string",
-  // TODO: emit a typed record matching the declared children once the
-  // code-native action-calling type generator handles structuredObject.
-  structuredObject: "unknown",
-  // TODO: emit a precise discriminated-union type matching the declared
-  // configurations once the CNI manifest generator handles dynamicObject.
-  dynamicObject: "unknown",
+  structuredObject: {
+    module: "@prismatic-io/spectral/dist/types",
+    type: "StructuredObject",
+  },
+  dynamicObject: {
+    module: "@prismatic-io/spectral/dist/types",
+    type: "DynamicObject",
+  },
 };
 
 const getInputValueType = (input: ServerTypeInput): ValueType => {
+  if (input.type === "structuredObject") {
+    return structuredObjectTypeString(input.inputs ?? []);
+  }
+
+  if (input.type === "dynamicObject") {
+    return dynamicObjectTypeString(input.configurations ?? []);
+  }
+
   const inputType = INPUT_TYPE_MAP[input.type as InputFieldDefinition["type"]];
+
   const valueType = input.model
     ? input.model
         .map((choice) => {
@@ -139,4 +141,74 @@ const getInputValueType = (input: ServerTypeInput): ValueType => {
   }
 
   return valueType;
+};
+
+const getDefaultValue = (value: ServerTypeInput["default"], isCollection: boolean) => {
+  if (value === undefined || value === "") {
+    return isCollection ? [] : value;
+  }
+
+  const stringValue = typeof value === "string" ? value : JSON.stringify(value);
+
+  return escapeSpecialCharacters(stringValue);
+};
+
+const isValidIdentifier = (key: string) => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key);
+
+const getLeafTypeString = (child: ServerTypeInput): string => {
+  if (child.type === "structuredObject") {
+    return structuredObjectTypeString(child.inputs ?? []);
+  }
+
+  if (child.model?.length) {
+    return child.model
+      .map(({ value }) => `\`${value.replaceAll("\r", "\\r").replaceAll("\n", "\\n")}\``)
+      .join(" | ");
+  }
+
+  const mapped = INPUT_TYPE_MAP[child.type as InputFieldDefinition["type"]];
+
+  if (!mapped) {
+    return "unknown";
+  }
+
+  if (typeof mapped === "string") {
+    return mapped;
+  }
+
+  return `import("${mapped.module}").${mapped.type}`;
+};
+
+const SPECTRAL_TYPES_MODULE = "@prismatic-io/spectral/dist/types";
+
+const structuredObjectTypeString = (inputs: ServerTypeInput[]): string => {
+  if (!inputs.length) {
+    return `import("${SPECTRAL_TYPES_MODULE}").StructuredObject`;
+  }
+
+  const fields = inputs
+    .map((child) => {
+      const key = isValidIdentifier(child.key) ? child.key : JSON.stringify(child.key);
+
+      return `${key}: ${getLeafTypeString(child)}`;
+    })
+    .join("; ");
+
+  return `{ ${fields} }`;
+};
+
+const dynamicObjectTypeString = (configurations: ServerTypeInput[]): string => {
+  if (!configurations.length) {
+    return `import("${SPECTRAL_TYPES_MODULE}").DynamicObject`;
+  }
+
+  return configurations
+    .map((config) => {
+      const valuesType = config.inputs?.length
+        ? structuredObjectTypeString(config.inputs)
+        : `import("${SPECTRAL_TYPES_MODULE}").StructuredObject`;
+
+      return `{ configuration: ${JSON.stringify(config.key)}; values: ${valuesType} }`;
+    })
+    .join(" | ");
 };
