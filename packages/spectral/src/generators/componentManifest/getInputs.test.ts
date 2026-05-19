@@ -84,6 +84,55 @@ describe("getInputs — structuredObject", () => {
     expect(result.valueType).toBe("{ color: `red` | `blue` }");
   });
 
+  it("wraps a valuelist string child as Array<string>", () => {
+    const [result] = getInputs({
+      inputs: [
+        baseInput({
+          key: "rec",
+          type: "structuredObject",
+          inputs: [
+            baseInput({ key: "tags", type: "string", collection: "valuelist" }),
+            baseInput({ key: "title", type: "string" }),
+          ],
+        }),
+      ],
+    });
+
+    expect(result.valueType).toBe("{ tags: Array<string>; title: string }");
+  });
+
+  it("wraps a keyvaluelist string child as the record-or-pairs union", () => {
+    const [result] = getInputs({
+      inputs: [
+        baseInput({
+          key: "rec",
+          type: "structuredObject",
+          inputs: [baseInput({ key: "headers", type: "string", collection: "keyvaluelist" })],
+        }),
+      ],
+    });
+
+    expect(result.valueType).toBe(
+      "{ headers: Record<string, string> | Array<{key: string, value: string}> }",
+    );
+  });
+
+  it("wraps a valuelist import-object child as Array<import(...).Type>", () => {
+    const [result] = getInputs({
+      inputs: [
+        baseInput({
+          key: "rec",
+          type: "structuredObject",
+          inputs: [baseInput({ key: "conns", type: "connection", collection: "valuelist" })],
+        }),
+      ],
+    });
+
+    expect(result.valueType).toBe(
+      '{ conns: Array<import("@prismatic-io/spectral/dist/types").Connection> }',
+    );
+  });
+
   it("falls back to StructuredObject import when inputs are empty", () => {
     const [result] = getInputs({
       inputs: [baseInput({ key: "empty", type: "structuredObject", inputs: [] })],

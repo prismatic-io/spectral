@@ -155,11 +155,19 @@ const getDefaultValue = (value: ServerTypeInput["default"], isCollection: boolea
 
 const isValidIdentifier = (key: string) => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key);
 
-const getLeafTypeString = (child: ServerTypeInput): string => {
-  if (child.type === "structuredObject") {
-    return structuredObjectTypeString(child.inputs ?? []);
+const wrapCollection = (valueType: string, collection: ServerTypeInput["collection"]): string => {
+  if (collection === "valuelist") {
+    return `Array<${valueType}>`;
   }
 
+  if (collection === "keyvaluelist") {
+    return `Record<string, ${valueType}> | Array<{key: string, value: ${valueType}}>`;
+  }
+  
+  return valueType;
+};
+
+const getLeafBaseType = (child: ServerTypeInput): string => {
   if (child.model?.length) {
     return child.model
       .map(({ value }) => `\`${value.replaceAll("\r", "\\r").replaceAll("\n", "\\n")}\``)
@@ -177,6 +185,14 @@ const getLeafTypeString = (child: ServerTypeInput): string => {
   }
 
   return `import("${mapped.module}").${mapped.type}`;
+};
+
+const getLeafTypeString = (child: ServerTypeInput): string => {
+  if (child.type === "structuredObject") {
+    return structuredObjectTypeString(child.inputs ?? []);
+  }
+
+  return wrapCollection(getLeafBaseType(child), child.collection);
 };
 
 const SPECTRAL_TYPES_MODULE = "@prismatic-io/spectral/dist/types";
