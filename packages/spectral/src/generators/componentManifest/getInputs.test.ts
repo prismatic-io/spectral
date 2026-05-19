@@ -100,22 +100,20 @@ describe("getInputs — dynamicObject", () => {
         baseInput({
           key: "record",
           type: "dynamicObject",
-          configurations: [
-            {
+          inputs: [
+            baseInput({
               key: "contact",
-              type: "configuration",
-              label: "Contact",
+              type: "structuredObject",
               inputs: [
                 baseInput({ key: "firstName", type: "string" }),
                 baseInput({ key: "lastName", type: "string" }),
               ],
-            } as unknown as ServerTypeInput,
-            {
+            }),
+            baseInput({
               key: "account",
-              type: "configuration",
-              label: "Account",
+              type: "structuredObject",
               inputs: [baseInput({ key: "companyName", type: "string" })],
-            } as unknown as ServerTypeInput,
+            }),
           ],
         }),
       ],
@@ -132,24 +130,22 @@ describe("getInputs — dynamicObject", () => {
         baseInput({
           key: "record",
           type: "dynamicObject",
-          configurations: [
-            {
+          inputs: [
+            baseInput({
               key: "contact",
-              type: "configuration",
-              label: "Contact",
+              type: "structuredObject",
               inputs: [
-                {
+                baseInput({
                   key: "name",
                   type: "structuredObject",
-                  label: "Name",
                   inputs: [
                     baseInput({ key: "first", type: "string" }),
                     baseInput({ key: "last", type: "string" }),
                   ],
-                } as unknown as ServerTypeInput,
+                }),
                 baseInput({ key: "email", type: "string" }),
               ],
-            } as unknown as ServerTypeInput,
+            }),
           ],
         }),
       ],
@@ -166,19 +162,13 @@ describe("getInputs — dynamicObject", () => {
         baseInput({
           key: "record",
           type: "dynamicObject",
-          configurations: [
-            {
-              key: "empty",
-              type: "configuration",
-              label: "Empty",
-              inputs: [],
-            } as unknown as ServerTypeInput,
-            {
+          inputs: [
+            baseInput({ key: "empty", type: "structuredObject", inputs: [] }),
+            baseInput({
               key: "hasFields",
-              type: "configuration",
-              label: "Has Fields",
+              type: "structuredObject",
               inputs: [baseInput({ key: "name", type: "string" })],
-            } as unknown as ServerTypeInput,
+            }),
           ],
         }),
       ],
@@ -191,7 +181,7 @@ describe("getInputs — dynamicObject", () => {
 
   it("falls back to DynamicObject import when configurations are empty", () => {
     const [result] = getInputs({
-      inputs: [baseInput({ key: "empty", type: "dynamicObject", configurations: [] })],
+      inputs: [baseInput({ key: "empty", type: "dynamicObject", inputs: [] })],
     });
 
     expect(result.valueType).toBe('import("@prismatic-io/spectral/dist/types").DynamicObject');

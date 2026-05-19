@@ -105,7 +105,7 @@ const getInputValueType = (input: ServerTypeInput): ValueType => {
   }
 
   if (input.type === "dynamicObject") {
-    return dynamicObjectTypeString(input.configurations ?? []);
+    return dynamicObjectTypeString(input.inputs ?? []);
   }
 
   const inputType = INPUT_TYPE_MAP[input.type as InputFieldDefinition["type"]];
