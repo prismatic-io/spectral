@@ -711,7 +711,7 @@ export const structuredObjectInput = <
  *   configurations: {
  *     contact: {
  *       label: "Contact",
- *       description: "Create a new contact",
+ *       comments: "Create a new contact",
  *       inputs: {
  *         name: structuredObjectInput({
  *           label: "Name",
@@ -725,7 +725,7 @@ export const structuredObjectInput = <
  *     },
  *     account: {
  *       label: "Account",
- *       description: "Create a new account",
+ *       comments: "Create a new account",
  *       inputs: {
  *         companyName: input({ type: "string", label: "Company Name", required: true }),
  *       },

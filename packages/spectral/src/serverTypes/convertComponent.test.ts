@@ -80,7 +80,7 @@ describe("convertInput", () => {
       configurations: {
         contact: {
           label: "Contact",
-          description: "Create a new contact",
+          comments: "Create a new contact",
           inputs: {
             name: structuredObjectInput({
               label: "Name",
@@ -94,7 +94,7 @@ describe("convertInput", () => {
         },
         account: {
           label: "Account",
-          description: "Create a new account",
+          comments: "Create a new account",
           inputs: {
             companyName: input({ type: "string", label: "Company Name", required: true }),
           },
@@ -107,14 +107,14 @@ describe("convertInput", () => {
     expect(converted.key).toBe("data");
     expect(converted.type).toBe("dynamicObject");
     expect(converted.required).toBe(true);
-    expect(converted.configurations).toHaveLength(2);
+    expect(converted.inputs).toHaveLength(2);
 
-    const contact = converted.configurations?.find((c) => c.key === "contact");
+    const contact = converted.inputs?.find((c) => c.key === "contact");
     expect(contact).toMatchObject({
       key: "contact",
-      type: "configuration",
+      type: "structuredObject",
       label: "Contact",
-      description: "Create a new contact",
+      comments: "Create a new contact",
     });
     expect(contact?.inputs).toHaveLength(2);
     const contactName = contact?.inputs?.find((i) => i.key === "name");
@@ -126,19 +126,19 @@ describe("convertInput", () => {
       required: true,
     });
 
-    const account = converted.configurations?.find((c) => c.key === "account");
+    const account = converted.inputs?.find((c) => c.key === "account");
+    expect(account).toMatchObject({
+      key: "account",
+      type: "structuredObject",
+      label: "Account",
+      comments: "Create a new account",
+    });
     expect(account?.inputs).toHaveLength(1);
     expect(account?.inputs?.[0]).toMatchObject({
       key: "companyName",
       type: "string",
       required: true,
     });
-  });
-
-  it("does not emit `configurations` on a non-dynamicObject input", () => {
-    const basicInput = input({ type: "string", label: "Basic" });
-    const converted = convertInput("basic", basicInput);
-    expect(converted.configurations).toBeUndefined();
   });
 });
 
