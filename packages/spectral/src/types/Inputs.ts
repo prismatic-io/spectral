@@ -415,7 +415,7 @@ export interface DynamicObjectConfiguration {
   /** Name of this configuration to present in the UI. */
   label: { key: string; value: string } | string;
   /** Additional text to give guidance to the user when this configuration is selected. */
-  description?: string;
+  comments?: string;
   /** Inputs that become available when this configuration is selected. May
    * include leaf inputs and structuredObject inputs; nested dynamicObjects
    * are rejected at the type level. */
