@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { connection, dynamicObjectInput, input, structuredObjectInput } from "..";
-import { convertConnection, convertInput, convertTemplateInput } from "./convertComponent";
+import {
+  cleanerFor,
+  convertConnection,
+  convertInput,
+  convertTemplateInput,
+} from "./convertComponent";
 
 describe("convertConnection", () => {
   const label = "My Basic Connection";
@@ -235,5 +240,222 @@ describe("convertTemplateInput", () => {
     expected,
   }) => {
     expect(() => convertTemplateInput(key, templateInput, inputs)).toThrow(expected);
+  });
+});
+
+describe("cleanerFor", () => {
+  it("returns the declared clean function for a leaf input", () => {
+    const cleaner = cleanerFor(input({ type: "string", label: "Age", clean: (v) => Number(v) }));
+    expect(cleaner?.("42")).toBe(42);
+  });
+
+  it("returns undefined for a leaf input with no clean function", () => {
+    expect(cleanerFor(input({ type: "string", label: "Name" }))).toBeUndefined();
+  });
+
+  describe("structuredObject", () => {
+    it("invokes each child's clean function", () => {
+      const firstClean = vi.fn((v: unknown) => `first:${v}`);
+      const lastClean = vi.fn((v: unknown) => `last:${v}`);
+
+      const cleaner = cleanerFor(
+        structuredObjectInput({
+          label: "Name",
+          inputs: {
+            first: input({ type: "string", label: "First", clean: firstClean }),
+            last: input({ type: "string", label: "Last", clean: lastClean }),
+          },
+        }),
+      );
+
+      expect(cleaner).toBeDefined();
+      expect(cleaner?.({ first: "Bob", last: "Smith" })).toStrictEqual({
+        first: "first:Bob",
+        last: "last:Smith",
+      });
+      expect(firstClean).toHaveBeenCalledWith("Bob");
+      expect(lastClean).toHaveBeenCalledWith("Smith");
+    });
+
+    it("leaves children without a clean function untouched", () => {
+      const cleaner = cleanerFor(
+        structuredObjectInput({
+          label: "Mixed",
+          inputs: {
+            cleaned: input({ type: "string", label: "Cleaned", clean: (v) => `!${v}` }),
+            raw: input({ type: "string", label: "Raw" }),
+          },
+        }),
+      );
+
+      expect(cleaner?.({ cleaned: "a", raw: "b" })).toStrictEqual({
+        cleaned: "!a",
+        raw: "b",
+      });
+    });
+
+    it("always exists on conversion even when no child declares clean", () => {
+      const cleaner = cleanerFor(
+        structuredObjectInput({
+          label: "Plain",
+          inputs: {
+            a: input({ type: "string", label: "A" }),
+            b: input({ type: "string", label: "B" }),
+          },
+        }),
+      );
+
+      expect(cleaner).toBeDefined();
+      expect(cleaner?.({ a: "x", b: "y" })).toStrictEqual({ a: "x", b: "y" });
+    });
+
+    it("passes through non-object values unchanged", () => {
+      const cleaner = cleanerFor(
+        structuredObjectInput({
+          label: "Name",
+          inputs: { first: input({ type: "string", label: "First", clean: (v) => v }) },
+        }),
+      );
+
+      expect(cleaner?.(undefined)).toBeUndefined();
+      expect(cleaner?.(null)).toBeNull();
+    });
+  });
+
+  describe("dynamicObject", () => {
+    it("invokes each child's clean function for the selected configuration", () => {
+      const emailClean = vi.fn((v: unknown) => `email:${v}`);
+      const companyClean = vi.fn((v: unknown) => `co:${v}`);
+
+      const cleaner = cleanerFor(
+        dynamicObjectInput({
+          label: "Record",
+          configurations: {
+            contact: {
+              label: "Contact",
+              inputs: {
+                email: input({ type: "string", label: "Email", clean: emailClean }),
+              },
+            },
+            account: {
+              label: "Account",
+              inputs: {
+                companyName: input({ type: "string", label: "Company", clean: companyClean }),
+              },
+            },
+          },
+        }),
+      );
+
+      expect(cleaner).toBeDefined();
+      expect(cleaner?.({ configuration: "contact", values: { email: "a@b.co" } })).toStrictEqual({
+        configuration: "contact",
+        values: { email: "email:a@b.co" },
+      });
+      expect(emailClean).toHaveBeenCalledWith("a@b.co");
+      expect(companyClean).not.toHaveBeenCalled();
+    });
+
+    it("delegates to a nested structuredObject child's children", () => {
+      const firstClean = vi.fn((v: unknown) => `first:${v}`);
+      const lastClean = vi.fn((v: unknown) => `last:${v}`);
+
+      const cleaner = cleanerFor(
+        dynamicObjectInput({
+          label: "Record",
+          configurations: {
+            contact: {
+              label: "Contact",
+              inputs: {
+                name: structuredObjectInput({
+                  label: "Name",
+                  inputs: {
+                    first: input({ type: "string", label: "First", clean: firstClean }),
+                    last: input({ type: "string", label: "Last", clean: lastClean }),
+                  },
+                }),
+                email: input({ type: "string", label: "Email" }),
+              },
+            },
+          },
+        }),
+      );
+
+      const result = cleaner?.({
+        configuration: "contact",
+        values: {
+          name: { first: "Ada", last: "Lovelace" },
+          email: "ada@example.com",
+        },
+      });
+
+      expect(result).toStrictEqual({
+        configuration: "contact",
+        values: {
+          name: { first: "first:Ada", last: "last:Lovelace" },
+          email: "ada@example.com",
+        },
+      });
+      expect(firstClean).toHaveBeenCalledWith("Ada");
+      expect(lastClean).toHaveBeenCalledWith("Lovelace");
+    });
+
+    it("always exists on conversion even when no descendant declares clean", () => {
+      const cleaner = cleanerFor(
+        dynamicObjectInput({
+          label: "Record",
+          configurations: {
+            contact: {
+              label: "Contact",
+              inputs: { email: input({ type: "string", label: "Email" }) },
+            },
+          },
+        }),
+      );
+
+      expect(cleaner).toBeDefined();
+      expect(cleaner?.({ configuration: "contact", values: { email: "a@b.co" } })).toStrictEqual({
+        configuration: "contact",
+        values: { email: "a@b.co" },
+      });
+    });
+
+    it("passes through values for an unknown configuration", () => {
+      const emailClean = vi.fn((v: unknown) => `email:${v}`);
+      const cleaner = cleanerFor(
+        dynamicObjectInput({
+          label: "Record",
+          configurations: {
+            contact: {
+              label: "Contact",
+              inputs: { email: input({ type: "string", label: "Email", clean: emailClean }) },
+            },
+          },
+        }),
+      );
+
+      expect(cleaner?.({ configuration: "mystery", values: { email: "a@b.co" } })).toStrictEqual({
+        configuration: "mystery",
+        values: { email: "a@b.co" },
+      });
+      expect(emailClean).not.toHaveBeenCalled();
+    });
+
+    it("passes through non-object values unchanged", () => {
+      const cleaner = cleanerFor(
+        dynamicObjectInput({
+          label: "Record",
+          configurations: {
+            contact: {
+              label: "Contact",
+              inputs: { email: input({ type: "string", label: "Email", clean: (v) => v }) },
+            },
+          },
+        }),
+      );
+
+      expect(cleaner?.(undefined)).toBeUndefined();
+      expect(cleaner?.(null)).toBeNull();
+    });
   });
 });
