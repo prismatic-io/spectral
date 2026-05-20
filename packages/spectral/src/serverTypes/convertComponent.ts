@@ -31,14 +31,72 @@ import type {
 } from ".";
 import {
   type CleanFn,
+  cleanParams,
   createPerform,
   createPollingPerform,
   type InputCleaners,
   type PerformFn,
 } from "./perform";
 
-const cleanerFor = (input: InputFieldDefinition): CleanFn | undefined =>
-  "clean" in input ? (input.clean as CleanFn) : undefined;
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+/** Auto-generated cleaner for structuredObject/dynamicObject containers.
+ * Recursively delegates to each child's clean function. Developers do not
+ * declare a top-level clean on these containers — the conversion always
+ * supplies one so nested clean functions are applied at runtime. */
+export const cleanerFor = (input: InputFieldDefinition): CleanFn | undefined => {
+  if (input.type === "structuredObject") {
+    const childCleaners = Object.entries(input.inputs).reduce<InputCleaners>(
+      (acc, [childKey, childDef]) => ({
+        ...acc,
+        [childKey]: cleanerFor(childDef as InputFieldDefinition),
+      }),
+      {},
+    );
+    return (value: unknown) => {
+      if (!isPlainObject(value)) {
+        return value;
+      }
+      return cleanParams(value, childCleaners);
+    };
+  }
+
+  if (input.type === "dynamicObject") {
+    const configCleaners: Record<string, InputCleaners> = {};
+    for (const [configKey, configDef] of Object.entries(input.configurations)) {
+      configCleaners[configKey] = Object.entries(configDef.inputs).reduce<InputCleaners>(
+        (acc, [childKey, childDef]) => ({
+          ...acc,
+          [childKey]: cleanerFor(childDef as InputFieldDefinition),
+        }),
+        {},
+      );
+    }
+    return (value: unknown) => {
+      if (!isPlainObject(value)) {
+        return value;
+      }
+      const { configuration, values } = value as {
+        configuration?: unknown;
+        values?: unknown;
+      };
+      if (typeof configuration !== "string") {
+        return value;
+      }
+      const cleaners = configCleaners[configuration];
+      if (!cleaners) {
+        return { configuration, values };
+      }
+      return {
+        configuration,
+        values: isPlainObject(values) ? cleanParams(values, cleaners) : values,
+      };
+    };
+  }
+
+  return "clean" in input ? (input.clean as CleanFn) : undefined;
+};
 
 export const convertInput = (
   key: string,
