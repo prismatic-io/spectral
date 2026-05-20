@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { existsSync, readJsonSync } from "fs-extra";
+import { existsSync } from "fs-extra";
 import path from "path";
 import { isObjectWithOneTruthyKey, isObjectWithTruthyKeys } from "../../util";
 import { createFlagHelpText } from "../utils/createFlagHelpText";
@@ -122,22 +122,14 @@ export const runMain = async (process: NodeJS.Process) => {
     process.exit(1);
   }
 
-  const packageJson: {
-    version: string;
-    dependencies: Record<string, string>;
-    devDependencies: Record<string, string>;
-  } = readJsonSync(path.join(__dirname, "../../../package.json"));
+  const { version: spectralVersion } = require("../../../package.json");
 
   await createComponentManifest({
     component,
     dryRun: flags.dry_run.value,
     skipSignatureVerify: flags.skip_signature_verify.value,
     packageName: flags.name.value ?? `@component-manifests/${component.key}`,
-    dependencies: {
-      spectral: packageJson.version,
-      dependencies: packageJson.dependencies,
-      devDependencies: packageJson.devDependencies,
-    },
+    spectralVersion,
     verbose: flags.verbose.value,
     sourceDir: path.join(__dirname, "templates"),
     destinationDir: flags.output_dir.value

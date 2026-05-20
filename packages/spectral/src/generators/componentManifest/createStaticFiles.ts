@@ -4,12 +4,6 @@ import type { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult }
 import { createTemplate } from "../utils/createTemplate";
 import { helpers } from "./helpers";
 
-export interface PackageDependencies {
-  spectral: string;
-  dependencies: Record<string, string>;
-  devDependencies: Record<string, string>;
-}
-
 interface CreateStaticFilesProps<
   TInputs extends Inputs,
   TActionInputs extends Inputs,
@@ -25,7 +19,7 @@ interface CreateStaticFilesProps<
   dryRun: boolean;
   signature: string | null;
   packageName: string;
-  dependencies: PackageDependencies;
+  spectralVersion: string;
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
@@ -47,7 +41,7 @@ export const createStaticFiles = async <
   dryRun,
   signature,
   packageName,
-  dependencies,
+  spectralVersion,
   verbose,
   sourceDir,
   destinationDir,
@@ -78,7 +72,7 @@ export const createStaticFiles = async <
 
   const packageJson = await renderPackageJson({
     dryRun,
-    dependencies,
+    spectralVersion,
     packageName,
     verbose,
     sourceDir,
@@ -173,7 +167,7 @@ export const renderIndex = async ({
 interface RenderPackageJsonProps {
   dryRun: boolean;
   packageName: string;
-  dependencies: PackageDependencies;
+  spectralVersion: string;
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
@@ -183,7 +177,7 @@ interface RenderPackageJsonProps {
 export const renderPackageJson = async ({
   dryRun,
   packageName,
-  dependencies,
+  spectralVersion,
   verbose,
   sourceDir,
   destinationDir,
@@ -194,8 +188,7 @@ export const renderPackageJson = async ({
     destination: path.join(destinationDir, "package.json"),
     data: {
       packageName,
-      spectralVersion: dependencies.spectral,
-      typescriptVersion: dependencies.devDependencies.typescript,
+      spectralVersion,
       helpers,
       registry,
     },

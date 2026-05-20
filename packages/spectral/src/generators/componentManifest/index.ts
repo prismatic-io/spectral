@@ -5,7 +5,7 @@ import { getComponentSignatureWithPrism } from "../utils/prism";
 import { createActions } from "./createActions";
 import { createConnections } from "./createConnections";
 import { createDataSources } from "./createDataSources";
-import { createStaticFiles, type PackageDependencies } from "./createStaticFiles";
+import { createStaticFiles } from "./createStaticFiles";
 import { createTriggers } from "./createTriggers";
 import { removeComponentManifest } from "./removeComponentManifest";
 
@@ -24,7 +24,7 @@ interface CreateComponentManifestProps<
   dryRun: boolean;
   skipSignatureVerify: boolean;
   packageName: string;
-  dependencies: PackageDependencies;
+  spectralVersion: string;
   verbose: boolean;
   sourceDir: string;
   destinationDir: string;
@@ -46,7 +46,7 @@ export const createComponentManifest = async <
   dryRun,
   skipSignatureVerify,
   packageName,
-  dependencies,
+  spectralVersion,
   verbose,
   sourceDir,
   destinationDir,
@@ -78,7 +78,7 @@ export const createComponentManifest = async <
     dryRun,
     packageName,
     signature,
-    dependencies,
+    spectralVersion,
     verbose,
     sourceDir,
     destinationDir,
