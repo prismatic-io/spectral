@@ -163,7 +163,7 @@ const wrapCollection = (valueType: string, collection: ServerTypeInput["collecti
   if (collection === "keyvaluelist") {
     return `Record<string, ${valueType}> | Array<{key: string, value: ${valueType}}>`;
   }
-  
+
   return valueType;
 };
 
