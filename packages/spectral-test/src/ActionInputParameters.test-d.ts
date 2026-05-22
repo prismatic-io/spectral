@@ -216,3 +216,21 @@ dynamicObjectInput({
     },
   },
 });
+
+dynamicObjectInput({
+  label: "Target",
+  configurations: {
+    contact: {
+      label: "Contact",
+      inputs: {
+        name: structuredObjectInput({
+          label: "Name",
+          inputs: {
+            // @ts-expect-error: connection rejected at depth 2 (structuredObject inside dynamicObject configuration).
+            cred: input({ type: "connection", key: "cred", label: "Credentials" }),
+          },
+        }),
+      },
+    },
+  },
+});

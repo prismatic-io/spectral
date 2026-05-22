@@ -420,9 +420,7 @@ export type StructuredObjectInputField = Omit<BaseInputField, "dataSource"> & {
 
 /** A single configuration within a dynamicObject. Each configuration declares
  * a labeled set of inputs that become available when this configuration is
- * selected at runtime. May contain leaf inputs and structuredObject
- * children; nested dynamicObjects and connection pickers are rejected at
- * the type level. */
+ * selected at runtime. */
 export interface DynamicObjectConfiguration {
   /** Name of this configuration to present in the UI. */
   label: { key: string; value: string } | string;
