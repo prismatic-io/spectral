@@ -388,23 +388,29 @@ export type DateTimeInputField = BaseInputField & {
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
-/** `InputFieldDefinition` minus container input types; used to cap
- * structuredObject nesting at one level and to enforce leaf-only positions. */
+/** `InputFieldDefinition` minus container input types and connection
+ * pickers. Connections resolve to config-var references outside the
+ * parent's value tree, so they're only valid at the top level — never as
+ * a child of a structuredObject or a dynamicObject configuration. */
 export type LeafInputFieldDefinition = Exclude<
   InputFieldDefinition,
-  StructuredObjectInputField | DynamicObjectInputField
+  | StructuredObjectInputField
+  | DynamicObjectInputField
+  | ConnectionInputField
+  | ConnectionTemplateInputField
 >;
 
-/** `InputFieldDefinition` minus `DynamicObjectInputField`; used inside a
- * dynamicObject's `configurations.<key>.inputs` to allow leaves *and*
- * structuredObject children while still rejecting nested dynamicObjects. */
-export type StructuredOrLeafInputFieldDefinition = Exclude<
-  InputFieldDefinition,
-  DynamicObjectInputField
->;
+/** `LeafInputFieldDefinition` plus `StructuredObjectInputField`; used
+ * inside a dynamicObject's `configurations.<key>.inputs` to allow leaves
+ * and structuredObject children while still rejecting nested
+ * dynamicObjects and connection pickers. */
+export type StructuredOrLeafInputFieldDefinition =
+  | LeafInputFieldDefinition
+  | StructuredObjectInputField;
 
 /** Groups related primitive inputs under a single named container.
- * Nesting is capped at one level. */
+ * Nesting is capped at one level. Connection pickers are rejected as
+ * children — they may only appear at the top level. */
 export type StructuredObjectInputField = Omit<BaseInputField, "dataSource"> & {
   /** Data type the input will collect. */
   type: "structuredObject";
@@ -420,9 +426,7 @@ export interface DynamicObjectConfiguration {
   label: { key: string; value: string } | string;
   /** Additional text to give guidance to the user when this configuration is selected. */
   comments?: string;
-  /** Inputs that become available when this configuration is selected. May
-   * include leaf inputs and structuredObject inputs; nested dynamicObjects
-   * are rejected at the type level. */
+  /** Inputs that become available when this configuration is selected. */
   inputs: Record<string, StructuredOrLeafInputFieldDefinition>;
 }
 
