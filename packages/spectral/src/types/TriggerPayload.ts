@@ -4,8 +4,15 @@ import type { InstanceAttributes } from "./InstanceAttributes";
 import type { IntegrationAttributes } from "./IntegrationAttributes";
 import type { UserAttributes } from "./UserAttributes";
 
-/** Represents a Trigger Payload, which is data passed into a Trigger to invoke an Integration execution. */
-export interface TriggerPayload {
+/** Represents a Trigger Payload, which is data passed into a Trigger to invoke an Integration execution.
+ *
+ * The optional `TDiscoveryState` parameter types the `discoveryState` field, so authors who
+ * declare a pagination-state shape on their `getNextDiscoveryState` resolver can read back
+ * the same shape on the next round's payload. Defaults to `Record<string, unknown>`.
+ */
+export interface TriggerPayload<
+  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+> {
   /** The headers sent in the webhook request. */
   headers: {
     [key: string]: string;
@@ -51,4 +58,8 @@ export interface TriggerPayload {
   startedAt: string;
   /** Determines whether the execution will run in debug mode. */
   globalDebug: boolean;
+  /** Managed by the execution when this trigger invocation is a paginated re-run.
+   *  Contains the object returned by `getNextDiscoveryState` from the previous round.
+   *  Absent on the initial invocation. */
+  discoveryState?: TDiscoveryState;
 }

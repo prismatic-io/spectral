@@ -62,7 +62,7 @@ import type {
 } from ".";
 import { runWithContext } from "./asyncContext";
 import { createCNIContext, logDebugResults } from "./context";
-import { convertInput, convertTemplateInput } from "./convertComponent";
+import { convertInput, convertTemplateInput, validateBatchSize } from "./convertComponent";
 import {
   DefinitionVersion,
   type ComponentReference as ServerComponentReference,
@@ -76,6 +76,17 @@ import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } fr
 
 export const CONCURRENCY_LIMIT_MAX = 15;
 export const CONCURRENCY_LIMIT_MIN = 2;
+
+const validateFlowResolverBatchSize = (
+  flowName: string,
+  configName: "triggerResolver",
+  resolver: { batchSize: number } | undefined,
+): { batchSize: number } | undefined => {
+  if (!resolver) {
+    return undefined;
+  }
+  return { batchSize: validateBatchSize(flowName, configName, resolver.batchSize) };
+};
 
 export const convertIntegration = <
   TInputs extends Inputs,
@@ -754,6 +765,15 @@ export const convertFlow = <
     };
   }
 
+  const triggerResolver = "triggerResolver" in flow ? flow.triggerResolver : undefined;
+  if (triggerResolver) {
+    result.triggerResolver = validateFlowResolverBatchSize(
+      flow.name,
+      "triggerResolver",
+      triggerResolver,
+    );
+  }
+
   const actionStep: Record<string, unknown> = {
     action: {
       key: flowFunctionKey(flow.name, "onExecution"),
@@ -986,7 +1006,10 @@ export const convertConfigVar = (
   }
 
   if (isJsonFormDataSourceConfigVar(configVar) && configVar.dataSourceReset) {
-    result.meta = { ...result.meta, dataSourceReset: configVar.dataSourceReset.mode };
+    result.meta = {
+      ...result.meta,
+      dataSourceReset: configVar.dataSourceReset.mode,
+    };
     // Create placeholder inputs for each config variable dependency, so that
     // the config wizard can detect if any changed and reset the data source.
     result.inputs = (configVar.dataSourceReset.dependencies || []).reduce(
@@ -1028,7 +1051,10 @@ export const convertConfigVar = (
     }
 
     if (configVar.dataSourceReset) {
-      result.meta = { ...result.meta, dataSourceReset: configVar.dataSourceReset.mode };
+      result.meta = {
+        ...result.meta,
+        dataSourceReset: configVar.dataSourceReset.mode,
+      };
     }
   }
 
@@ -1282,7 +1308,11 @@ function generateTriggerPerformFn<
     case "standard":
       return createCNIPerform({ componentRegistry, onTrigger });
     case "component-ref":
-      return createCNIComponentRefPerform({ componentRegistry, componentRef, onTrigger });
+      return createCNIComponentRefPerform({
+        componentRegistry,
+        componentRef,
+        onTrigger,
+      });
 
     default:
       throw new Error(`Invalid trigger configuration detected: ${JSON.stringify(params, null, 2)}`);
@@ -1472,6 +1502,7 @@ const codeNativeIntegrationComponent = <
         webhookLifecycleHandlers,
         schedule,
         triggerType,
+        triggerResolver,
       },
     ) => {
       if (
@@ -1560,6 +1591,24 @@ const codeNativeIntegrationComponent = <
           scheduleSupport: triggerType === "polling" ? "required" : "valid",
           synchronousResponseSupport: "valid",
           isPollingTrigger: triggerType === "polling",
+          triggerResolverSupport: triggerResolver ? "valid" : "invalid",
+          ...(triggerResolver
+            ? {
+                triggerResolverDefaultBatchSize: triggerResolver.batchSize,
+                ...(triggerResolver.resolveItems
+                  ? {
+                      resolveTriggerItems: triggerResolver.resolveItems,
+                      hasResolveTriggerItems: true,
+                    }
+                  : {}),
+                ...(triggerResolver.getNextDiscoveryState
+                  ? {
+                      getNextDiscoveryState: triggerResolver.getNextDiscoveryState,
+                      hasGetNextDiscoveryState: true,
+                    }
+                  : {}),
+              }
+            : {}),
         },
       };
     },
