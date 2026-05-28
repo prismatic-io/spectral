@@ -386,6 +386,9 @@ export interface Input {
   onPremiseControlled?: boolean;
   dataSource?: string;
   shown?: boolean;
+  /** Nested children. For `structuredObject`, the declared inputs; for
+   * `dynamicObject`, one `structuredObject` per configuration. */
+  inputs?: Input[];
 }
 
 export * from "./asyncContext";

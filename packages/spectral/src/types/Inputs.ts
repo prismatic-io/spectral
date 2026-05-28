@@ -72,6 +72,10 @@ export type DynamicObjectSelection = string;
 
 export type DynamicFieldSelection = string;
 
+export type StructuredObject = Record<string, unknown>;
+
+export type DynamicObject = Record<string, unknown>;
+
 /** InputField type enumeration. */
 export type InputFieldType = InputFieldDefinition["type"];
 export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = {
@@ -92,6 +96,8 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = 
   timestamp: "",
   flow: "",
   template: "",
+  structuredObject: undefined,
+  dynamicObject: undefined,
 };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -139,7 +145,9 @@ export type InputFieldDefinition =
   | DynamicFieldSelectionInputField
   | DateInputField
   | DateTimeInputField
-  | FlowInputField;
+  | FlowInputField
+  | StructuredObjectInputField
+  | DynamicObjectInputField;
 
 export type InputCleanFunction<TValue, TResult = TValue> = (value: TValue) => TResult;
 
@@ -379,6 +387,60 @@ export type DateTimeInputField = BaseInputField & {
   /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
+
+/** `InputFieldDefinition` minus container input types and connection
+ * pickers. Connections resolve to config-var references outside the
+ * parent's value tree, so they're only valid at the top level — never as
+ * a child of a structuredObject or a dynamicObject configuration. */
+export type LeafInputFieldDefinition = Exclude<
+  InputFieldDefinition,
+  | StructuredObjectInputField
+  | DynamicObjectInputField
+  | ConnectionInputField
+  | ConnectionTemplateInputField
+>;
+
+/** `LeafInputFieldDefinition` plus `StructuredObjectInputField`; used
+ * inside a dynamicObject's `configurations.<key>.inputs` to allow leaves
+ * and structuredObject children while still rejecting nested
+ * dynamicObjects and connection pickers. */
+export type StructuredOrLeafInputFieldDefinition =
+  | LeafInputFieldDefinition
+  | StructuredObjectInputField;
+
+/** Groups related primitive inputs under a single named container.
+ * Nesting is capped at one level. Connection pickers are rejected as
+ * children — they may only appear at the top level. */
+export type StructuredObjectInputField = Omit<BaseInputField, "dataSource"> & {
+  /** Data type the input will collect. */
+  type: "structuredObject";
+  /** Nested input fields keyed by their local key. */
+  inputs: Record<string, LeafInputFieldDefinition>;
+};
+
+/** A single configuration within a dynamicObject. Each configuration declares
+ * a labeled set of inputs that become available when this configuration is
+ * selected at runtime. */
+export interface DynamicObjectConfiguration {
+  /** Name of this configuration to present in the UI. */
+  label: { key: string; value: string } | string;
+  /** Additional text to give guidance to the user when this configuration is selected. */
+  comments?: string;
+  /** Inputs that become available when this configuration is selected. */
+  inputs: Record<string, StructuredOrLeafInputFieldDefinition>;
+}
+
+/** Presents a discriminated set of input groups; the user picks a configuration
+ * at integration-build time and that configuration's inputs become available.
+ * Nesting is capped: configurations may contain structuredObject children
+ * (depth-1) but never another dynamicObject. */
+export type DynamicObjectInputField = Omit<BaseInputField, "dataSource"> & {
+  /** Data type the input will collect. */
+  type: "dynamicObject";
+  /** Available configurations keyed by their local key (used as the
+   * runtime discriminant). */
+  configurations: Record<string, DynamicObjectConfiguration>;
+};
 
 /** Defines a single Choice option for a InputField. */
 export interface InputFieldChoice {

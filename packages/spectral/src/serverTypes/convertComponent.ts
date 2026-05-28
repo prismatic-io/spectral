@@ -30,7 +30,74 @@ import type {
   Input as ServerInput,
   Trigger as ServerTrigger,
 } from ".";
-import { createPerform, createPollingPerform, type InputCleaners, type PerformFn } from "./perform";
+import {
+  type CleanFn,
+  cleanParams,
+  createPerform,
+  createPollingPerform,
+  type InputCleaners,
+  type PerformFn,
+} from "./perform";
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+/** Auto-generated cleaner for structuredObject/dynamicObject containers.
+ * Recursively delegates to each child's clean function. Developers do not
+ * declare a top-level clean on these containers — the conversion always
+ * supplies one so nested clean functions are applied at runtime. */
+export const cleanerFor = (input: InputFieldDefinition): CleanFn | undefined => {
+  if (input.type === "structuredObject") {
+    const childCleaners = Object.entries(input.inputs).reduce<InputCleaners>(
+      (acc, [childKey, childDef]) => ({
+        ...acc,
+        [childKey]: cleanerFor(childDef as InputFieldDefinition),
+      }),
+      {},
+    );
+    return (value: unknown) => {
+      if (!isPlainObject(value)) {
+        return value;
+      }
+      return cleanParams(value, childCleaners);
+    };
+  }
+
+  if (input.type === "dynamicObject") {
+    const configCleaners: Record<string, InputCleaners> = {};
+    for (const [configKey, configDef] of Object.entries(input.configurations)) {
+      configCleaners[configKey] = Object.entries(configDef.inputs).reduce<InputCleaners>(
+        (acc, [childKey, childDef]) => ({
+          ...acc,
+          [childKey]: cleanerFor(childDef as InputFieldDefinition),
+        }),
+        {},
+      );
+    }
+    return (value: unknown) => {
+      if (!isPlainObject(value)) {
+        return value;
+      }
+      const { configuration, values } = value as {
+        configuration?: unknown;
+        values?: unknown;
+      };
+      if (typeof configuration !== "string") {
+        return value;
+      }
+      const cleaners = configCleaners[configuration];
+      if (!cleaners) {
+        return { configuration, values };
+      }
+      return {
+        configuration,
+        values: isPlainObject(values) ? cleanParams(values, cleaners) : values,
+      };
+    };
+  }
+
+  return "clean" in input ? (input.clean as CleanFn) : undefined;
+};
 
 /**
  * Throws if `batchSize` isn't a positive integer; otherwise returns it.
@@ -84,16 +151,52 @@ const buildTriggerResolverFields = <
 
 export const convertInput = (
   key: string,
-  {
+  definition: InputFieldDefinition | OnPremConnectionInput | ConnectionInput,
+): ServerInput => {
+  // Cast: the field union is wider than any single member; runtime guards below handle it.
+  const {
     default: defaultValue,
     type,
     label,
     collection,
+    inputs: childInputs,
+    configurations,
     ...rest
-  }: InputFieldDefinition | OnPremConnectionInput | ConnectionInput,
-): ServerInput => {
+  } = definition as {
+    default?: unknown;
+    type: InputFieldDefinition["type"] | "template";
+    label: string | { key: string; value: string };
+    collection?: "valuelist" | "keyvaluelist";
+    inputs?: Record<string, InputFieldDefinition>;
+    configurations?: Record<
+      string,
+      {
+        label: string | { key: string; value: string };
+        comments?: string;
+        inputs: Record<string, InputFieldDefinition>;
+      }
+    >;
+    [key: string]: unknown;
+  };
   const keyLabel =
     collection === "keyvaluelist" && typeof label === "object" ? label.key : undefined;
+
+  const nestedInputs =
+    type === "structuredObject" && childInputs
+      ? Object.entries(childInputs).map(([childKey, childDef]) =>
+          convertInput(childKey, childDef as InputFieldDefinition),
+        )
+      : type === "dynamicObject" && configurations
+        ? Object.entries(configurations).map(([configKey, configDef]) => ({
+            key: configKey,
+            type: "structuredObject",
+            label: typeof configDef.label === "string" ? configDef.label : configDef.label.value,
+            comments: configDef.comments,
+            inputs: Object.entries(configDef.inputs).map(([childKey, childDef]) =>
+              convertInput(childKey, childDef as InputFieldDefinition),
+            ),
+          }))
+        : undefined;
 
   return {
     ...omit(rest, [
@@ -108,7 +211,8 @@ export const convertInput = (
     collection,
     label: typeof label === "string" ? label : label.value,
     keyLabel,
-    onPremiseControlled: ("onPremControlled" in rest && rest.onPremControlled) || undefined,
+    onPremiseControlled: rest.onPremControlled === true ? true : undefined,
+    inputs: nestedInputs,
   };
 };
 
@@ -182,7 +286,7 @@ const convertAction = (
 ): ServerAction => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
   const inputCleaners = Object.entries(inputs).reduce<InputCleaners>(
-    (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+    (result, [key, value]) => ({ ...result, [key]: cleanerFor(value) }),
     {},
   );
 
@@ -218,7 +322,6 @@ export const convertTrigger = <
   const webhookLifecycleHandlers =
     "webhookLifecycleHandlers" in trigger ? trigger.webhookLifecycleHandlers : undefined;
   const inputs: Inputs = trigger.inputs ?? {};
-  const isPollingTrigger = isPollingTriggerDefinition(trigger);
 
   const triggerInputKeys = Object.keys(inputs);
   const convertedTriggerInputs = Object.entries(inputs).map(([key, value]) => {
@@ -226,7 +329,7 @@ export const convertTrigger = <
   });
 
   const triggerInputCleaners = Object.entries(inputs).reduce<InputCleaners>(
-    (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+    (result, [key, value]) => ({ ...result, [key]: cleanerFor(value) }),
     {},
   );
 
@@ -254,8 +357,7 @@ export const convertTrigger = <
   let convertedActionInputs: Array<ServerInput> = [];
   let performToUse: PerformFn;
 
-  if (isPollingTrigger) {
-    // Pull inputs up from the action and make them available on the trigger
+  if (isPollingTriggerDefinition(trigger)) {
     const { pollAction: action } = trigger;
     let actionInputCleaners: InputCleaners = {};
     scheduleSupport = "required";
@@ -269,14 +371,17 @@ export const convertTrigger = <
             );
           }
 
-          accum.push(convertInput(key, value));
+          accum.push(convertInput(key, value as InputFieldDefinition));
           return accum;
         },
         [],
       );
 
       actionInputCleaners = Object.entries(action.inputs).reduce<InputCleaners>(
-        (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+        (result, [key, value]) => ({
+          ...result,
+          [key]: cleanerFor(value as InputFieldDefinition),
+        }),
         {},
       );
     }
@@ -318,7 +423,7 @@ export const convertTrigger = <
           : "invalid",
     triggerResolverSupport,
     ...buildTriggerResolverFields(trigger.display.label, triggerResolverSupport, triggerResolver),
-    ...(isPollingTrigger ? { isPollingTrigger: true } : {}),
+    ...(isPollingTriggerDefinition(trigger) ? { isPollingTrigger: true } : {}),
   };
 
   if (onInstanceDeploy) {
@@ -365,7 +470,7 @@ const convertDataSource = (
 ): ServerDataSource => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
   const inputCleaners = Object.entries(inputs).reduce<InputCleaners>(
-    (result, [key, { clean }]) => ({ ...result, [key]: clean }),
+    (result, [key, value]) => ({ ...result, [key]: cleanerFor(value) }),
     {},
   );
 
