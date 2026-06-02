@@ -22,6 +22,7 @@ import type {
   UserAttributes,
 } from "../types";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
+import type { JsonSchema } from "../types/jsonforms/JsonSchema";
 
 interface DisplayDefinition {
   label: string;
@@ -81,6 +82,8 @@ export interface Action {
   dynamicBranchInput?: string;
   perform: ActionPerformFunction;
   examplePayload?: unknown;
+  /** JSON Schema describing the shape of this action's output `data` payload. */
+  output?: JsonSchema;
 }
 
 export type ActionLoggerFunction = (...args: unknown[]) => void;

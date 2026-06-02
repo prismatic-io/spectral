@@ -52,7 +52,10 @@ export interface InputNode {
   onPremiseControlled: boolean;
 }
 
-export type FormattedAction = Pick<Action, "key" | "display" | "inputs" | "examplePayload">;
+export type FormattedAction = Pick<
+  Action,
+  "key" | "display" | "inputs" | "examplePayload" | "output"
+>;
 export type FormattedTrigger<
   TInputs extends Inputs,
   TActionInputs extends Inputs,

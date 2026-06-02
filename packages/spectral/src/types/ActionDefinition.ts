@@ -3,6 +3,7 @@ import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type { ComponentManifestAction } from "./ComponentManifest";
 import type { ActionDisplayDefinition } from "./DisplayDefinition";
 import type { ConfigVarResultCollection, Inputs } from "./Inputs";
+import type { JsonSchema } from "./jsonforms/JsonSchema";
 
 /**
  * ActionDefinition is the type of the object that is passed in to `action` function to
@@ -52,4 +53,11 @@ export interface ActionDefinition<
   dynamicBranchInput?: string;
   /** An example of the payload output by this action. */
   examplePayload?: Awaited<ReturnType<this["perform"]>>;
+  /**
+   * A JSON Schema describing the shape of this action's output `data` payload.
+   * Used by the Prismatic UI to let integration authors reference this step's
+   * output before a real execution has produced data. Descriptive only — it is
+   * not enforced at runtime.
+   */
+  output?: JsonSchema;
 }

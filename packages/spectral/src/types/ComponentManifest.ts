@@ -1,6 +1,7 @@
 import type { CollectionType } from "./ConfigVars";
 import type { DataSourceType } from "./DataSourceResult";
 import type { InputFieldType } from "./Inputs";
+import type { JsonSchema } from "./jsonforms/JsonSchema";
 
 export interface ComponentManifest {
   key: string;
@@ -24,6 +25,8 @@ export interface ComponentManifestAction {
   perform: (values: any) => Promise<unknown>;
   inputs: Record<string, BaseInput>;
   examplePayload?: unknown;
+  /** JSON Schema describing the shape of this action's output `data` payload. */
+  output?: JsonSchema;
 }
 
 export interface ComponentManifestTrigger {
