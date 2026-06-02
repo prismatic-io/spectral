@@ -25,7 +25,7 @@ export const <%= action.import %> = {
   <%_ if (action.examplePayload) { -%>
   examplePayload: <%- typeof action.examplePayload === 'string' ? action.examplePayload : JSON.stringify(action.examplePayload, null, 2) %>,
   <%_ } -%>
-  <%_ if (action.output) { -%>
-  output: <%- typeof action.output === 'string' ? action.output : JSON.stringify(action.output, null, 2) %>,
+  <%_ if (action.outputSchema) { -%>
+  outputSchema: <%- typeof action.outputSchema === 'string' ? action.outputSchema : JSON.stringify(action.outputSchema, null, 2) %>,
   <%_ } -%>
 } as const;

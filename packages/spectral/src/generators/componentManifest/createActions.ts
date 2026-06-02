@@ -1,7 +1,7 @@
 import path from "path";
 import type { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
-import type { ComponentForManifest } from "../cniComponentManifest/types";
 import type { JsonSchema } from "../../types/jsonforms/JsonSchema";
+import type { ComponentForManifest } from "../cniComponentManifest/types";
 import { createImport } from "../utils/createImport";
 import { createTemplate } from "../utils/createTemplate";
 import { createTypeInterface } from "../utils/createTypeInterface";
@@ -91,7 +91,7 @@ export const createActions = async <
           description: action.display.description,
           inputs,
           ...(action.examplePayload ? { examplePayload: action.examplePayload } : {}),
-          ...(action.output ? { output: action.output } : {}),
+          ...(action.outputSchema ? { outputSchema: action.outputSchema } : {}),
           componentKey: component.key,
         },
         imports,
@@ -150,7 +150,7 @@ interface RenderActionProps {
     description: string;
     inputs: Input[];
     examplePayload?: unknown;
-    output?: JsonSchema;
+    outputSchema?: JsonSchema;
     componentKey: string;
   };
   dryRun: boolean;

@@ -59,5 +59,5 @@ export interface ActionDefinition<
    * output before a real execution has produced data. Descriptive only — it is
    * not enforced at runtime.
    */
-  output?: JsonSchema;
+  outputSchema?: JsonSchema;
 }
