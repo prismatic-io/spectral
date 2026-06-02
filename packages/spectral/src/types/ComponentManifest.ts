@@ -26,7 +26,7 @@ export interface ComponentManifestAction {
   inputs: Record<string, BaseInput>;
   examplePayload?: unknown;
   /** JSON Schema describing the shape of this action's output `data` payload. */
-  output?: JsonSchema;
+  outputSchema?: JsonSchema;
 }
 
 export interface ComponentManifestTrigger {

@@ -54,7 +54,7 @@ export interface InputNode {
 
 export type FormattedAction = Pick<
   Action,
-  "key" | "display" | "inputs" | "examplePayload" | "output"
+  "key" | "display" | "inputs" | "examplePayload" | "outputSchema"
 >;
 export type FormattedTrigger<
   TInputs extends Inputs,
