@@ -58,7 +58,7 @@ export interface ActionDefinition<
    * the Prismatic UI to let integration authors reference this step's output
    * before a real execution has produced data. A discriminated union:
    * `{ type: "actionOutput", schema }` for a single payload shape, or
-   * `{ type: "branchingOutput", branches }` for a per-branch map of shapes.
+   * `{ type: "branchingOutput", branchSchemas }` for a per-branch map of shapes.
    * Descriptive only — it is not enforced at runtime.
    *
    * @remarks
