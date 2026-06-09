@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { configPage, configVar, flow, integration } from "..";
-import type { ConfigVar } from "../types";
+import type { ConfigVar, TriggerReference } from "../types";
 import {
   convertConfigPages,
   convertConfigVar,
@@ -602,5 +602,110 @@ describe("convertFlow supplementalComponents", () => {
 
     const component = supplemental.find((c) => c.key === "my-component");
     expect(component?.signature).not.toBe("");
+  });
+});
+
+describe("custom-trigger reference input values reach the trigger functions", () => {
+  // A registry entry standing in for a published component whose trigger
+  // declares two string inputs.
+  const registry = {
+    "acme-component": {
+      key: "acme-component",
+      public: true,
+      signature: "sig-123",
+      actions: {},
+      triggers: {
+        acmeTrigger: {
+          key: "acmeTrigger",
+          inputs: {
+            inputOne: { key: "inputOne", type: "string", default: "" },
+            inputTwo: { key: "inputTwo", type: "string", default: "" },
+          },
+        },
+      },
+      dataSources: {},
+      connections: {},
+    },
+  } as unknown as Parameters<typeof convertFlow>[1];
+
+  // The reference a flow author writes: points at the trigger and configures
+  // its two inputs with concrete values. In real code this comes fully typed
+  // from `componentRegistry["acme-component"].triggers.acmeTrigger.reference`;
+  // here we construct the equivalent shape directly.
+  const triggerReference = {
+    component: "acme-component",
+    key: "acmeTrigger",
+    values: {
+      inputOne: { value: "hello" },
+      inputTwo: { value: "world" },
+    },
+  } as unknown as TriggerReference;
+
+  // What a normal published-component trigger reference produces: the configured
+  // values are converted onto the trigger step's `inputs`. This is the contract
+  // a wrapper-trigger flow must match so its end state is identical.
+  const expectedStepInputs = {
+    inputOne: { type: "value", value: "hello", meta: {} },
+    inputTwo: { type: "value", value: "world", meta: {} },
+  };
+
+  it("baseline: a plain reference (no lifecycle) puts the values on the trigger step inputs", () => {
+    const plainFlow = flow({
+      name: "Plain Flow",
+      stableKey: "plain-flow",
+      description: "Reference with no lifecycle behavior (non-wrapper path)",
+      onTrigger: triggerReference,
+      onExecution: async () => ({ data: "test" }),
+    });
+
+    const result = convertFlow(plainFlow, registry, "test-ref");
+    const [triggerStep] = result.steps as Array<Record<string, unknown>>;
+
+    expect(triggerStep.inputs).toMatchObject(expectedStepInputs);
+  });
+
+  it("a reference WITH onInstanceDeploy still puts the values on the trigger step inputs", () => {
+    const wrapperFlow = flow({
+      name: "Ref Flow",
+      stableKey: "ref-flow",
+      description: "Reference plus onInstanceDeploy (wrapper-trigger path)",
+      // Defining onInstanceDeploy forces the wrapper-trigger path.
+      onInstanceDeploy: async () => ({}),
+      onTrigger: triggerReference,
+      onExecution: async () => ({ data: "test" }),
+    });
+
+    const result = convertFlow(wrapperFlow, registry, "test-ref");
+    const [triggerStep] = result.steps as Array<Record<string, unknown>>;
+
+    // The wrapper path must carry the same step inputs as the baseline above;
+    // today it emits no inputs, so the configured values are lost.
+    expect(triggerStep.inputs).toMatchObject(expectedStepInputs);
+  });
+
+  it("the generated wrapper trigger declares the referenced inputs so the platform passes them as params", () => {
+    const result = integration({
+      name: "ref-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Ref Flow",
+          stableKey: "ref-flow",
+          description: "Reference plus onInstanceDeploy",
+          onInstanceDeploy: async () => ({}),
+          onTrigger: triggerReference,
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+      componentRegistry: registry as never,
+    });
+
+    const wrapperTrigger = result.triggers.refFlow_onTrigger;
+
+    // A wrapper trigger with `inputs: []` cannot receive any params, so its
+    // perform/onInstanceDeploy forward empty params to the referenced trigger.
+    // It must declare the referenced inputs, matching convertComponent's contract.
+    const inputKeys = (wrapperTrigger.inputs as Array<{ key: string }>).map((i) => i.key);
+    expect(inputKeys).toEqual(expect.arrayContaining(["inputOne", "inputTwo"]));
   });
 });
