@@ -7,26 +7,26 @@ expectAssignable<OutputSchema>({
   schema: { type: "object", properties: { id: { type: "string" } } },
 });
 
-// branchingOutput carries a per-branch map under `branchSchemas`.
+// branchingOutput carries an ordered array of named branch schemas.
 expectAssignable<OutputSchema>({
   type: "branchingOutput",
-  branchSchemas: {
-    found: { type: "object" },
-    notFound: { type: "object" },
-  },
+  branches: [
+    { name: "found", schema: { type: "object" } },
+    { name: "notFound", schema: { type: "object" } },
+  ],
 });
 
-// branchingOutput requires `branchSchemas`; the legacy `branches` key is invalid.
+// branchingOutput requires `branches`; the record form is invalid.
 expectNotAssignable<OutputSchema>({
   type: "branchingOutput",
-  branches: { found: { type: "object" } },
+  branchSchemas: { found: { type: "object" } },
 });
 
-// The two variants don't cross: actionOutput cannot carry branchSchemas, and
+// The two variants don't cross: actionOutput cannot carry branches, and
 // branchingOutput cannot carry a bare schema.
 expectNotAssignable<OutputSchema>({
   type: "actionOutput",
-  branchSchemas: { found: { type: "object" } },
+  branches: [{ name: "found", schema: { type: "object" } }],
 });
 expectNotAssignable<OutputSchema>({
   type: "branchingOutput",

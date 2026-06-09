@@ -1,0 +1,23 @@
+{
+  "name": "output-schema-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test component for ActionOutputSchemaDefinition",
+  "keywords": [
+    "prismatic"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "homepage": "https://prismatic.io",
+  "license": "MIT",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "bun run clean && tsc",
+    "prepack": "bun run build"
+  },
+  "devDependencies": {
+    "@prismatic-io/spectral": "*",
+    "@types/node": "^25.7.0",
+    "typescript": "6.0.3"
+  }
+}
