@@ -28,6 +28,7 @@ export * from "./Inputs";
 export * from "./InstanceAttributes";
 export * from "./IntegrationAttributes";
 export * from "./IntegrationDefinition";
+export * from "./OutputSchema";
 export * from "./PollingTriggerDefinition";
 export * from "./ScopedConfigVars";
 export * from "./ScopedConfigVars";
