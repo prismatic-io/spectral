@@ -21,7 +21,7 @@ import type {
   TriggerResult as TriggerPerformResult,
   UserAttributes,
 } from "../types";
-import type { JsonSchema } from "../types/jsonforms/JsonSchema";
+import type { OutputSchema } from "../types/OutputSchema";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 interface DisplayDefinition {
@@ -82,8 +82,8 @@ export interface Action {
   dynamicBranchInput?: string;
   perform: ActionPerformFunction;
   examplePayload?: unknown;
-  /** JSON Schema describing the shape of this action's output `data` payload. */
-  outputSchema?: JsonSchema;
+  /** Declares the shape of this action's output `data` as a JSON Schema (discriminated union: actionOutput | branchingOutput). */
+  outputSchema?: OutputSchema;
 }
 
 export type ActionLoggerFunction = (...args: unknown[]) => void;
