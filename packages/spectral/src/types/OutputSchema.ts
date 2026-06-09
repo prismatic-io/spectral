@@ -16,10 +16,18 @@ export interface ActionOutputSchema {
  * per branch keyed by branch name. A branching action returns `{ branch, data }`,
  * and the `data` shape may differ per branch, so each branch carries its own
  * schema. Descriptive only — not enforced at runtime.
+ *
+ * @remarks
+ * Valid only for actions with `staticBranchNames` — a closed, build-time list.
+ * NOT supported with `dynamicBranchInput`, where branch names are computed at
+ * runtime and cannot be enumerated; publishing such a component is rejected
+ * server-side. (Unrelated to `dynamicObject` *inputs*, whose `configurations`
+ * are fully declared at build time — that's an input feature and does not
+ * affect `outputSchema`.)
  */
 export interface BranchingOutputSchema {
   type: "branchingOutput";
-  branches: Record<string, JsonSchema>;
+  branchSchemas: Record<string, JsonSchema>;
 }
 
 /**

@@ -60,6 +60,11 @@ export interface ActionDefinition<
    * `{ type: "actionOutput", schema }` for a single payload shape, or
    * `{ type: "branchingOutput", branches }` for a per-branch map of shapes.
    * Descriptive only — it is not enforced at runtime.
+   *
+   * @remarks
+   * Describes the `data` payload only, not the full return envelope
+   * (`statusCode`, `contentType`, state fields). `branchingOutput` requires
+   * `staticBranchNames`; it is not supported with `dynamicBranchInput`.
    */
   outputSchema?: OutputSchema;
 }
