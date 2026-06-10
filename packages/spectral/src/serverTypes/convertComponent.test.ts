@@ -234,3 +234,92 @@ describe("convertTrigger triggerResolver", () => {
     expect(typeof result.resolveTriggerItems).toBe("function");
   });
 });
+
+describe("convertTrigger on-deploy", () => {
+  it("defaults onDeployTriggerSupport to 'valid' when onDeployPerform is declared without explicit support", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+      }),
+    );
+    expect(result.onDeployTriggerSupport).toBe("valid");
+    expect(result.hasOnDeployPerform).toBe(true);
+    expect(result.onDeployResolverDefaultBatchSize).toBe(1);
+  });
+
+  it("defaults onDeployTriggerSupport to 'valid' when onDeployResolver is declared without explicit support", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        onDeployResolver: { default: { batchSize: 50 } },
+      }),
+    );
+    expect(result.onDeployTriggerSupport).toBe("valid");
+    expect(result.onDeployResolverDefaultBatchSize).toBe(50);
+  });
+
+  it("defaults onDeployTriggerSupport to 'invalid' when neither onDeployPerform nor onDeployResolver is declared", () => {
+    const result = convertTrigger("myTrigger", trigger(baseTrigger));
+    expect(result.onDeployTriggerSupport).toBe("invalid");
+    expect(result.hasOnDeployPerform).toBeUndefined();
+    expect(result.onDeployResolverDefaultBatchSize).toBeUndefined();
+  });
+
+  it("rejects onDeployTriggerSupport='required' without onDeployPerform", () => {
+    expect(() =>
+      convertTrigger(
+        "myTrigger",
+        trigger({
+          ...baseTrigger,
+          onDeployTriggerSupport: "required",
+        }),
+      ),
+    ).toThrow(/onDeployTriggerSupport "required" but is missing onDeployPerform/);
+  });
+
+  it("rejects onDeployTriggerSupport='invalid' when onDeployPerform is set", () => {
+    expect(() =>
+      convertTrigger(
+        "myTrigger",
+        trigger({
+          ...baseTrigger,
+          onDeployTriggerSupport: "invalid",
+          onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+        }),
+      ),
+    ).toThrow(/onDeployPerform or onDeployResolver but onDeployTriggerSupport is "invalid"/);
+  });
+
+  it("rejects onDeployResolver with batchSize < 1", () => {
+    expect(() =>
+      convertTrigger(
+        "myTrigger",
+        trigger({
+          ...baseTrigger,
+          onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+          onDeployResolver: { default: { batchSize: 0 } },
+        }),
+      ),
+    ).toThrow(/invalid onDeployResolver\.default batchSize of 0/);
+  });
+
+  it("preserves resolveItems on onDeployResolver", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+        onDeployResolver: {
+          default: { batchSize: 25 },
+          resolveItems: () => [1, 2, 3],
+        },
+      }),
+    );
+    expect(result.hasResolveOnDeployItems).toBe(true);
+    expect(result.onDeployResolverDefaultBatchSize).toBe(25);
+    expect(typeof result.resolveOnDeployItems).toBe("function");
+  });
+});

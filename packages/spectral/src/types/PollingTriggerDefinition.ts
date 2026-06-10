@@ -4,7 +4,7 @@ import type { ActionContext } from "./ActionPerformFunction";
 import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type { ActionDisplayDefinition } from "./DisplayDefinition";
 import type { ConfigVarResultCollection, Inputs } from "./Inputs";
-import type { TriggerResolverDecl } from "./TriggerDefinition";
+import type { OnDeployDecl, TriggerResolverDecl } from "./TriggerDefinition";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
 import type { TriggerPayload } from "./TriggerPayload";
 import type { TriggerResult } from "./TriggerResult";
@@ -43,8 +43,8 @@ export type PollingTriggerPerformFunction<
  * PollingTriggerDefinition is the type of the object that is passed in to `pollingTrigger` function to
  * define a component trigger.
  *
- * Composed from `PollingTriggerDefinitionBase` plus `TriggerResolverDecl`, which
- * enforces the resolver support relationship at the type level.
+ * Composed from `PollingTriggerDefinitionBase` plus `TriggerResolverDecl` and `OnDeployDecl`, which
+ * enforce the resolver/on-deploy support relationships at the type level.
  */
 export type PollingTriggerDefinition<
   TInputs extends Inputs = Inputs,
@@ -68,7 +68,8 @@ export type PollingTriggerDefinition<
   TAction,
   TCombinedInputs
 > &
-  TriggerResolverDecl<TConfigVars, TPayload>;
+  TriggerResolverDecl<TConfigVars, TPayload> &
+  OnDeployDecl<TInputs, TConfigVars, TPayload, TAllowsBranching, TResult>;
 
 interface PollingTriggerDefinitionBase<
   TInputs extends Inputs = Inputs,

@@ -150,6 +150,13 @@ interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload> {
    * infer support from the resolver's presence.
    */
   triggerResolver?: TriggerResolverConfig<ConfigVars, TTriggerPayload>;
+  /**
+   * On-deploy resolver configuration: when the flow defines `onDeployTrigger`,
+   * batches the records from that initial-deploy fire into parallel
+   * dispatches. Sibling to `triggerResolver` but applies only to the
+   * on-deploy fire.
+   */
+  onDeployResolver?: TriggerResolverConfig<ConfigVars, TTriggerPayload>;
   /** Error handling configuration. */
   errorConfig?: StepErrorConfig;
   /** Optional schemas definitions for the flow. Currently only for use with AI agents. */
@@ -202,6 +209,11 @@ interface StandardFlow<
   onTrigger?:
     | TriggerReference
     | TriggerPerformFunction<TInputs, ConfigVars, TAllowsBranching, TResult>;
+  /**
+   * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.
+   * Typically used to backfill baseline records for systems whose webhooks only emit future events.
+   */
+  onDeployTrigger?: TriggerPerformFunction<TInputs, ConfigVars, TAllowsBranching, TResult>;
 }
 
 export type PollingTriggerType = "polling";
@@ -238,6 +250,11 @@ interface PollingFlow<
     TAllowsBranching,
     TResult
   >;
+  /**
+   * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.
+   * Typically used to backfill baseline records for systems whose webhooks only emit future events.
+   */
+  onDeployTrigger?: TriggerPerformFunction<TInputs, ConfigVars, TAllowsBranching, TResult>;
 }
 
 /** Defines attributes of a flow of a code-native integration. */

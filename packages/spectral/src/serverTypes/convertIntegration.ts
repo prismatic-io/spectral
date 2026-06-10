@@ -79,7 +79,7 @@ export const CONCURRENCY_LIMIT_MIN = 2;
 
 const validateFlowResolverBatchSize = (
   flowName: string,
-  configName: "triggerResolver",
+  configName: "triggerResolver" | "onDeployResolver",
   resolver: { batchSize: number } | undefined,
 ): { batchSize: number } | undefined => {
   if (!resolver) {
@@ -650,6 +650,7 @@ export const convertFlow = <
   result.onInstanceDelete = undefined;
   result.webhookLifecycleHandlers = undefined;
   result.onExecution = undefined;
+  result.onDeployTrigger = undefined;
   result.preprocessFlowConfig = undefined;
   result.errorConfig = undefined;
   result.testApiKeys = undefined;
@@ -772,6 +773,19 @@ export const convertFlow = <
       "triggerResolver",
       triggerResolver,
     );
+  }
+  const onDeployResolver = "onDeployResolver" in flow ? flow.onDeployResolver : undefined;
+  if (onDeployResolver) {
+    result.onDeployResolver = validateFlowResolverBatchSize(
+      flow.name,
+      "onDeployResolver",
+      onDeployResolver,
+    );
+    if (!("onDeployTrigger" in flow) || typeof flow.onDeployTrigger !== "function") {
+      throw new Error(
+        `${flow.name} declares onDeployResolver without onDeployTrigger. Set onDeployTrigger to handle the initial-deploy fire that the resolver fans out.`,
+      );
+    }
   }
 
   const actionStep: Record<string, unknown> = {
@@ -1503,6 +1517,8 @@ const codeNativeIntegrationComponent = <
         schedule,
         triggerType,
         triggerResolver,
+        onDeployTrigger,
+        onDeployResolver,
       },
     ) => {
       if (
@@ -1605,6 +1621,33 @@ const codeNativeIntegrationComponent = <
                   ? {
                       getNextDiscoveryState: triggerResolver.getNextDiscoveryState,
                       hasGetNextDiscoveryState: true,
+                    }
+                  : {}),
+              }
+            : {}),
+          onDeployTriggerSupport: onDeployTrigger || onDeployResolver ? "valid" : "invalid",
+          ...(onDeployTrigger
+            ? {
+                onDeployPerform: createCNIPerform({
+                  componentRegistry,
+                  onTrigger: onDeployTrigger,
+                }),
+                hasOnDeployPerform: true,
+              }
+            : {}),
+          ...(onDeployResolver
+            ? {
+                onDeployResolverDefaultBatchSize: onDeployResolver.batchSize,
+                ...(onDeployResolver.resolveItems
+                  ? {
+                      resolveOnDeployItems: onDeployResolver.resolveItems,
+                      hasResolveOnDeployItems: true,
+                    }
+                  : {}),
+                ...(onDeployResolver.getNextDiscoveryState
+                  ? {
+                      getOnDeployNextDiscoveryState: onDeployResolver.getNextDiscoveryState,
+                      hasGetOnDeployNextDiscoveryState: true,
                     }
                   : {}),
               }

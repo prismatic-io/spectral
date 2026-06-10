@@ -26,6 +26,36 @@ export type TriggerResolverDecl<
       triggerResolver: TriggerResolver<TConfigVars, TPayload>;
     };
 
+/**
+ * Encodes the relationship between `onDeployTriggerSupport`, `onDeployPerform`, and
+ * `onDeployResolver`:
+ * - absent or `"invalid"`: neither on-deploy fire nor resolver
+ * - `"valid"`: both optional
+ * - `"required"`: `onDeployPerform` required; resolver optional
+ */
+export type OnDeployDecl<
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TPayload extends TriggerPayload,
+  TAllowsBranching extends boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload>,
+> =
+  | {
+      onDeployTriggerSupport?: "invalid" | undefined;
+      onDeployPerform?: undefined;
+      onDeployResolver?: undefined;
+    }
+  | {
+      onDeployTriggerSupport: "valid";
+      onDeployPerform?: TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
+      onDeployResolver?: TriggerResolver<TConfigVars, TPayload>;
+    }
+  | {
+      onDeployTriggerSupport: "required";
+      onDeployPerform: TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
+      onDeployResolver?: TriggerResolver<TConfigVars, TPayload>;
+    };
+
 const optionChoices = ["invalid", "valid", "required"] as const;
 
 export type TriggerOptionChoice = (typeof optionChoices)[number];
@@ -59,9 +89,9 @@ export interface TriggerResolver<
  * define a component trigger. See
  * https://prismatic.io/docs/custom-connectors/triggers/
  *
- * Composed from `TriggerDefinitionBase` (static fields) plus the discriminated union
- * `TriggerResolverDecl`, which enforces the resolver support relationship at the type
- * level.
+ * Composed from `TriggerDefinitionBase` (static fields) plus the discriminated unions
+ * `TriggerResolverDecl` and `OnDeployDecl`, which enforce the resolver/on-deploy
+ * support relationships at the type level.
  */
 export type TriggerDefinition<
   TInputs extends Inputs = Inputs,
@@ -72,7 +102,8 @@ export type TriggerDefinition<
     TriggerPayload
   >,
 > = TriggerDefinitionBase<TInputs, TConfigVars, TAllowsBranching, TResult> &
-  TriggerResolverDecl<TConfigVars, TriggerPayload>;
+  TriggerResolverDecl<TConfigVars, TriggerPayload> &
+  OnDeployDecl<TInputs, TConfigVars, TriggerPayload, TAllowsBranching, TResult>;
 
 interface TriggerDefinitionBase<
   TInputs extends Inputs = Inputs,

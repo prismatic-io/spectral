@@ -86,6 +86,48 @@ describe("convertFlow with polling triggers", () => {
       /invalid triggerResolver batchSize of 0/,
     );
   });
+
+  it("emits onDeployResolver { batchSize } and strips resolveItems on the flow result", () => {
+    const onDeployFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => ({ payload }),
+      onDeployTrigger: async (_context, payload) => ({ payload }),
+      onDeployResolver: {
+        batchSize: 50,
+        resolveItems: () => [1, 2, 3],
+      },
+    });
+
+    const result = convertFlow(onDeployFlow, {}, "test-ref");
+
+    expect(result.onDeployResolver).toEqual({ batchSize: 50 });
+  });
+
+  it("throws when flow-level onDeployResolver batchSize is invalid", () => {
+    const invalidFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => ({ payload }),
+      onDeployTrigger: async (_context, payload) => ({ payload }),
+      // @ts-expect-error - intentionally invalid batchSize for runtime validation
+      onDeployResolver: { batchSize: 0 },
+    });
+
+    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
+      /invalid onDeployResolver batchSize of 0/,
+    );
+  });
+
+  it("throws when flow-level onDeployResolver is set without onDeployTrigger", () => {
+    const invalidFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => ({ payload }),
+      onDeployResolver: { batchSize: 10 },
+    });
+
+    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
+      /declares onDeployResolver without onDeployTrigger/,
+    );
+  });
 });
 
 describe("convertConfigPages", () => {

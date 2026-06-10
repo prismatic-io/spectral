@@ -204,6 +204,11 @@ export type TriggerEventFunction = (
  * (perform, resolveTriggerItems, getNextDiscoveryState, ...) don't survive JSON
  * serialization, so each callback has a paired `hasXxx: boolean` flag the
  * server reads to detect presence. Keep the flag and its callback in sync.
+ *
+ * The on-deploy fire is named asymmetrically by intent: CNI flow authors set
+ * `onDeployTrigger` (sibling to `onTrigger`), component-trigger authors set
+ * `onDeployPerform` (sibling to `perform`), and both flatten to
+ * `onDeployPerform` here on the wire.
  */
 export interface Trigger<
   TInputs extends Inputs,
@@ -262,6 +267,31 @@ export interface Trigger<
     result: TriggerBaseResult<TPayload>,
   ) => Record<string, unknown> | null;
   hasGetNextDiscoveryState?: boolean;
+  onDeployTriggerSupport?: TriggerOptionChoice;
+  onDeployPerform?:
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
+    | PollingTriggerPerformFunction<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >
+    | CNIPollingPerformFunction<TInputs, TConfigVars, TPayload, TAllowsBranching>
+    | ComponentRefTriggerPerformFunction<TInputs, TConfigVars>;
+  hasOnDeployPerform?: boolean;
+  onDeployResolverDefaultBatchSize?: number;
+  resolveOnDeployItems?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => unknown[];
+  hasResolveOnDeployItems?: boolean;
+  getOnDeployNextDiscoveryState?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => Record<string, unknown> | null;
+  hasGetOnDeployNextDiscoveryState?: boolean;
   examplePayload?: unknown;
   isCommonTrigger?: boolean;
   isPollingTrigger?: boolean;

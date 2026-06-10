@@ -82,6 +82,38 @@ const buildTriggerResolverFields = <
   };
 };
 
+const buildOnDeployResolverFields = <
+  TConfigVars extends ConfigVarResultCollection,
+  TPayload extends TriggerPayload,
+>(
+  triggerLabel: string,
+  support: TriggerOptionChoice,
+  resolver: TriggerResolver<TConfigVars, TPayload> | undefined,
+) => {
+  if (!resolver) {
+    return support === "invalid" ? {} : { onDeployResolverDefaultBatchSize: 1 };
+  }
+  return {
+    onDeployResolverDefaultBatchSize: validateBatchSize(
+      `Trigger "${triggerLabel}"`,
+      "onDeployResolver.default",
+      resolver.default.batchSize,
+    ),
+    ...(resolver.resolveItems
+      ? {
+          resolveOnDeployItems: resolver.resolveItems,
+          hasResolveOnDeployItems: true,
+        }
+      : {}),
+    ...(resolver.getNextDiscoveryState
+      ? {
+          getOnDeployNextDiscoveryState: resolver.getNextDiscoveryState,
+          hasGetOnDeployNextDiscoveryState: true,
+        }
+      : {}),
+  };
+};
+
 export const convertInput = (
   key: string,
   {
@@ -209,6 +241,12 @@ export const convertTrigger = <
   >,
 >(
   triggerKey: string,
+  // `any` is load-bearing: the user-facing TriggerDefinition / PollingTriggerDefinition
+  // type their event-function fields (onInstanceDeploy, webhookLifecycleHandlers, etc.) over
+  // TInputs/TConfigVars/TPayload, while the wire-format ServerTrigger drops those generics.
+  // The `...trigger` spread in the result construction below would surface variance errors
+  // without these `any`s. The user-typed handlers are immediately replaced with
+  // createPerform-wrapped versions, so the loose input typing is safe in practice.
   trigger:
     | TriggerDefinition<any>
     | PollingTriggerDefinition<any, ConfigVarResultCollection, TriggerPayload, boolean, any, any>,
@@ -248,6 +286,25 @@ export const convertTrigger = <
   if (triggerResolverSupport === "invalid" && triggerResolver) {
     throw new Error(
       `Trigger "${trigger.display.label}" declares triggerResolver but triggerResolverSupport is "invalid".`,
+    );
+  }
+
+  const onDeployPerform = "onDeployPerform" in trigger ? trigger.onDeployPerform : undefined;
+  const onDeployResolver = "onDeployResolver" in trigger ? trigger.onDeployResolver : undefined;
+  const onDeployTriggerSupport: TriggerOptionChoice =
+    "onDeployTriggerSupport" in trigger && trigger.onDeployTriggerSupport !== undefined
+      ? trigger.onDeployTriggerSupport
+      : onDeployPerform || onDeployResolver
+        ? "valid"
+        : "invalid";
+  if (onDeployTriggerSupport === "required" && !onDeployPerform) {
+    throw new Error(
+      `Trigger "${trigger.display.label}" declares onDeployTriggerSupport "required" but is missing onDeployPerform.`,
+    );
+  }
+  if (onDeployTriggerSupport === "invalid" && (onDeployPerform || onDeployResolver)) {
+    throw new Error(
+      `Trigger "${trigger.display.label}" declares onDeployPerform or onDeployResolver but onDeployTriggerSupport is "invalid".`,
     );
   }
 
@@ -318,6 +375,8 @@ export const convertTrigger = <
           : "invalid",
     triggerResolverSupport,
     ...buildTriggerResolverFields(trigger.display.label, triggerResolverSupport, triggerResolver),
+    onDeployTriggerSupport,
+    ...buildOnDeployResolverFields(trigger.display.label, onDeployTriggerSupport, onDeployResolver),
     ...(isPollingTrigger ? { isPollingTrigger: true } : {}),
   };
 
@@ -327,6 +386,14 @@ export const convertTrigger = <
       errorHandler: hooks?.error,
     });
     result.hasOnInstanceDeploy = true;
+  }
+
+  if (onDeployPerform) {
+    result.onDeployPerform = createPerform(onDeployPerform, {
+      inputCleaners: triggerInputCleaners,
+      errorHandler: hooks?.error,
+    });
+    result.hasOnDeployPerform = true;
   }
 
   if (onInstanceDelete) {
