@@ -1,5 +1,26 @@
-import type { OutputSchema } from "@prismatic-io/spectral";
-import { expectAssignable, expectNotAssignable } from "tsd";
+import { type OutputSchema, outputSchema } from "@prismatic-io/spectral";
+import { expectAssignable, expectNotAssignable, expectType } from "tsd";
+
+// The `outputSchema` helper preserves the literal discriminant without a
+// trailing `as const` — even when the schema is hoisted into its own variable,
+// where TS would otherwise widen `type` to `string`.
+const hoistedAction = outputSchema({
+  type: "actionOutput",
+  schema: { type: "object", properties: { id: { type: "string" } } },
+});
+expectAssignable<OutputSchema>(hoistedAction);
+expectType<"actionOutput">(hoistedAction.type);
+
+const hoistedBranching = outputSchema({
+  type: "branchingOutput",
+  branchSchemas: { found: { type: "object" }, notFound: { type: "object" } },
+});
+expectAssignable<OutputSchema>(hoistedBranching);
+expectType<"branchingOutput">(hoistedBranching.type);
+
+// The helper still rejects invalid shapes (no escape hatch from the union).
+// @ts-expect-error — unknown discriminant is not an OutputSchema.
+outputSchema({ type: "somethingElse", schema: { type: "object" } });
 
 // actionOutput carries a single `schema`.
 expectAssignable<OutputSchema>({
