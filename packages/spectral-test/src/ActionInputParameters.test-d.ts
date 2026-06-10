@@ -63,6 +63,48 @@ expectType<unknown>(structuredResult.name.last);
 // @ts-expect-error: structuredObject params only expose declared children.
 structuredResult.name.nonexistent;
 
+const collectionInputs = {
+  lines: structuredObjectInput({
+    label: "Lines",
+    collection: "valuelist",
+    inputs: {
+      amount: input({
+        type: "string",
+        label: "Amount",
+        clean: (value) => util.types.toNumber(value),
+      }),
+      description: input({ type: "string", label: "Description" }),
+    },
+  }),
+  attributes: structuredObjectInput({
+    label: "Attributes",
+    collection: "keyvaluelist",
+    inputs: {
+      amount: input({ type: "string", label: "Amount" }),
+    },
+  }),
+};
+
+const collectionResult: ActionInputParameters<typeof collectionInputs> = {
+  lines: [{ amount: 1, description: "desc" }],
+  attributes: [{ key: "a", value: { amount: "1" } }],
+};
+expectType<number>(collectionResult.lines[0].amount);
+expectType<unknown>(collectionResult.lines[0].description);
+// @ts-expect-error: a valuelist structuredObject param is an array of records, not a single record.
+collectionResult.lines.amount;
+expectType<string>(collectionResult.attributes[0].key);
+expectType<unknown>(collectionResult.attributes[0].value.amount);
+// @ts-expect-error: keyvaluelist structuredObject entry values only expose declared children.
+collectionResult.attributes[0].value.nonexistent;
+
+structuredObjectInput({
+  label: "Bad Collection",
+  // @ts-expect-error: collection must be "valuelist" or "keyvaluelist".
+  collection: "objectlist",
+  inputs: { a: input({ type: "string", label: "A" }) },
+});
+
 const dynamicInputs = {
   data: dynamicObjectInput({
     label: "Record Data",

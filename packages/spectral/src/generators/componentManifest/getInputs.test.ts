@@ -84,6 +84,41 @@ describe("getInputs — structuredObject", () => {
     expect(result.valueType).toBe("{ color: `red` | `blue` }");
   });
 
+  it("wraps a valuelist structuredObject as an array of the inline object type", () => {
+    const [result] = getInputs({
+      inputs: [
+        baseInput({
+          key: "lines",
+          type: "structuredObject",
+          collection: "valuelist",
+          inputs: [
+            baseInput({ key: "amount", type: "string" }),
+            baseInput({ key: "description", type: "string" }),
+          ],
+        }),
+      ],
+    });
+
+    expect(result.valueType).toBe("Array<{ amount: string; description: string }>");
+  });
+
+  it("wraps a keyvaluelist structuredObject as the record-or-pairs union of the inline object type", () => {
+    const [result] = getInputs({
+      inputs: [
+        baseInput({
+          key: "attributes",
+          type: "structuredObject",
+          collection: "keyvaluelist",
+          inputs: [baseInput({ key: "amount", type: "string" })],
+        }),
+      ],
+    });
+
+    expect(result.valueType).toBe(
+      "Record<string, { amount: string }> | Array<{key: string, value: { amount: string }}>",
+    );
+  });
+
   it("wraps a valuelist string child as Array<string>", () => {
     const [result] = getInputs({
       inputs: [
