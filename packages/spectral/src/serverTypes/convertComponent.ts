@@ -12,6 +12,7 @@ import {
   type InputFieldDefinition,
   type Inputs,
   type OnPremConnectionInput,
+  type OutputSchema,
   type TriggerDefinition,
   type TriggerOptionChoice,
   type TriggerPayload,
@@ -28,6 +29,7 @@ import type {
   Connection as ServerConnection,
   DataSource as ServerDataSource,
   Input as ServerInput,
+  ServerOutputSchema,
   Trigger as ServerTrigger,
 } from ".";
 import {
@@ -369,9 +371,22 @@ export const convertTemplateInput = (
   };
 };
 
+const convertOutputSchema = (outputSchema: OutputSchema): ServerOutputSchema => {
+  if (outputSchema.type === "actionOutput") {
+    return { type: "actionOutput", schema: JSON.stringify(outputSchema.schema) };
+  }
+  return {
+    type: "branchingOutput",
+    branchSchemas: Object.entries(outputSchema.branchSchemas).map(([name, schema]) => ({
+      name,
+      schema: JSON.stringify(schema),
+    })),
+  };
+};
+
 const convertAction = (
   actionKey: string,
-  { inputs = {}, perform, ...action }: ActionDefinition<Inputs, any, boolean, any>,
+  { inputs = {}, perform, outputSchema, ...action }: ActionDefinition<Inputs, any, boolean, any>,
   hooks?: ComponentHooks,
 ): ServerAction => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
@@ -388,6 +403,7 @@ const convertAction = (
       inputCleaners,
       errorHandler: hooks?.error,
     }),
+    ...(outputSchema ? { outputSchema: convertOutputSchema(outputSchema) } : {}),
   };
 };
 

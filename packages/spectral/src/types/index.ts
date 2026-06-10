@@ -31,7 +31,6 @@ export * from "./IntegrationDefinition";
 export * from "./OutputSchema";
 export * from "./PollingTriggerDefinition";
 export * from "./ScopedConfigVars";
-export * from "./ScopedConfigVars";
 export * from "./TriggerDefinition";
 export * from "./TriggerEventFunction";
 export * from "./TriggerPayload";

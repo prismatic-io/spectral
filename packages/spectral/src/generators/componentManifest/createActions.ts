@@ -1,6 +1,5 @@
 import path from "path";
 import type { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
-import type { OutputSchema } from "../../types/OutputSchema";
 import type { ComponentForManifest } from "../cniComponentManifest/types";
 import { createImport } from "../utils/createImport";
 import { createTemplate } from "../utils/createTemplate";
@@ -150,7 +149,7 @@ interface RenderActionProps {
     description: string;
     inputs: Input[];
     examplePayload?: unknown;
-    outputSchema?: OutputSchema;
+    outputSchema?: unknown;
     componentKey: string;
   };
   dryRun: boolean;

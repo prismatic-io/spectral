@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { connection, dynamicObjectInput, input, structuredObjectInput, trigger } from "..";
+import {
+  action,
+  component,
+  connection,
+  dynamicObjectInput,
+  input,
+  structuredObjectInput,
+  trigger,
+} from "..";
 import {
   cleanerFor,
   convertConnection,
@@ -753,5 +761,54 @@ describe("convertTrigger on-deploy", () => {
     expect(result.hasResolveOnDeployItems).toBe(true);
     expect(result.triggerResolverDefaultBatchSize).toBe(25);
     expect(typeof result.resolveOnDeployItems).toBe("function");
+  });
+});
+
+describe("convertComponent outputSchema", () => {
+  // `component()` is `convertComponent()`, i.e. the real publish path.
+  const convertedAction = (outputSchema?: unknown) =>
+    (
+      component({
+        key: "acme",
+        public: false,
+        display: { label: "Acme", description: "Acme", iconPath: "icon.png" },
+        actions: {
+          doThing: action({
+            display: { label: "Do Thing", description: "Does the thing" },
+            inputs: {},
+            ...(outputSchema ? { outputSchema } : {}),
+            perform: async () => ({ data: {} }),
+          } as any),
+        },
+      } as any).actions as any
+    ).doThing;
+
+  it("serializes an actionOutput schema to a JSON string", () => {
+    const schema = { type: "object", properties: { id: { type: "string" } } };
+    const { outputSchema } = convertedAction({ type: "actionOutput", schema });
+
+    expect(outputSchema).toEqual({ type: "actionOutput", schema: JSON.stringify(schema) });
+    expect(typeof outputSchema.schema).toBe("string");
+  });
+
+  it("flattens branchingOutput branchSchemas to a list of stringified name/schema pairs", () => {
+    const found = { type: "object", properties: { id: { type: "string" } } };
+    const notFound = { type: "object" };
+    const { outputSchema } = convertedAction({
+      type: "branchingOutput",
+      branchSchemas: { found, notFound },
+    });
+
+    expect(outputSchema).toEqual({
+      type: "branchingOutput",
+      branchSchemas: [
+        { name: "found", schema: JSON.stringify(found) },
+        { name: "notFound", schema: JSON.stringify(notFound) },
+      ],
+    });
+  });
+
+  it("omits outputSchema when the action declares none", () => {
+    expect(convertedAction()).not.toHaveProperty("outputSchema");
   });
 });

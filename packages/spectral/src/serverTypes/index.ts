@@ -21,7 +21,6 @@ import type {
   TriggerResult as TriggerPerformResult,
   UserAttributes,
 } from "../types";
-import type { OutputSchema } from "../types/OutputSchema";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 interface DisplayDefinition {
@@ -82,9 +81,19 @@ export interface Action {
   dynamicBranchInput?: string;
   perform: ActionPerformFunction;
   examplePayload?: unknown;
-  /** Declares the shape of this action's output `data` as a JSON Schema (discriminated union: actionOutput | branchingOutput). */
-  outputSchema?: OutputSchema;
+  /**
+   * The on-the-wire form of an action's `outputSchema`, as accepted by the
+   * `PublishComponent` mutation. JSON Schemas are serialized to strings and the
+   * branching variant's per-branch map is flattened to a `{ name, schema }`
+   * list (GraphQL input has no map type). Produced by `convertOutputSchema`
+   * from the author-facing `OutputSchema`.
+   */
+  outputSchema?: ServerOutputSchema;
 }
+
+export type ServerOutputSchema =
+  | { type: "actionOutput"; schema: string }
+  | { type: "branchingOutput"; branchSchemas: Array<{ name: string; schema: string }> };
 
 export type ActionLoggerFunction = (...args: unknown[]) => void;
 
