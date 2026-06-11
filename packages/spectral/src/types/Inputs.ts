@@ -411,7 +411,10 @@ export type StructuredOrLeafInputFieldDefinition =
 /** Groups related primitive inputs under a single named container.
  * Nesting is capped at one level. Connection pickers are rejected as
  * children — they may only appear at the top level. */
-export type StructuredObjectInputField = Omit<BaseInputField, "dataSource"> & {
+export type StructuredObjectInputField = Omit<
+  BaseInputField,
+  "dataSource" | "example" | "placeholder" | "required"
+> & {
   /** Data type the input will collect. */
   type: "structuredObject";
   /** Nested input fields keyed by their local key. */
@@ -434,7 +437,10 @@ export interface DynamicObjectConfiguration {
  * at integration-build time and that configuration's inputs become available.
  * Nesting is capped: configurations may contain structuredObject children
  * (depth-1) but never another dynamicObject. */
-export type DynamicObjectInputField = Omit<BaseInputField, "dataSource"> & {
+export type DynamicObjectInputField = Omit<
+  BaseInputField,
+  "dataSource" | "example" | "placeholder"
+> & {
   /** Data type the input will collect. */
   type: "dynamicObject";
   /** Available configurations keyed by their local key (used as the
