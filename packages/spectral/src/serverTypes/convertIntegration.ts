@@ -56,6 +56,7 @@ import type {
   Connection as ServerConnection,
   DataSource as ServerDataSource,
   Trigger as ServerTrigger,
+  Input as ServerTriggerInput,
   TriggerEventFunction,
   TriggerPayload,
   TriggerResult,
@@ -669,6 +670,16 @@ export const convertFlow = <
       publicSupplementalComponent = flow.schedule ? "schedule" : "webhook";
     }
 
+    // The step action points at the CNI-generated wrapper trigger rather than
+    // the referenced component's trigger. When the flow references a component
+    // trigger, still carry that reference's configured input values onto the
+    // step so the wrapper trigger receives them as params (and can forward them
+    // to the referenced trigger via invokeTrigger).
+    if (isComponentReference(flow.onTrigger)) {
+      const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
+      triggerStep.inputs = inputs;
+    }
+
     triggerStep.action = {
       key: flowFunctionKey(flow.name, "onTrigger"),
       component: codeNativeIntegrationComponentReference(referenceKey),
@@ -1088,6 +1099,34 @@ export const invokeTriggerComponentInput = (
     key: onTrigger ? onTrigger.key : componentRef.key,
     triggerEventFunctionName: eventName,
   };
+};
+
+/* When a flow references a component trigger but also defines on* lifecycle
+ * behavior, the trigger is wrapped in a generated CNI component trigger. That
+ * wrapper must declare the referenced trigger's inputs so the platform passes
+ * the step's configured values through as params (which the wrapper then
+ * forwards to the referenced trigger via invokeTrigger). */
+const wrapperTriggerInputsFromReference = (
+  onTrigger: unknown,
+  componentRegistry: ComponentRegistry,
+): ServerTriggerInput[] => {
+  if (!isComponentReference(onTrigger)) {
+    return [];
+  }
+
+  const manifestInputs = componentRegistry[onTrigger.component]?.triggers?.[onTrigger.key]?.inputs;
+  if (!manifestInputs) {
+    return [];
+  }
+
+  return Object.entries(manifestInputs).map(([key, input]) => ({
+    key,
+    label: key,
+    type: input.inputType,
+    ...(input.collection ? { collection: input.collection } : {}),
+    ...(input.default !== undefined ? { default: input.default } : {}),
+    ...(input.required !== undefined ? { required: input.required } : {}),
+  }));
 };
 
 type ComponentRefTrigger = "component-ref";
@@ -1556,7 +1595,7 @@ const codeNativeIntegrationComponent = <
           hasWebhookCreateFunction: !!webhookCreateFn,
           webhookDelete: webhookDeleteFn,
           hasWebhookDeleteFunction: !!webhookDeleteFn,
-          inputs: [],
+          inputs: wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
           scheduleSupport: triggerType === "polling" ? "required" : "valid",
           synchronousResponseSupport: "valid",
           isPollingTrigger: triggerType === "polling",
