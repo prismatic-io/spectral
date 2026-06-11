@@ -20,6 +20,7 @@ import type {
   DataSourceDefinition,
   DataSourceType,
   DefaultConnectionDefinition,
+  DynamicObjectInputField,
   Flow,
   InputFieldDefinition,
   Inputs,
@@ -28,6 +29,7 @@ import type {
   OnPremConnectionDefinition,
   OrganizationActivatedConnectionConfigVar,
   StandardConfigVar,
+  StructuredObjectInputField,
   TriggerDefinition,
   TriggerPayload,
   TriggerResult,
@@ -668,6 +670,77 @@ export const dataSource = <
  * });
  */
 export const input = <T extends InputFieldDefinition>(definition: T): T => definition;
+
+/**
+ * Groups related primitive inputs under a single named container. Children
+ * may not themselves be structuredObject inputs (the type signature enforces
+ * this at compile time).
+ *
+ * @example
+ * import { input, structuredObjectInput } from "@prismatic-io/spectral";
+ *
+ * const name = structuredObjectInput({
+ *   label: "Name",
+ *   inputs: {
+ *     first: input({ type: "string", label: "First Name", required: true }),
+ *     last: input({ type: "string", label: "Last Name", required: true }),
+ *   },
+ * });
+ */
+export const structuredObjectInput = <
+  T extends Omit<StructuredObjectInputField, "type"> & { type?: never },
+>(
+  definition: T,
+): T & { type: "structuredObject" } => ({
+  ...definition,
+  type: "structuredObject" as const,
+});
+
+/**
+ * Presents a discriminated set of input configurations; the integration builder
+ * picks a configuration and its inputs become available. Configurations may
+ * contain leaf inputs and structuredObject inputs but not nested dynamicObjects
+ * (the type signature enforces this at compile time).
+ *
+ * @example
+ * import { input, structuredObjectInput, dynamicObjectInput } from "@prismatic-io/spectral";
+ *
+ * const recordData = dynamicObjectInput({
+ *   label: "Record Data",
+ *   required: true,
+ *   configurations: {
+ *     contact: {
+ *       label: "Contact",
+ *       comments: "Create a new contact",
+ *       inputs: {
+ *         name: structuredObjectInput({
+ *           label: "Name",
+ *           inputs: {
+ *             first: input({ type: "string", label: "First Name", required: true }),
+ *             last: input({ type: "string", label: "Last Name", required: true }),
+ *           },
+ *         }),
+ *         email: input({ type: "string", label: "Email", required: true }),
+ *       },
+ *     },
+ *     account: {
+ *       label: "Account",
+ *       comments: "Create a new account",
+ *       inputs: {
+ *         companyName: input({ type: "string", label: "Company Name", required: true }),
+ *       },
+ *     },
+ *   },
+ * });
+ */
+export const dynamicObjectInput = <
+  T extends Omit<DynamicObjectInputField, "type"> & { type?: never },
+>(
+  definition: T,
+): T & { type: "dynamicObject" } => ({
+  ...definition,
+  type: "dynamicObject" as const,
+});
 
 /**
  * This function creates a connection that can be used by a code-native integration

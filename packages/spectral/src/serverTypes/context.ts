@@ -32,8 +32,6 @@ type ComponentActionInvokeFunction = <
   values: TValues,
 ) => Promise<unknown>;
 
-type ComponentMethods = Record<string, Record<string, ComponentManifestAction["perform"]>>;
-
 export function createCNIContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
