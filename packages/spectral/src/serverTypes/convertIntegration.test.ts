@@ -97,6 +97,39 @@ describe("convertFlow with polling triggers", () => {
     expect(result.onDeployResolver).toBeUndefined();
   });
 
+  it("emits the shared concurrentBatchLimit on the flow wire when set on batchConfig", () => {
+    const sharedBatchFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => ({ payload }),
+      onDeployTrigger: async (_context, payload) => ({ payload }),
+      batchConfig: { batchSize: 50, concurrentBatchLimit: 5 },
+      triggerResolver: { resolveItems: () => [1, 2, 3] },
+      onDeployResolver: { resolveItems: () => [4, 5, 6] },
+    });
+
+    const result = convertFlow(sharedBatchFlow, {}, "test-ref");
+
+    expect(result.triggerResolver).toEqual({
+      batchSize: 50,
+      enabled: true,
+      concurrentBatchLimit: 5,
+    });
+  });
+
+  it("throws when the flow-level batch concurrentBatchLimit is invalid", () => {
+    const invalidFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => ({ payload }),
+      // @ts-expect-error - intentionally invalid concurrentBatchLimit for runtime validation
+      batchConfig: { batchSize: 50, concurrentBatchLimit: 0 },
+      triggerResolver: { resolveItems: () => [1, 2, 3] },
+    });
+
+    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
+      /invalid batchConfig concurrentBatchLimit of 0/,
+    );
+  });
+
   it("throws when a resolver is defined without a batch config", () => {
     const invalidFlow = flow({
       ...baseFlowInput,

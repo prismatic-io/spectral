@@ -62,7 +62,12 @@ import type {
 } from ".";
 import { runWithContext } from "./asyncContext";
 import { createCNIContext, logDebugResults } from "./context";
-import { convertInput, convertTemplateInput, validateBatchSize } from "./convertComponent";
+import {
+  convertInput,
+  convertTemplateInput,
+  validateBatchSize,
+  validateConcurrentBatchLimit,
+} from "./convertComponent";
 import {
   DefinitionVersion,
   type ComponentReference as ServerComponentReference,
@@ -786,9 +791,15 @@ export const convertFlow = <
 
     // `enabled: true` is required: for a "valid"-support trigger (which CNI synthesized
     // triggers are) the platform only batches when the flow's resolver is enabled.
+    const concurrentBatchLimit = validateConcurrentBatchLimit(
+      flow.name,
+      "batchConfig",
+      batchConfig.concurrentBatchLimit,
+    );
     result.triggerResolver = {
       batchSize: validateBatchSize(flow.name, "batchConfig", batchConfig.batchSize),
       enabled: true,
+      ...(concurrentBatchLimit !== undefined ? { concurrentBatchLimit } : {}),
     };
   }
 
@@ -1618,7 +1629,14 @@ const codeNativeIntegrationComponent = <
           // publish validation requires `triggerResolverDefaultBatchSize` whenever resolver
           // support is active; both derive from the one `flow.batchConfig`.
           ...(triggerResolver || onDeployResolver
-            ? { triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1 }
+            ? {
+                triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
+                ...(batchConfig?.concurrentBatchLimit !== undefined
+                  ? {
+                      triggerResolverDefaultConcurrentBatchLimit: batchConfig.concurrentBatchLimit,
+                    }
+                  : {}),
+              }
             : {}),
           ...(triggerResolver
             ? {

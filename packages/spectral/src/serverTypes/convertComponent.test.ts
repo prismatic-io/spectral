@@ -338,6 +338,43 @@ describe("convertTrigger triggerResolver", () => {
     expect(result.triggerResolverDefaultBatchSize).toBe(25);
     expect(typeof result.resolveTriggerItems).toBe("function");
   });
+
+  it("emits the shared concurrentBatchLimit when set on batchConfig", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        batchConfig: { batchSize: 50, concurrentBatchLimit: 5 },
+        triggerResolver: { resolveItems: () => [1, 2, 3] },
+      }),
+    );
+    expect(result.triggerResolverDefaultConcurrentBatchLimit).toBe(5);
+  });
+
+  it("omits concurrentBatchLimit when not set on batchConfig", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        batchConfig: { batchSize: 50 },
+        triggerResolver: { resolveItems: () => [1, 2, 3] },
+      }),
+    );
+    expect(result.triggerResolverDefaultConcurrentBatchLimit).toBeUndefined();
+  });
+
+  it("rejects a batch config with concurrentBatchLimit < 1", () => {
+    expect(() =>
+      convertTrigger(
+        "myTrigger",
+        trigger({
+          ...baseTrigger,
+          batchConfig: { batchSize: 50, concurrentBatchLimit: 0 },
+          triggerResolver: { resolveItems: () => [1, 2, 3] },
+        }),
+      ),
+    ).toThrow(/invalid batchConfig concurrentBatchLimit of 0/);
+  });
 });
 
 describe("cleanerFor", () => {
