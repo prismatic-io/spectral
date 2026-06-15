@@ -9,13 +9,14 @@ import type {
 import type { ConfigPages, UserLevelConfigPages } from "./ConfigPages";
 import type { ConfigVars } from "./ConfigVars";
 import type { FlowDefinitionFlowSchema } from "./FlowSchemas";
-import type { ConfigVarResultCollection, Inputs } from "./Inputs";
+import type { Inputs } from "./Inputs";
 import type { PollingTriggerPerformFunction } from "./PollingTriggerDefinition";
 import type { ScopedConfigVarMap } from "./ScopedConfigVars";
+import type { BatchConfig, TriggerResolverBehavior } from "./TriggerDefinition";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
 import type { TriggerPayload } from "./TriggerPayload";
 import type { TriggerPerformFunction } from "./TriggerPerformFunction";
-import type { TriggerBaseResult, TriggerResult } from "./TriggerResult";
+import type { TriggerResult } from "./TriggerResult";
 
 /**
  * Defines attributes of a code-native integration. See
@@ -61,8 +62,13 @@ export type IntegrationDefinition<
   /**
    * Flows for this integration. See
    * https://prismatic.io/docs/integrations/code-native/flows/
+   *
+   * The trailing `any`s for `TItem`/`TDiscoveryState`/`TTriggerPayload` let flows with
+   * different resolver item and cursor types live in one array. `integration` only holds
+   * and serializes these flows (it never invokes `onExecution`), so the precise — and
+   * per-flow distinct — `onExecution` param type does not need to be preserved here.
    */
-  flows: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>[];
+  flows: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult, any, any, any>[];
   /**
    * Config wizard pages for this integration. See
    * https://prismatic.io/docs/integrations/code-native/config-wizard/
@@ -86,12 +92,25 @@ export type IntegrationDefinition<
   componentRegistry?: ComponentRegistry;
 };
 
-export type FlowOnExecution<TTriggerPayload extends TriggerPayload> = ActionPerformFunction<
+/**
+ * The trigger payload as `onExecution` sees it. When a `triggerResolver` is in
+ * play, the platform replaces `body.data` with this execution's batch slice —
+ * a single `TItem` when `batchSize` is 1, otherwise a `TItem[]`. When no item
+ * type is known (`TItem` defaults to `unknown`), the payload is left untouched.
+ */
+export type BatchedTriggerPayload<TPayload extends TriggerPayload, TItem> = unknown extends TItem
+  ? TPayload
+  : Omit<TPayload, "body"> & { body: { data: TItem | TItem[]; contentType?: string } };
+
+export type FlowOnExecution<
+  TTriggerPayload extends TriggerPayload,
+  TItem = unknown,
+> = ActionPerformFunction<
   {
     onTrigger: {
       type: "data";
       label: string;
-      clean: (value: unknown) => { results: TTriggerPayload };
+      clean: (value: unknown) => { results: BatchedTriggerPayload<TTriggerPayload, TItem> };
     };
   },
   ConfigVars,
@@ -112,7 +131,11 @@ export type FlowExecutionContext = ActionContext<
 export type FlowExecutionContextActions = FlowExecutionContext["components"];
 
 /** Base properties shared by all flow types. */
-interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload> {
+interface FlowBase<
+  TTriggerPayload extends TriggerPayload = TriggerPayload,
+  TItem = unknown,
+  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+> {
   /** The unique name for this flow. */
   name: string;
   /** A unique, unchanging value that is used to maintain identity for the flow even if the name changes. */
@@ -144,12 +167,24 @@ interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload> {
   organizationApiKeys?: string[];
   testApiKeys?: string[];
   /**
-   * Trigger resolver configuration: batches the records returned by the
-   * trigger into parallel dispatches. When using an existing component
-   * trigger, that trigger must declare `triggerResolverSupport`. CNI flows
-   * infer support from the resolver's presence.
+   * Batch-dispatch config for this flow's resolvers. A single config shared by both
+   * `triggerResolver` and `onDeployResolver` — they always batch the same way. For a
+   * CNI flow this value is authoritative (what's written here is what's used). Required
+   * whenever the flow defines a `triggerResolver` or `onDeployResolver`.
    */
-  triggerResolver?: TriggerResolverConfig<ConfigVars, TTriggerPayload>;
+  batchConfig?: BatchConfig;
+  /**
+   * Trigger resolver behavior: extracts the items returned by the trigger into batched
+   * dispatches and (optionally) paginates. Sizing comes from the flow's `batchConfig`.
+   * When using an existing component trigger, that trigger must declare
+   * `triggerResolverSupport`; CNI flows infer support from the resolver's presence.
+   */
+  triggerResolver?: TriggerResolverBehavior<ConfigVars, TriggerPayload, TItem, TDiscoveryState>;
+  /**
+   * On-deploy resolver behavior: same as `triggerResolver` but for the `onDeployTrigger`
+   * initial-deploy fire. Shares the flow's `batchConfig`.
+   */
+  onDeployResolver?: TriggerResolverBehavior<ConfigVars, TriggerPayload, TItem, TDiscoveryState>;
   /** Error handling configuration. */
   errorConfig?: StepErrorConfig;
   /** Optional schemas definitions for the flow. Currently only for use with AI agents. */
@@ -177,7 +212,7 @@ interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload> {
     delete: TriggerEventFunction<Inputs, ConfigVars>;
   };
   /** Specifies the main function for this flow which is run when this flow is invoked. */
-  onExecution: FlowOnExecution<TTriggerPayload>;
+  onExecution: FlowOnExecution<TTriggerPayload, TItem>;
 }
 
 export type StandardTriggerType = "standard";
@@ -192,7 +227,9 @@ interface StandardFlow<
     TPayload
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
-> extends FlowBase<TTriggerPayload> {
+  TItem = unknown,
+  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+> extends FlowBase<TTriggerPayload, TItem, TDiscoveryState> {
   triggerType?: StandardTriggerType;
   /** Schedule configuration that defines the frequency with which this flow will be automatically executed. */
   schedule?: (ValueExpression<string> | ConfigVarExpression) & {
@@ -201,7 +238,19 @@ interface StandardFlow<
   /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
   onTrigger?:
     | TriggerReference
-    | TriggerPerformFunction<TInputs, ConfigVars, TAllowsBranching, TResult>;
+    | TriggerPerformFunction<TInputs, ConfigVars, TAllowsBranching, TResult, TDiscoveryState>;
+  /**
+   * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.
+   * Typically used to backfill baseline records for systems whose webhooks only emit future events.
+   * Pair with `onDeployResolver` to batch the records it returns.
+   */
+  onDeployTrigger?: TriggerPerformFunction<
+    TInputs,
+    ConfigVars,
+    TAllowsBranching,
+    TResult,
+    TDiscoveryState
+  >;
 }
 
 export type PollingTriggerType = "polling";
@@ -217,7 +266,9 @@ interface PollingFlow<
     TPayload
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
-> extends FlowBase<TTriggerPayload> {
+  TItem = unknown,
+  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+> extends FlowBase<TTriggerPayload, TItem, TDiscoveryState> {
   /**
    * Type of trigger for this flow. A "polling" trigger runs on a schedule
    * and can use context.polling.* functions. Requires schedule to be set.
@@ -238,6 +289,18 @@ interface PollingFlow<
     TAllowsBranching,
     TResult
   >;
+  /**
+   * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.
+   * Typically used to backfill baseline records for systems whose webhooks only emit future events.
+   * Pair with `onDeployResolver` to batch the records it returns.
+   */
+  onDeployTrigger?: TriggerPerformFunction<
+    TInputs,
+    ConfigVars,
+    TAllowsBranching,
+    TResult,
+    TDiscoveryState
+  >;
 }
 
 /** Defines attributes of a flow of a code-native integration. */
@@ -251,9 +314,28 @@ export type Flow<
     TPayload
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
+  TItem = unknown,
+  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
 > =
-  | StandardFlow<TInputs, TPayload, TAllowsBranching, TResult, TTriggerPayload>
-  | PollingFlow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult, TTriggerPayload>;
+  | StandardFlow<
+      TInputs,
+      TPayload,
+      TAllowsBranching,
+      TResult,
+      TTriggerPayload,
+      TItem,
+      TDiscoveryState
+    >
+  | PollingFlow<
+      TInputs,
+      TActionInputs,
+      TPayload,
+      TAllowsBranching,
+      TResult,
+      TTriggerPayload,
+      TItem,
+      TDiscoveryState
+    >;
 
 export type FlowTriggerType = PollingTriggerType | StandardTriggerType;
 
@@ -344,25 +426,3 @@ export type EndpointSecurityType =
 
 /** Choices of Step Error Handlers that define the behavior when a step error occurs. */
 export type StepErrorHandlerType = "fail" | "ignore" | "retry";
-
-/** Configures how trigger items are batched when the trigger supports a resolver. */
-export type TriggerResolverConfig<
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
-  TPayload extends TriggerPayload = TriggerPayload,
-  TItem = unknown,
-> = {
-  /** Number of items per batch. Must be an integer >= 1. `1` dispatches each item individually; `>1` groups items into batches. */
-  batchSize: number;
-  /** Extracts an array of items from the trigger result for batched dispatch. Receives the same context as the trigger's perform function. */
-  resolveItems?: (
-    context: ActionContext<TConfigVars>,
-    result: TriggerBaseResult<TPayload>,
-  ) => TItem[];
-  /** Called after each trigger run. When defined and returns a non-null object, the platform
-   *  queues another pagination round (re-invokes the trigger) and stamps the returned object
-   *  onto `payload.discoveryState` for that next invocation. Return `null` to stop. */
-  getNextDiscoveryState?: (
-    context: ActionContext<TConfigVars>,
-    result: TriggerBaseResult<TPayload>,
-  ) => Record<string, unknown> | null;
-};

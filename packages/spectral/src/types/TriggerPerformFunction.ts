@@ -10,8 +10,9 @@ export type TriggerPerformFunction<
   TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean | undefined,
   TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
+  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
 > = (
   context: ActionContext<TConfigVars>,
-  payload: TriggerPayload,
+  payload: TriggerPayload<TDiscoveryState>,
   params: ActionInputParameters<TInputs>,
 ) => Promise<TResult>;
