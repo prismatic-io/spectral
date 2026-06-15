@@ -77,17 +77,6 @@ import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } fr
 export const CONCURRENCY_LIMIT_MAX = 15;
 export const CONCURRENCY_LIMIT_MIN = 2;
 
-const validateFlowResolverBatchSize = (
-  flowName: string,
-  configName: "triggerResolver",
-  resolver: { batchSize: number } | undefined,
-): { batchSize: number } | undefined => {
-  if (!resolver) {
-    return undefined;
-  }
-  return { batchSize: validateBatchSize(flowName, configName, resolver.batchSize) };
-};
-
 export const convertIntegration = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
@@ -650,6 +639,7 @@ export const convertFlow = <
   result.onInstanceDelete = undefined;
   result.webhookLifecycleHandlers = undefined;
   result.onExecution = undefined;
+  result.onDeployTrigger = undefined;
   result.preprocessFlowConfig = undefined;
   result.errorConfig = undefined;
   result.testApiKeys = undefined;
@@ -766,12 +756,40 @@ export const convertFlow = <
   }
 
   const triggerResolver = "triggerResolver" in flow ? flow.triggerResolver : undefined;
-  if (triggerResolver) {
-    result.triggerResolver = validateFlowResolverBatchSize(
-      flow.name,
-      "triggerResolver",
-      triggerResolver,
-    );
+  const onDeployResolver = "onDeployResolver" in flow ? flow.onDeployResolver : undefined;
+  const batchConfig = "batchConfig" in flow ? flow.batchConfig : undefined;
+
+  // Resolver behaviors (resolveItems/getNextDiscoveryState) are serialized onto the
+  // synthesized trigger below. On the flow wire we emit only `triggerResolver`, the single
+  // config the platform reads (`trigger_resolver_batch_size` / `trigger_resolver_enabled`)
+  // and shares between the normal and on-deploy fires. `batchConfig`/`onDeployResolver` are
+  // author-side only — clear them out of the `{ ...flow }` spread.
+  result.triggerResolver = undefined;
+  result.onDeployResolver = undefined;
+  result.batchConfig = undefined;
+
+  if (triggerResolver || onDeployResolver) {
+    if (!batchConfig) {
+      throw new Error(
+        `${flow.name} defines a triggerResolver/onDeployResolver but no batchConfig. Add \`batchConfig: { batchSize }\` to the flow.`,
+      );
+    }
+
+    if (
+      onDeployResolver &&
+      (!("onDeployTrigger" in flow) || typeof flow.onDeployTrigger !== "function")
+    ) {
+      throw new Error(
+        `${flow.name} declares onDeployResolver without onDeployTrigger. Set onDeployTrigger to handle the initial-deploy fire that the resolver fans out.`,
+      );
+    }
+
+    // `enabled: true` is required: for a "valid"-support trigger (which CNI synthesized
+    // triggers are) the platform only batches when the flow's resolver is enabled.
+    result.triggerResolver = {
+      batchSize: validateBatchSize(flow.name, "batchConfig", batchConfig.batchSize),
+      enabled: true,
+    };
   }
 
   const actionStep: Record<string, unknown> = {
@@ -1502,7 +1520,10 @@ const codeNativeIntegrationComponent = <
         webhookLifecycleHandlers,
         schedule,
         triggerType,
+        batchConfig,
         triggerResolver,
+        onDeployTrigger,
+        onDeployResolver,
       },
     ) => {
       if (
@@ -1592,9 +1613,15 @@ const codeNativeIntegrationComponent = <
           synchronousResponseSupport: "valid",
           isPollingTrigger: triggerType === "polling",
           triggerResolverSupport: triggerResolver ? "valid" : "invalid",
+          // The authoritative batch size is stored on the flow (see convertFlow). We also
+          // emit the single shared default on the synthesized trigger because component
+          // publish validation requires `triggerResolverDefaultBatchSize` whenever resolver
+          // support is active; both derive from the one `flow.batchConfig`.
+          ...(triggerResolver || onDeployResolver
+            ? { triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1 }
+            : {}),
           ...(triggerResolver
             ? {
-                triggerResolverDefaultBatchSize: triggerResolver.batchSize,
                 ...(triggerResolver.resolveItems
                   ? {
                       resolveTriggerItems: triggerResolver.resolveItems,
@@ -1605,6 +1632,33 @@ const codeNativeIntegrationComponent = <
                   ? {
                       getNextDiscoveryState: triggerResolver.getNextDiscoveryState,
                       hasGetNextDiscoveryState: true,
+                    }
+                  : {}),
+              }
+            : {}),
+          // On-deploy is presence-driven (no support flag): the behavior flags below
+          // (hasOnDeployPerform / hasResolveOnDeployItems) tell the platform what runs.
+          ...(onDeployTrigger
+            ? {
+                onDeployPerform: createCNIPerform({
+                  componentRegistry,
+                  onTrigger: onDeployTrigger,
+                }),
+                hasOnDeployPerform: true,
+              }
+            : {}),
+          ...(onDeployResolver
+            ? {
+                ...(onDeployResolver.resolveItems
+                  ? {
+                      resolveOnDeployItems: onDeployResolver.resolveItems,
+                      hasResolveOnDeployItems: true,
+                    }
+                  : {}),
+                ...(onDeployResolver.getNextDiscoveryState
+                  ? {
+                      getOnDeployNextDiscoveryState: onDeployResolver.getNextDiscoveryState,
+                      hasGetOnDeployNextDiscoveryState: true,
                     }
                   : {}),
               }

@@ -14,6 +14,7 @@ import type {
   ComponentManifest,
   ConfigPage,
   ConfigVarResultCollection,
+  ConfigVars,
   ConnectionConfigVar,
   CustomerActivatedConnectionConfigVar,
   DataSourceConfigVar,
@@ -32,6 +33,7 @@ import type {
   StructuredObjectInputField,
   TriggerDefinition,
   TriggerPayload,
+  TriggerResolverBehavior,
   TriggerResult,
 } from "./types";
 import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
@@ -153,17 +155,91 @@ export const flow = <
     TPayload
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
+  TItem = unknown,
+  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
   T extends Flow<
     TInputs,
     TActionInputs,
     TPayload,
     TAllowsBranching,
     TResult,
-    TTriggerPayload
-  > = Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult, TTriggerPayload>,
+    TTriggerPayload,
+    TItem,
+    TDiscoveryState
+  > = Flow<
+    TInputs,
+    TActionInputs,
+    TPayload,
+    TAllowsBranching,
+    TResult,
+    TTriggerPayload,
+    TItem,
+    TDiscoveryState
+  >,
 >(
-  definition: T,
+  // The intersection adds an explicit inference site for `TItem`/`TDiscoveryState`
+  // (from the resolver's `resolveItems` / `getNextDiscoveryState` return types) that
+  // the `T extends Flow<...>` capture alone does not provide, while `T` still preserves
+  // the precise literal type for the return value.
+  definition: T & {
+    triggerResolver?: TriggerResolverBehavior<ConfigVars, TriggerPayload, TItem, TDiscoveryState>;
+    onDeployResolver?: TriggerResolverBehavior<ConfigVars, TriggerPayload, TItem, TDiscoveryState>;
+  },
 ): T => definition;
+
+/**
+ * Builds a flow's `triggerResolver` — the behavior that extracts the records a trigger
+ * returns into batched dispatches and (optionally) paginates. Batch *sizing* comes from
+ * the flow's `batch` config, not from here. Supply the item and pagination-cursor types
+ * explicitly — `triggerResolver<Order, { cursor: number }>({ ... })` — and they flow
+ * through the whole chain: `resolveItems` returns `Order[]`, `result.payload.discoveryState`
+ * reads back as `{ cursor: number }`, and the flow's `onExecution` sees
+ * `params.onTrigger.results.body.data` typed as `Order | Order[]`.
+ *
+ * @typeParam TItem - the item type each batched execution receives.
+ * @typeParam TDiscoveryState - the pagination cursor shape round-tripped via `payload.discoveryState`.
+ * @see {@link https://prismatic.io/docs/integrations/code-native/flows/ | Code-Native Flows}
+ * @example
+ * import { flow, triggerResolver } from "@prismatic-io/spectral";
+ *
+ * flow({
+ *   // ...
+ *   batch: { batchSize: 50 },
+ *   triggerResolver: triggerResolver<Order, { cursor: number }>({
+ *     resolveItems: (context, result) => result.payload.body.data as Order[],
+ *     getNextDiscoveryState: (context, result) => {
+ *       const next = result.payload.discoveryState?.cursor; // number | undefined
+ *       return next === undefined ? null : { cursor: next };
+ *     },
+ *   }),
+ * });
+ */
+export const triggerResolver = <
+  TItem = unknown,
+  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+  TConfigVars extends ConfigVarResultCollection = ConfigVars,
+  TPayload extends TriggerPayload = TriggerPayload,
+>(
+  resolver: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState>,
+): TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState> => resolver;
+
+/**
+ * Builds a flow's `onDeployResolver` — the resolver behavior for the `onDeployTrigger`
+ * fire that runs once when an instance is first deployed. Identical in shape to
+ * {@link triggerResolver} and shares the flow's `batch` config; named separately so the
+ * call site reads as the sibling of `onDeployTrigger`.
+ *
+ * @typeParam TItem - the item type each batched on-deploy execution receives.
+ * @typeParam TDiscoveryState - the pagination cursor shape round-tripped via `payload.discoveryState`.
+ */
+export const onDeployResolver = <
+  TItem = unknown,
+  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+  TConfigVars extends ConfigVarResultCollection = ConfigVars,
+  TPayload extends TriggerPayload = TriggerPayload,
+>(
+  resolver: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState>,
+): TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState> => resolver;
 
 /**
  * This function creates a config wizard page object for use in code-native

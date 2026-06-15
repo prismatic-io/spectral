@@ -59,31 +59,78 @@ describe("convertFlow with polling triggers", () => {
     expect(result.name).toBe("Test Polling Flow");
   });
 
-  it("emits triggerResolver { batchSize } and strips resolveItems on the flow result", () => {
+  it("emits the single flow-level batch config and strips resolver behavior from the flow result", () => {
     const triggerResolverFlow = flow({
       ...baseFlowInput,
       onTrigger: async (_context, payload) => ({ payload }),
+      batchConfig: { batchSize: 25 },
       triggerResolver: {
-        batchSize: 25,
         resolveItems: () => [1, 2, 3],
       },
     });
 
     const result = convertFlow(triggerResolverFlow, {}, "test-ref");
 
-    expect(result.triggerResolver).toEqual({ batchSize: 25 });
+    // The single batch config is written to the existing `triggerResolver` flow wire field
+    // (→ trigger_resolver_batch_size / trigger_resolver_enabled), with enabled forced on.
+    expect(result.triggerResolver).toEqual({ batchSize: 25, enabled: true });
+    // Author-only fields are stripped; resolver behavior goes on the synthesized trigger.
+    expect(result.batchConfig).toBeUndefined();
+    expect(result.onDeployResolver).toBeUndefined();
   });
 
-  it("throws when flow-level triggerResolver batchSize is invalid", () => {
+  it("shares one batch config across triggerResolver and onDeployResolver", () => {
+    const sharedBatchFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => ({ payload }),
+      onDeployTrigger: async (_context, payload) => ({ payload }),
+      batchConfig: { batchSize: 50 },
+      triggerResolver: { resolveItems: () => [1, 2, 3] },
+      onDeployResolver: { resolveItems: () => [4, 5, 6] },
+    });
+
+    const result = convertFlow(sharedBatchFlow, {}, "test-ref");
+
+    // One config drives both the normal and on-deploy fires; no separate on-deploy field.
+    expect(result.triggerResolver).toEqual({ batchSize: 50, enabled: true });
+    expect(result.batchConfig).toBeUndefined();
+    expect(result.onDeployResolver).toBeUndefined();
+  });
+
+  it("throws when a resolver is defined without a batch config", () => {
+    const invalidFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => ({ payload }),
+      triggerResolver: { resolveItems: () => [1, 2, 3] },
+    });
+
+    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(/no batchConfig/);
+  });
+
+  it("throws when the flow-level batch batchSize is invalid", () => {
     const invalidFlow = flow({
       ...baseFlowInput,
       onTrigger: async (_context, payload) => ({ payload }),
       // @ts-expect-error - intentionally invalid batchSize for runtime validation
-      triggerResolver: { batchSize: 0 },
+      batchConfig: { batchSize: 0 },
+      triggerResolver: { resolveItems: () => [1, 2, 3] },
     });
 
     expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
-      /invalid triggerResolver batchSize of 0/,
+      /invalid batchConfig batchSize of 0/,
+    );
+  });
+
+  it("throws when onDeployResolver is set without onDeployTrigger", () => {
+    const invalidFlow = flow({
+      ...baseFlowInput,
+      onTrigger: async (_context, payload) => ({ payload }),
+      batchConfig: { batchSize: 10 },
+      onDeployResolver: { resolveItems: () => [1, 2, 3] },
+    });
+
+    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
+      /declares onDeployResolver without onDeployTrigger/,
     );
   });
 });
