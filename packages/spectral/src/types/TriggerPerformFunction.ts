@@ -4,12 +4,7 @@ import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { TriggerPayload } from "./TriggerPayload";
 import type { TriggerResult } from "./TriggerResult";
 
-/** Definition of the function to perform when a Trigger is invoked.
- *
- * The optional `TDiscoveryState` parameter types `payload.discoveryState`, so a
- * perform that paginates can read back the cursor shape its paired
- * `getNextDiscoveryState` resolver returns. Defaults to `Record<string, unknown>`.
- */
+/** Definition of the function to perform when a Trigger is invoked. */
 export type TriggerPerformFunction<
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
