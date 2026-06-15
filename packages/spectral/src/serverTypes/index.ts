@@ -261,6 +261,7 @@ export interface Trigger<
    * platform reads only this field for both paths; there is no separate on-deploy default.
    */
   triggerResolverDefaultBatchSize?: number;
+  triggerResolverDefaultConcurrentBatchLimit?: number;
   resolveTriggerItems?: (
     context: ActionContext<TConfigVars>,
     result: TriggerBaseResult<TPayload>,

@@ -118,6 +118,31 @@ export const validateBatchSize = (
 };
 
 /**
+ * Throws if `concurrentBatchLimit` is set but isn't a positive integer; returns it
+ * unchanged (including `undefined`, which the platform treats as unlimited). Shared by the
+ * component-trigger and CNI flow paths, both sourcing it from the single `batchConfig`.
+ */
+export const validateConcurrentBatchLimit = (
+  ownerLabel: string,
+  fieldName: string,
+  concurrentBatchLimit: unknown,
+): number | undefined => {
+  if (concurrentBatchLimit === undefined) {
+    return undefined;
+  }
+  if (
+    typeof concurrentBatchLimit !== "number" ||
+    !Number.isInteger(concurrentBatchLimit) ||
+    concurrentBatchLimit < 1
+  ) {
+    throw new Error(
+      `${ownerLabel} has an invalid ${fieldName} concurrentBatchLimit of ${String(concurrentBatchLimit)}. concurrentBatchLimit must be an integer >= 1.`,
+    );
+  }
+  return concurrentBatchLimit;
+};
+
+/**
  * Emits the trigger's single default batch size to the one wire field the platform reads
  * (`triggerResolverDefaultBatchSize`), shared by both the trigger and on-deploy resolution.
  * Emitted when the trigger declares a resolver — `triggerResolverSupport` `"valid"`/`"required"`
@@ -133,10 +158,20 @@ const buildBatchDefaultField = (
   if (triggerResolverSupport === "invalid" && !hasOnDeployResolver) {
     return {};
   }
+  const concurrentBatchLimit = batchConfig
+    ? validateConcurrentBatchLimit(
+        `Trigger "${triggerLabel}"`,
+        "batchConfig",
+        batchConfig.concurrentBatchLimit,
+      )
+    : undefined;
   return {
     triggerResolverDefaultBatchSize: batchConfig
       ? validateBatchSize(`Trigger "${triggerLabel}"`, "batchConfig", batchConfig.batchSize)
       : 1,
+    ...(concurrentBatchLimit !== undefined
+      ? { triggerResolverDefaultConcurrentBatchLimit: concurrentBatchLimit }
+      : {}),
   };
 };
 

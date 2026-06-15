@@ -113,8 +113,7 @@ export type WithDiscoveryState<
 
 /**
  * The single batch-dispatch config shared by a trigger's `triggerResolver` and
- * `onDeployResolver` — they always batch the same way. One place for batch settings;
- * `concurrency` will join `batchSize` here later.
+ * `onDeployResolver` — they always batch the same way. One place for batch settings.
  *
  * On a CNI flow (`flow.batchConfig`) this value is authoritative. On a component trigger
  * (`TriggerDefinition.batchConfig`) it's the default the platform seeds, which a low-code
@@ -123,6 +122,8 @@ export type WithDiscoveryState<
 export interface BatchConfig {
   /** Number of items per batch. Must be an integer >= 1. `1` dispatches each item individually; `>1` groups items into batches. */
   batchSize: number;
+  /** Max batches of a single execution dispatched concurrently. Must be an integer >= 1 when set. Omit for unlimited. */
+  concurrentBatchLimit?: number;
 }
 
 /**
