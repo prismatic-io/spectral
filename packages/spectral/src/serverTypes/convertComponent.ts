@@ -21,7 +21,7 @@ import {
   isPollingTriggerDefinition,
   type PollingTriggerDefinition,
 } from "../types/PollingTriggerDefinition";
-import type { TriggerResolver } from "../types/TriggerDefinition";
+import type { BatchConfig, TriggerResolverBehavior } from "../types/TriggerDefinition";
 import type {
   Action as ServerAction,
   Component as ServerComponent,
@@ -100,9 +100,9 @@ export const cleanerFor = (input: InputFieldDefinition): CleanFn | undefined => 
 };
 
 /**
- * Throws if `batchSize` isn't a positive integer; otherwise returns it.
- * Shared by both component-trigger (`TriggerResolver.default.batchSize`) and
- * CNI flow (`TriggerResolverConfig.batchSize`) validation paths.
+ * Throws if `batchSize` isn't a positive integer; otherwise returns it. Shared by the
+ * component-trigger (`TriggerDefinition.batch.batchSize`) and CNI flow (`flow.batch.batchSize`)
+ * validation paths.
  */
 export const validateBatchSize = (
   ownerLabel: string,
@@ -117,23 +117,39 @@ export const validateBatchSize = (
   return batchSize;
 };
 
+/**
+ * Emits the trigger's single default batch size to the one wire field the platform reads
+ * (`triggerResolverDefaultBatchSize`), shared by both the trigger and on-deploy resolution.
+ * Emitted when the trigger declares a resolver — `triggerResolverSupport` `"valid"`/`"required"`
+ * for the normal path, or an `onDeployResolver` for the on-deploy path. Defaults to 1 when no
+ * `batchConfig` was declared.
+ */
+const buildBatchDefaultField = (
+  triggerLabel: string,
+  triggerResolverSupport: TriggerOptionChoice,
+  hasOnDeployResolver: boolean,
+  batchConfig: BatchConfig | undefined,
+) => {
+  if (triggerResolverSupport === "invalid" && !hasOnDeployResolver) {
+    return {};
+  }
+  return {
+    triggerResolverDefaultBatchSize: batchConfig
+      ? validateBatchSize(`Trigger "${triggerLabel}"`, "batchConfig", batchConfig.batchSize)
+      : 1,
+  };
+};
+
 const buildTriggerResolverFields = <
   TConfigVars extends ConfigVarResultCollection,
   TPayload extends TriggerPayload,
 >(
-  triggerLabel: string,
-  support: TriggerOptionChoice,
-  resolver: TriggerResolver<TConfigVars, TPayload> | undefined,
+  resolver: TriggerResolverBehavior<TConfigVars, TPayload> | undefined,
 ) => {
   if (!resolver) {
-    return support === "invalid" ? {} : { triggerResolverDefaultBatchSize: 1 };
+    return {};
   }
   return {
-    triggerResolverDefaultBatchSize: validateBatchSize(
-      `Trigger "${triggerLabel}"`,
-      "triggerResolver.default",
-      resolver.default.batchSize,
-    ),
     ...(resolver.resolveItems
       ? {
           resolveTriggerItems: resolver.resolveItems,
@@ -144,6 +160,31 @@ const buildTriggerResolverFields = <
       ? {
           getNextDiscoveryState: resolver.getNextDiscoveryState,
           hasGetNextDiscoveryState: true,
+        }
+      : {}),
+  };
+};
+
+const buildOnDeployResolverFields = <
+  TConfigVars extends ConfigVarResultCollection,
+  TPayload extends TriggerPayload,
+>(
+  resolver: TriggerResolverBehavior<TConfigVars, TPayload> | undefined,
+) => {
+  if (!resolver) {
+    return {};
+  }
+  return {
+    ...(resolver.resolveItems
+      ? {
+          resolveOnDeployItems: resolver.resolveItems,
+          hasResolveOnDeployItems: true,
+        }
+      : {}),
+    ...(resolver.getNextDiscoveryState
+      ? {
+          getOnDeployNextDiscoveryState: resolver.getNextDiscoveryState,
+          hasGetOnDeployNextDiscoveryState: true,
         }
       : {}),
   };
@@ -313,6 +354,12 @@ export const convertTrigger = <
   >,
 >(
   triggerKey: string,
+  // `any` is load-bearing: the user-facing TriggerDefinition / PollingTriggerDefinition
+  // type their event-function fields (onInstanceDeploy, webhookLifecycleHandlers, etc.) over
+  // TInputs/TConfigVars/TPayload, while the wire-format ServerTrigger drops those generics.
+  // The `...trigger` spread in the result construction below would surface variance errors
+  // without these `any`s. The user-typed handlers are immediately replaced with
+  // createPerform-wrapped versions, so the loose input typing is safe in practice.
   trigger:
     | TriggerDefinition<any>
     | PollingTriggerDefinition<any, ConfigVarResultCollection, TriggerPayload, boolean, any, any>,
@@ -336,6 +383,7 @@ export const convertTrigger = <
   let scheduleSupport: TriggerOptionChoice =
     "scheduleSupport" in trigger ? trigger.scheduleSupport : "invalid";
 
+  const batchConfig = "batchConfig" in trigger ? trigger.batchConfig : undefined;
   const triggerResolver = "triggerResolver" in trigger ? trigger.triggerResolver : undefined;
   const triggerResolverSupport: TriggerOptionChoice =
     "triggerResolverSupport" in trigger && trigger.triggerResolverSupport !== undefined
@@ -351,6 +399,16 @@ export const convertTrigger = <
   if (triggerResolverSupport === "invalid" && triggerResolver) {
     throw new Error(
       `Trigger "${trigger.display.label}" declares triggerResolver but triggerResolverSupport is "invalid".`,
+    );
+  }
+
+  const onDeployPerform = "onDeployPerform" in trigger ? trigger.onDeployPerform : undefined;
+  const onDeployResolver = "onDeployResolver" in trigger ? trigger.onDeployResolver : undefined;
+  // On-deploy is presence-driven (no support flag): a trigger that defines an
+  // `onDeployResolver` must also define the `onDeployPerform` fire it batches.
+  if (onDeployResolver?.resolveItems && !onDeployPerform) {
+    throw new Error(
+      `Trigger "${trigger.display.label}" declares onDeployResolver.resolveItems but is missing onDeployPerform.`,
     );
   }
 
@@ -410,7 +468,9 @@ export const convertTrigger = <
     pollAction?: PollingTriggerDefinition["pollAction"];
     triggerType?: string;
   } = {
-    ...trigger,
+    // `batchConfig` / `triggerResolver` / `onDeployResolver` are author-only inputs; the
+    // wire carries the serialized resolver behavior plus the single batch size instead.
+    ...omit(trigger, ["batchConfig", "triggerResolver", "onDeployResolver"]),
     key: triggerKey,
     inputs: convertedTriggerInputs.concat(convertedActionInputs),
     perform: performToUse,
@@ -422,7 +482,15 @@ export const convertTrigger = <
           ? "valid"
           : "invalid",
     triggerResolverSupport,
-    ...buildTriggerResolverFields(trigger.display.label, triggerResolverSupport, triggerResolver),
+    // The single shared default batch size → the one wire field the platform reads.
+    ...buildBatchDefaultField(
+      trigger.display.label,
+      triggerResolverSupport,
+      !!onDeployResolver?.resolveItems,
+      batchConfig,
+    ),
+    ...buildTriggerResolverFields(triggerResolver),
+    ...buildOnDeployResolverFields(onDeployResolver),
     ...(isPollingTriggerDefinition(trigger) ? { isPollingTrigger: true } : {}),
   };
 
@@ -432,6 +500,14 @@ export const convertTrigger = <
       errorHandler: hooks?.error,
     });
     result.hasOnInstanceDeploy = true;
+  }
+
+  if (onDeployPerform) {
+    result.onDeployPerform = createPerform(onDeployPerform, {
+      inputCleaners: triggerInputCleaners,
+      errorHandler: hooks?.error,
+    });
+    result.hasOnDeployPerform = true;
   }
 
   if (onInstanceDelete) {

@@ -470,12 +470,13 @@ const baseTrigger = {
 };
 
 describe("convertTrigger triggerResolver", () => {
-  it("defaults triggerResolverSupport to 'valid' when triggerResolver is declared without explicit support", () => {
+  it("defaults triggerResolverSupport to 'valid' when triggerResolver is declared, emitting the shared batch default", () => {
     const result = convertTrigger(
       "myTrigger",
       trigger({
         ...baseTrigger,
-        triggerResolver: { default: { batchSize: 50 } },
+        batchConfig: { batchSize: 50 },
+        triggerResolver: { resolveItems: () => [1, 2, 3] },
       }),
     );
     expect(result.triggerResolverSupport).toBe("valid");
@@ -489,7 +490,7 @@ describe("convertTrigger triggerResolver", () => {
     expect(result.hasResolveTriggerItems).toBeUndefined();
   });
 
-  it("emits default batchSize 1 when triggerResolverSupport is 'valid' without a triggerResolver", () => {
+  it("emits default batchSize 1 when triggerResolverSupport is 'valid' without a batch config", () => {
     const result = convertTrigger(
       "myTrigger",
       trigger({
@@ -520,31 +521,32 @@ describe("convertTrigger triggerResolver", () => {
         trigger({
           ...baseTrigger,
           triggerResolverSupport: "invalid",
-          triggerResolver: { default: { batchSize: 50 } },
+          triggerResolver: { resolveItems: () => [1, 2, 3] },
         }),
       ),
     ).toThrow(/triggerResolver but triggerResolverSupport is "invalid"/);
   });
 
-  it("rejects triggerResolver with batchSize < 1", () => {
+  it("rejects a batch config with batchSize < 1", () => {
     expect(() =>
       convertTrigger(
         "myTrigger",
         trigger({
           ...baseTrigger,
-          triggerResolver: { default: { batchSize: 0 } },
+          batchConfig: { batchSize: 0 },
+          triggerResolver: { resolveItems: () => [1, 2, 3] },
         }),
       ),
-    ).toThrow(/invalid triggerResolver\.default batchSize of 0/);
+    ).toThrow(/invalid batchConfig batchSize of 0/);
   });
 
-  it("preserves resolveItems on triggerResolver", () => {
+  it("preserves resolveItems on triggerResolver and shares the batch default", () => {
     const result = convertTrigger(
       "myTrigger",
       trigger({
         ...baseTrigger,
+        batchConfig: { batchSize: 25 },
         triggerResolver: {
-          default: { batchSize: 25 },
           resolveItems: () => [1, 2, 3],
         },
       }),
@@ -552,5 +554,87 @@ describe("convertTrigger triggerResolver", () => {
     expect(result.hasResolveTriggerItems).toBe(true);
     expect(result.triggerResolverDefaultBatchSize).toBe(25);
     expect(typeof result.resolveTriggerItems).toBe("function");
+  });
+});
+
+describe("convertTrigger on-deploy", () => {
+  it("fires on deploy when onDeployPerform is declared; no resolver means no batch default", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+      }),
+    );
+    expect(result.hasOnDeployPerform).toBe(true);
+    // No resolver to batch → no default batch size is emitted.
+    expect(result.triggerResolverDefaultBatchSize).toBeUndefined();
+  });
+
+  it("emits the shared batch default when an onDeployResolver is declared", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        batchConfig: { batchSize: 50 },
+        onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+        onDeployResolver: { resolveItems: () => [1, 2, 3] },
+      }),
+    );
+    expect(result.hasResolveOnDeployItems).toBe(true);
+    expect(result.hasOnDeployPerform).toBe(true);
+    expect(result.triggerResolverDefaultBatchSize).toBe(50);
+  });
+
+  it("emits no on-deploy fields when neither onDeployPerform nor onDeployResolver is declared", () => {
+    const result = convertTrigger("myTrigger", trigger(baseTrigger));
+    expect(result.hasOnDeployPerform).toBeUndefined();
+    expect(result.hasResolveOnDeployItems).toBeUndefined();
+    expect(result.triggerResolverDefaultBatchSize).toBeUndefined();
+  });
+
+  it("rejects an onDeployResolver.resolveItems without onDeployPerform", () => {
+    expect(() =>
+      convertTrigger(
+        "myTrigger",
+        trigger({
+          ...baseTrigger,
+          batchConfig: { batchSize: 10 },
+          // @ts-expect-error - onDeployResolver requires onDeployPerform
+          onDeployResolver: { resolveItems: () => [1, 2, 3] },
+        }),
+      ),
+    ).toThrow(/onDeployResolver\.resolveItems but is missing onDeployPerform/);
+  });
+
+  it("rejects a batchConfig with batchSize < 1 on the on-deploy path", () => {
+    expect(() =>
+      convertTrigger(
+        "myTrigger",
+        trigger({
+          ...baseTrigger,
+          batchConfig: { batchSize: 0 },
+          onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+          onDeployResolver: { resolveItems: () => [1, 2, 3] },
+        }),
+      ),
+    ).toThrow(/invalid batchConfig batchSize of 0/);
+  });
+
+  it("preserves resolveItems on onDeployResolver", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        batchConfig: { batchSize: 25 },
+        onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+        onDeployResolver: {
+          resolveItems: () => [1, 2, 3],
+        },
+      }),
+    );
+    expect(result.hasResolveOnDeployItems).toBe(true);
+    expect(result.triggerResolverDefaultBatchSize).toBe(25);
+    expect(typeof result.resolveOnDeployItems).toBe("function");
   });
 });
