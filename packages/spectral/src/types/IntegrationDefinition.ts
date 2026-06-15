@@ -242,10 +242,7 @@ interface StandardFlow<
   /**
    * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.
    * Typically used to backfill baseline records for systems whose webhooks only emit future events.
-   *
-   * Sibling to `onTrigger` (just as a component trigger's `onDeployPerform` is the
-   * sibling to its `perform`). Pair with `onDeployResolver` to batch the records this
-   * initial-deploy fire returns.
+   * Pair with `onDeployResolver` to batch the records it returns.
    */
   onDeployTrigger?: TriggerPerformFunction<
     TInputs,
@@ -295,10 +292,7 @@ interface PollingFlow<
   /**
    * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.
    * Typically used to backfill baseline records for systems whose webhooks only emit future events.
-   *
-   * Sibling to `onTrigger` (just as a component trigger's `onDeployPerform` is the
-   * sibling to its `perform`). Pair with `onDeployResolver` to batch the records this
-   * initial-deploy fire returns.
+   * Pair with `onDeployResolver` to batch the records it returns.
    */
   onDeployTrigger?: TriggerPerformFunction<
     TInputs,

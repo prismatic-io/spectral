@@ -88,9 +88,9 @@ interface PollingTriggerDefinitionBase<
   /** Defines how the Action is displayed in the Prismatic interface. */
   display: ActionDisplayDefinition;
   /**
-   * Default batch-dispatch config for this trigger's resolvers — a single config shared
-   * by `triggerResolver` and `onDeployResolver`. Required when this trigger declares a
-   * `triggerResolver` (`triggerResolverSupport` `"valid"`/`"required"`) or an `onDeployResolver`.
+   * Default batch-dispatch config shared by `triggerResolver` and `onDeployResolver`.
+   * Required when this trigger declares either (a `triggerResolver` with
+   * `triggerResolverSupport` `"valid"`/`"required"`, or an `onDeployResolver`).
    */
   batchConfig?: BatchConfig;
   /** Defines your trigger's polling behavior. */

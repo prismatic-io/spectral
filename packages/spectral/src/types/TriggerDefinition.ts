@@ -161,11 +161,9 @@ interface TriggerDefinitionBase<
   /** Function to perform when this trigger is invoked. */
   perform: TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
   /**
-   * Default batch-dispatch config for this trigger's resolvers — a single config shared
-   * by `triggerResolver` and `onDeployResolver`. The platform seeds instances with this
-   * default; a low-code user may override the batch size per instance. Required when this
-   * trigger declares a `triggerResolver` (`triggerResolverSupport` `"valid"`/`"required"`)
-   * or an `onDeployResolver`.
+   * Default batch-dispatch config shared by `triggerResolver` and `onDeployResolver`.
+   * Required when this trigger declares either (a `triggerResolver` with
+   * `triggerResolverSupport` `"valid"`/`"required"`, or an `onDeployResolver`).
    */
   batchConfig?: BatchConfig;
   /**
