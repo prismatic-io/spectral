@@ -29,6 +29,15 @@ export interface ActionDefinition<
     TAllowsBranching,
     TReturn
   >;
+  experimentalExamplePerform?: ActionPerformFunction<
+    TInputs,
+    TConfigVars,
+    Record<string, Record<string, ComponentManifestAction>>,
+    TAllowsBranching,
+    TReturn
+  >;
+  experimentalExamplePerformSupport?: "safe" | "auto" | "notAllowed";
+  experimentalPerformSupport?: "safe" | "auto" | "notAllowed";
   /**
    * The inputs to present a low-code integration builder. Values of these inputs
    * are passed to the `perform` function when the action is invoked.
