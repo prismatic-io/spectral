@@ -5,7 +5,7 @@ jobs:
     name: Validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
       - uses: jdx/mise-action@v4.0.1
       - run: mise run install
       - run: mise run validate
