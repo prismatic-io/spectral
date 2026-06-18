@@ -7,6 +7,7 @@ import pick from "lodash/pick";
 import path from "path";
 import YAML from "yaml";
 import {
+  type BatchTrigger,
   type CollectionType,
   type ComponentManifest,
   type ComponentReference,
@@ -82,6 +83,94 @@ import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } fr
 
 export const CONCURRENCY_LIMIT_MAX = 15;
 export const CONCURRENCY_LIMIT_MIN = 2;
+
+/**
+ * The wire-shape resolver synthesized by {@link normalizeBatchedFlow} and read by the trigger
+ * reducer. Mirrors the server `Trigger`'s `resolveTriggerItems`/`getNextDiscoveryState` slots.
+ */
+interface WireResolver {
+  resolveItems?: (context: ActionContext, result: { payload: TriggerPayload }) => unknown[];
+  getNextDiscoveryState?: (
+    context: ActionContext,
+    result: { payload: TriggerPayload },
+  ) => Record<string, unknown> | null;
+}
+
+/**
+ * Default `resolveItems`: a batched `trigger`'s fires return their records under
+ * `payload.body.data` (the wrapper {@link normalizeBatchedFlow} builds writes them there),
+ * so extraction is just reading that array back. Authors never write this themselves.
+ */
+const defaultResolveItems = (
+  _context: ActionContext,
+  result: { payload: { body: { data: unknown } } },
+) => result.payload.body.data as unknown[];
+
+/**
+ * Expands a flow's batched `trigger` (built with `batchFlowTrigger`) into the flat
+ * `onTrigger`/`onDeployTrigger`/`triggerResolver`/`onDeployResolver` shape the rest of the
+ * conversion pipeline already understands. The trigger fires return just `{ items }`; here we
+ * wrap each into a `TriggerPerformFunction` that emits `{ payload: { …payload, body: { data:
+ * items } } }`, synthesize the default `resolveItems`, and map the pagination callbacks onto
+ * the resolver `getNextDiscoveryState`. Flows without a `trigger` pass through unchanged.
+ *
+ * Returns the same `Flow` type it received; the synthesized `triggerResolver`/`onDeployResolver`
+ * are wire-only fields (not on the author-facing `Flow`), read downstream via `"x" in flow` checks.
+ */
+const normalizeBatchedFlow = <
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TPayload extends TriggerPayload,
+  TAllowsBranching extends boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload>,
+>(
+  flow: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
+): Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult> => {
+  const trigger =
+    "trigger" in flow ? (flow.trigger as BatchTrigger<unknown> | undefined) : undefined;
+  if (!trigger) {
+    return flow;
+  }
+
+  const { onTrigger, onDeploy, getNextOnTriggerPaginationState, getNextOnDeployPaginationState } =
+    trigger;
+
+  // Wrap a batched fire (returns `{ items, response? }`) into a TriggerPerformFunction that
+  // emits the wire payload shape (`body.data = items`), preserving the incoming payload fields.
+  const wrapFire =
+    (fire: NonNullable<BatchTrigger<unknown>["onTrigger"]>) =>
+    async (context: ActionContext, payload: TriggerPayload) => {
+      const { items, response } = await fire(context as never, payload as never);
+      return {
+        payload: { ...payload, body: { data: items, contentType: "application/json" } },
+        ...(response ? { response } : {}),
+      };
+    };
+
+  const { trigger: _omitTrigger, ...rest } = flow as unknown as Record<string, unknown>;
+
+  return {
+    ...rest,
+    onTrigger: wrapFire(onTrigger),
+    ...(onDeploy ? { onDeployTrigger: wrapFire(onDeploy) } : {}),
+    triggerResolver: {
+      resolveItems: defaultResolveItems,
+      ...(getNextOnTriggerPaginationState
+        ? { getNextDiscoveryState: getNextOnTriggerPaginationState }
+        : {}),
+    },
+    ...(onDeploy
+      ? {
+          onDeployResolver: {
+            resolveItems: defaultResolveItems,
+            ...(getNextOnDeployPaginationState
+              ? { getNextDiscoveryState: getNextOnDeployPaginationState }
+              : {}),
+          },
+        }
+      : {}),
+  } as unknown as Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>;
+};
 
 export const convertIntegration = <
   TInputs extends Inputs,
@@ -220,7 +309,7 @@ const codeNativeIntegrationYaml = <
     labels,
     endpointType,
     triggerPreprocessFlowConfig,
-    flows,
+    flows: rawFlows,
     configPages,
     userLevelConfigPages,
     scopedConfigVars,
@@ -231,6 +320,11 @@ const codeNativeIntegrationYaml = <
   configVars: Record<string, ConfigVar>,
   metadata?: Record<string, unknown>,
 ): string => {
+  // Expand any batched `trigger` (built with `batchFlowTrigger`) into the flat
+  // onTrigger/onDeployTrigger/triggerResolver/onDeployResolver shape the rest of this
+  // pipeline (convertFlow + the trigger reducer) already handles.
+  const flows = rawFlows.map((flow) => normalizeBatchedFlow(flow));
+
   // Find the preprocess flow config on the flow, if one exists.
   const preprocessFlows = flows.filter((flow) => flow.preprocessFlowConfig);
 
@@ -632,10 +726,13 @@ export const convertFlow = <
     TPayload
   >,
 >(
-  flow: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
+  rawFlow: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   componentRegistry: ComponentRegistry,
   referenceKey: string,
 ): Record<string, unknown> => {
+  // Expand a batched `trigger` into the flat shape this function serializes. Idempotent: a flow
+  // that already lacks `trigger` (including one pre-normalized by `convertIntegration`) is returned as-is.
+  const flow = normalizeBatchedFlow(rawFlow);
   const result: Record<string, unknown> = {
     ...flow,
   };
@@ -1512,7 +1609,7 @@ const codeNativeIntegrationComponent = <
     name,
     iconPath,
     description,
-    flows = [],
+    flows: rawFlows = [],
     componentRegistry = {},
   }: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   referenceKey: string,
@@ -1525,6 +1622,9 @@ const codeNativeIntegrationComponent = <
   TAllowsBranching,
   TResult
 > => {
+  // Expand any batched `trigger` so the action/trigger reducers below see the flat shape.
+  const flows = rawFlows.map((flow) => normalizeBatchedFlow(flow));
+
   const convertedActions = flows.reduce<Record<string, ServerAction>>(
     (result, { name, onExecution }) => {
       const key = flowFunctionKey(name, "onExecution");
@@ -1559,172 +1659,170 @@ const codeNativeIntegrationComponent = <
         TResult
       >
     >
-  >(
-    (
-      result,
-      {
-        name,
+  >((result, flow) => {
+    const {
+      name,
+      onTrigger,
+      onInstanceDeploy,
+      onInstanceDelete,
+      webhookLifecycleHandlers,
+      schedule,
+      triggerType,
+      onDeployTrigger,
+    } = flow;
+    // `batchConfig`/`triggerResolver`/`onDeployResolver` are wire-only fields synthesized by
+    // `normalizeBatchedFlow`; they aren't on the author-facing `Flow` type, so read via cast.
+    const { batchConfig, triggerResolver, onDeployResolver } = flow as typeof flow & {
+      batchConfig?: { batchSize: number; concurrentBatchLimit?: number };
+      triggerResolver?: WireResolver;
+      onDeployResolver?: WireResolver;
+    };
+    if (
+      !flowUsesWrapperTrigger({
         onTrigger,
-        onInstanceDeploy,
         onInstanceDelete,
+        onInstanceDeploy,
         webhookLifecycleHandlers,
-        schedule,
-        triggerType,
-        batchConfig,
-        triggerResolver,
-        onDeployTrigger,
-        onDeployResolver,
+      })
+    ) {
+      // In this scenario, the user has defined an existing component trigger
+      // without any custom behavior, so we don't need to wrap anything.
+      return result;
+    }
+
+    const key = flowFunctionKey(name, "onTrigger");
+    const defaultComponentKey = schedule && typeof schedule === "object" ? "schedule" : "webhook";
+    const defaultComponentRef: ServerComponentReference = {
+      component: {
+        key: `${defaultComponentKey}-triggers`,
+        version: "LATEST",
+        isPublic: true,
       },
-    ) => {
-      if (
-        !flowUsesWrapperTrigger({
-          onTrigger,
-          onInstanceDelete,
-          onInstanceDeploy,
-          webhookLifecycleHandlers,
-        })
-      ) {
-        // In this scenario, the user has defined an existing component trigger
-        // without any custom behavior, so we don't need to wrap anything.
-        return result;
-      }
+      key: defaultComponentKey,
+    };
 
-      const key = flowFunctionKey(name, "onTrigger");
-      const defaultComponentKey = schedule && typeof schedule === "object" ? "schedule" : "webhook";
-      const defaultComponentRef: ServerComponentReference = {
-        component: {
-          key: `${defaultComponentKey}-triggers`,
-          version: "LATEST",
-          isPublic: true,
+    // The component ref here is undefined if onTrigger is a function.
+    const { ref } = isComponentReference(onTrigger)
+      ? convertComponentReference(onTrigger, componentRegistry, "triggers")
+      : { ref: onTrigger ? undefined : defaultComponentRef };
+
+    const performFn = generateTriggerPerformFn({
+      componentRef: ref,
+      onTrigger,
+      componentRegistry,
+      triggerType,
+    });
+    const deleteFn = generateTriggerEventWrapperFn(
+      ref,
+      onTrigger,
+      "onInstanceDelete",
+      componentRegistry,
+      onInstanceDelete,
+    );
+    const deployFn = generateTriggerEventWrapperFn(
+      ref,
+      onTrigger,
+      "onInstanceDeploy",
+      componentRegistry,
+      onInstanceDeploy,
+    );
+    const webhookCreateFn = generateTriggerEventWrapperFn(
+      ref,
+      onTrigger,
+      "webhookCreate",
+      componentRegistry,
+      webhookLifecycleHandlers?.create,
+    );
+    const webhookDeleteFn = generateTriggerEventWrapperFn(
+      ref,
+      onTrigger,
+      "webhookDelete",
+      componentRegistry,
+      webhookLifecycleHandlers?.delete,
+    );
+
+    return {
+      ...result,
+      [key]: {
+        key,
+        display: {
+          label: `${name} - onTrigger`,
+          description: "The function that will be executed by the flow to return an HTTP response.",
         },
-        key: defaultComponentKey,
-      };
-
-      // The component ref here is undefined if onTrigger is a function.
-      const { ref } = isComponentReference(onTrigger)
-        ? convertComponentReference(onTrigger, componentRegistry, "triggers")
-        : { ref: onTrigger ? undefined : defaultComponentRef };
-
-      const performFn = generateTriggerPerformFn({
-        componentRef: ref,
-        onTrigger,
-        componentRegistry,
-        triggerType,
-      });
-      const deleteFn = generateTriggerEventWrapperFn(
-        ref,
-        onTrigger,
-        "onInstanceDelete",
-        componentRegistry,
-        onInstanceDelete,
-      );
-      const deployFn = generateTriggerEventWrapperFn(
-        ref,
-        onTrigger,
-        "onInstanceDeploy",
-        componentRegistry,
-        onInstanceDeploy,
-      );
-      const webhookCreateFn = generateTriggerEventWrapperFn(
-        ref,
-        onTrigger,
-        "webhookCreate",
-        componentRegistry,
-        webhookLifecycleHandlers?.create,
-      );
-      const webhookDeleteFn = generateTriggerEventWrapperFn(
-        ref,
-        onTrigger,
-        "webhookDelete",
-        componentRegistry,
-        webhookLifecycleHandlers?.delete,
-      );
-
-      return {
-        ...result,
-        [key]: {
-          key,
-          display: {
-            label: `${name} - onTrigger`,
-            description:
-              "The function that will be executed by the flow to return an HTTP response.",
-          },
-          perform: performFn,
-          onInstanceDeploy: deployFn,
-          hasOnInstanceDeploy: !!deployFn,
-          onInstanceDelete: deleteFn,
-          hasOnInstanceDelete: !!deleteFn,
-          webhookCreate: webhookCreateFn,
-          hasWebhookCreateFunction: !!webhookCreateFn,
-          webhookDelete: webhookDeleteFn,
-          hasWebhookDeleteFunction: !!webhookDeleteFn,
-          inputs: wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
-          scheduleSupport: triggerType === "polling" ? "required" : "valid",
-          synchronousResponseSupport: "valid",
-          isPollingTrigger: triggerType === "polling",
-          triggerResolverSupport: triggerResolver ? "valid" : "invalid",
-          // The authoritative batch size is stored on the flow (see convertFlow). We also
-          // emit the single shared default on the synthesized trigger because component
-          // publish validation requires `triggerResolverDefaultBatchSize` whenever resolver
-          // support is active; both derive from the one `flow.batchConfig`.
-          ...(triggerResolver || onDeployResolver
-            ? {
-                triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
-                ...(batchConfig?.concurrentBatchLimit !== undefined
-                  ? {
-                      triggerResolverDefaultConcurrentBatchLimit: batchConfig.concurrentBatchLimit,
-                    }
-                  : {}),
-              }
-            : {}),
-          ...(triggerResolver
-            ? {
-                ...(triggerResolver.resolveItems
-                  ? {
-                      resolveTriggerItems: triggerResolver.resolveItems,
-                      hasResolveTriggerItems: true,
-                    }
-                  : {}),
-                ...(triggerResolver.getNextDiscoveryState
-                  ? {
-                      getNextDiscoveryState: triggerResolver.getNextDiscoveryState,
-                      hasGetNextDiscoveryState: true,
-                    }
-                  : {}),
-              }
-            : {}),
-          // On-deploy is presence-driven (no support flag): the behavior flags below
-          // (hasOnDeployPerform / hasResolveOnDeployItems) tell the platform what runs.
-          ...(onDeployTrigger
-            ? {
-                onDeployPerform: createCNIPerform({
-                  componentRegistry,
-                  onTrigger: onDeployTrigger,
-                }),
-                hasOnDeployPerform: true,
-              }
-            : {}),
-          ...(onDeployResolver
-            ? {
-                ...(onDeployResolver.resolveItems
-                  ? {
-                      resolveOnDeployItems: onDeployResolver.resolveItems,
-                      hasResolveOnDeployItems: true,
-                    }
-                  : {}),
-                ...(onDeployResolver.getNextDiscoveryState
-                  ? {
-                      getOnDeployNextDiscoveryState: onDeployResolver.getNextDiscoveryState,
-                      hasGetOnDeployNextDiscoveryState: true,
-                    }
-                  : {}),
-              }
-            : {}),
-        },
-      };
-    },
-    {},
-  );
+        perform: performFn,
+        onInstanceDeploy: deployFn,
+        hasOnInstanceDeploy: !!deployFn,
+        onInstanceDelete: deleteFn,
+        hasOnInstanceDelete: !!deleteFn,
+        webhookCreate: webhookCreateFn,
+        hasWebhookCreateFunction: !!webhookCreateFn,
+        webhookDelete: webhookDeleteFn,
+        hasWebhookDeleteFunction: !!webhookDeleteFn,
+        inputs: wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
+        scheduleSupport: triggerType === "polling" ? "required" : "valid",
+        synchronousResponseSupport: "valid",
+        isPollingTrigger: triggerType === "polling",
+        triggerResolverSupport: triggerResolver ? "valid" : "invalid",
+        // The authoritative batch size is stored on the flow (see convertFlow). We also
+        // emit the single shared default on the synthesized trigger because component
+        // publish validation requires `triggerResolverDefaultBatchSize` whenever resolver
+        // support is active; both derive from the one `flow.batchConfig`.
+        ...(triggerResolver || onDeployResolver
+          ? {
+              triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
+              ...(batchConfig?.concurrentBatchLimit !== undefined
+                ? {
+                    triggerResolverDefaultConcurrentBatchLimit: batchConfig.concurrentBatchLimit,
+                  }
+                : {}),
+            }
+          : {}),
+        ...(triggerResolver
+          ? {
+              ...(triggerResolver.resolveItems
+                ? {
+                    resolveTriggerItems: triggerResolver.resolveItems,
+                    hasResolveTriggerItems: true,
+                  }
+                : {}),
+              ...(triggerResolver.getNextDiscoveryState
+                ? {
+                    getNextDiscoveryState: triggerResolver.getNextDiscoveryState,
+                    hasGetNextDiscoveryState: true,
+                  }
+                : {}),
+            }
+          : {}),
+        // On-deploy is presence-driven (no support flag): the behavior flags below
+        // (hasOnDeployPerform / hasResolveOnDeployItems) tell the platform what runs.
+        ...(onDeployTrigger
+          ? {
+              onDeployPerform: createCNIPerform({
+                componentRegistry,
+                onTrigger: onDeployTrigger,
+              }),
+              hasOnDeployPerform: true,
+            }
+          : {}),
+        ...(onDeployResolver
+          ? {
+              ...(onDeployResolver.resolveItems
+                ? {
+                    resolveOnDeployItems: onDeployResolver.resolveItems,
+                    hasResolveOnDeployItems: true,
+                  }
+                : {}),
+              ...(onDeployResolver.getNextDiscoveryState
+                ? {
+                    getOnDeployNextDiscoveryState: onDeployResolver.getNextDiscoveryState,
+                    hasGetOnDeployNextDiscoveryState: true,
+                  }
+                : {}),
+            }
+          : {}),
+      },
+    };
+  }, {});
 
   const convertedDataSources = Object.entries(configVars).reduce<Record<string, ServerDataSource>>(
     (result, [key, configVar]) => {

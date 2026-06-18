@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { configPage, configVar, flow, integration } from "..";
+import { batchFlowTrigger, configPage, configVar, flow, integration } from "..";
 import type { ConfigVar, TriggerReference } from "../types";
 import {
   convertConfigPages,
@@ -60,16 +60,15 @@ describe("convertFlow with polling triggers", () => {
   });
 
   it("emits the single flow-level batch config and strips resolver behavior from the flow result", () => {
-    const triggerResolverFlow = flow({
+    const batchedFlow = flow({
       ...baseFlowInput,
-      onTrigger: async (_context, payload) => ({ payload }),
       batchConfig: { batchSize: 25 },
-      triggerResolver: {
-        resolveItems: () => [1, 2, 3],
-      },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+      }),
     });
 
-    const result = convertFlow(triggerResolverFlow, {}, "test-ref");
+    const result = convertFlow(batchedFlow, {}, "test-ref");
 
     // The single batch config is written to the existing `triggerResolver` flow wire field
     // (→ trigger_resolver_batch_size / trigger_resolver_enabled), with enabled forced on.
@@ -77,16 +76,18 @@ describe("convertFlow with polling triggers", () => {
     // Author-only fields are stripped; resolver behavior goes on the synthesized trigger.
     expect(result.batchConfig).toBeUndefined();
     expect(result.onDeployResolver).toBeUndefined();
+    // The batched `trigger` is expanded; the field itself is not emitted on the flow wire.
+    expect(result.trigger).toBeUndefined();
   });
 
-  it("shares one batch config across triggerResolver and onDeployResolver", () => {
+  it("shares one batch config across the trigger and on-deploy fires", () => {
     const sharedBatchFlow = flow({
       ...baseFlowInput,
-      onTrigger: async (_context, payload) => ({ payload }),
-      onDeployTrigger: async (_context, payload) => ({ payload }),
       batchConfig: { batchSize: 50 },
-      triggerResolver: { resolveItems: () => [1, 2, 3] },
-      onDeployResolver: { resolveItems: () => [4, 5, 6] },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+        onDeploy: async () => ({ items: [4, 5, 6] }),
+      }),
     });
 
     const result = convertFlow(sharedBatchFlow, {}, "test-ref");
@@ -100,11 +101,11 @@ describe("convertFlow with polling triggers", () => {
   it("emits the shared concurrentBatchLimit on the flow wire when set on batchConfig", () => {
     const sharedBatchFlow = flow({
       ...baseFlowInput,
-      onTrigger: async (_context, payload) => ({ payload }),
-      onDeployTrigger: async (_context, payload) => ({ payload }),
       batchConfig: { batchSize: 50, concurrentBatchLimit: 5 },
-      triggerResolver: { resolveItems: () => [1, 2, 3] },
-      onDeployResolver: { resolveItems: () => [4, 5, 6] },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+        onDeploy: async () => ({ items: [4, 5, 6] }),
+      }),
     });
 
     const result = convertFlow(sharedBatchFlow, {}, "test-ref");
@@ -119,10 +120,11 @@ describe("convertFlow with polling triggers", () => {
   it("throws when the flow-level batch concurrentBatchLimit is invalid", () => {
     const invalidFlow = flow({
       ...baseFlowInput,
-      onTrigger: async (_context, payload) => ({ payload }),
       // @ts-expect-error - intentionally invalid concurrentBatchLimit for runtime validation
       batchConfig: { batchSize: 50, concurrentBatchLimit: 0 },
-      triggerResolver: { resolveItems: () => [1, 2, 3] },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+      }),
     });
 
     expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
@@ -130,23 +132,14 @@ describe("convertFlow with polling triggers", () => {
     );
   });
 
-  it("throws when a resolver is defined without a batch config", () => {
-    const invalidFlow = flow({
-      ...baseFlowInput,
-      onTrigger: async (_context, payload) => ({ payload }),
-      triggerResolver: { resolveItems: () => [1, 2, 3] },
-    });
-
-    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(/no batchConfig/);
-  });
-
   it("throws when the flow-level batch batchSize is invalid", () => {
     const invalidFlow = flow({
       ...baseFlowInput,
-      onTrigger: async (_context, payload) => ({ payload }),
       // @ts-expect-error - intentionally invalid batchSize for runtime validation
       batchConfig: { batchSize: 0 },
-      triggerResolver: { resolveItems: () => [1, 2, 3] },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+      }),
     });
 
     expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
@@ -154,17 +147,83 @@ describe("convertFlow with polling triggers", () => {
     );
   });
 
-  it("throws when onDeployResolver is set without onDeployTrigger", () => {
-    const invalidFlow = flow({
+  it("synthesizes the default resolveItems (reads payload.body.data) on the trigger", () => {
+    const batchedFlow = flow({
       ...baseFlowInput,
-      onTrigger: async (_context, payload) => ({ payload }),
       batchConfig: { batchSize: 10 },
-      onDeployResolver: { resolveItems: () => [1, 2, 3] },
+      trigger: batchFlowTrigger<number>({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+        getNextOnTriggerPaginationState: () => null,
+      }),
     });
 
-    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
-      /declares onDeployResolver without onDeployTrigger/,
-    );
+    const result = integration({
+      name: "Test",
+      flows: [batchedFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    expect(trigger.hasResolveTriggerItems).toBe(true);
+    expect(trigger.hasGetNextDiscoveryState).toBe(true);
+    expect(trigger.triggerResolverSupport).toBe("valid");
+    expect(trigger.triggerResolverDefaultBatchSize).toBe(10);
+    // The synthesized resolveItems just reads the records back out of payload.body.data.
+    const resolveTriggerItems = trigger.resolveTriggerItems as (
+      ctx: unknown,
+      result: { payload: { body: { data: unknown } } },
+    ) => unknown[];
+    expect(resolveTriggerItems({}, { payload: { body: { data: [7, 8, 9] } } })).toEqual([7, 8, 9]);
+  });
+
+  it("maps the on-deploy fire and pagination onto the synthesized trigger", () => {
+    const batchedFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger<number, { cursor: number }>({
+        onTrigger: async () => ({ items: [1] }),
+        onDeploy: async () => ({ items: [2] }),
+        getNextOnDeployPaginationState: (_ctx, result) => {
+          const cursor = result.payload.discoveryState?.cursor ?? 0;
+          return cursor >= 2 ? null : { cursor: cursor + 1 };
+        },
+      }),
+    });
+
+    const result = integration({
+      name: "Test",
+      flows: [batchedFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    expect(trigger.hasOnDeployPerform).toBe(true);
+    expect(trigger.hasResolveOnDeployItems).toBe(true);
+    expect(trigger.hasGetOnDeployNextDiscoveryState).toBe(true);
+  });
+
+  it("does not synthesize on-deploy resolver fields when the trigger omits onDeploy", () => {
+    const batchedFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1] }),
+      }),
+    });
+
+    const result = integration({
+      name: "Test",
+      flows: [batchedFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    expect(trigger.hasOnDeployPerform).toBeUndefined();
+    expect(trigger.hasResolveOnDeployItems).toBeUndefined();
+    expect(trigger.hasGetOnDeployNextDiscoveryState).toBeUndefined();
   });
 });
 

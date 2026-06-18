@@ -10,11 +10,11 @@ import { convertIntegration } from "./serverTypes/convertIntegration";
 import type {
   ActionDefinition,
   ActionPerformReturn,
+  BatchTrigger,
   ComponentDefinition,
   ComponentManifest,
   ConfigPage,
   ConfigVarResultCollection,
-  ConfigVars,
   ConnectionConfigVar,
   CustomerActivatedConnectionConfigVar,
   DataSourceConfigVar,
@@ -33,7 +33,6 @@ import type {
   StructuredObjectInputField,
   TriggerDefinition,
   TriggerPayload,
-  TriggerResolverBehavior,
   TriggerResult,
 } from "./types";
 import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
@@ -177,69 +176,59 @@ export const flow = <
     TDiscoveryState
   >,
 >(
-  // The intersection adds an explicit inference site for `TItem`/`TDiscoveryState`
-  // (from the resolver's `resolveItems` / `getNextDiscoveryState` return types) that
-  // the `T extends Flow<...>` capture alone does not provide, while `T` still preserves
-  // the precise literal type for the return value.
+  // The intersection adds an explicit inference site for `TItem`/`TDiscoveryState` that the
+  // `T extends Flow<...>` capture alone does not provide, while `T` still preserves the precise
+  // literal type for the return value. They are inferred from a batched `trigger`'s
+  // `items`/pagination-state types (see `batchFlowTrigger`).
   definition: T & {
-    triggerResolver?: TriggerResolverBehavior<ConfigVars, TriggerPayload, TItem, TDiscoveryState>;
-    onDeployResolver?: TriggerResolverBehavior<ConfigVars, TriggerPayload, TItem, TDiscoveryState>;
+    trigger?: BatchTrigger<TItem, TDiscoveryState>;
   },
 ): T => definition;
 
 /**
- * Builds a flow's `triggerResolver` — the behavior that extracts the records a trigger
- * returns into batched dispatches and (optionally) paginates. Batch *sizing* comes from
- * the flow's `batch` config, not from here. Supply the item and pagination-cursor types
- * explicitly — `triggerResolver<Order, { cursor: number }>({ ... })` — and they flow
- * through the whole chain: `resolveItems` returns `Order[]`, `result.payload.discoveryState`
- * reads back as `{ cursor: number }`, and the flow's `onExecution` sees
- * `params.onTrigger.results.body.data` typed as `Order | Order[]`.
+ * Builds a flow's batched `trigger` — the ergonomic way to define a batching flow. Instead of
+ * writing `onTrigger`/`onDeployTrigger` (returning a full payload) plus `triggerResolver`/
+ * `onDeployResolver` (to extract and paginate), the trigger fires return just their `items` and
+ * the pagination callbacks live alongside them. spectral wraps the items into the wire payload
+ * and synthesizes the `resolveItems` that reads them back.
+ *
+ * Supply the item and pagination-state types explicitly —
+ * `batchFlowTrigger<Order, { cursor: number }>({ ... })`. They flow through the whole flow:
+ * the trigger fires return `Order[]`, `payload.discoveryState` reads back as `{ cursor: number }`,
+ * and the flow's `onExecution` sees `params.onTrigger.results.body.data` typed as `Order | Order[]`.
  *
  * @typeParam TItem - the item type each batched execution receives.
- * @typeParam TDiscoveryState - the pagination cursor shape round-tripped via `payload.discoveryState`.
+ * @typeParam TPaginationState - the pagination state round-tripped via `payload.discoveryState`.
  * @see {@link https://prismatic.io/docs/integrations/code-native/flows/ | Code-Native Flows}
  * @example
- * import { flow, triggerResolver } from "@prismatic-io/spectral";
+ * import { flow, batchFlowTrigger } from "@prismatic-io/spectral";
  *
  * flow({
- *   // ...
- *   batch: { batchSize: 50 },
- *   triggerResolver: triggerResolver<Order, { cursor: number }>({
- *     resolveItems: (context, result) => result.payload.body.data as Order[],
- *     getNextDiscoveryState: (context, result) => {
- *       const next = result.payload.discoveryState?.cursor; // number | undefined
+ *   name: "Sync Orders",
+ *   stableKey: "sync-orders",
+ *   batchConfig: { batchSize: 50 },
+ *   trigger: batchFlowTrigger<Order, { cursor: number }>({
+ *     onTrigger: async (context, payload) => {
+ *       const page = await fetchOrders(payload.discoveryState?.cursor);
+ *       return { items: page.orders };
+ *     },
+ *     getNextOnTriggerPaginationState: (context, result) => {
+ *       const next = result.payload.discoveryState?.cursor;
  *       return next === undefined ? null : { cursor: next };
  *     },
  *   }),
+ *   onExecution: async (context, params) => {
+ *     const orders = params.onTrigger.results.body.data; // Order | Order[]
+ *     return { data: orders };
+ *   },
  * });
  */
-export const triggerResolver = <
-  TItem = unknown,
-  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
-  TConfigVars extends ConfigVarResultCollection = ConfigVars,
-  TPayload extends TriggerPayload = TriggerPayload,
+export const batchFlowTrigger = <
+  TItem,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
 >(
-  resolver: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState>,
-): TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState> => resolver;
-
-/**
- * Builds a flow's `onDeployResolver` — the resolver behavior for the `onDeployTrigger`
- * fire that runs once when an instance is first deployed. Identical in shape to
- * {@link triggerResolver} and shares the flow's `batch` config; named separately so the
- * call site reads as the sibling of `onDeployTrigger`.
- *
- * @typeParam TItem - the item type each batched on-deploy execution receives.
- * @typeParam TDiscoveryState - the pagination cursor shape round-tripped via `payload.discoveryState`.
- */
-export const onDeployResolver = <
-  TItem = unknown,
-  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
-  TConfigVars extends ConfigVarResultCollection = ConfigVars,
-  TPayload extends TriggerPayload = TriggerPayload,
->(
-  resolver: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState>,
-): TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState> => resolver;
+  trigger: BatchTrigger<TItem, TPaginationState>,
+): BatchTrigger<TItem, TPaginationState> => trigger;
 
 /**
  * This function creates a config wizard page object for use in code-native
