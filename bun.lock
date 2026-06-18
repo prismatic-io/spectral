@@ -31,7 +31,7 @@
     },
     "packages/spectral": {
       "name": "@prismatic-io/spectral",
-      "version": "10.18.8",
+      "version": "10.18.9-preview.0",
       "bin": {
         "component-manifest": "bin/component-manifest.js",
         "cni-component-manifest": "bin/cni-component-manifest.js",
