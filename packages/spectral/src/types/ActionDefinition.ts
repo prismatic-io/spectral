@@ -6,6 +6,14 @@ import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { OutputSchema } from "./OutputSchema";
 
 /**
+ * Declares whether an action's `perform` (or `experimentalExamplePerform`) may be
+ * invoked inline to populate reference data in the Designer/EWB. `safe` means the
+ * author attests it is safe to run as-is; `auto` lets the platform decide; `notAllowed`
+ * opts out. Experimental — the name set and semantics may change before this graduates.
+ */
+export type ExperimentalPerformSupport = "safe" | "auto" | "notAllowed";
+
+/**
  * ActionDefinition is the type of the object that is passed in to `action` function to
  * define a component action. See
  * https://prismatic.io/docs/custom-connectors/actions/
@@ -36,8 +44,8 @@ export interface ActionDefinition<
     TAllowsBranching,
     TReturn
   >;
-  experimentalExamplePerformSupport?: "safe" | "auto" | "notAllowed";
-  experimentalPerformSupport?: "safe" | "auto" | "notAllowed";
+  experimentalExamplePerformSupport?: ExperimentalPerformSupport;
+  experimentalPerformSupport?: ExperimentalPerformSupport;
   /**
    * The inputs to present a low-code integration builder. Values of these inputs
    * are passed to the `perform` function when the action is invoked.

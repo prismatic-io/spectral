@@ -9,6 +9,7 @@ import type {
   DataSourceType,
   DebugContext,
   ExecutionFrame,
+  ExperimentalPerformSupport,
   FlowAttributes,
   FlowInvoker,
   FlowSchemas,
@@ -89,6 +90,9 @@ export interface Action {
    * from the author-facing `OutputSchema`.
    */
   outputSchema?: ServerOutputSchema;
+  experimentalExamplePerform?: ActionPerformFunction;
+  experimentalExamplePerformSupport?: ExperimentalPerformSupport;
+  experimentalPerformSupport?: ExperimentalPerformSupport;
 }
 
 export type ServerOutputSchema =

@@ -1,5 +1,6 @@
 import path from "path";
 import type { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
+import type { ExperimentalPerformSupport } from "../../types/ActionDefinition";
 import type { ComponentForManifest } from "../cniComponentManifest/types";
 import { createImport } from "../utils/createImport";
 import { createTemplate } from "../utils/createTemplate";
@@ -91,6 +92,12 @@ export const createActions = async <
           inputs,
           ...(action.examplePayload ? { examplePayload: action.examplePayload } : {}),
           ...(action.outputSchema ? { outputSchema: action.outputSchema } : {}),
+          ...(action.experimentalExamplePerformSupport
+            ? { experimentalExamplePerformSupport: action.experimentalExamplePerformSupport }
+            : {}),
+          ...(action.experimentalPerformSupport
+            ? { experimentalPerformSupport: action.experimentalPerformSupport }
+            : {}),
           componentKey: component.key,
         },
         imports,
@@ -150,6 +157,8 @@ interface RenderActionProps {
     inputs: Input[];
     examplePayload?: unknown;
     outputSchema?: unknown;
+    experimentalExamplePerformSupport?: ExperimentalPerformSupport;
+    experimentalPerformSupport?: ExperimentalPerformSupport;
     componentKey: string;
   };
   dryRun: boolean;

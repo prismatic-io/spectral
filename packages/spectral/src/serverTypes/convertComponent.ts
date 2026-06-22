@@ -384,9 +384,15 @@ const convertOutputSchema = (outputSchema: OutputSchema): ServerOutputSchema => 
   };
 };
 
-const convertAction = (
+export const convertAction = (
   actionKey: string,
-  { inputs = {}, perform, outputSchema, ...action }: ActionDefinition<Inputs, any, boolean, any>,
+  {
+    inputs = {},
+    perform,
+    outputSchema,
+    experimentalExamplePerform,
+    ...action
+  }: ActionDefinition<Inputs, any, boolean, any>,
   hooks?: ComponentHooks,
 ): ServerAction => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
@@ -404,6 +410,17 @@ const convertAction = (
       errorHandler: hooks?.error,
     }),
     ...(outputSchema ? { outputSchema: convertOutputSchema(outputSchema) } : {}),
+    // Wrap the example perform the same way as `perform` (input cleaning + error
+    // handling). Destructured out of `...action` so a raw, unwrapped function never
+    // leaks onto the server action; only emitted when the author defines it.
+    ...(experimentalExamplePerform
+      ? {
+          experimentalExamplePerform: createPerform(experimentalExamplePerform, {
+            inputCleaners,
+            errorHandler: hooks?.error,
+          }),
+        }
+      : {}),
   };
 };
 

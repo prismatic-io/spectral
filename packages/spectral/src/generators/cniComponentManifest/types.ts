@@ -52,7 +52,15 @@ export interface InputNode {
   onPremiseControlled: boolean;
 }
 
-export type FormattedAction = Pick<Action, "key" | "display" | "inputs" | "examplePayload"> & {
+export type FormattedAction = Pick<
+  Action,
+  | "key"
+  | "display"
+  | "inputs"
+  | "examplePayload"
+  | "experimentalExamplePerformSupport"
+  | "experimentalPerformSupport"
+> & {
   /** Emitted verbatim into the generated manifest; shape mirrors `examplePayload`. */
   outputSchema?: unknown;
 };
