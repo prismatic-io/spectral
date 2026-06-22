@@ -1,5 +1,6 @@
 import type { Action, Component, DataSource, Trigger, TriggerPayload } from "../../serverTypes";
 import type { ConfigVarResultCollection, Inputs } from "../../types";
+import type { ExperimentalPerformSupport } from "../../types/ActionDefinition";
 import type { TriggerResult } from "../../types/TriggerResult";
 
 export interface ComponentNode {
@@ -30,6 +31,8 @@ export interface ActionNode {
     nodes: InputNode[];
   };
   examplePayload: string | null;
+  experimentalExamplePerformSupport: ExperimentalPerformSupport | null;
+  experimentalPerformSupport: ExperimentalPerformSupport | null;
 }
 
 export interface ConnectionNode {

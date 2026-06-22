@@ -151,6 +151,12 @@ export const fetchComponentDataForManifest = async <
           },
           inputs: transformInputNodes(node.inputs.nodes),
           examplePayload: node.examplePayload,
+          ...(node.experimentalExamplePerformSupport
+            ? { experimentalExamplePerformSupport: node.experimentalExamplePerformSupport }
+            : {}),
+          ...(node.experimentalPerformSupport
+            ? { experimentalPerformSupport: node.experimentalPerformSupport }
+            : {}),
         };
       }
     });
@@ -265,6 +271,8 @@ async function getComponentActions(componentId: string, prismaticUrl: string, ac
                 }
               }
               examplePayload
+              experimentalExamplePerformSupport
+              experimentalPerformSupport
             }
             pageInfo {
               hasNextPage
