@@ -107,12 +107,24 @@ const defaultResolveItems = (
 ) => result.payload.body.data as unknown[];
 
 /**
+ * Default `getNextDiscoveryState`: a batched fire returns the next page's cursor as
+ * `discoveryState`, which the wrapper {@link normalizeBatchedFlow} builds stamps onto
+ * `payload.discoveryState`. Reading it back (defaulting to `null`) is the whole pagination
+ * loop: a non-null value re-invokes the fire, `null` ends it. Authors never write this.
+ */
+const defaultGetNextDiscoveryState = (
+  _context: ActionContext,
+  result: { payload: { discoveryState?: Record<string, unknown> | null } },
+) => result.payload.discoveryState ?? null;
+
+/**
  * Expands a flow's batched `trigger` (built with `batchFlowTrigger`) into the flat
  * `onTrigger`/`onDeployTrigger`/`triggerResolver`/`onDeployResolver` shape the rest of the
- * conversion pipeline already understands. The trigger fires return just `{ items }`; here we
- * wrap each into a `TriggerPerformFunction` that emits `{ payload: { …payload, body: { data:
- * items } } }`, synthesize the default `resolveItems`, and map the pagination callbacks onto
- * the resolver `getNextDiscoveryState`. Flows without a `trigger` pass through unchanged.
+ * conversion pipeline already understands. The trigger fires return `{ items, discoveryState? }`;
+ * here we wrap each into a `TriggerPerformFunction` that emits `{ payload: { …payload, body: {
+ * data: items }, discoveryState } }`, then synthesize the default `resolveItems` (reads the
+ * items back) and `getNextDiscoveryState` (reads the cursor back). Flows without a `trigger`
+ * pass through unchanged.
  *
  * Returns the same `Flow` type it received; the synthesized `triggerResolver`/`onDeployResolver`
  * are wire-only fields (not on the author-facing `Flow`), read downstream via `"x" in flow` checks.
@@ -132,17 +144,23 @@ const normalizeBatchedFlow = <
     return flow;
   }
 
-  const { onTrigger, onDeploy, getNextOnTriggerPaginationState, getNextOnDeployPaginationState } =
-    trigger;
+  const { onTrigger, onDeploy } = trigger;
 
-  // Wrap a batched fire (returns `{ items, response? }`) into a TriggerPerformFunction that
-  // emits the wire payload shape (`body.data = items`), preserving the incoming payload fields.
+  // Wrap a batched fire (returns `{ items, discoveryState?, response? }`) into a
+  // TriggerPerformFunction that emits the wire payload shape: items at `body.data` and the
+  // next-page cursor at `discoveryState` (defaulting `null` to terminate the loop). The
+  // incoming payload's `discoveryState` was already consumed by the fire, so overwriting it
+  // with the returned cursor is safe — `getNextDiscoveryState` reads it straight back.
   const wrapFire =
     (fire: NonNullable<BatchTrigger<unknown>["onTrigger"]>) =>
     async (context: ActionContext, payload: TriggerPayload) => {
-      const { items, response } = await fire(context as never, payload as never);
+      const { items, discoveryState, response } = await fire(context as never, payload as never);
       return {
-        payload: { ...payload, body: { data: items, contentType: "application/json" } },
+        payload: {
+          ...payload,
+          body: { data: items, contentType: "application/json" },
+          discoveryState: discoveryState ?? null,
+        },
         ...(response ? { response } : {}),
       };
     };
@@ -155,17 +173,13 @@ const normalizeBatchedFlow = <
     ...(onDeploy ? { onDeployTrigger: wrapFire(onDeploy) } : {}),
     triggerResolver: {
       resolveItems: defaultResolveItems,
-      ...(getNextOnTriggerPaginationState
-        ? { getNextDiscoveryState: getNextOnTriggerPaginationState }
-        : {}),
+      getNextDiscoveryState: defaultGetNextDiscoveryState,
     },
     ...(onDeploy
       ? {
           onDeployResolver: {
             resolveItems: defaultResolveItems,
-            ...(getNextOnDeployPaginationState
-              ? { getNextDiscoveryState: getNextOnDeployPaginationState }
-              : {}),
+            getNextDiscoveryState: defaultGetNextDiscoveryState,
           },
         }
       : {}),

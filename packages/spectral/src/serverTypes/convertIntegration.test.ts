@@ -147,13 +147,12 @@ describe("convertFlow with polling triggers", () => {
     );
   });
 
-  it("synthesizes the default resolveItems (reads payload.body.data) on the trigger", () => {
+  it("synthesizes the default resolveItems and getNextDiscoveryState on the trigger", () => {
     const batchedFlow = flow({
       ...baseFlowInput,
       batchConfig: { batchSize: 10 },
-      trigger: batchFlowTrigger<number>({
+      trigger: batchFlowTrigger<number, { cursor: number }>({
         onTrigger: async () => ({ items: [1, 2, 3] }),
-        getNextOnTriggerPaginationState: () => null,
       }),
     });
 
@@ -175,6 +174,51 @@ describe("convertFlow with polling triggers", () => {
       result: { payload: { body: { data: unknown } } },
     ) => unknown[];
     expect(resolveTriggerItems({}, { payload: { body: { data: [7, 8, 9] } } })).toEqual([7, 8, 9]);
+    const getNextDiscoveryState = trigger.getNextDiscoveryState as (
+      ctx: unknown,
+      result: { payload: { discoveryState?: unknown } },
+    ) => unknown;
+    expect(getNextDiscoveryState({}, { payload: { discoveryState: { cursor: 2 } } })).toEqual({
+      cursor: 2,
+    });
+    expect(getNextDiscoveryState({}, { payload: {} })).toBeNull();
+  });
+
+  it("wraps the fire so items land at body.data and the returned cursor at discoveryState", async () => {
+    const batchedFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger<number, { cursor: number }>({
+        onTrigger: async (_ctx, payload) => {
+          const cursor = payload.discoveryState?.cursor ?? 0;
+          return cursor >= 2
+            ? { items: [cursor] }
+            : { items: [cursor], discoveryState: { cursor: cursor + 1 } };
+        },
+      }),
+    });
+
+    const result = integration({
+      name: "Test",
+      flows: [batchedFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    const perform = trigger.perform as (
+      ctx: unknown,
+      payload: unknown,
+      params: unknown,
+    ) => Promise<{ payload: { body: { data: unknown }; discoveryState: unknown } }>;
+
+    const page1 = await perform({}, { discoveryState: { cursor: 1 } }, {});
+    expect(page1.payload.body.data).toEqual([1]);
+    expect(page1.payload.discoveryState).toEqual({ cursor: 2 });
+
+    const page2 = await perform({}, { discoveryState: { cursor: 2 } }, {});
+    expect(page2.payload.body.data).toEqual([2]);
+    expect(page2.payload.discoveryState).toBeNull();
   });
 
   it("maps the on-deploy fire and pagination onto the synthesized trigger", () => {
@@ -183,10 +227,9 @@ describe("convertFlow with polling triggers", () => {
       batchConfig: { batchSize: 10 },
       trigger: batchFlowTrigger<number, { cursor: number }>({
         onTrigger: async () => ({ items: [1] }),
-        onDeploy: async () => ({ items: [2] }),
-        getNextOnDeployPaginationState: (_ctx, result) => {
-          const cursor = result.payload.discoveryState?.cursor ?? 0;
-          return cursor >= 2 ? null : { cursor: cursor + 1 };
+        onDeploy: async (_ctx, payload) => {
+          const cursor = payload.discoveryState?.cursor ?? 0;
+          return cursor >= 2 ? { items: [2] } : { items: [2], discoveryState: { cursor: cursor + 1 } };
         },
       }),
     });
