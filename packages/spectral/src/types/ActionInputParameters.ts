@@ -10,14 +10,16 @@ import type {
 } from "./Inputs";
 
 /** Resolves a single InputFieldDefinition's runtime value type.
- * - structuredObject: record of declared children's resolved value types.
+ * - structuredObject: record of declared children's resolved value types;
+ *   with `collection` set, a list (`valuelist`) or `KeyValuePair` list
+ *   (`keyvaluelist`) of that record.
  * - dynamicObject: discriminated union keyed by the selected configuration,
  *   with the configuration's resolved inputs nested under `values` to avoid
  *   collisions with the `configuration` discriminant key.
  * The depth caps (`LeafInputFieldDefinition`, `StructuredOrLeafInputFieldDefinition`)
  * prevent unbounded recursion. */
 type InputValue<T> = T extends StructuredObjectInputField
-  ? { [K in keyof T["inputs"]]: InputValue<T["inputs"][K]> }
+  ? ExtractValue<{ [K in keyof T["inputs"]]: InputValue<T["inputs"][K]> }, T["collection"]>
   : T extends DynamicObjectInputField
     ? {
         [C in keyof T["configurations"]]: {
