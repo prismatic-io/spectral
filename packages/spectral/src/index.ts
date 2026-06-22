@@ -188,9 +188,10 @@ export const flow = <
 /**
  * Builds a flow's batched `trigger` — the ergonomic way to define a batching flow. Instead of
  * writing `onTrigger`/`onDeployTrigger` (returning a full payload) plus `triggerResolver`/
- * `onDeployResolver` (to extract and paginate), the trigger fires return just their `items` and
- * the pagination callbacks live alongside them. spectral wraps the items into the wire payload
- * and synthesizes the `resolveItems` that reads them back.
+ * `onDeployResolver` (to extract and paginate), each trigger fire returns `{ items,
+ * discoveryState? }`: the records to dispatch and, when paginating, the cursor for the next
+ * page. spectral wraps the items into the wire payload and synthesizes the `resolveItems` and
+ * `getNextDiscoveryState` that read them back — there is no separate pagination callback.
  *
  * Supply the item and pagination-state types explicitly —
  * `batchFlowTrigger<Order, { cursor: number }>({ ... })`. They flow through the whole flow:
@@ -210,11 +211,10 @@ export const flow = <
  *   trigger: batchFlowTrigger<Order, { cursor: number }>({
  *     onTrigger: async (context, payload) => {
  *       const page = await fetchOrders(payload.discoveryState?.cursor);
- *       return { items: page.orders };
- *     },
- *     getNextOnTriggerPaginationState: (context, result) => {
- *       const next = result.payload.discoveryState?.cursor;
- *       return next === undefined ? null : { cursor: next };
+ *       return {
+ *         items: page.orders,
+ *         discoveryState: page.nextCursor ? { cursor: page.nextCursor } : null,
+ *       };
  *     },
  *   }),
  *   onExecution: async (context, params) => {

@@ -13,11 +13,11 @@ import type { HttpResponse } from "./HttpResponse";
 import type { Inputs } from "./Inputs";
 import type { PollingTriggerPerformFunction } from "./PollingTriggerDefinition";
 import type { ScopedConfigVarMap } from "./ScopedConfigVars";
-import type { BatchConfig, WithDiscoveryState } from "./TriggerDefinition";
+import type { BatchConfig } from "./TriggerDefinition";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
 import type { TriggerPayload } from "./TriggerPayload";
 import type { TriggerPerformFunction } from "./TriggerPerformFunction";
-import type { TriggerBaseResult, TriggerResult } from "./TriggerResult";
+import type { TriggerResult } from "./TriggerResult";
 
 /**
  * Defines attributes of a code-native integration. See
@@ -105,59 +105,56 @@ export type BatchedTriggerPayload<TPayload extends TriggerPayload, TItem> = unkn
 
 /**
  * The page of records a batched trigger fire (`onTrigger`/`onDeploy`) returns. The author
- * returns just the items; spectral wraps them into the wire trigger payload (`body.data`)
- * and synthesizes the resolver that extracts them. Returning `items` is the whole contract —
- * there is no `payload` to thread by hand.
+ * returns the items plus, when paginating, the cursor for the next page — computed right here
+ * from the live fetch. spectral wraps the items into the wire trigger payload (`body.data`),
+ * stamps `discoveryState` onto it, and synthesizes the resolver that reads both back. There is
+ * no separate pagination callback to define.
  */
-export interface BatchedTriggerReturn<TItem> {
+export interface BatchedTriggerReturn<
+  TItem,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+> {
   /** The records produced by this trigger fire. Chunked into batches of the flow's `batchConfig.batchSize`. */
   items: TItem[];
+  /**
+   * Cursor for the next page. Return it to paginate — the fire is re-invoked with this object on
+   * `payload.discoveryState`. Omit or return `null` to stop. Compute it here from the fetch
+   * response, where the next-page token is still in scope.
+   */
+  discoveryState?: TPaginationState | null;
   /** Optional HTTP response to the request that invoked the integration. */
   response?: HttpResponse;
 }
 
 /**
- * The pagination callback for a batched trigger fire. Returns the state for the next page,
- * or `null` to stop. A non-null return re-invokes the corresponding trigger with this object
- * stamped onto `payload.discoveryState`; the loop ends when it returns `null`.
- */
-export type BatchPaginationStateFunction<TPaginationState extends Record<string, unknown>> = (
-  context: ActionContext<ConfigVars>,
-  result: TriggerBaseResult<WithDiscoveryState<TriggerPayload, TPaginationState>>,
-) => TPaginationState | null;
-
-/**
  * A batched trigger built by {@link batchFlowTrigger}. Bundles the normal and on-deploy trigger
- * fires (each returning just `items`) with their pagination callbacks. The two type parameters
- * — supplied explicitly to `batchTrigger<TItem, TPaginationState>(...)` — flow through to the
- * rest of the flow: `TItem` types `onExecution`'s `params.onTrigger.results.body.data`, and
- * `TPaginationState` types `payload.discoveryState` and the pagination callbacks' return.
+ * fires, each returning `{ items, discoveryState? }`. The two type parameters — supplied
+ * explicitly to `batchFlowTrigger<TItem, TPaginationState>(...)` — flow through to the rest of
+ * the flow: `TItem` types `onExecution`'s `params.onTrigger.results.body.data`, and
+ * `TPaginationState` types both `payload.discoveryState` (read on the way in) and the
+ * `discoveryState` each fire returns (the next page's cursor).
  */
 export interface BatchTrigger<
   TItem,
   TPaginationState extends Record<string, unknown> = Record<string, unknown>,
 > {
   /**
-   * The trigger function for this flow. Fetches a page of records and returns them as `items`.
-   * Re-invoked once per pagination round (see `getNextOnTriggerPaginationState`); read the
-   * cursor for the current page from `payload.discoveryState`.
+   * The trigger function for this flow. Fetches a page of records and returns them as `items`,
+   * plus the next page's `discoveryState` to paginate (omit/`null` to stop). Read the cursor for
+   * the current page from `payload.discoveryState`.
    */
   onTrigger: (
     context: ActionContext<ConfigVars>,
     payload: TriggerPayload<TPaginationState>,
-  ) => Promise<BatchedTriggerReturn<TItem>>;
+  ) => Promise<BatchedTriggerReturn<TItem, TPaginationState>>;
   /**
    * The on-deploy trigger fire, run once on initial instance deploy. Same shape as `onTrigger`;
-   * pair with `getNextOnDeployPaginationState` to paginate.
+   * return `discoveryState` to paginate the backfill.
    */
   onDeploy?: (
     context: ActionContext<ConfigVars>,
     payload: TriggerPayload<TPaginationState>,
-  ) => Promise<BatchedTriggerReturn<TItem>>;
-  /** Pagination for `onTrigger`: return the next page's state, or `null` to stop. */
-  getNextOnTriggerPaginationState?: BatchPaginationStateFunction<TPaginationState>;
-  /** Pagination for `onDeploy`: return the next page's state, or `null` to stop. */
-  getNextOnDeployPaginationState?: BatchPaginationStateFunction<TPaginationState>;
+  ) => Promise<BatchedTriggerReturn<TItem, TPaginationState>>;
 }
 
 export type FlowOnExecution<
