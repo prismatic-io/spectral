@@ -171,8 +171,8 @@ interface HttpResponse {
   body?: string;
 }
 
-interface TriggerBaseResult {
-  payload: TriggerPayload;
+interface TriggerBaseResult<TPayload extends TriggerPayload = TriggerPayload> {
+  payload: TPayload;
   response?: HttpResponse;
   instanceState?: Record<string, unknown>;
   crossFlowState?: Record<string, unknown>;
@@ -182,11 +182,15 @@ interface TriggerBaseResult {
   error?: Record<string, unknown>;
 }
 
-interface TriggerBranchingResult extends TriggerBaseResult {
+interface TriggerBranchingResult<TPayload extends TriggerPayload = TriggerPayload>
+  extends TriggerBaseResult<TPayload> {
   branch: string;
 }
 
-export type TriggerResult = TriggerBranchingResult | TriggerBaseResult | undefined;
+export type TriggerResult<TPayload extends TriggerPayload = TriggerPayload> =
+  | TriggerBranchingResult<TPayload>
+  | TriggerBaseResult<TPayload>
+  | undefined;
 
 export type TriggerEventFunctionResult = TriggerEventFunctionReturn | void;
 
@@ -195,6 +199,17 @@ export type TriggerEventFunction = (
   params: Record<string, unknown>,
 ) => Promise<TriggerEventFunctionResult>;
 
+/**
+ * Wire format the platform expects for a trigger. Note: function references
+ * (perform, resolveTriggerItems, getNextPaginationState, ...) don't survive JSON
+ * serialization, so each callback has a paired `hasXxx: boolean` flag the
+ * server reads to detect presence. Keep the flag and its callback in sync.
+ *
+ * The on-deploy fire is named asymmetrically by intent: CNI flow authors set
+ * `onDeployTrigger` (sibling to `onTrigger`), component-trigger authors set
+ * `onDeployPerform` (sibling to `perform`), and both flatten to
+ * `onDeployPerform` here on the wire.
+ */
 export interface Trigger<
   TInputs extends Inputs,
   TActionInputs extends Inputs,
@@ -240,6 +255,46 @@ export interface Trigger<
   hasWebhookDeleteFunction?: boolean;
   scheduleSupport: TriggerOptionChoice;
   synchronousResponseSupport: TriggerOptionChoice;
+  triggerResolverSupport?: TriggerOptionChoice;
+  /**
+   * The single default batch size shared by the trigger and on-deploy resolvers. The
+   * platform reads only this field for both paths; there is no separate on-deploy default.
+   */
+  triggerResolverDefaultBatchSize?: number;
+  triggerResolverDefaultConcurrentBatchLimit?: number;
+  resolveTriggerItems?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => unknown[];
+  hasResolveTriggerItems?: boolean;
+  getNextPaginationState?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => Record<string, unknown> | null;
+  hasGetNextDiscoveryState?: boolean;
+  onDeployPerform?:
+    | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
+    | PollingTriggerPerformFunction<
+        TInputs,
+        TActionInputs,
+        TConfigVars,
+        TPayload,
+        TAllowsBranching,
+        TResult
+      >
+    | CNIPollingPerformFunction<TInputs, TConfigVars, TPayload, TAllowsBranching>
+    | ComponentRefTriggerPerformFunction<TInputs, TConfigVars>;
+  hasOnDeployPerform?: boolean;
+  resolveOnDeployItems?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => unknown[];
+  hasResolveOnDeployItems?: boolean;
+  getOnDeployNextPaginationState?: (
+    context: ActionContext<TConfigVars>,
+    result: TriggerBaseResult<TPayload>,
+  ) => Record<string, unknown> | null;
+  hasGetOnDeployNextDiscoveryState?: boolean;
   examplePayload?: unknown;
   isCommonTrigger?: boolean;
   isPollingTrigger?: boolean;

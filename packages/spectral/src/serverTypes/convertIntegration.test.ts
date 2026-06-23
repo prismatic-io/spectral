@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { configPage, configVar, flow, integration } from "..";
+import { batchFlowTrigger, configPage, configVar, flow, integration } from "..";
 import type { ConfigVar, TriggerReference } from "../types";
 import {
   convertConfigPages,
@@ -57,6 +57,218 @@ describe("convertFlow with polling triggers", () => {
     const result = convertFlow(defaultFlow, {}, "test-ref");
 
     expect(result.name).toBe("Test Polling Flow");
+  });
+
+  it("emits the single flow-level batch config and strips resolver behavior from the flow result", () => {
+    const batchedFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 25 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+      }),
+    });
+
+    const result = convertFlow(batchedFlow, {}, "test-ref");
+
+    // The single batch config is written to the existing `triggerResolver` flow wire field
+    // (→ trigger_resolver_batch_size / trigger_resolver_enabled), with enabled forced on.
+    expect(result.triggerResolver).toEqual({ batchSize: 25, enabled: true });
+    // Author-only fields are stripped; resolver behavior goes on the synthesized trigger.
+    expect(result.batchConfig).toBeUndefined();
+    expect(result.onDeployResolver).toBeUndefined();
+    // The batched `trigger` is expanded; the field itself is not emitted on the flow wire.
+    expect(result.trigger).toBeUndefined();
+  });
+
+  it("shares one batch config across the trigger and on-deploy fires", () => {
+    const sharedBatchFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 50 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+        onDeploy: async () => ({ items: [4, 5, 6] }),
+      }),
+    });
+
+    const result = convertFlow(sharedBatchFlow, {}, "test-ref");
+
+    // One config drives both the normal and on-deploy fires; no separate on-deploy field.
+    expect(result.triggerResolver).toEqual({ batchSize: 50, enabled: true });
+    expect(result.batchConfig).toBeUndefined();
+    expect(result.onDeployResolver).toBeUndefined();
+  });
+
+  it("emits the shared concurrentBatchLimit on the flow wire when set on batchConfig", () => {
+    const sharedBatchFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 50, concurrentBatchLimit: 5 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+        onDeploy: async () => ({ items: [4, 5, 6] }),
+      }),
+    });
+
+    const result = convertFlow(sharedBatchFlow, {}, "test-ref");
+
+    expect(result.triggerResolver).toEqual({
+      batchSize: 50,
+      enabled: true,
+      concurrentBatchLimit: 5,
+    });
+  });
+
+  it("throws when the flow-level batch concurrentBatchLimit is invalid", () => {
+    const invalidFlow = flow({
+      ...baseFlowInput,
+      // @ts-expect-error - intentionally invalid concurrentBatchLimit for runtime validation
+      batchConfig: { batchSize: 50, concurrentBatchLimit: 0 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+      }),
+    });
+
+    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
+      /invalid batchConfig concurrentBatchLimit of 0/,
+    );
+  });
+
+  it("throws when the flow-level batch batchSize is invalid", () => {
+    const invalidFlow = flow({
+      ...baseFlowInput,
+      // @ts-expect-error - intentionally invalid batchSize for runtime validation
+      batchConfig: { batchSize: 0 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+      }),
+    });
+
+    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(
+      /invalid batchConfig batchSize of 0/,
+    );
+  });
+
+  it("synthesizes the default resolveItems and getNextPaginationState on the trigger", () => {
+    const batchedFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger<number, { cursor: number }>({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+      }),
+    });
+
+    const result = integration({
+      name: "Test",
+      flows: [batchedFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    expect(trigger.hasResolveTriggerItems).toBe(true);
+    expect(trigger.hasGetNextDiscoveryState).toBe(true);
+    expect(trigger.triggerResolverSupport).toBe("valid");
+    expect(trigger.triggerResolverDefaultBatchSize).toBe(10);
+    // The synthesized resolveItems just reads the records back out of payload.body.data.
+    const resolveTriggerItems = trigger.resolveTriggerItems as (
+      ctx: unknown,
+      result: { payload: { body: { data: unknown } } },
+    ) => unknown[];
+    expect(resolveTriggerItems({}, { payload: { body: { data: [7, 8, 9] } } })).toEqual([7, 8, 9]);
+    const getNextPaginationState = trigger.getNextPaginationState as (
+      ctx: unknown,
+      result: { payload: { paginationState?: unknown } },
+    ) => unknown;
+    expect(getNextPaginationState({}, { payload: { paginationState: { cursor: 2 } } })).toEqual({
+      cursor: 2,
+    });
+    expect(getNextPaginationState({}, { payload: {} })).toBeNull();
+  });
+
+  it("wraps the fire so items land at body.data and the returned cursor at paginationState", async () => {
+    const batchedFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger<number, { cursor: number }>({
+        onTrigger: async (_ctx, payload) => {
+          const cursor = payload.paginationState?.cursor ?? 0;
+          return cursor >= 2
+            ? { items: [cursor] }
+            : { items: [cursor], paginationState: { cursor: cursor + 1 } };
+        },
+      }),
+    });
+
+    const result = integration({
+      name: "Test",
+      flows: [batchedFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    const perform = trigger.perform as (
+      ctx: unknown,
+      payload: unknown,
+      params: unknown,
+    ) => Promise<{ payload: { body: { data: unknown }; paginationState: unknown } }>;
+
+    const page1 = await perform({}, { paginationState: { cursor: 1 } }, {});
+    expect(page1.payload.body.data).toEqual([1]);
+    expect(page1.payload.paginationState).toEqual({ cursor: 2 });
+
+    const page2 = await perform({}, { paginationState: { cursor: 2 } }, {});
+    expect(page2.payload.body.data).toEqual([2]);
+    expect(page2.payload.paginationState).toBeNull();
+  });
+
+  it("maps the on-deploy fire and pagination onto the synthesized trigger", () => {
+    const batchedFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger<number, { cursor: number }>({
+        onTrigger: async () => ({ items: [1] }),
+        onDeploy: async (_ctx, payload) => {
+          const cursor = payload.paginationState?.cursor ?? 0;
+          return cursor >= 2
+            ? { items: [2] }
+            : { items: [2], paginationState: { cursor: cursor + 1 } };
+        },
+      }),
+    });
+
+    const result = integration({
+      name: "Test",
+      flows: [batchedFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    expect(trigger.hasOnDeployPerform).toBe(true);
+    expect(trigger.hasResolveOnDeployItems).toBe(true);
+    expect(trigger.hasGetOnDeployNextDiscoveryState).toBe(true);
+  });
+
+  it("does not synthesize on-deploy resolver fields when the trigger omits onDeploy", () => {
+    const batchedFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1] }),
+      }),
+    });
+
+    const result = integration({
+      name: "Test",
+      flows: [batchedFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    expect(trigger.hasOnDeployPerform).toBeUndefined();
+    expect(trigger.hasResolveOnDeployItems).toBeUndefined();
+    expect(trigger.hasGetOnDeployNextDiscoveryState).toBeUndefined();
   });
 });
 
