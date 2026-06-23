@@ -190,10 +190,11 @@ describe("convertFlow with polling triggers", () => {
       batchConfig: { batchSize: 10 },
       trigger: batchFlowTrigger<number, { cursor: number }>({
         onTrigger: async (_ctx, payload) => {
-          const cursor = payload.discoveryState?.cursor ?? 0;
+          // Author reads the cursor as `paginationState` (aliased from the wire `discoveryState`).
+          const cursor = payload.paginationState?.cursor ?? 0;
           return cursor >= 2
             ? { items: [cursor] }
-            : { items: [cursor], discoveryState: { cursor: cursor + 1 } };
+            : { items: [cursor], paginationState: { cursor: cursor + 1 } };
         },
       }),
     });
@@ -212,6 +213,8 @@ describe("convertFlow with polling triggers", () => {
       params: unknown,
     ) => Promise<{ payload: { body: { data: unknown }; discoveryState: unknown } }>;
 
+    // The platform stamps the cursor onto the wire `discoveryState`; the author's returned
+    // `paginationState` is stamped back onto the wire `discoveryState` for the loop to read.
     const page1 = await perform({}, { discoveryState: { cursor: 1 } }, {});
     expect(page1.payload.body.data).toEqual([1]);
     expect(page1.payload.discoveryState).toEqual({ cursor: 2 });
@@ -228,8 +231,10 @@ describe("convertFlow with polling triggers", () => {
       trigger: batchFlowTrigger<number, { cursor: number }>({
         onTrigger: async () => ({ items: [1] }),
         onDeploy: async (_ctx, payload) => {
-          const cursor = payload.discoveryState?.cursor ?? 0;
-          return cursor >= 2 ? { items: [2] } : { items: [2], discoveryState: { cursor: cursor + 1 } };
+          const cursor = payload.paginationState?.cursor ?? 0;
+          return cursor >= 2
+            ? { items: [2] }
+            : { items: [2], paginationState: { cursor: cursor + 1 } };
         },
       }),
     });

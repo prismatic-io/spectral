@@ -64,7 +64,7 @@ export type IntegrationDefinition<
    * Flows for this integration. See
    * https://prismatic.io/docs/integrations/code-native/flows/
    *
-   * The trailing `any`s for `TItem`/`TDiscoveryState`/`TTriggerPayload` let flows with
+   * The trailing `any`s for `TItem`/`TPaginationState`/`TTriggerPayload` let flows with
    * different resolver item and cursor types live in one array. `integration` only holds
    * and serializes these flows (it never invokes `onExecution`), so the precise — and
    * per-flow distinct — `onExecution` param type does not need to be preserved here.
@@ -105,9 +105,10 @@ export type BatchedTriggerPayload<TPayload extends TriggerPayload, TItem> = unkn
 
 /**
  * The page of records a batched trigger fire (`onTrigger`/`onDeploy`) returns. The author
- * returns the items plus, when paginating, the cursor for the next page, spectral
- * wraps the items into the wire trigger payload (`body.data`), stamps `discoveryState` onto it,
- * and synthesizes the resolver that reads both back. There is no separate pagination callback to define.
+ * returns the items plus, when paginating, the cursor for the next page. spectral wraps the
+ * items into the wire trigger payload (`body.data`), carries the `paginationState` to the next
+ * round, and synthesizes the resolver that reads both back. There is no separate pagination
+ * callback to define.
  */
 export interface BatchedTriggerReturn<
   TItem,
@@ -117,21 +118,21 @@ export interface BatchedTriggerReturn<
   items: TItem[];
   /**
    * Cursor for the next page. Return it to paginate — the fire is re-invoked with this object on
-   * `payload.discoveryState`. Omit or return `null` to stop. Compute it here from the fetch
+   * `payload.paginationState`. Omit or return `null` to stop. Compute it here from the fetch
    * response, where the next-page token is still in scope.
    */
-  discoveryState?: TPaginationState | null;
+  paginationState?: TPaginationState | null;
   /** Optional HTTP response to the request that invoked the integration. */
   response?: HttpResponse;
 }
 
 /**
  * A batched trigger built by {@link batchFlowTrigger}. Bundles the normal and on-deploy trigger
- * fires, each returning `{ items, discoveryState? }`. The two type parameters — supplied
+ * fires, each returning `{ items, paginationState? }`. The two type parameters — supplied
  * explicitly to `batchFlowTrigger<TItem, TPaginationState>(...)` — flow through to the rest of
  * the flow: `TItem` types `onExecution`'s `params.onTrigger.results.body.data`, and
- * `TPaginationState` types both `payload.discoveryState` (read on the way in) and the
- * `discoveryState` each fire returns (the next page's cursor).
+ * `TPaginationState` types both `payload.paginationState` (read on the way in) and the
+ * `paginationState` each fire returns (the next page's cursor).
  */
 export interface BatchTrigger<
   TItem,
@@ -139,8 +140,8 @@ export interface BatchTrigger<
 > {
   /**
    * The trigger function for this flow. Fetches a page of records and returns them as `items`,
-   * plus the next page's `discoveryState` to paginate (omit/`null` to stop). Read the cursor for
-   * the current page from `payload.discoveryState`.
+   * plus the next page's `paginationState` to paginate (omit/`null` to stop). Read the cursor for
+   * the current page from `payload.paginationState`.
    */
   onTrigger: (
     context: ActionContext<ConfigVars>,
@@ -148,7 +149,7 @@ export interface BatchTrigger<
   ) => Promise<BatchedTriggerReturn<TItem, TPaginationState>>;
   /**
    * The on-deploy trigger fire, run once on initial instance deploy. Same shape as `onTrigger`;
-   * return `discoveryState` to paginate the backfill.
+   * return `paginationState` to paginate the backfill.
    */
   onDeploy?: (
     context: ActionContext<ConfigVars>,
@@ -203,7 +204,7 @@ export type FlowExecutionContextActions = FlowExecutionContext["components"];
  * union is deliberate — a function property living in a union member loses contextual
  * parameter typing, which would make `onExecution`'s `context`/`params` implicitly `any`.
  */
-interface BatchFields<TItem, TDiscoveryState extends Record<string, unknown>> {
+interface BatchFields<TItem, TPaginationState extends Record<string, unknown>> {
   /**
    * Batch-dispatch config for this flow. Items returned by the `trigger`'s fires are chunked
    * into batches of `batchSize`. For a CNI flow this value is authoritative (what's written
@@ -215,7 +216,7 @@ interface BatchFields<TItem, TDiscoveryState extends Record<string, unknown>> {
    * (`onTrigger`/`onDeploy`) return just `items`; spectral synthesizes the resolver that
    * extracts them and maps the pagination callbacks. Required when `batchConfig` is set.
    */
-  trigger: BatchTrigger<TItem, TDiscoveryState>;
+  trigger: BatchTrigger<TItem, TPaginationState>;
   /** A batched flow's trigger fires live inside `trigger`; the flat `onTrigger` is forbidden. */
   onTrigger?: never;
   /** A batched flow's on-deploy fire lives inside `trigger`; the flat `onDeployTrigger` is forbidden. */
@@ -233,8 +234,8 @@ interface NonBatchFields {
  * The discriminated union coupling `batchConfig` and the batched `trigger`. Intersected
  * into each flow variant at {@link Flow}.
  */
-type BatchDiscriminant<TItem, TDiscoveryState extends Record<string, unknown>> =
-  | BatchFields<TItem, TDiscoveryState>
+type BatchDiscriminant<TItem, TPaginationState extends Record<string, unknown>> =
+  | BatchFields<TItem, TPaginationState>
   | NonBatchFields;
 
 /** Base properties shared by all flow types. */
@@ -317,7 +318,7 @@ interface StandardFlow<
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
-  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
 > extends FlowBase<TTriggerPayload, TItem> {
   triggerType?: StandardTriggerType;
   /** Schedule configuration that defines the frequency with which this flow will be automatically executed. */
@@ -327,7 +328,7 @@ interface StandardFlow<
   /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
   onTrigger?:
     | TriggerReference
-    | TriggerPerformFunction<TInputs, ConfigVars, TAllowsBranching, TResult, TDiscoveryState>;
+    | TriggerPerformFunction<TInputs, ConfigVars, TAllowsBranching, TResult, TPaginationState>;
   /**
    * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.
    * Typically used to backfill baseline records for systems whose webhooks only emit future events.
@@ -337,7 +338,7 @@ interface StandardFlow<
     ConfigVars,
     TAllowsBranching,
     TResult,
-    TDiscoveryState
+    TPaginationState
   >;
 }
 
@@ -355,7 +356,7 @@ interface PollingFlow<
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
-  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
 > extends FlowBase<TTriggerPayload, TItem> {
   /**
    * Type of trigger for this flow. A "polling" trigger runs on a schedule
@@ -386,7 +387,7 @@ interface PollingFlow<
     ConfigVars,
     TAllowsBranching,
     TResult,
-    TDiscoveryState
+    TPaginationState
   >;
 }
 
@@ -402,7 +403,7 @@ export type Flow<
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
-  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
 > =
   | (StandardFlow<
       TInputs,
@@ -411,9 +412,9 @@ export type Flow<
       TResult,
       TTriggerPayload,
       TItem,
-      TDiscoveryState
+      TPaginationState
     > &
-      BatchDiscriminant<TItem, TDiscoveryState>)
+      BatchDiscriminant<TItem, TPaginationState>)
   | (PollingFlow<
       TInputs,
       TActionInputs,
@@ -422,9 +423,9 @@ export type Flow<
       TResult,
       TTriggerPayload,
       TItem,
-      TDiscoveryState
+      TPaginationState
     > &
-      BatchDiscriminant<TItem, TDiscoveryState>);
+      BatchDiscriminant<TItem, TPaginationState>);
 
 export type FlowTriggerType = PollingTriggerType | StandardTriggerType;
 

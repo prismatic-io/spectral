@@ -78,7 +78,12 @@ import {
   type Input as ServerInput,
   type RequiredConfigVariable as ServerRequiredConfigVariable,
 } from "./integration";
-import { createCNIComponentRefPerform, createCNIPerform, createCNIPollingPerform } from "./perform";
+import {
+  aliasPaginationState,
+  createCNIComponentRefPerform,
+  createCNIPerform,
+  createCNIPollingPerform,
+} from "./perform";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 export const CONCURRENCY_LIMIT_MAX = 15;
@@ -108,9 +113,11 @@ const defaultResolveItems = (
 
 /**
  * Default `getNextDiscoveryState`: a batched fire returns the next page's cursor as
- * `discoveryState`, which the wrapper {@link normalizeBatchedFlow} builds stamps onto
- * `payload.discoveryState`. Reading it back (defaulting to `null`) is the whole pagination
- * loop: a non-null value re-invokes the fire, `null` ends it. Authors never write this.
+ * `paginationState`; the wrapper {@link normalizeBatchedFlow} builds stamps it onto the wire
+ * field `payload.discoveryState` (the name the backend's discovery loop reads). Reading it back
+ * (defaulting to `null`) is the whole loop: a non-null value re-invokes the fire, `null` ends it.
+ * Authors never write this. The wire name stays `discoveryState` — only the author surface uses
+ * `paginationState`.
  */
 const defaultGetNextDiscoveryState = (
   _context: ActionContext,
@@ -120,11 +127,12 @@ const defaultGetNextDiscoveryState = (
 /**
  * Expands a flow's batched `trigger` (built with `batchFlowTrigger`) into the flat
  * `onTrigger`/`onDeployTrigger`/`triggerResolver`/`onDeployResolver` shape the rest of the
- * conversion pipeline already understands. The trigger fires return `{ items, discoveryState? }`;
+ * conversion pipeline already understands. The trigger fires return `{ items, paginationState? }`;
  * here we wrap each into a `TriggerPerformFunction` that emits `{ payload: { …payload, body: {
  * data: items }, discoveryState } }`, then synthesize the default `resolveItems` (reads the
- * items back) and `getNextDiscoveryState` (reads the cursor back). Flows without a `trigger`
- * pass through unchanged.
+ * items back) and `getNextDiscoveryState` (reads the cursor back). The author surface speaks
+ * `paginationState`; this wrapper is the boundary where it is translated to/from the wire
+ * `discoveryState`. Flows without a `trigger` pass through unchanged.
  *
  * Returns the same `Flow` type it received; the synthesized `triggerResolver`/`onDeployResolver`
  * are wire-only fields (not on the author-facing `Flow`), read downstream via `"x" in flow` checks.
@@ -146,20 +154,24 @@ const normalizeBatchedFlow = <
 
   const { onTrigger, onDeploy } = trigger;
 
-  // Wrap a batched fire (returns `{ items, discoveryState?, response? }`) into a
+  // Wrap a batched fire (returns `{ items, paginationState?, response? }`) into a
   // TriggerPerformFunction that emits the wire payload shape: items at `body.data` and the
-  // next-page cursor at `discoveryState` (defaulting `null` to terminate the loop). The
-  // incoming payload's `discoveryState` was already consumed by the fire, so overwriting it
-  // with the returned cursor is safe — `getNextDiscoveryState` reads it straight back.
+  // next-page cursor at the wire field `discoveryState` (defaulting `null` to terminate the
+  // loop). This is the author/wire boundary: the incoming wire `discoveryState` is aliased to
+  // `paginationState` for the fire to read, and the cursor it returns is stamped back onto the
+  // wire `discoveryState` for `getNextDiscoveryState` to read straight back.
   const wrapFire =
     (fire: NonNullable<BatchTrigger<unknown>["onTrigger"]>) =>
     async (context: ActionContext, payload: TriggerPayload) => {
-      const { items, discoveryState, response } = await fire(context as never, payload as never);
+      const { items, paginationState, response } = await fire(
+        context as never,
+        aliasPaginationState(payload) as never,
+      );
       return {
         payload: {
           ...payload,
           body: { data: items, contentType: "application/json" },
-          discoveryState: discoveryState ?? null,
+          discoveryState: paginationState ?? null,
         },
         ...(response ? { response } : {}),
       };
