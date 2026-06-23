@@ -77,6 +77,21 @@ export const cleanParams = (
   }, {});
 };
 
+/**
+ * The platform stamps a paginated re-run's cursor onto the runtime payload's `discoveryState`
+ * — the wire field the backend owns and re-stamps each round. Author-facing trigger code reads
+ * the cursor as `paginationState`, so we expose that alias on the payload before any author
+ * perform/resolver runs. The wire `discoveryState` is left intact, so the backend's discovery
+ * loop is unaffected.
+ */
+export const aliasPaginationState = <T>(payload: T): T => {
+  if (!payload || typeof payload !== "object") {
+    return payload;
+  }
+  const { discoveryState } = payload as { discoveryState?: unknown };
+  return { ...(payload as Record<string, unknown>), paginationState: discoveryState } as T;
+};
+
 export const createPerform = (
   performFn: PerformFn,
   { inputCleaners, errorHandler }: CreatePerformProps,
@@ -110,7 +125,11 @@ export const createPerform = (
         invokeFlow: createInvokeFlow(context),
       };
 
-      const result = await performFn(actionContext, payload, cleanParams(params, inputCleaners));
+      const result = await performFn(
+        actionContext,
+        aliasPaginationState(payload),
+        cleanParams(params, inputCleaners),
+      );
 
       logDebugResults(actionContext);
 

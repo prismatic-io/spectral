@@ -573,7 +573,7 @@ export const invokeFlow = async <
     TPayload
   >,
 >(
-  // `any` for TItem/TDiscoveryState/TTriggerPayload: the tester accepts a flow with any
+  // `any` for TItem/TPaginationState/TTriggerPayload: the tester accepts a flow with any
   // resolver item and cursor typing; it drives the flow dynamically and does not rely on
   // the precise `onExecution` param type.
   flow: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult, any, any, any>,

@@ -6,12 +6,12 @@ import type { UserAttributes } from "./UserAttributes";
 
 /** Represents a Trigger Payload, which is data passed into a Trigger to invoke an Integration execution.
  *
- * The optional `TDiscoveryState` parameter types the `discoveryState` field, so authors who
- * declare a pagination-state shape on their `getNextDiscoveryState` resolver can read back
+ * The optional `TPaginationState` parameter types the `paginationState` field, so authors who
+ * declare a pagination-state shape on their `getNextPaginationState` resolver can read back
  * the same shape on the next round's payload. Defaults to `Record<string, unknown>`.
  */
 export interface TriggerPayload<
-  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
 > {
   /** The headers sent in the webhook request. */
   headers: {
@@ -59,7 +59,7 @@ export interface TriggerPayload<
   /** Determines whether the execution will run in debug mode. */
   globalDebug: boolean;
   /** Managed by the execution when this trigger invocation is a paginated re-run.
-   *  Contains the object returned by `getNextDiscoveryState` from the previous round.
+   *  Contains the object returned by `getNextPaginationState` from the previous round.
    *  Absent on the initial invocation. */
-  discoveryState?: TDiscoveryState;
+  paginationState?: TPaginationState;
 }

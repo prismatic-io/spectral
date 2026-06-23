@@ -32,6 +32,7 @@ import type {
 } from ".";
 import {
   type CleanFn,
+  aliasPaginationState,
   cleanParams,
   createPerform,
   createPollingPerform,
@@ -196,16 +197,24 @@ const buildTriggerResolverFields = <
   if (!resolver) {
     return {};
   }
+  const { resolveItems, getNextPaginationState } = resolver;
   return {
-    ...(resolver.resolveItems
+    ...(resolveItems
       ? {
-          resolveTriggerItems: resolver.resolveItems,
+          resolveTriggerItems: (...[context, result]: Parameters<typeof resolveItems>) =>
+            resolveItems(context, { ...result, payload: aliasPaginationState(result.payload) }),
           hasResolveTriggerItems: true,
         }
       : {}),
-    ...(resolver.getNextDiscoveryState
+    ...(getNextPaginationState
       ? {
-          getNextDiscoveryState: resolver.getNextDiscoveryState,
+          // Wire name stays `getNextDiscoveryState` (the backend contract); the author's
+          // `getNextPaginationState` reads the cursor as `paginationState` via the alias.
+          getNextDiscoveryState: (...[context, result]: Parameters<typeof getNextPaginationState>) =>
+            getNextPaginationState(context, {
+              ...result,
+              payload: aliasPaginationState(result.payload),
+            }),
           hasGetNextDiscoveryState: true,
         }
       : {}),
@@ -221,16 +230,26 @@ const buildOnDeployResolverFields = <
   if (!resolver) {
     return {};
   }
+  const { resolveItems, getNextPaginationState } = resolver;
   return {
-    ...(resolver.resolveItems
+    ...(resolveItems
       ? {
-          resolveOnDeployItems: resolver.resolveItems,
+          resolveOnDeployItems: (...[context, result]: Parameters<typeof resolveItems>) =>
+            resolveItems(context, { ...result, payload: aliasPaginationState(result.payload) }),
           hasResolveOnDeployItems: true,
         }
       : {}),
-    ...(resolver.getNextDiscoveryState
+    ...(getNextPaginationState
       ? {
-          getOnDeployNextDiscoveryState: resolver.getNextDiscoveryState,
+          // Wire name stays `getOnDeployNextDiscoveryState` (the backend contract); the author's
+          // `getNextPaginationState` reads the cursor as `paginationState` via the alias.
+          getOnDeployNextDiscoveryState: (
+            ...[context, result]: Parameters<typeof getNextPaginationState>
+          ) =>
+            getNextPaginationState(context, {
+              ...result,
+              payload: aliasPaginationState(result.payload),
+            }),
           hasGetOnDeployNextDiscoveryState: true,
         }
       : {}),
