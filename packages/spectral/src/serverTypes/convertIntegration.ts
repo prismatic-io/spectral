@@ -78,12 +78,7 @@ import {
   type Input as ServerInput,
   type RequiredConfigVariable as ServerRequiredConfigVariable,
 } from "./integration";
-import {
-  aliasPaginationState,
-  createCNIComponentRefPerform,
-  createCNIPerform,
-  createCNIPollingPerform,
-} from "./perform";
+import { createCNIComponentRefPerform, createCNIPerform, createCNIPollingPerform } from "./perform";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 export const CONCURRENCY_LIMIT_MAX = 15;
@@ -91,11 +86,11 @@ export const CONCURRENCY_LIMIT_MIN = 2;
 
 /**
  * The wire-shape resolver synthesized by {@link normalizeBatchedFlow} and read by the trigger
- * reducer. Mirrors the server `Trigger`'s `resolveTriggerItems`/`getNextDiscoveryState` slots.
+ * reducer. Mirrors the server `Trigger`'s `resolveTriggerItems`/`getNextPaginationState` slots.
  */
 interface WireResolver {
   resolveItems?: (context: ActionContext, result: { payload: TriggerPayload }) => unknown[];
-  getNextDiscoveryState?: (
+  getNextPaginationState?: (
     context: ActionContext,
     result: { payload: TriggerPayload },
   ) => Record<string, unknown> | null;
@@ -112,27 +107,24 @@ const defaultResolveItems = (
 ) => result.payload.body.data as unknown[];
 
 /**
- * Default `getNextDiscoveryState`: a batched fire returns the next page's cursor as
- * `paginationState`; the wrapper {@link normalizeBatchedFlow} builds stamps it onto the wire
- * field `payload.discoveryState` (the name the backend's discovery loop reads). Reading it back
- * (defaulting to `null`) is the whole loop: a non-null value re-invokes the fire, `null` ends it.
- * Authors never write this. The wire name stays `discoveryState` — only the author surface uses
- * `paginationState`.
+ * Default `getNextPaginationState`: a batched fire returns the next page's cursor as
+ * `paginationState`, which the wrapper {@link normalizeBatchedFlow} builds stamps onto
+ * `payload.paginationState`. Reading it back (defaulting to `null`) is the whole loop: a
+ * non-null value re-invokes the fire, `null` ends it. Authors never write this.
  */
-const defaultGetNextDiscoveryState = (
+const defaultGetNextPaginationState = (
   _context: ActionContext,
-  result: { payload: { discoveryState?: Record<string, unknown> | null } },
-) => result.payload.discoveryState ?? null;
+  result: { payload: { paginationState?: Record<string, unknown> | null } },
+) => result.payload.paginationState ?? null;
 
 /**
  * Expands a flow's batched `trigger` (built with `batchFlowTrigger`) into the flat
  * `onTrigger`/`onDeployTrigger`/`triggerResolver`/`onDeployResolver` shape the rest of the
  * conversion pipeline already understands. The trigger fires return `{ items, paginationState? }`;
  * here we wrap each into a `TriggerPerformFunction` that emits `{ payload: { …payload, body: {
- * data: items }, discoveryState } }`, then synthesize the default `resolveItems` (reads the
- * items back) and `getNextDiscoveryState` (reads the cursor back). The author surface speaks
- * `paginationState`; this wrapper is the boundary where it is translated to/from the wire
- * `discoveryState`. Flows without a `trigger` pass through unchanged.
+ * data: items }, paginationState } }`, then synthesize the default `resolveItems` (reads the
+ * items back) and `getNextPaginationState` (reads the cursor back). Flows without a `trigger`
+ * pass through unchanged.
  *
  * Returns the same `Flow` type it received; the synthesized `triggerResolver`/`onDeployResolver`
  * are wire-only fields (not on the author-facing `Flow`), read downstream via `"x" in flow` checks.
@@ -156,22 +148,18 @@ const normalizeBatchedFlow = <
 
   // Wrap a batched fire (returns `{ items, paginationState?, response? }`) into a
   // TriggerPerformFunction that emits the wire payload shape: items at `body.data` and the
-  // next-page cursor at the wire field `discoveryState` (defaulting `null` to terminate the
-  // loop). This is the author/wire boundary: the incoming wire `discoveryState` is aliased to
-  // `paginationState` for the fire to read, and the cursor it returns is stamped back onto the
-  // wire `discoveryState` for `getNextDiscoveryState` to read straight back.
+  // next-page cursor at `paginationState` (defaulting `null` to terminate the loop). The
+  // incoming payload's `paginationState` was already consumed by the fire, so overwriting it
+  // with the returned cursor is safe — `getNextPaginationState` reads it straight back.
   const wrapFire =
     (fire: NonNullable<BatchTrigger<unknown>["onTrigger"]>) =>
     async (context: ActionContext, payload: TriggerPayload) => {
-      const { items, paginationState, response } = await fire(
-        context as never,
-        aliasPaginationState(payload) as never,
-      );
+      const { items, paginationState, response } = await fire(context as never, payload as never);
       return {
         payload: {
           ...payload,
           body: { data: items, contentType: "application/json" },
-          discoveryState: paginationState ?? null,
+          paginationState: paginationState ?? null,
         },
         ...(response ? { response } : {}),
       };
@@ -185,13 +173,13 @@ const normalizeBatchedFlow = <
     ...(onDeploy ? { onDeployTrigger: wrapFire(onDeploy) } : {}),
     triggerResolver: {
       resolveItems: defaultResolveItems,
-      getNextDiscoveryState: defaultGetNextDiscoveryState,
+      getNextPaginationState: defaultGetNextPaginationState,
     },
     ...(onDeploy
       ? {
           onDeployResolver: {
             resolveItems: defaultResolveItems,
-            getNextDiscoveryState: defaultGetNextDiscoveryState,
+            getNextPaginationState: defaultGetNextPaginationState,
           },
         }
       : {}),
@@ -898,7 +886,7 @@ export const convertFlow = <
   const onDeployResolver = "onDeployResolver" in flow ? flow.onDeployResolver : undefined;
   const batchConfig = "batchConfig" in flow ? flow.batchConfig : undefined;
 
-  // Resolver behaviors (resolveItems/getNextDiscoveryState) are serialized onto the
+  // Resolver behaviors (resolveItems/getNextPaginationState) are serialized onto the
   // synthesized trigger below. On the flow wire we emit only `triggerResolver`, the single
   // config the platform reads (`trigger_resolver_batch_size` / `trigger_resolver_enabled`)
   // and shares between the normal and on-deploy fires. `batchConfig`/`onDeployResolver` are
@@ -1811,9 +1799,9 @@ const codeNativeIntegrationComponent = <
                     hasResolveTriggerItems: true,
                   }
                 : {}),
-              ...(triggerResolver.getNextDiscoveryState
+              ...(triggerResolver.getNextPaginationState
                 ? {
-                    getNextDiscoveryState: triggerResolver.getNextDiscoveryState,
+                    getNextPaginationState: triggerResolver.getNextPaginationState,
                     hasGetNextDiscoveryState: true,
                   }
                 : {}),
@@ -1838,9 +1826,9 @@ const codeNativeIntegrationComponent = <
                     hasResolveOnDeployItems: true,
                   }
                 : {}),
-              ...(onDeployResolver.getNextDiscoveryState
+              ...(onDeployResolver.getNextPaginationState
                 ? {
-                    getOnDeployNextDiscoveryState: onDeployResolver.getNextDiscoveryState,
+                    getOnDeployNextPaginationState: onDeployResolver.getNextPaginationState,
                     hasGetOnDeployNextDiscoveryState: true,
                   }
                 : {}),
