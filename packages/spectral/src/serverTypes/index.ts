@@ -201,7 +201,7 @@ export type TriggerEventFunction = (
 
 /**
  * Wire format the platform expects for a trigger. Note: function references
- * (perform, resolveTriggerItems, getNextDiscoveryState, ...) don't survive JSON
+ * (perform, resolveTriggerItems, getNextPaginationState, ...) don't survive JSON
  * serialization, so each callback has a paired `hasXxx: boolean` flag the
  * server reads to detect presence. Keep the flag and its callback in sync.
  *
@@ -267,7 +267,7 @@ export interface Trigger<
     result: TriggerBaseResult<TPayload>,
   ) => unknown[];
   hasResolveTriggerItems?: boolean;
-  getNextDiscoveryState?: (
+  getNextPaginationState?: (
     context: ActionContext<TConfigVars>,
     result: TriggerBaseResult<TPayload>,
   ) => Record<string, unknown> | null;
@@ -290,7 +290,7 @@ export interface Trigger<
     result: TriggerBaseResult<TPayload>,
   ) => unknown[];
   hasResolveOnDeployItems?: boolean;
-  getOnDeployNextDiscoveryState?: (
+  getOnDeployNextPaginationState?: (
     context: ActionContext<TConfigVars>,
     result: TriggerBaseResult<TPayload>,
   ) => Record<string, unknown> | null;

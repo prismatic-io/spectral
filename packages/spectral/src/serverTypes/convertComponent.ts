@@ -32,7 +32,6 @@ import type {
 } from ".";
 import {
   type CleanFn,
-  aliasPaginationState,
   cleanParams,
   createPerform,
   createPollingPerform,
@@ -201,20 +200,13 @@ const buildTriggerResolverFields = <
   return {
     ...(resolveItems
       ? {
-          resolveTriggerItems: (...[context, result]: Parameters<typeof resolveItems>) =>
-            resolveItems(context, { ...result, payload: aliasPaginationState(result.payload) }),
+          resolveTriggerItems: resolveItems,
           hasResolveTriggerItems: true,
         }
       : {}),
     ...(getNextPaginationState
       ? {
-          // Wire name stays `getNextDiscoveryState` (the backend contract); the author's
-          // `getNextPaginationState` reads the cursor as `paginationState` via the alias.
-          getNextDiscoveryState: (...[context, result]: Parameters<typeof getNextPaginationState>) =>
-            getNextPaginationState(context, {
-              ...result,
-              payload: aliasPaginationState(result.payload),
-            }),
+          getNextPaginationState,
           hasGetNextDiscoveryState: true,
         }
       : {}),
@@ -234,22 +226,13 @@ const buildOnDeployResolverFields = <
   return {
     ...(resolveItems
       ? {
-          resolveOnDeployItems: (...[context, result]: Parameters<typeof resolveItems>) =>
-            resolveItems(context, { ...result, payload: aliasPaginationState(result.payload) }),
+          resolveOnDeployItems: resolveItems,
           hasResolveOnDeployItems: true,
         }
       : {}),
     ...(getNextPaginationState
       ? {
-          // Wire name stays `getOnDeployNextDiscoveryState` (the backend contract); the author's
-          // `getNextPaginationState` reads the cursor as `paginationState` via the alias.
-          getOnDeployNextDiscoveryState: (
-            ...[context, result]: Parameters<typeof getNextPaginationState>
-          ) =>
-            getNextPaginationState(context, {
-              ...result,
-              payload: aliasPaginationState(result.payload),
-            }),
+          getOnDeployNextPaginationState: getNextPaginationState,
           hasGetOnDeployNextDiscoveryState: true,
         }
       : {}),

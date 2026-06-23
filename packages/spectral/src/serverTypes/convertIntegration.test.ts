@@ -147,7 +147,7 @@ describe("convertFlow with polling triggers", () => {
     );
   });
 
-  it("synthesizes the default resolveItems and getNextDiscoveryState on the trigger", () => {
+  it("synthesizes the default resolveItems and getNextPaginationState on the trigger", () => {
     const batchedFlow = flow({
       ...baseFlowInput,
       batchConfig: { batchSize: 10 },
@@ -174,23 +174,22 @@ describe("convertFlow with polling triggers", () => {
       result: { payload: { body: { data: unknown } } },
     ) => unknown[];
     expect(resolveTriggerItems({}, { payload: { body: { data: [7, 8, 9] } } })).toEqual([7, 8, 9]);
-    const getNextDiscoveryState = trigger.getNextDiscoveryState as (
+    const getNextPaginationState = trigger.getNextPaginationState as (
       ctx: unknown,
-      result: { payload: { discoveryState?: unknown } },
+      result: { payload: { paginationState?: unknown } },
     ) => unknown;
-    expect(getNextDiscoveryState({}, { payload: { discoveryState: { cursor: 2 } } })).toEqual({
+    expect(getNextPaginationState({}, { payload: { paginationState: { cursor: 2 } } })).toEqual({
       cursor: 2,
     });
-    expect(getNextDiscoveryState({}, { payload: {} })).toBeNull();
+    expect(getNextPaginationState({}, { payload: {} })).toBeNull();
   });
 
-  it("wraps the fire so items land at body.data and the returned cursor at discoveryState", async () => {
+  it("wraps the fire so items land at body.data and the returned cursor at paginationState", async () => {
     const batchedFlow = flow({
       ...baseFlowInput,
       batchConfig: { batchSize: 10 },
       trigger: batchFlowTrigger<number, { cursor: number }>({
         onTrigger: async (_ctx, payload) => {
-          // Author reads the cursor as `paginationState` (aliased from the wire `discoveryState`).
           const cursor = payload.paginationState?.cursor ?? 0;
           return cursor >= 2
             ? { items: [cursor] }
@@ -211,17 +210,15 @@ describe("convertFlow with polling triggers", () => {
       ctx: unknown,
       payload: unknown,
       params: unknown,
-    ) => Promise<{ payload: { body: { data: unknown }; discoveryState: unknown } }>;
+    ) => Promise<{ payload: { body: { data: unknown }; paginationState: unknown } }>;
 
-    // The platform stamps the cursor onto the wire `discoveryState`; the author's returned
-    // `paginationState` is stamped back onto the wire `discoveryState` for the loop to read.
-    const page1 = await perform({}, { discoveryState: { cursor: 1 } }, {});
+    const page1 = await perform({}, { paginationState: { cursor: 1 } }, {});
     expect(page1.payload.body.data).toEqual([1]);
-    expect(page1.payload.discoveryState).toEqual({ cursor: 2 });
+    expect(page1.payload.paginationState).toEqual({ cursor: 2 });
 
-    const page2 = await perform({}, { discoveryState: { cursor: 2 } }, {});
+    const page2 = await perform({}, { paginationState: { cursor: 2 } }, {});
     expect(page2.payload.body.data).toEqual([2]);
-    expect(page2.payload.discoveryState).toBeNull();
+    expect(page2.payload.paginationState).toBeNull();
   });
 
   it("maps the on-deploy fire and pagination onto the synthesized trigger", () => {
