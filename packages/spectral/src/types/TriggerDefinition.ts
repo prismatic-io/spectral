@@ -19,16 +19,16 @@ export type TriggerResolverDecl<
   TConfigVars extends ConfigVarResultCollection,
   TPayload extends TriggerPayload,
   TItem = unknown,
-  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
 > =
   | { triggerResolverSupport?: "invalid" | undefined; triggerResolver?: undefined }
   | {
       triggerResolverSupport: "valid";
-      triggerResolver?: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState>;
+      triggerResolver?: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TPaginationState>;
     }
   | {
       triggerResolverSupport: "required";
-      triggerResolver: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState>;
+      triggerResolver: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TPaginationState>;
     };
 
 /**
@@ -48,12 +48,12 @@ export type OnDeployDecl<
   TAllowsBranching extends boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload>,
   TItem = unknown,
-  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
 > =
   | { onDeployPerform?: undefined; onDeployResolver?: undefined }
   | {
       onDeployPerform: TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
-      onDeployResolver?: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TDiscoveryState>;
+      onDeployResolver?: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TPaginationState>;
     };
 
 const optionChoices = ["invalid", "valid", "required"] as const;
@@ -72,44 +72,44 @@ export const TriggerOptionChoices: TriggerOptionChoice[] = [...optionChoices];
  *
  *   perform ──▶ resolveItems ──▶ [batch of TItem] ──▶ onExecution
  *                    │
- *                    └─ getNextDiscoveryState ──▶ payload.discoveryState ──▶ next perform
+ *                    └─ getNextPaginationState ──▶ payload.paginationState ──▶ next perform
  *
  * @typeParam TItem - element produced by `resolveItems`. With `batchSize: 1`
  *   each execution receives one `TItem` as its trigger data; with `batchSize > 1`
  *   it receives a `TItem[]` slice.
- * @typeParam TDiscoveryState - the pagination cursor. Whatever
- *   `getNextDiscoveryState` returns is what the next round reads back on
- *   `payload.discoveryState` (see {@link TriggerPayload}). The `result.payload`
- *   passed to both callbacks has its `discoveryState` narrowed to this type, so
+ * @typeParam TPaginationState - the pagination cursor. Whatever
+ *   `getNextPaginationState` returns is what the next round reads back on
+ *   `payload.paginationState` (see {@link TriggerPayload}). The `result.payload`
+ *   passed to both callbacks has its `paginationState` narrowed to this type, so
  *   the cursor round-trip is checked end to end.
  */
 export interface TriggerResolverBehavior<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
-  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
 > {
   /** Extracts the items to dispatch from one trigger result. Receives the same context as the trigger's perform function. With `batchSize: 1` each item is delivered to its own execution; with `batchSize > 1` items are grouped into `TItem[]` slices. */
   resolveItems?: (
     context: ActionContext<TConfigVars>,
-    result: TriggerBaseResult<WithDiscoveryState<TPayload, TDiscoveryState>>,
+    result: TriggerBaseResult<WithPaginationState<TPayload, TPaginationState>>,
   ) => TItem[];
-  /** Returns the cursor for the next page, or `null` to stop. A non-null return re-invokes the trigger with this object stamped onto `payload.discoveryState`. */
-  getNextDiscoveryState?: (
+  /** Returns the cursor for the next page, or `null` to stop. A non-null return re-invokes the trigger with this object stamped onto `payload.paginationState`. */
+  getNextPaginationState?: (
     context: ActionContext<TConfigVars>,
-    result: TriggerBaseResult<WithDiscoveryState<TPayload, TDiscoveryState>>,
-  ) => TDiscoveryState | null;
+    result: TriggerBaseResult<WithPaginationState<TPayload, TPaginationState>>,
+  ) => TPaginationState | null;
 }
 
 /**
- * A trigger payload with its `discoveryState` field narrowed to `TDiscoveryState`,
+ * A trigger payload with its `paginationState` field narrowed to `TPaginationState`,
  * leaving every other field of `TPayload` intact. Lets a resolver type the cursor
  * it reads back independently of how the base payload was parameterized.
  */
-export type WithDiscoveryState<
+export type WithPaginationState<
   TPayload extends TriggerPayload,
-  TDiscoveryState extends Record<string, unknown>,
-> = Omit<TPayload, "discoveryState"> & { discoveryState?: TDiscoveryState };
+  TPaginationState extends Record<string, unknown>,
+> = Omit<TPayload, "paginationState"> & { paginationState?: TPaginationState };
 
 /**
  * The single batch-dispatch config shared by a trigger's `triggerResolver` and

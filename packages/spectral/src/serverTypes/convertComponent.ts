@@ -55,12 +55,24 @@ export const cleanerFor = (input: InputFieldDefinition): CleanFn | undefined => 
       }),
       {},
     );
-    return (value: unknown) => {
-      if (!isPlainObject(value)) {
-        return value;
-      }
-      return cleanParams(value, childCleaners);
-    };
+    const cleanRecord = (value: unknown) =>
+      isPlainObject(value) ? cleanParams(value, childCleaners) : value;
+    if (input.collection === "valuelist") {
+      return (value: unknown) => (Array.isArray(value) ? value.map(cleanRecord) : value);
+    }
+    if (input.collection === "keyvaluelist") {
+      // Entries arrive as KeyValuePair envelopes; the object to clean
+      // lives under `value`.
+      return (value: unknown) =>
+        Array.isArray(value)
+          ? value.map((entry) =>
+              isPlainObject(entry) && "value" in entry
+                ? { ...entry, value: cleanRecord(entry.value) }
+                : entry,
+            )
+          : value;
+    }
+    return cleanRecord;
   }
 
   if (input.type === "dynamicObject") {
@@ -184,16 +196,17 @@ const buildTriggerResolverFields = <
   if (!resolver) {
     return {};
   }
+  const { resolveItems, getNextPaginationState } = resolver;
   return {
-    ...(resolver.resolveItems
+    ...(resolveItems
       ? {
-          resolveTriggerItems: resolver.resolveItems,
+          resolveTriggerItems: resolveItems,
           hasResolveTriggerItems: true,
         }
       : {}),
-    ...(resolver.getNextDiscoveryState
+    ...(getNextPaginationState
       ? {
-          getNextDiscoveryState: resolver.getNextDiscoveryState,
+          getNextPaginationState,
           hasGetNextDiscoveryState: true,
         }
       : {}),
@@ -209,16 +222,17 @@ const buildOnDeployResolverFields = <
   if (!resolver) {
     return {};
   }
+  const { resolveItems, getNextPaginationState } = resolver;
   return {
-    ...(resolver.resolveItems
+    ...(resolveItems
       ? {
-          resolveOnDeployItems: resolver.resolveItems,
+          resolveOnDeployItems: resolveItems,
           hasResolveOnDeployItems: true,
         }
       : {}),
-    ...(resolver.getNextDiscoveryState
+    ...(getNextPaginationState
       ? {
-          getOnDeployNextDiscoveryState: resolver.getNextDiscoveryState,
+          getOnDeployNextPaginationState: getNextPaginationState,
           hasGetOnDeployNextDiscoveryState: true,
         }
       : {}),

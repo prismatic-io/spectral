@@ -155,7 +155,7 @@ export const flow = <
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
-  TDiscoveryState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
   T extends Flow<
     TInputs,
     TActionInputs,
@@ -164,7 +164,7 @@ export const flow = <
     TResult,
     TTriggerPayload,
     TItem,
-    TDiscoveryState
+    TPaginationState
   > = Flow<
     TInputs,
     TActionInputs,
@@ -173,32 +173,33 @@ export const flow = <
     TResult,
     TTriggerPayload,
     TItem,
-    TDiscoveryState
+    TPaginationState
   >,
 >(
-  // The intersection adds an explicit inference site for `TItem`/`TDiscoveryState` that the
+  // The intersection adds an explicit inference site for `TItem`/`TPaginationState` that the
   // `T extends Flow<...>` capture alone does not provide, while `T` still preserves the precise
   // literal type for the return value. They are inferred from a batched `trigger`'s
   // `items`/pagination-state types (see `batchFlowTrigger`).
   definition: T & {
-    trigger?: BatchTrigger<TItem, TDiscoveryState>;
+    trigger?: BatchTrigger<TItem, TPaginationState>;
   },
 ): T => definition;
 
 /**
  * Builds a flow's batched `trigger` — the ergonomic way to define a batching flow. Instead of
  * writing `onTrigger`/`onDeployTrigger` (returning a full payload) plus `triggerResolver`/
- * `onDeployResolver` (to extract and paginate), the trigger fires return just their `items` and
- * the pagination callbacks live alongside them. spectral wraps the items into the wire payload
- * and synthesizes the `resolveItems` that reads them back.
+ * `onDeployResolver` (to extract and paginate), each trigger fire returns `{ items,
+ * paginationState? }`: the records to dispatch and, when paginating, the cursor for the next
+ * page. spectral wraps the items into the wire payload and synthesizes the `resolveItems` and
+ * `getNextPaginationState` that read them back — there is no separate pagination callback.
  *
  * Supply the item and pagination-state types explicitly —
  * `batchFlowTrigger<Order, { cursor: number }>({ ... })`. They flow through the whole flow:
- * the trigger fires return `Order[]`, `payload.discoveryState` reads back as `{ cursor: number }`,
+ * the trigger fires return `Order[]`, `payload.paginationState` reads back as `{ cursor: number }`,
  * and the flow's `onExecution` sees `params.onTrigger.results.body.data` typed as `Order | Order[]`.
  *
  * @typeParam TItem - the item type each batched execution receives.
- * @typeParam TPaginationState - the pagination state round-tripped via `payload.discoveryState`.
+ * @typeParam TPaginationState - the pagination state round-tripped via `payload.paginationState`.
  * @see {@link https://prismatic.io/docs/integrations/code-native/flows/ | Code-Native Flows}
  * @example
  * import { flow, batchFlowTrigger } from "@prismatic-io/spectral";
@@ -209,12 +210,11 @@ export const flow = <
  *   batchConfig: { batchSize: 50 },
  *   trigger: batchFlowTrigger<Order, { cursor: number }>({
  *     onTrigger: async (context, payload) => {
- *       const page = await fetchOrders(payload.discoveryState?.cursor);
- *       return { items: page.orders };
- *     },
- *     getNextOnTriggerPaginationState: (context, result) => {
- *       const next = result.payload.discoveryState?.cursor;
- *       return next === undefined ? null : { cursor: next };
+ *       const page = await fetchOrders(payload.paginationState?.cursor);
+ *       return {
+ *         items: page.orders,
+ *         paginationState: page.nextCursor ? { cursor: page.nextCursor } : null,
+ *       };
  *     },
  *   }),
  *   onExecution: async (context, params) => {
