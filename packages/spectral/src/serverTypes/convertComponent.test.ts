@@ -4,6 +4,7 @@ import {
   component,
   connection,
   dynamicObjectInput,
+  ExperimentalPerformSupport,
   input,
   structuredObjectInput,
   trigger,
@@ -54,7 +55,7 @@ describe("convertAction", () => {
         },
         perform: async () => ({ data: null }),
         experimentalExamplePerform: examplePerform,
-        experimentalExamplePerformSupport: "safe",
+        experimentalExamplePerformSupport: "SAFE",
       }),
     );
 
@@ -68,20 +69,20 @@ describe("convertAction", () => {
     expect(result).toStrictEqual({ data: { count: 42 } });
   });
 
-  it("carries the support enums through to the server action", () => {
+  it("carries the support enums through to the server action (const companion)", () => {
     const converted = convertAction(
       "doThing",
       action({
         display: baseDisplay,
         inputs: {},
         perform: async () => ({ data: null }),
-        experimentalPerformSupport: "auto",
-        experimentalExamplePerformSupport: "notAllowed",
+        experimentalPerformSupport: ExperimentalPerformSupport.UNSAFE,
+        experimentalExamplePerformSupport: ExperimentalPerformSupport.NOT_ALLOWED,
       }),
     );
 
-    expect(converted.experimentalPerformSupport).toBe("auto");
-    expect(converted.experimentalExamplePerformSupport).toBe("notAllowed");
+    expect(converted.experimentalPerformSupport).toBe("UNSAFE");
+    expect(converted.experimentalExamplePerformSupport).toBe("NOT_ALLOWED");
   });
 
   it("omits experimentalExamplePerform when the author does not define it", () => {

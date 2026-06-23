@@ -7,11 +7,26 @@ import type { OutputSchema } from "./OutputSchema";
 
 /**
  * Declares whether an action's `perform` (or `experimentalExamplePerform`) may be
- * invoked inline to populate reference data in the Designer/EWB. `safe` means the
- * author attests it is safe to run as-is; `auto` lets the platform decide; `notAllowed`
- * opts out. Experimental — the name set and semantics may change before this graduates.
+ * invoked inline to populate reference data in the Designer/EWB. `SAFE` means the
+ * author attests it is safe to run as-is; `UNSAFE` means running it has side effects /
+ * is not safe to invoke automatically; `NOT_ALLOWED` opts out entirely.
+ *
+ * Values are SCREAMING_SNAKE_CASE to match the backend GraphQL enum member names
+ * verbatim — these strings are published and read back through GraphQL, where a
+ * graphene Enum serializes by member name (not value), and spectral does no enum
+ * value mapping. Experimental — the name set and semantics may change before this graduates.
+ *
+ * Exposed as a const companion so authors can reference `ExperimentalPerformSupport.SAFE`
+ * instead of the raw string; the plain literal `"SAFE"` is still accepted everywhere.
  */
-export type ExperimentalPerformSupport = "safe" | "auto" | "notAllowed";
+export const ExperimentalPerformSupport = {
+  SAFE: "SAFE",
+  UNSAFE: "UNSAFE",
+  NOT_ALLOWED: "NOT_ALLOWED",
+} as const;
+
+export type ExperimentalPerformSupport =
+  (typeof ExperimentalPerformSupport)[keyof typeof ExperimentalPerformSupport];
 
 /**
  * ActionDefinition is the type of the object that is passed in to `action` function to
