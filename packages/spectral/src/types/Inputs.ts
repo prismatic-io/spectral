@@ -417,6 +417,10 @@ export type StructuredObjectInputField = Omit<
 > & {
   /** Data type the input will collect. */
   type: "structuredObject";
+  /** Collection type of the input; when set, the input collects a list
+   * (`valuelist`) or keyed list (`keyvaluelist`) of objects instead of a
+   * single object. */
+  collection?: InputFieldCollection;
   /** Nested input fields keyed by their local key. */
   inputs: Record<string, LeafInputFieldDefinition>;
 };

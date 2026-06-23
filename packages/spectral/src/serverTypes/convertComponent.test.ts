@@ -79,6 +79,22 @@ describe("convertInput", () => {
     expect(converted.inputs).toBeUndefined();
   });
 
+  it("emits `collection` on a structuredObject input alongside nested children", () => {
+    const lines = structuredObjectInput({
+      label: "Lines",
+      collection: "valuelist",
+      inputs: {
+        amount: input({ type: "string", label: "Amount", required: true }),
+      },
+    });
+
+    const converted = convertInput("lines", lines);
+
+    expect(converted.type).toBe("structuredObject");
+    expect(converted.collection).toBe("valuelist");
+    expect(converted.inputs).toHaveLength(1);
+  });
+
   it("converts a dynamicObject input with configurations and nested children", () => {
     const data = dynamicObjectInput({
       label: "Record Data",
@@ -320,6 +336,70 @@ describe("cleanerFor", () => {
 
       expect(cleaner?.(undefined)).toBeUndefined();
       expect(cleaner?.(null)).toBeNull();
+    });
+
+    describe("with collection", () => {
+      const valuelistDefinition = structuredObjectInput({
+        label: "Lines",
+        collection: "valuelist",
+        inputs: {
+          amount: input({ type: "string", label: "Amount", clean: (v) => Number(v) }),
+        },
+      });
+
+      it("cleans each element of a valuelist", () => {
+        const cleaner = cleanerFor(valuelistDefinition);
+        expect(cleaner?.([{ amount: "1" }, { amount: "2" }])).toStrictEqual([
+          { amount: 1 },
+          { amount: 2 },
+        ]);
+      });
+
+      it("passes through a non-array valuelist value unchanged", () => {
+        const cleaner = cleanerFor(valuelistDefinition);
+        expect(cleaner?.({ amount: "1" })).toStrictEqual({ amount: "1" });
+        expect(cleaner?.(undefined)).toBeUndefined();
+      });
+
+      it("cleans the record under each keyvaluelist entry's `value`", () => {
+        const cleaner = cleanerFor(
+          structuredObjectInput({
+            label: "Attributes",
+            collection: "keyvaluelist",
+            inputs: {
+              amount: input({ type: "string", label: "Amount", clean: (v) => Number(v) }),
+            },
+          }),
+        );
+
+        expect(
+          cleaner?.([
+            { key: "a", value: { amount: "1" } },
+            { key: "b", value: { amount: "2" } },
+          ]),
+        ).toStrictEqual([
+          { key: "a", value: { amount: 1 } },
+          { key: "b", value: { amount: 2 } },
+        ]);
+      });
+
+      it("leaves malformed keyvaluelist entries untouched", () => {
+        const cleaner = cleanerFor(
+          structuredObjectInput({
+            label: "Attributes",
+            collection: "keyvaluelist",
+            inputs: {
+              amount: input({ type: "string", label: "Amount", clean: (v) => Number(v) }),
+            },
+          }),
+        );
+
+        expect(cleaner?.(["bare-string", { noValueKey: true }])).toStrictEqual([
+          "bare-string",
+          { noValueKey: true },
+        ]);
+        expect(cleaner?.({ amount: "1" })).toStrictEqual({ amount: "1" });
+      });
     });
   });
 

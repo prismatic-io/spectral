@@ -101,7 +101,7 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
 
 const getInputValueType = (input: ServerTypeInput): ValueType => {
   if (input.type === "structuredObject") {
-    return structuredObjectTypeString(input.inputs ?? []);
+    return wrapCollection(structuredObjectTypeString(input.inputs ?? []), input.collection);
   }
 
   if (input.type === "dynamicObject") {
@@ -189,7 +189,7 @@ const getLeafBaseType = (child: ServerTypeInput): string => {
 
 const getLeafTypeString = (child: ServerTypeInput): string => {
   if (child.type === "structuredObject") {
-    return structuredObjectTypeString(child.inputs ?? []);
+    return wrapCollection(structuredObjectTypeString(child.inputs ?? []), child.collection);
   }
 
   return wrapCollection(getLeafBaseType(child), child.collection);
