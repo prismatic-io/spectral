@@ -390,7 +390,7 @@ export const convertAction = (
     inputs = {},
     perform,
     outputSchema,
-    experimentalExamplePerform,
+    examplePerform,
     ...action
   }: ActionDefinition<Inputs, any, boolean, any>,
   hooks?: ComponentHooks,
@@ -410,9 +410,9 @@ export const convertAction = (
       errorHandler: hooks?.error,
     }),
     ...(outputSchema ? { outputSchema: convertOutputSchema(outputSchema) } : {}),
-    ...(experimentalExamplePerform
+    ...(examplePerform
       ? {
-          experimentalExamplePerform: createPerform(experimentalExamplePerform, {
+          examplePerform: createPerform(examplePerform, {
             inputCleaners,
             errorHandler: hooks?.error,
           }),

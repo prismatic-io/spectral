@@ -4,8 +4,8 @@ import {
   component,
   connection,
   dynamicObjectInput,
-  ExperimentalPerformSupport,
   input,
+  PerformSupport,
   structuredObjectInput,
   trigger,
 } from "..";
@@ -41,7 +41,7 @@ describe("convertConnection", () => {
 describe("convertAction", () => {
   const baseDisplay = { label: "Do Thing", description: "Does a thing." };
 
-  it("wraps experimentalExamplePerform so it is invokable with input cleaning applied", async () => {
+  it("wraps examplePerform so it is invokable with input cleaning applied", async () => {
     const examplePerform = vi.fn(async (_context: any, params: any) => ({
       data: params,
     }));
@@ -54,15 +54,15 @@ describe("convertAction", () => {
           count: input({ type: "string", label: "Count", clean: (v) => Number(v) }),
         },
         perform: async () => ({ data: null }),
-        experimentalExamplePerform: examplePerform,
-        experimentalExamplePerformSupport: "SAFE",
+        examplePerform: examplePerform,
+        examplePerformSupport: "SAFE",
       }),
     );
 
-    expect(converted.experimentalExamplePerform).toBeDefined();
-    expect(typeof converted.experimentalExamplePerform).toBe("function");
+    expect(converted.examplePerform).toBeDefined();
+    expect(typeof converted.examplePerform).toBe("function");
 
-    const result = await converted.experimentalExamplePerform?.({} as any, { count: "42" });
+    const result = await converted.examplePerform?.({} as any, { count: "42" });
 
     // The cleaner ran ("42" -> 42) before reaching the author's example perform.
     expect(examplePerform).toHaveBeenCalledWith(expect.anything(), { count: 42 });
@@ -76,16 +76,16 @@ describe("convertAction", () => {
         display: baseDisplay,
         inputs: {},
         perform: async () => ({ data: null }),
-        experimentalPerformSupport: ExperimentalPerformSupport.UNSAFE,
-        experimentalExamplePerformSupport: ExperimentalPerformSupport.NOT_ALLOWED,
+        performSupport: PerformSupport.UNSAFE,
+        examplePerformSupport: PerformSupport.NOT_ALLOWED,
       }),
     );
 
-    expect(converted.experimentalPerformSupport).toBe("UNSAFE");
-    expect(converted.experimentalExamplePerformSupport).toBe("NOT_ALLOWED");
+    expect(converted.performSupport).toBe("UNSAFE");
+    expect(converted.examplePerformSupport).toBe("NOT_ALLOWED");
   });
 
-  it("omits experimentalExamplePerform when the author does not define it", () => {
+  it("omits examplePerform when the author does not define it", () => {
     const converted = convertAction(
       "doThing",
       action({
@@ -96,9 +96,9 @@ describe("convertAction", () => {
     );
 
     // Must be absent, not an unwrapped/throwing function leaked via the spread.
-    expect("experimentalExamplePerform" in converted).toBe(false);
-    expect(converted.experimentalExamplePerformSupport).toBeUndefined();
-    expect(converted.experimentalPerformSupport).toBeUndefined();
+    expect("examplePerform" in converted).toBe(false);
+    expect(converted.examplePerformSupport).toBeUndefined();
+    expect(converted.performSupport).toBeUndefined();
   });
 });
 

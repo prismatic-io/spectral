@@ -1,6 +1,6 @@
 import type { Action, Component, DataSource, Trigger, TriggerPayload } from "../../serverTypes";
 import type { ConfigVarResultCollection, Inputs } from "../../types";
-import type { ExperimentalPerformSupport } from "../../types/ActionDefinition";
+import type { PerformSupport } from "../../types/ActionDefinition";
 import type { TriggerResult } from "../../types/TriggerResult";
 
 export interface ComponentNode {
@@ -31,8 +31,8 @@ export interface ActionNode {
     nodes: InputNode[];
   };
   examplePayload: string | null;
-  experimentalExamplePerformSupport: ExperimentalPerformSupport | null;
-  experimentalPerformSupport: ExperimentalPerformSupport | null;
+  examplePerformSupport: PerformSupport | null;
+  performSupport: PerformSupport | null;
 }
 
 export interface ConnectionNode {
@@ -61,8 +61,8 @@ export type FormattedAction = Pick<
   | "display"
   | "inputs"
   | "examplePayload"
-  | "experimentalExamplePerformSupport"
-  | "experimentalPerformSupport"
+  | "examplePerformSupport"
+  | "performSupport"
 > & {
   /** Emitted verbatim into the generated manifest; shape mirrors `examplePayload`. */
   outputSchema?: unknown;

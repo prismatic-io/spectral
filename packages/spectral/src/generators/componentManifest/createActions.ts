@@ -1,6 +1,6 @@
 import path from "path";
 import type { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
-import type { ExperimentalPerformSupport } from "../../types/ActionDefinition";
+import type { PerformSupport } from "../../types/ActionDefinition";
 import type { ComponentForManifest } from "../cniComponentManifest/types";
 import { createImport } from "../utils/createImport";
 import { createTemplate } from "../utils/createTemplate";
@@ -92,11 +92,11 @@ export const createActions = async <
           inputs,
           ...(action.examplePayload ? { examplePayload: action.examplePayload } : {}),
           ...(action.outputSchema ? { outputSchema: action.outputSchema } : {}),
-          ...(action.experimentalExamplePerformSupport
-            ? { experimentalExamplePerformSupport: action.experimentalExamplePerformSupport }
+          ...(action.examplePerformSupport
+            ? { examplePerformSupport: action.examplePerformSupport }
             : {}),
-          ...(action.experimentalPerformSupport
-            ? { experimentalPerformSupport: action.experimentalPerformSupport }
+          ...(action.performSupport
+            ? { performSupport: action.performSupport }
             : {}),
           componentKey: component.key,
         },
@@ -157,8 +157,8 @@ interface RenderActionProps {
     inputs: Input[];
     examplePayload?: unknown;
     outputSchema?: unknown;
-    experimentalExamplePerformSupport?: ExperimentalPerformSupport;
-    experimentalPerformSupport?: ExperimentalPerformSupport;
+    examplePerformSupport?: PerformSupport;
+    performSupport?: PerformSupport;
     componentKey: string;
   };
   dryRun: boolean;

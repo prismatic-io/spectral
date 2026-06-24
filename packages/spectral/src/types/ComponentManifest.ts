@@ -1,4 +1,4 @@
-import type { ExperimentalPerformSupport } from "./ActionDefinition";
+import type { PerformSupport } from "./ActionDefinition";
 import type { CollectionType } from "./ConfigVars";
 import type { DataSourceType } from "./DataSourceResult";
 import type { InputFieldType } from "./Inputs";
@@ -26,9 +26,9 @@ export interface ComponentManifestAction {
   perform: (values: any) => Promise<unknown>;
   // Typed for completeness; the manifest generator emits no stub for it (it's invoked via
   // the published server action, not the manifest).
-  experimentalExamplePerform?: (values: any) => Promise<unknown>;
-  experimentalExamplePerformSupport?: ExperimentalPerformSupport;
-  experimentalPerformSupport?: ExperimentalPerformSupport;
+  examplePerform?: (values: any) => Promise<unknown>;
+  examplePerformSupport?: PerformSupport;
+  performSupport?: PerformSupport;
   inputs: Record<string, BaseInput>;
   examplePayload?: unknown;
   /** Declares the shape of this action's output `data` as a JSON Schema (discriminated union: actionOutput | branchingOutput). */

@@ -10,14 +10,14 @@ import type { OutputSchema } from "./OutputSchema";
  * `SAFE` to run as-is, `UNSAFE` if running has side effects, `NOT_ALLOWED` to opt out.
  * Values are SCREAMING_SNAKE to match the backend GraphQL enum member names verbatim.
  */
-export const ExperimentalPerformSupport = {
+export const PerformSupport = {
   SAFE: "SAFE",
   UNSAFE: "UNSAFE",
   NOT_ALLOWED: "NOT_ALLOWED",
 } as const;
 
-export type ExperimentalPerformSupport =
-  (typeof ExperimentalPerformSupport)[keyof typeof ExperimentalPerformSupport];
+export type PerformSupport =
+  (typeof PerformSupport)[keyof typeof PerformSupport];
 
 /**
  * ActionDefinition is the type of the object that is passed in to `action` function to
@@ -43,15 +43,15 @@ export interface ActionDefinition<
     TAllowsBranching,
     TReturn
   >;
-  experimentalExamplePerform?: ActionPerformFunction<
+  examplePerform?: ActionPerformFunction<
     TInputs,
     TConfigVars,
     Record<string, Record<string, ComponentManifestAction>>,
     TAllowsBranching,
     TReturn
   >;
-  experimentalExamplePerformSupport?: ExperimentalPerformSupport;
-  experimentalPerformSupport?: ExperimentalPerformSupport;
+  examplePerformSupport?: PerformSupport;
+  performSupport?: PerformSupport;
   /**
    * The inputs to present a low-code integration builder. Values of these inputs
    * are passed to the `perform` function when the action is invoked.
