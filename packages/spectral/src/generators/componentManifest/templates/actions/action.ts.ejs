@@ -28,10 +28,10 @@ export const <%= action.import %> = {
   <%_ if (action.outputSchema) { -%>
   outputSchema: <%- typeof action.outputSchema === 'string' ? action.outputSchema : JSON.stringify(action.outputSchema, null, 2) %>,
   <%_ } -%>
-  <%_ if (action.examplePerformSupport) { -%>
-  examplePerformSupport: "<%= action.examplePerformSupport %>",
+  <%_ if (action.examplePerformSafety) { -%>
+  examplePerformSafety: "<%= action.examplePerformSafety %>",
   <%_ } -%>
-  <%_ if (action.performSupport) { -%>
-  performSupport: "<%= action.performSupport %>",
+  <%_ if (action.performSafety) { -%>
+  performSafety: "<%= action.performSafety %>",
   <%_ } -%>
 } as const;

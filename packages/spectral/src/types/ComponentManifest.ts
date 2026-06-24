@@ -1,4 +1,4 @@
-import type { PerformSupport } from "./ActionDefinition";
+import type { PerformSafety } from "./ActionDefinition";
 import type { CollectionType } from "./ConfigVars";
 import type { DataSourceType } from "./DataSourceResult";
 import type { InputFieldType } from "./Inputs";
@@ -27,8 +27,8 @@ export interface ComponentManifestAction {
   // Typed for completeness; the manifest generator emits no stub for it (it's invoked via
   // the published server action, not the manifest).
   examplePerform?: (values: any) => Promise<unknown>;
-  examplePerformSupport?: PerformSupport;
-  performSupport?: PerformSupport;
+  examplePerformSafety?: PerformSafety;
+  performSafety?: PerformSafety;
   inputs: Record<string, BaseInput>;
   examplePayload?: unknown;
   /** Declares the shape of this action's output `data` as a JSON Schema (discriminated union: actionOutput | branchingOutput). */

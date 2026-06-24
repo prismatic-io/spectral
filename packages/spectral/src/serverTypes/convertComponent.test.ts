@@ -5,7 +5,7 @@ import {
   connection,
   dynamicObjectInput,
   input,
-  PerformSupport,
+  PerformSafety,
   structuredObjectInput,
   trigger,
 } from "..";
@@ -55,7 +55,7 @@ describe("convertAction", () => {
         },
         perform: async () => ({ data: null }),
         examplePerform: examplePerform,
-        examplePerformSupport: PerformSupport.SAFE,
+        examplePerformSafety: PerformSafety.SAFE,
       }),
     );
 
@@ -69,20 +69,20 @@ describe("convertAction", () => {
     expect(result).toStrictEqual({ data: { count: 42 } });
   });
 
-  it("carries the support enums through to the server action (const companion)", () => {
+  it("carries the safety enums through to the server action (const companion)", () => {
     const converted = convertAction(
       "doThing",
       action({
         display: baseDisplay,
         inputs: {},
         perform: async () => ({ data: null }),
-        performSupport: PerformSupport.UNSAFE,
-        examplePerformSupport: PerformSupport.NOT_ALLOWED,
+        performSafety: PerformSafety.UNSAFE,
+        examplePerformSafety: PerformSafety.NOT_ALLOWED,
       }),
     );
 
-    expect(converted.performSupport).toBe("UNSAFE");
-    expect(converted.examplePerformSupport).toBe("NOT_ALLOWED");
+    expect(converted.performSafety).toBe("UNSAFE");
+    expect(converted.examplePerformSafety).toBe("NOT_ALLOWED");
   });
 
   it("omits examplePerform when the author does not define it", () => {
@@ -97,8 +97,8 @@ describe("convertAction", () => {
 
     // Must be absent, not an unwrapped/throwing function leaked via the spread.
     expect("examplePerform" in converted).toBe(false);
-    expect(converted.examplePerformSupport).toBeUndefined();
-    expect(converted.performSupport).toBeUndefined();
+    expect(converted.examplePerformSafety).toBeUndefined();
+    expect(converted.performSafety).toBeUndefined();
   });
 });
 

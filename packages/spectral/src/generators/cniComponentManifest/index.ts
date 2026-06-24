@@ -151,12 +151,8 @@ export const fetchComponentDataForManifest = async <
           },
           inputs: transformInputNodes(node.inputs.nodes),
           examplePayload: node.examplePayload,
-          ...(node.examplePerformSupport
-            ? { examplePerformSupport: node.examplePerformSupport }
-            : {}),
-          ...(node.performSupport
-            ? { performSupport: node.performSupport }
-            : {}),
+          ...(node.examplePerformSafety ? { examplePerformSafety: node.examplePerformSafety } : {}),
+          ...(node.performSafety ? { performSafety: node.performSafety } : {}),
         };
       }
     });
@@ -271,8 +267,8 @@ async function getComponentActions(componentId: string, prismaticUrl: string, ac
                 }
               }
               examplePayload
-              examplePerformSupport
-              performSupport
+              examplePerformSafety
+              performSafety
             }
             pageInfo {
               hasNextPage

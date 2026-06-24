@@ -9,13 +9,13 @@ import type {
   DataSourceType,
   DebugContext,
   ExecutionFrame,
-  PerformSupport,
   FlowAttributes,
   FlowInvoker,
   FlowSchemas,
   Inputs,
   InstanceAttributes,
   IntegrationAttributes,
+  PerformSafety,
   PollingTriggerPerformFunction,
   TriggerEventFunctionReturn,
   TriggerPerformFunction,
@@ -91,8 +91,8 @@ export interface Action {
    */
   outputSchema?: ServerOutputSchema;
   examplePerform?: ActionPerformFunction;
-  examplePerformSupport?: PerformSupport;
-  performSupport?: PerformSupport;
+  examplePerformSafety?: PerformSafety;
+  performSafety?: PerformSafety;
 }
 
 export type ServerOutputSchema =

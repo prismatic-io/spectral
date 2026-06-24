@@ -1,6 +1,6 @@
 import path from "path";
 import type { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
-import type { PerformSupport } from "../../types/ActionDefinition";
+import type { PerformSafety } from "../../types/ActionDefinition";
 import type { ComponentForManifest } from "../cniComponentManifest/types";
 import { createImport } from "../utils/createImport";
 import { createTemplate } from "../utils/createTemplate";
@@ -92,12 +92,10 @@ export const createActions = async <
           inputs,
           ...(action.examplePayload ? { examplePayload: action.examplePayload } : {}),
           ...(action.outputSchema ? { outputSchema: action.outputSchema } : {}),
-          ...(action.examplePerformSupport
-            ? { examplePerformSupport: action.examplePerformSupport }
+          ...(action.examplePerformSafety
+            ? { examplePerformSafety: action.examplePerformSafety }
             : {}),
-          ...(action.performSupport
-            ? { performSupport: action.performSupport }
-            : {}),
+          ...(action.performSafety ? { performSafety: action.performSafety } : {}),
           componentKey: component.key,
         },
         imports,
@@ -157,8 +155,8 @@ interface RenderActionProps {
     inputs: Input[];
     examplePayload?: unknown;
     outputSchema?: unknown;
-    examplePerformSupport?: PerformSupport;
-    performSupport?: PerformSupport;
+    examplePerformSafety?: PerformSafety;
+    performSafety?: PerformSafety;
     componentKey: string;
   };
   dryRun: boolean;
