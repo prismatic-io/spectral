@@ -24,13 +24,8 @@ interface BaseInput {
 export interface ComponentManifestAction {
   key?: string;
   perform: (values: any) => Promise<unknown>;
-  /**
-   * Present only on manifests whose source carries an example perform. The generated
-   * manifest does not synthesize a delegating stub for it (there is no runtime
-   * `context.components` channel to delegate to, unlike `perform`); the example perform
-   * is invoked via the published server action. The `*Support` flags are the part the
-   * frontend reads from the manifest.
-   */
+  // Typed for completeness; the manifest generator emits no stub for it (it's invoked via
+  // the published server action, not the manifest).
   experimentalExamplePerform?: (values: any) => Promise<unknown>;
   experimentalExamplePerformSupport?: ExperimentalPerformSupport;
   experimentalPerformSupport?: ExperimentalPerformSupport;

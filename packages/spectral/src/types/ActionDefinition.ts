@@ -6,18 +6,9 @@ import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { OutputSchema } from "./OutputSchema";
 
 /**
- * Declares whether an action's `perform` (or `experimentalExamplePerform`) may be
- * invoked inline to populate reference data in the Designer/EWB. `SAFE` means the
- * author attests it is safe to run as-is; `UNSAFE` means running it has side effects /
- * is not safe to invoke automatically; `NOT_ALLOWED` opts out entirely.
- *
- * Values are SCREAMING_SNAKE_CASE to match the backend GraphQL enum member names
- * verbatim — these strings are published and read back through GraphQL, where a
- * graphene Enum serializes by member name (not value), and spectral does no enum
- * value mapping. Experimental — the name set and semantics may change before this graduates.
- *
- * Exposed as a const companion so authors can reference `ExperimentalPerformSupport.SAFE`
- * instead of the raw string; the plain literal `"SAFE"` is still accepted everywhere.
+ * Whether an action may be invoked inline to populate reference data in the Designer/EWB:
+ * `SAFE` to run as-is, `UNSAFE` if running has side effects, `NOT_ALLOWED` to opt out.
+ * Values are SCREAMING_SNAKE to match the backend GraphQL enum member names verbatim.
  */
 export const ExperimentalPerformSupport = {
   SAFE: "SAFE",
