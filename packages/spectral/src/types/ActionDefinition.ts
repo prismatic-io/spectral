@@ -6,9 +6,8 @@ import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { OutputSchema } from "./OutputSchema";
 
 /**
- * Whether an action may be invoked inline to populate reference data in the Designer/EWB:
+ * Whether an action may be invoked inline to populate reference data in the Prismatic UI:
  * `SAFE` to run as-is, `UNSAFE` if running has side effects, `NOT_ALLOWED` to opt out.
- * Values are SCREAMING_SNAKE to match the backend GraphQL enum member names verbatim.
  */
 export const PerformSupport = {
   SAFE: "SAFE",
