@@ -55,7 +55,7 @@ describe("convertAction", () => {
         },
         perform: async () => ({ data: null }),
         examplePerform: examplePerform,
-        examplePerformSupport: "SAFE",
+        examplePerformSupport: PerformSupport.SAFE,
       }),
     );
 
