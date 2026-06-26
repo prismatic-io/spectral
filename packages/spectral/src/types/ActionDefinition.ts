@@ -3,6 +3,7 @@ import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type { ComponentManifestAction } from "./ComponentManifest";
 import type { ActionDisplayDefinition } from "./DisplayDefinition";
 import type { ConfigVarResultCollection, Inputs } from "./Inputs";
+import type { OutputSchema } from "./OutputSchema";
 
 /**
  * ActionDefinition is the type of the object that is passed in to `action` function to
@@ -52,4 +53,18 @@ export interface ActionDefinition<
   dynamicBranchInput?: string;
   /** An example of the payload output by this action. */
   examplePayload?: Awaited<ReturnType<this["perform"]>>;
+  /**
+   * Declares the shape of this action's output `data` as a JSON Schema, used by
+   * the Prismatic UI to let integration authors reference this step's output
+   * before a real execution has produced data. A discriminated union:
+   * `{ type: "actionOutput", schema }` for a single payload shape, or
+   * `{ type: "branchingOutput", branchSchemas }` for a per-branch map of shapes.
+   * Descriptive only — it is not enforced at runtime.
+   *
+   * @remarks
+   * Describes the `data` payload only, not the full return envelope
+   * (`statusCode`, `contentType`, state fields). `branchingOutput` requires
+   * `staticBranchNames`; it is not supported with `dynamicBranchInput`.
+   */
+  outputSchema?: OutputSchema;
 }

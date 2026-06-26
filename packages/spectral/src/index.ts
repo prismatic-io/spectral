@@ -29,6 +29,7 @@ import type {
   OAuth2ConnectionDefinition,
   OnPremConnectionDefinition,
   OrganizationActivatedConnectionConfigVar,
+  OutputSchema,
   StandardConfigVar,
   StructuredObjectInputField,
   TriggerDefinition,
@@ -523,6 +524,41 @@ export const action = <
 >(
   definition: ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn>,
 ): ActionDefinition<TInputs, TConfigVars, TAllowsBranching, TReturn> => definition;
+
+/**
+ * Declares the output schema for an action and preserves its literal types,
+ * so authors don't need a trailing `as const` (or `satisfies OutputSchema`)
+ * to keep the `type` discriminant from widening to `string`.
+ *
+ * Wrapping the schema in this helper lets it be hoisted into a standalone
+ * variable and still satisfy the {@link OutputSchema} discriminated union:
+ *
+ * @example
+ * import { action, outputSchema } from "@prismatic-io/spectral";
+ *
+ * // Hoisted out of the action — no `as const` needed.
+ * const listItemsOutput = outputSchema({
+ *   type: "actionOutput",
+ *   schema: {
+ *     type: "object",
+ *     properties: { items: { type: "array" } },
+ *   },
+ * });
+ *
+ * export const listItems = action({
+ *   display: { label: "List Items", description: "..." },
+ *   inputs: {},
+ *   perform: async () => ({ data: { items: [] } }),
+ *   outputSchema: listItemsOutput,
+ * });
+ *
+ * @param definition An {@link OutputSchema} object — either an `actionOutput`
+ *   single-payload schema or a `branchingOutput` per-branch map.
+ * @returns The same object, typed with its literal discriminant preserved.
+ */
+export const outputSchema = <const TOutputSchema extends OutputSchema>(
+  definition: TOutputSchema,
+): TOutputSchema => definition;
 
 /**
  * This function creates a trigger object that can be referenced

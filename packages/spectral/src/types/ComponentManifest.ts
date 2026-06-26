@@ -1,6 +1,7 @@
 import type { CollectionType } from "./ConfigVars";
 import type { DataSourceType } from "./DataSourceResult";
 import type { InputFieldType } from "./Inputs";
+import type { OutputSchema } from "./OutputSchema";
 
 export interface ComponentManifest {
   key: string;
@@ -24,6 +25,8 @@ export interface ComponentManifestAction {
   perform: (values: any) => Promise<unknown>;
   inputs: Record<string, BaseInput>;
   examplePayload?: unknown;
+  /** Declares the shape of this action's output `data` as a JSON Schema (discriminated union: actionOutput | branchingOutput). */
+  outputSchema?: OutputSchema;
 }
 
 export interface ComponentManifestTrigger {

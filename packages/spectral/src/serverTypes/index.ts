@@ -81,7 +81,19 @@ export interface Action {
   dynamicBranchInput?: string;
   perform: ActionPerformFunction;
   examplePayload?: unknown;
+  /**
+   * The on-the-wire form of an action's `outputSchema`, as accepted by the
+   * `PublishComponent` mutation. JSON Schemas are serialized to strings and the
+   * branching variant's per-branch map is flattened to a `{ name, schema }`
+   * list (GraphQL input has no map type). Produced by `convertOutputSchema`
+   * from the author-facing `OutputSchema`.
+   */
+  outputSchema?: ServerOutputSchema;
 }
+
+export type ServerOutputSchema =
+  | { type: "actionOutput"; schema: string }
+  | { type: "branchingOutput"; branchSchemas: Array<{ name: string; schema: string }> };
 
 export type ActionLoggerFunction = (...args: unknown[]) => void;
 
