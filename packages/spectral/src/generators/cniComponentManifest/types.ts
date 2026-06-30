@@ -1,5 +1,6 @@
 import type { Action, Component, DataSource, Trigger, TriggerPayload } from "../../serverTypes";
 import type { ConfigVarResultCollection, Inputs } from "../../types";
+import type { PerformSafety } from "../../types/ActionDefinition";
 import type { TriggerResult } from "../../types/TriggerResult";
 
 export interface ComponentNode {
@@ -30,6 +31,8 @@ export interface ActionNode {
     nodes: InputNode[];
   };
   examplePayload: string | null;
+  examplePerformSafety: PerformSafety | null;
+  performSafety: PerformSafety | null;
 }
 
 export interface ConnectionNode {
@@ -52,7 +55,10 @@ export interface InputNode {
   onPremiseControlled: boolean;
 }
 
-export type FormattedAction = Pick<Action, "key" | "display" | "inputs" | "examplePayload"> & {
+export type FormattedAction = Pick<
+  Action,
+  "key" | "display" | "inputs" | "examplePayload" | "examplePerformSafety" | "performSafety"
+> & {
   /** Emitted verbatim into the generated manifest; shape mirrors `examplePayload`. */
   outputSchema?: unknown;
 };
