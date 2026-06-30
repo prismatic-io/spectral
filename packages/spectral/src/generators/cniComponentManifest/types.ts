@@ -57,12 +57,7 @@ export interface InputNode {
 
 export type FormattedAction = Pick<
   Action,
-  | "key"
-  | "display"
-  | "inputs"
-  | "examplePayload"
-  | "examplePerformSafety"
-  | "performSafety"
+  "key" | "display" | "inputs" | "examplePayload" | "examplePerformSafety" | "performSafety"
 > & {
   /** Emitted verbatim into the generated manifest; shape mirrors `examplePayload`. */
   outputSchema?: unknown;
