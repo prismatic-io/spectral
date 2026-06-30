@@ -15,6 +15,7 @@ import type {
   Inputs,
   InstanceAttributes,
   IntegrationAttributes,
+  PerformSafety,
   PollingTriggerPerformFunction,
   TriggerEventFunctionReturn,
   TriggerPerformFunction,
@@ -89,6 +90,9 @@ export interface Action {
    * from the author-facing `OutputSchema`.
    */
   outputSchema?: ServerOutputSchema;
+  examplePerform?: ActionPerformFunction;
+  examplePerformSafety?: PerformSafety;
+  performSafety?: PerformSafety;
 }
 
 export type ServerOutputSchema =

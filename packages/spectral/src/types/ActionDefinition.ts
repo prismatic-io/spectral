@@ -6,6 +6,18 @@ import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { OutputSchema } from "./OutputSchema";
 
 /**
+ * Whether a perform is safe to invoke inline (to populate reference data in the Prismatic UI):
+ * `SAFE` to run as-is, `UNSAFE` if running has side effects, `NOT_ALLOWED` to opt out.
+ */
+export const PerformSafety = {
+  SAFE: "SAFE",
+  UNSAFE: "UNSAFE",
+  NOT_ALLOWED: "NOT_ALLOWED",
+} as const;
+
+export type PerformSafety = (typeof PerformSafety)[keyof typeof PerformSafety];
+
+/**
  * ActionDefinition is the type of the object that is passed in to `action` function to
  * define a component action. See
  * https://prismatic.io/docs/custom-connectors/actions/
@@ -29,6 +41,15 @@ export interface ActionDefinition<
     TAllowsBranching,
     TReturn
   >;
+  examplePerform?: ActionPerformFunction<
+    TInputs,
+    TConfigVars,
+    Record<string, Record<string, ComponentManifestAction>>,
+    TAllowsBranching,
+    TReturn
+  >;
+  examplePerformSafety?: PerformSafety;
+  performSafety?: PerformSafety;
   /**
    * The inputs to present a low-code integration builder. Values of these inputs
    * are passed to the `perform` function when the action is invoked.

@@ -5,11 +5,13 @@ import {
   connection,
   dynamicObjectInput,
   input,
+  PerformSafety,
   structuredObjectInput,
   trigger,
 } from "..";
 import {
   cleanerFor,
+  convertAction,
   convertConnection,
   convertInput,
   convertTemplateInput,
@@ -33,6 +35,70 @@ describe("convertConnection", () => {
     const convertedConnection = convertConnection(basicConnection);
     expect(convertedConnection.label).toBe(label);
     expect(convertedConnection.comments).toBe(description);
+  });
+});
+
+describe("convertAction", () => {
+  const baseDisplay = { label: "Do Thing", description: "Does a thing." };
+
+  it("wraps examplePerform so it is invokable with input cleaning applied", async () => {
+    const examplePerform = vi.fn(async (_context: any, params: any) => ({
+      data: params,
+    }));
+
+    const converted = convertAction(
+      "doThing",
+      action({
+        display: baseDisplay,
+        inputs: {
+          count: input({ type: "string", label: "Count", clean: (v) => Number(v) }),
+        },
+        perform: async () => ({ data: null }),
+        examplePerform: examplePerform,
+        examplePerformSafety: PerformSafety.SAFE,
+      }),
+    );
+
+    expect(converted.examplePerform).toBeDefined();
+    expect(typeof converted.examplePerform).toBe("function");
+
+    const result = await converted.examplePerform?.({} as any, { count: "42" });
+
+    // The cleaner ran ("42" -> 42) before reaching the author's example perform.
+    expect(examplePerform).toHaveBeenCalledWith(expect.anything(), { count: 42 });
+    expect(result).toStrictEqual({ data: { count: 42 } });
+  });
+
+  it("carries the safety enums through to the server action (const companion)", () => {
+    const converted = convertAction(
+      "doThing",
+      action({
+        display: baseDisplay,
+        inputs: {},
+        perform: async () => ({ data: null }),
+        performSafety: PerformSafety.UNSAFE,
+        examplePerformSafety: PerformSafety.NOT_ALLOWED,
+      }),
+    );
+
+    expect(converted.performSafety).toBe("UNSAFE");
+    expect(converted.examplePerformSafety).toBe("NOT_ALLOWED");
+  });
+
+  it("omits examplePerform when the author does not define it", () => {
+    const converted = convertAction(
+      "doThing",
+      action({
+        display: baseDisplay,
+        inputs: {},
+        perform: async () => ({ data: null }),
+      }),
+    );
+
+    // Must be absent, not an unwrapped/throwing function leaked via the spread.
+    expect("examplePerform" in converted).toBe(false);
+    expect(converted.examplePerformSafety).toBeUndefined();
+    expect(converted.performSafety).toBeUndefined();
   });
 });
 
