@@ -151,6 +151,8 @@ export const fetchComponentDataForManifest = async <
           },
           inputs: transformInputNodes(node.inputs.nodes),
           examplePayload: node.examplePayload,
+          ...(node.examplePerformSafety ? { examplePerformSafety: node.examplePerformSafety } : {}),
+          ...(node.performSafety ? { performSafety: node.performSafety } : {}),
         };
       }
     });
@@ -265,6 +267,8 @@ async function getComponentActions(componentId: string, prismaticUrl: string, ac
                 }
               }
               examplePayload
+              examplePerformSafety
+              performSafety
             }
             pageInfo {
               hasNextPage
