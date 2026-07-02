@@ -3,7 +3,7 @@
  * on publish — the converted server component `prism component publish` sends.
  *
  * Scope is conversion output only: which fields land on the wire, with what values.
- * It does not verify runtime dispatch (SAFE vs. UNSAFE vs. NOT_ALLOWED choosing
+ * It does not verify runtime dispatch (SAFE vs. NOT_ALLOWED choosing
  * which perform runs) — the safety flags are inert metadata spectral passes through
  * verbatim, and the runner decides at execution time.
  */
@@ -60,7 +60,7 @@ const testComponent = component({
       display: display("Runnable Perform Action"),
       inputs: sharedInputs,
       perform: noop,
-      performSafety: PerformSafety.UNSAFE,
+      performSafety: PerformSafety.SAFE,
     }),
     // D — real perform marked not runnable.
     notAllowedPerformAction: action({
@@ -94,9 +94,9 @@ describe("inline action calling: publish-wire conversion output", () => {
     expect(result.data.tags).toStrictEqual(["x"]);
   });
 
-  it("C — real-perform UNSAFE flag carried; no separate example perform", () => {
+  it("C — real-perform SAFE flag carried; no separate example perform", () => {
     const a = actionsByKey.runnablePerformAction;
-    expect(a.performSafety).toBe("UNSAFE");
+    expect(a.performSafety).toBe("SAFE");
     expect("examplePerform" in a).toBe(false);
     expect(a.examplePerformSafety).toBeUndefined();
   });
@@ -145,10 +145,10 @@ describe("inline action calling: component-manifest emit", () => {
   it("emits both *Safety scalars when present", async () => {
     const out = await render({
       examplePerformSafety: "SAFE",
-      performSafety: "UNSAFE",
+      performSafety: "NOT_ALLOWED",
     });
     expect(out).toContain('examplePerformSafety: "SAFE"');
-    expect(out).toContain('performSafety: "UNSAFE"');
+    expect(out).toContain('performSafety: "NOT_ALLOWED"');
   });
 
   it("emits a NOT_ALLOWED performSafety scalar verbatim", async () => {
@@ -165,7 +165,7 @@ describe("inline action calling: component-manifest emit", () => {
   it("never emits an examplePerform stub (invoked via the server action, not the manifest)", async () => {
     const out = await render({
       examplePerformSafety: "SAFE",
-      performSafety: "UNSAFE",
+      performSafety: "NOT_ALLOWED",
     });
     expect(out).not.toContain("examplePerform:");
   });
