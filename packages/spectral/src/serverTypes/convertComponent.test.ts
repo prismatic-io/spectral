@@ -76,12 +76,12 @@ describe("convertAction", () => {
         display: baseDisplay,
         inputs: {},
         perform: async () => ({ data: null }),
-        performSafety: PerformSafety.UNSAFE,
+        performSafety: PerformSafety.SAFE,
         examplePerformSafety: PerformSafety.NOT_ALLOWED,
       }),
     );
 
-    expect(converted.performSafety).toBe("UNSAFE");
+    expect(converted.performSafety).toBe("SAFE");
     expect(converted.examplePerformSafety).toBe("NOT_ALLOWED");
   });
 
