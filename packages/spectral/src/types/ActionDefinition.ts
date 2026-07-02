@@ -7,11 +7,10 @@ import type { OutputSchema } from "./OutputSchema";
 
 /**
  * Whether a perform is safe to invoke inline (to populate reference data in the Prismatic UI):
- * `SAFE` to run as-is, `UNSAFE` if running has side effects, `NOT_ALLOWED` to opt out.
+ * `SAFE` to run as-is, `NOT_ALLOWED` to opt out.
  */
 export const PerformSafety = {
   SAFE: "SAFE",
-  UNSAFE: "UNSAFE",
   NOT_ALLOWED: "NOT_ALLOWED",
 } as const;
 
