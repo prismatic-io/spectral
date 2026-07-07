@@ -45,11 +45,11 @@ jobs:
           client-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
         with:
           token: ${{ steps.app-token.outputs.token }}
 
-      - uses: jdx/mise-action@v4.1.0
+      - uses: jdx/mise-action@v4.2.0
 
       - run: mise run install
 
@@ -84,11 +84,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
         with:
           ref: ${{ needs.release.outputs.tag }}
 
-      - uses: jdx/mise-action@v4.1.0
+      - uses: jdx/mise-action@v4.2.0
 
       - run: mise run install
 
