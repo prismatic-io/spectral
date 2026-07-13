@@ -24,8 +24,6 @@ interface BaseInput {
 export interface ComponentManifestAction {
   key?: string;
   perform: (values: any) => Promise<unknown>;
-  // Typed for completeness; the manifest generator emits no stub for it (it's invoked via
-  // the published server action, not the manifest).
   examplePerform?: (values: any) => Promise<unknown>;
   examplePerformSafety?: PerformSafety;
   performSafety?: PerformSafety;
