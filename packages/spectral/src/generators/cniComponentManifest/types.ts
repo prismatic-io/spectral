@@ -1,6 +1,12 @@
-import type { Action, Component, DataSource, Trigger, TriggerPayload } from "../../serverTypes";
+import type {
+  Action,
+  Component,
+  DataSource,
+  PerformSafety,
+  Trigger,
+  TriggerPayload,
+} from "../../serverTypes";
 import type { ConfigVarResultCollection, Inputs } from "../../types";
-import type { PerformSafety } from "../../types/ActionDefinition";
 import type { TriggerResult } from "../../types/TriggerResult";
 
 export interface ComponentNode {

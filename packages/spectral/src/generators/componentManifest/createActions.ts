@@ -1,4 +1,5 @@
 import path from "path";
+import { fromServerPerformSafety } from "../../serverTypes/performSafety";
 import type { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
 import type { PerformSafety } from "../../types/ActionDefinition";
 import type { ComponentForManifest } from "../cniComponentManifest/types";
@@ -93,9 +94,11 @@ export const createActions = async <
           ...(action.examplePayload ? { examplePayload: action.examplePayload } : {}),
           ...(action.outputSchema ? { outputSchema: action.outputSchema } : {}),
           ...(action.examplePerformSafety
-            ? { examplePerformSafety: action.examplePerformSafety }
+            ? { examplePerformSafety: fromServerPerformSafety(action.examplePerformSafety) }
             : {}),
-          ...(action.performSafety ? { performSafety: action.performSafety } : {}),
+          ...(action.performSafety
+            ? { performSafety: fromServerPerformSafety(action.performSafety) }
+            : {}),
           componentKey: component.key,
         },
         imports,

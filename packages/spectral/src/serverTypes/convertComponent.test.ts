@@ -17,6 +17,22 @@ import {
   convertTemplateInput,
   convertTrigger,
 } from "./convertComponent";
+import { fromServerPerformSafety, toServerPerformSafety } from "./performSafety";
+
+describe("performSafety wire conversion", () => {
+  it("converts author values to GraphQL enum names and back", () => {
+    expect(toServerPerformSafety("safe")).toBe("SAFE");
+    expect(toServerPerformSafety("notAllowed")).toBe("NOT_ALLOWED");
+    expect(fromServerPerformSafety("SAFE")).toBe(PerformSafety.SAFE);
+    expect(fromServerPerformSafety("NOT_ALLOWED")).toBe(PerformSafety.NOT_ALLOWED);
+  });
+
+  it("round-trips every PerformSafety member", () => {
+    for (const value of Object.values(PerformSafety)) {
+      expect(fromServerPerformSafety(toServerPerformSafety(value))).toBe(value);
+    }
+  });
+});
 
 describe("convertConnection", () => {
   const label = "My Basic Connection";
@@ -69,7 +85,7 @@ describe("convertAction", () => {
     expect(result).toStrictEqual({ data: { count: 42 } });
   });
 
-  it("carries the safety enums through to the server action (const companion)", () => {
+  it("converts the safety values to their wire form (enum names)", () => {
     const converted = convertAction(
       "doThing",
       action({
@@ -77,7 +93,8 @@ describe("convertAction", () => {
         inputs: {},
         perform: async () => ({ data: null }),
         performSafety: PerformSafety.SAFE,
-        examplePerformSafety: PerformSafety.NOT_ALLOWED,
+        // Plain-string authoring must typecheck alongside the const companion.
+        examplePerformSafety: "notAllowed",
       }),
     );
 
