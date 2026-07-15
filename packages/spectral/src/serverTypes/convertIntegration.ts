@@ -544,15 +544,23 @@ const convertComponentReference = (
   const inputs = Object.entries(manifestEntry.inputs).reduce(
     (result, [key, manifestEntryInput]) => {
       const isCollection = Boolean(manifestEntryInput.collection);
-      // Retrieve the input value or default to the manifest's default value
 
-      const value = componentReference.values?.[key] ?? {
-        value: isCollection
-          ? manifestEntryInput.default === ""
-            ? []
-            : manifestEntryInput.default
-          : (manifestEntryInput.default ?? ""),
-      };
+      // No value/configVar/template (key omitted, or a visibility-only
+      // bag): fall back to the manifest's default value, keeping any
+      // visibility/writeOnly fields from the bag.
+      const providedValue = componentReference.values?.[key];
+      const value =
+        providedValue &&
+        ("value" in providedValue || "configVar" in providedValue || "template" in providedValue)
+          ? providedValue
+          : {
+              ...providedValue,
+              value: isCollection
+                ? manifestEntryInput.default === ""
+                  ? []
+                  : manifestEntryInput.default
+                : (manifestEntryInput.default ?? ""),
+            };
 
       const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
 

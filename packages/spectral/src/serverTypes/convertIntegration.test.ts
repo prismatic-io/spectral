@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { batchFlowTrigger, configPage, configVar, flow, integration } from "..";
-import type { ConfigVar, TriggerReference } from "../types";
+import type { ComponentRegistry, ConfigVar, TriggerReference } from "../types";
 import {
   convertConfigPages,
   convertConfigVar,
@@ -490,6 +490,63 @@ describe("convertConfigVar", () => {
       ).toThrow(
         "Connection test-connection has onPremConnectionConfig set but no onPremControlled inputs",
       );
+    });
+  });
+
+  describe("visibility-only connection input value bag", () => {
+    it("serializes the input with the manifest default and the bag's visibility meta", () => {
+      const registry = {
+        slack: {
+          key: "slack",
+          public: true,
+          signature: "sig",
+          actions: {},
+          triggers: {},
+          dataSources: {},
+          connections: {
+            slackOAuth: {
+              key: "slackOAuth",
+              perform: () => Promise.resolve(),
+              inputs: {
+                authorizeUrl: {
+                  inputType: "string",
+                  default: "https://slack.com/oauth/v2/authorize",
+                },
+              },
+            },
+          },
+        },
+      } as ComponentRegistry;
+
+      const result = convertConfigVar(
+        "SlackConnection",
+        {
+          stableKey: "slack-connection",
+          dataType: "connection",
+          connection: {
+            component: "slack",
+            key: "slackOAuth",
+            values: {
+              authorizeUrl: {
+                permissionAndVisibilityType: "organization",
+                visibleToOrgDeployer: false,
+              },
+            },
+          },
+        } as ConfigVar,
+        "ref-key",
+        registry,
+      );
+
+      expect("inputs" in result && result.inputs?.authorizeUrl).toEqual({
+        type: "value",
+        value: "https://slack.com/oauth/v2/authorize",
+        meta: {
+          orgOnly: true,
+          visibleToOrgDeployer: false,
+          visibleToCustomerDeployer: false,
+        },
+      });
     });
   });
 
