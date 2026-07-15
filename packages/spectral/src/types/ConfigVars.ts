@@ -10,7 +10,12 @@ import type {
   ConfigPages,
   UserLevelConfigPages,
 } from "./ConfigPages";
-import type { ConnectionDefinition } from "./ConnectionDefinition";
+import type {
+  ConnectionDefinition,
+  OAuth2Config,
+  OAuth2ConnectionDefinition,
+  OAuth2Type,
+} from "./ConnectionDefinition";
 import type { DataSourceDefinition } from "./DataSourceDefinition";
 import type { CollectionDataSourceType, DataSourceType } from "./DataSourceResult";
 import type {
@@ -309,13 +314,37 @@ type BaseConnectionConfigVar = BaseConfigVar & {
   dataType: "connection";
 };
 
+export interface OAuth2UrlOverrides {
+  /**
+   * Custom URI where users should be sent on OAuth success. See
+   * https://prismatic.io/docs/integrations/connections/oauth2/custom-redirects/
+   */
+  oAuthSuccessRedirectUri?: string;
+  /**
+   * Custom URI where users should be sent on OAuth failure. See
+   * https://prismatic.io/docs/integrations/connections/oauth2/custom-redirects/
+   */
+  oAuthFailureRedirectUri?: string;
+}
+
+type ConnectionConfigVarOAuth2Config<TConnectionDefinition extends ConnectionDefinition> =
+  TConnectionDefinition extends OAuth2ConnectionDefinition
+    ? {
+        oauth2Config?: (TConnectionDefinition extends { oauth2Type: OAuth2Type.AuthorizationCode }
+          ? Omit<OAuth2Config, keyof OAuth2UrlOverrides>
+          : object) &
+          OAuth2UrlOverrides;
+      }
+    : object;
+
 export type OnPremiseConnectionConfigTypeEnum = "allowed" | "disallowed" | "required";
 
 type ConnectionDefinitionConfigVar =
   ConnectionDefinition extends infer TConnectionDefinitionType extends ConnectionDefinition
     ? TConnectionDefinitionType extends infer TConnectionDefinition extends ConnectionDefinition
       ? BaseConnectionConfigVar &
-          Omit<TConnectionDefinition, "inputs" | "display" | "key"> & {
+          Omit<TConnectionDefinition, "inputs" | "display" | "key" | "oauth2Config"> &
+          ConnectionConfigVarOAuth2Config<TConnectionDefinition> & {
             icons?: TConnectionDefinition["display"]["icons"];
             onPremConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
             inputs: {

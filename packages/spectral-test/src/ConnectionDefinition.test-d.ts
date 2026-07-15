@@ -1,5 +1,11 @@
-import { type OnPremConnectionDefinition, onPremConnection } from "@prismatic-io/spectral";
-import { expectAssignable, expectNotAssignable } from "tsd";
+import {
+  connection,
+  OAuth2Type,
+  type OnPremConnectionDefinition,
+  oauth2Connection,
+  onPremConnection,
+} from "@prismatic-io/spectral";
+import { expectAssignable, expectError, expectNotAssignable } from "tsd";
 
 const valid = onPremConnection({
   key: "basic",
@@ -68,3 +74,45 @@ const invalid = {
   },
 };
 expectNotAssignable<OnPremConnectionDefinition>(invalid);
+
+expectError(
+  connection({
+    key: "basic",
+    stableKey: "basic-stable-key",
+    display: { label: "Basic", description: "" },
+    inputs: {},
+  }),
+);
+
+expectError(onPremConnection({ ...valid, stableKey: "on-prem-stable-key" }));
+
+const oauthInputs = {
+  authorizeUrl: { label: "Authorize URL", type: "string" as const, required: true },
+  tokenUrl: { label: "Token URL", type: "string" as const, required: true },
+  scopes: { label: "Scopes", type: "string" as const, required: true },
+  clientId: { label: "Client ID", type: "string" as const, required: true },
+  clientSecret: { label: "Client Secret", type: "password" as const, required: true },
+};
+
+expectError(
+  oauth2Connection({
+    key: "oauth",
+    stableKey: "oauth-stable-key",
+    display: { label: "OAuth", description: "" },
+    oauth2Type: OAuth2Type.AuthorizationCode,
+    inputs: oauthInputs,
+  }),
+);
+
+expectError(
+  oauth2Connection({
+    key: "oauth",
+    display: { label: "OAuth", description: "" },
+    oauth2Type: OAuth2Type.AuthorizationCode,
+    oauth2Config: {
+      oAuthSuccessRedirectUri: "https://example.com/success",
+      oAuthFailureRedirectUri: "https://example.com/failure",
+    },
+    inputs: oauthInputs,
+  }),
+);

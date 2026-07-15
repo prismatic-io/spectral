@@ -119,27 +119,14 @@ export function templateConnectionInputs<
 ) {
   return merge(inputs, templateInputs);
 }
-interface OAuth2Config {
+export interface OAuth2Config {
   overrideGrantType?: string;
   allowedTokenParams?: string[];
 }
 
-export interface OAuth2UrlOverrides {
-  /**
-   * Custom URI where users should be sent on OAuth success. See
-   * https://prismatic.io/docs/integrations/connections/oauth2/custom-redirects/
-   */
-  oAuthSuccessRedirectUri?: string;
-  /**
-   * Custom URI where users should be sent on OAuth failure. See
-   * https://prismatic.io/docs/integrations/connections/oauth2/custom-redirects/
-   */
-  oAuthFailureRedirectUri?: string;
-}
-
 interface OAuth2AuthorizationCodeConnectionDefinition extends BaseConnectionDefinition {
   oauth2Type: OAuth2Type.AuthorizationCode;
-  oauth2Config?: OAuth2Config & OAuth2UrlOverrides;
+  oauth2Config?: OAuth2Config;
   /**
    * The PKCE method (S256 or plain) that this OAuth 2.0 connection uses (if any). See
    * https://prismatic.io/docs/custom-connectors/connections/#supporting-pkce-with-oauth-20
@@ -152,7 +139,6 @@ interface OAuth2AuthorizationCodeConnectionDefinition extends BaseConnectionDefi
 
 interface OAuth2ClientCredentialConnectionDefinition extends BaseConnectionDefinition {
   oauth2Type: OAuth2Type.ClientCredentials;
-  oauth2Config?: OAuth2UrlOverrides;
   inputs: OAuth2ClientCredentialInputs & {
     [key: string]: ConnectionInput;
   };
