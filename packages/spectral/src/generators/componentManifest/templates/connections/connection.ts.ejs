@@ -38,9 +38,11 @@ export const <%= helpers.camelCase(connection.componentKey) %><%= helpers.capita
   stableKey: string,
   values: {
 <% connection.inputs.forEach((input) => { -%>
-  <%- helpers.formatType(input.key) %><%= input.required ? "" : "?" %>: ({
-    value: <%- input.valueType.type ? input.valueType.type : input.valueType %>;
-  } | ConfigVarExpression) & ConfigVarVisibility & { writeOnly?: true };
+  <%- helpers.formatType(input.key) %><%= input.required ? "" : "?" %>:
+    | (({
+        value: <%- input.valueType.type ? input.valueType.type : input.valueType %>;
+      } | ConfigVarExpression) & ConfigVarVisibility & { writeOnly?: true })
+    | (ConfigVarVisibility & { writeOnly?: true });
 <% }); -%>
   },
 ) => {
