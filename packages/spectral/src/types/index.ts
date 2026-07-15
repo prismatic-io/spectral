@@ -37,4 +37,3 @@ export * from "./TriggerPayload";
 export * from "./TriggerPerformFunction";
 export * from "./TriggerResult";
 export * from "./UserAttributes";
-export * from "./utils";

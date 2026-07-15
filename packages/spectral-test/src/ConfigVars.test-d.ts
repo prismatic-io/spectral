@@ -5,7 +5,8 @@ import type {
   Connection,
   DataSourceConfigVar,
 } from "@prismatic-io/spectral";
-import type { ValueOf } from "@prismatic-io/spectral/dist/types";
+import { OAuth2Type } from "@prismatic-io/spectral";
+import type { ValueOf } from "@prismatic-io/spectral/dist/types/utils";
 import { expectAssignable, expectNotType } from "tsd";
 
 type RawConnectionElems = ValueOf<ConfigPages>["elements"];
@@ -17,6 +18,41 @@ expectAssignable<"A Connection" | "Ref Connection">(null as unknown as keyof Con
 expectAssignable<Connection>(null as unknown as ConfigVars["A Connection"]);
 expectAssignable<Connection>(null as unknown as ConfigVars["Ref Connection"]);
 expectAssignable<Connection>(null as unknown as ConfigVars["My Customer Connection"]);
+
+expectAssignable<ConfigVar>({
+  stableKey: "cni-oauth-connection",
+  dataType: "connection",
+  oauth2Type: OAuth2Type.AuthorizationCode,
+  oauth2Config: {
+    allowedTokenParams: ["state"],
+    overrideGrantType: "authorization_code",
+    oAuthSuccessRedirectUri: "https://example.com/success",
+    oAuthFailureRedirectUri: "https://example.com/failure",
+  },
+  inputs: {
+    authorizeUrl: { label: "Authorize URL", type: "string", required: true },
+    tokenUrl: { label: "Token URL", type: "string", required: true },
+    scopes: { label: "Scopes", type: "string", required: true },
+    clientId: { label: "Client ID", type: "string", required: true },
+    clientSecret: { label: "Client Secret", type: "password", required: true },
+  },
+});
+
+expectAssignable<ConfigVar>({
+  stableKey: "cni-client-credentials-connection",
+  dataType: "connection",
+  oauth2Type: OAuth2Type.ClientCredentials,
+  oauth2Config: {
+    oAuthSuccessRedirectUri: "https://example.com/success",
+    oAuthFailureRedirectUri: "https://example.com/failure",
+  },
+  inputs: {
+    tokenUrl: { label: "Token URL", type: "string", required: true },
+    scopes: { label: "Scopes", type: "string", required: true },
+    clientId: { label: "Client ID", type: "string", required: true },
+    clientSecret: { label: "Client Secret", type: "password", required: true },
+  },
+});
 
 // Having both a dataSource & dataSourceType in a DataSourceConfigVar is invalid
 expectNotType<DataSourceConfigVar>({

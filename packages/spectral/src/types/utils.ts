@@ -9,3 +9,9 @@ export type Prettify<T> = {
 };
 
 export type ValueOf<T> = T[keyof T];
+
+export type Exact<TExpected, TActual extends TExpected> = TExpected extends unknown
+  ? TActual extends TExpected
+    ? TActual & Record<Exclude<keyof TActual, keyof TExpected>, never>
+    : never
+  : never;

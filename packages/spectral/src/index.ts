@@ -26,6 +26,7 @@ import type {
   InputFieldDefinition,
   Inputs,
   IntegrationDefinition,
+  OAuth2Config,
   OAuth2ConnectionDefinition,
   OnPremConnectionDefinition,
   OrganizationActivatedConnectionConfigVar,
@@ -37,6 +38,7 @@ import type {
   TriggerResult,
 } from "./types";
 import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
+import type { Exact } from "./types/utils";
 
 /**
  * This function creates a code-native integration object that can be
@@ -876,7 +878,9 @@ export const dynamicObjectInput = <
  *   },
  * });
  */
-export const connection = <T extends DefaultConnectionDefinition>(definition: T): T => definition;
+export const connection = <T extends DefaultConnectionDefinition>(
+  definition: Exact<DefaultConnectionDefinition, T>,
+): T => definition;
 
 /**
  * This function creates an on-prem connection for a code-native integration or custom component.
@@ -923,8 +927,9 @@ export const connection = <T extends DefaultConnectionDefinition>(definition: T)
  *   },
  * });
  */
-export const onPremConnection = <T extends OnPremConnectionDefinition>(definition: T): T =>
-  definition;
+export const onPremConnection = <T extends OnPremConnectionDefinition>(
+  definition: Exact<OnPremConnectionDefinition, T>,
+): T => definition;
 
 /**
  * This function creates an OAuth 2.0 connection for a code-native integration or custom component.
@@ -979,8 +984,14 @@ export const onPremConnection = <T extends OnPremConnectionDefinition>(definitio
  *   },
  * });
  */
-export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(definition: T): T =>
-  definition;
+export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(
+  definition: Exact<OAuth2ConnectionDefinition, T> &
+    (T extends { oauth2Config?: infer TConfig }
+      ? {
+          oauth2Config?: TConfig extends OAuth2Config ? Exact<OAuth2Config, TConfig> : never;
+        }
+      : object),
+): T => definition;
 
 /**
  * Register multiple component manifests for a code-native integration.
