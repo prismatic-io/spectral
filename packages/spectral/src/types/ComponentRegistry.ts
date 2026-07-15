@@ -55,8 +55,10 @@ type ComponentReferenceTypeValueMap<
     actions: ValueExpression<TValue>;
     triggers: ValueExpression<TValue> | ConfigVarExpression;
     dataSources: ValueExpression<TValue> | ConfigVarExpression | TemplateExpression;
-    connections: (ValueExpression<TValue> | ConfigVarExpression) &
-      ConfigVarVisibility & { writeOnly?: true };
+    connections:
+      | ((ValueExpression<TValue> | ConfigVarExpression) &
+          ConfigVarVisibility & { writeOnly?: true })
+      | (ConfigVarVisibility & { writeOnly?: true });
   },
 > = TMap;
 
@@ -65,14 +67,22 @@ export type ComponentReference<
     component: string;
     key: string;
     values?: {
-      [key: string]: ValueExpression | ConfigVarExpression | TemplateExpression;
+      [key: string]:
+        | ValueExpression
+        | ConfigVarExpression
+        | TemplateExpression
+        | (ConfigVarVisibility & { writeOnly?: true });
     };
     template?: string;
   } = {
     component: string;
     key: string;
     values?: {
-      [key: string]: ValueExpression | ConfigVarExpression | TemplateExpression;
+      [key: string]:
+        | ValueExpression
+        | ConfigVarExpression
+        | TemplateExpression
+        | (ConfigVarVisibility & { writeOnly?: true });
     };
     template?: string;
   },
