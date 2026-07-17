@@ -40,6 +40,7 @@ import {
   type InputCleaners,
   type PerformFn,
 } from "./perform";
+import { toServerPerformSafety } from "./performSafety";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -384,9 +385,17 @@ const convertOutputSchema = (outputSchema: OutputSchema): ServerOutputSchema => 
   };
 };
 
-const convertAction = (
+export const convertAction = (
   actionKey: string,
-  { inputs = {}, perform, outputSchema, ...action }: ActionDefinition<Inputs, any, boolean, any>,
+  {
+    inputs = {},
+    perform,
+    outputSchema,
+    examplePerform,
+    performSafety,
+    examplePerformSafety,
+    ...action
+  }: ActionDefinition<Inputs, any, boolean, any>,
   hooks?: ComponentHooks,
 ): ServerAction => {
   const convertedInputs = Object.entries(inputs).map(([key, value]) => convertInput(key, value));
@@ -404,6 +413,18 @@ const convertAction = (
       errorHandler: hooks?.error,
     }),
     ...(outputSchema ? { outputSchema: convertOutputSchema(outputSchema) } : {}),
+    ...(examplePerform
+      ? {
+          examplePerform: createPerform(examplePerform, {
+            inputCleaners,
+            errorHandler: hooks?.error,
+          }),
+        }
+      : {}),
+    ...(performSafety ? { performSafety: toServerPerformSafety(performSafety) } : {}),
+    ...(examplePerformSafety
+      ? { examplePerformSafety: toServerPerformSafety(examplePerformSafety) }
+      : {}),
   };
 };
 

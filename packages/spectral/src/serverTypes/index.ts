@@ -89,11 +89,21 @@ export interface Action {
    * from the author-facing `OutputSchema`.
    */
   outputSchema?: ServerOutputSchema;
+  examplePerform?: ActionPerformFunction;
+  examplePerformSafety?: PerformSafety;
+  performSafety?: PerformSafety;
 }
 
 export type ServerOutputSchema =
   | { type: "actionOutput"; schema: string }
   | { type: "branchingOutput"; branchSchemas: Array<{ name: string; schema: string }> };
+
+/**
+ * On-the-wire form of the author-facing `PerformSafety`. The platform exposes
+ * the field as the `ActionPerformSafety` GraphQL enum, which serializes member
+ * names. Converted to and from the author-facing camelCase.
+ */
+export type PerformSafety = "SAFE" | "NOT_ALLOWED";
 
 export type ActionLoggerFunction = (...args: unknown[]) => void;
 

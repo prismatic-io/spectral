@@ -5,16 +5,34 @@ import {
   connection,
   dynamicObjectInput,
   input,
+  PerformSafety,
   structuredObjectInput,
   trigger,
 } from "..";
 import {
   cleanerFor,
+  convertAction,
   convertConnection,
   convertInput,
   convertTemplateInput,
   convertTrigger,
 } from "./convertComponent";
+import { fromServerPerformSafety, toServerPerformSafety } from "./performSafety";
+
+describe("performSafety wire conversion", () => {
+  it("converts author values to GraphQL enum names and back", () => {
+    expect(toServerPerformSafety("safe")).toBe("SAFE");
+    expect(toServerPerformSafety("notAllowed")).toBe("NOT_ALLOWED");
+    expect(fromServerPerformSafety("SAFE")).toBe(PerformSafety.SAFE);
+    expect(fromServerPerformSafety("NOT_ALLOWED")).toBe(PerformSafety.NOT_ALLOWED);
+  });
+
+  it("round-trips every PerformSafety member", () => {
+    for (const value of Object.values(PerformSafety)) {
+      expect(fromServerPerformSafety(toServerPerformSafety(value))).toBe(value);
+    }
+  });
+});
 
 describe("convertConnection", () => {
   const label = "My Basic Connection";
@@ -33,6 +51,71 @@ describe("convertConnection", () => {
     const convertedConnection = convertConnection(basicConnection);
     expect(convertedConnection.label).toBe(label);
     expect(convertedConnection.comments).toBe(description);
+  });
+});
+
+describe("convertAction", () => {
+  const baseDisplay = { label: "Do Thing", description: "Does a thing." };
+
+  it("wraps examplePerform so it is invokable with input cleaning applied", async () => {
+    const examplePerform = vi.fn(async (_context: any, params: any) => ({
+      data: params,
+    }));
+
+    const converted = convertAction(
+      "doThing",
+      action({
+        display: baseDisplay,
+        inputs: {
+          count: input({ type: "string", label: "Count", clean: (v) => Number(v) }),
+        },
+        perform: async () => ({ data: null }),
+        examplePerform: examplePerform,
+        examplePerformSafety: PerformSafety.SAFE,
+      }),
+    );
+
+    expect(converted.examplePerform).toBeDefined();
+    expect(typeof converted.examplePerform).toBe("function");
+
+    const result = await converted.examplePerform?.({} as any, { count: "42" });
+
+    // The cleaner ran ("42" -> 42) before reaching the author's example perform.
+    expect(examplePerform).toHaveBeenCalledWith(expect.anything(), { count: 42 });
+    expect(result).toStrictEqual({ data: { count: 42 } });
+  });
+
+  it("converts the safety values to their wire form (enum names)", () => {
+    const converted = convertAction(
+      "doThing",
+      action({
+        display: baseDisplay,
+        inputs: {},
+        perform: async () => ({ data: null }),
+        performSafety: PerformSafety.SAFE,
+        // Plain-string authoring must typecheck alongside the const companion.
+        examplePerformSafety: "notAllowed",
+      }),
+    );
+
+    expect(converted.performSafety).toBe("SAFE");
+    expect(converted.examplePerformSafety).toBe("NOT_ALLOWED");
+  });
+
+  it("omits examplePerform when the author does not define it", () => {
+    const converted = convertAction(
+      "doThing",
+      action({
+        display: baseDisplay,
+        inputs: {},
+        perform: async () => ({ data: null }),
+      }),
+    );
+
+    // Must be absent, not an unwrapped/throwing function leaked via the spread.
+    expect("examplePerform" in converted).toBe(false);
+    expect(converted.examplePerformSafety).toBeUndefined();
+    expect(converted.performSafety).toBeUndefined();
   });
 });
 
