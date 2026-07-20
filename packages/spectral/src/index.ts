@@ -608,9 +608,11 @@ export const trigger = <
   TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
   TResult extends TriggerResult<TAllowsBranching, TriggerPayload>,
+  TOnDeployInputs extends Inputs = Inputs,
 >(
-  definition: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult>,
-): TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult> => definition;
+  definition: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult, TOnDeployInputs>,
+): TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult, TOnDeployInputs> =>
+  definition;
 
 /**
  * This function creates a polling trigger object that can be referenced
