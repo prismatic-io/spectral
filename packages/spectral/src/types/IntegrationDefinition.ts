@@ -253,6 +253,14 @@ interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload, TIte
   preprocessFlowConfig?: PreprocessFlowConfig;
   /** Value that specifies whether this flow is synchronous. @default `false` */
   isSynchronous?: boolean;
+  /**
+   * For a CNI flow whose trigger references an existing component's batching trigger:
+   * whether the trigger's initial on-deploy sync (backfill) runs when an instance is first
+   * deployed. Ignored for a `batchFlowTrigger` flow, which drives the on-deploy fire by the
+   * presence of its `onDeploy` handler instead.
+   * @default `false`
+   */
+  runInitialSyncOnDeploy?: boolean;
   /** Value that specifies whether this flow is an AI agent flow on the integrations MCP server. @default `false` */
   isAgentFlow?: boolean;
   /** Retry Configuration for this flow. */

@@ -425,6 +425,13 @@ interface InputFieldChoice {
   value: string;
 }
 
+/**
+ * The scope in which an input is accessible, mirroring the platform's
+ * `InputFieldScope`. `"on_deploy"` marks an input that only participates when the
+ * flow runs its initial sync on deploy; absent means a normal, always-included input.
+ */
+export type InputScope = "on_deploy";
+
 export interface Input {
   key: string;
   label: string;
@@ -441,6 +448,9 @@ export interface Input {
   onPremiseControlled?: boolean;
   dataSource?: string;
   shown?: boolean;
+  /** Set to `"on_deploy"` for inputs hoisted from a trigger's `onDeployResolver.inputs`;
+   * absent for normal inputs. The platform reads this as `InputField.scope`. */
+  scope?: InputScope;
   /** Nested children. For `structuredObject`, the declared inputs; for
    * `dynamicObject`, one `structuredObject` per configuration. */
   inputs?: Input[];

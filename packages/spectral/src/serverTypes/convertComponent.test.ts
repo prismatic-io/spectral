@@ -661,6 +661,35 @@ describe("convertTrigger triggerResolver", () => {
     expect(result.hasResolveTriggerItems).toBeUndefined();
   });
 
+  it("requires batchConfig at author time when a triggerResolver is declared", () => {
+    trigger({
+      ...baseTrigger,
+      // @ts-expect-error - declaring a triggerResolver requires a batchConfig (default batch size)
+      triggerResolver: { resolveItems: () => [1, 2, 3] },
+    });
+    // With batchConfig present it compiles.
+    trigger({
+      ...baseTrigger,
+      triggerResolver: { resolveItems: () => [1, 2, 3] },
+      batchConfig: { batchSize: 10 },
+    });
+  });
+
+  it("requires batchConfig at author time when an onDeployResolver is declared", () => {
+    trigger({
+      ...baseTrigger,
+      onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+      // @ts-expect-error - declaring an onDeployResolver requires a batchConfig (default batch size)
+      onDeployResolver: { resolveItems: () => [1, 2, 3] },
+    });
+    trigger({
+      ...baseTrigger,
+      onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+      onDeployResolver: { resolveItems: () => [1, 2, 3] },
+      batchConfig: { batchSize: 10 },
+    });
+  });
+
   it("emits default batchSize 1 when triggerResolverSupport is 'valid' without a batch config", () => {
     const result = convertTrigger(
       "myTrigger",
@@ -844,6 +873,107 @@ describe("convertTrigger on-deploy", () => {
     expect(result.hasResolveOnDeployItems).toBe(true);
     expect(result.triggerResolverDefaultBatchSize).toBe(25);
     expect(typeof result.resolveOnDeployItems).toBe("function");
+  });
+
+  it("hoists onDeployResolver.inputs into the flat inputs[] tagged scope 'on_deploy'", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        inputs: { triggerInput: input({ label: "Trigger Input", type: "string" }) },
+        batchConfig: { batchSize: 10 },
+        onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+        onDeployResolver: {
+          resolveItems: () => [1, 2, 3],
+          inputs: {
+            backfillStartDate: input({ label: "Backfill Start Date", type: "string" }),
+          },
+        },
+      }),
+    );
+
+    const backfill = result.inputs.find((i) => i.key === "backfillStartDate");
+    expect(backfill?.scope).toBe("on_deploy");
+
+    const triggerInput = result.inputs.find((i) => i.key === "triggerInput");
+    expect(triggerInput).toBeDefined();
+    expect(triggerInput?.scope).toBeUndefined();
+  });
+
+  it("emits no scoped input when onDeployResolver has no inputs", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        batchConfig: { batchSize: 10 },
+        onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+        onDeployResolver: { resolveItems: () => [1, 2, 3] },
+      }),
+    );
+    expect(result.inputs.some((i) => i.scope === "on_deploy")).toBe(false);
+  });
+
+  it("rejects an onDeployResolver input whose key collides with a trigger input", () => {
+    expect(() =>
+      convertTrigger(
+        "myTrigger",
+        trigger({
+          ...baseTrigger,
+          inputs: { shared: input({ label: "Shared", type: "string" }) },
+          batchConfig: { batchSize: 10 },
+          onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+          onDeployResolver: {
+            resolveItems: () => [1, 2, 3],
+            inputs: { shared: input({ label: "Shared On-Deploy", type: "string" }) },
+          },
+        }),
+      ),
+    ).toThrow(/duplicates a trigger input/);
+  });
+
+  it("exposes onDeployResolver.inputs to onDeployPerform params but not to perform params", () => {
+    trigger({
+      display: { label: "Typed", description: "" },
+      inputs: { triggerInput: input({ label: "Trigger Input", type: "string" }) },
+      scheduleSupport: "invalid",
+      synchronousResponseSupport: "invalid",
+      batchConfig: { batchSize: 10 },
+      perform: async (_context, _payload, params) => {
+        // The normal perform sees the trigger input...
+        params.triggerInput;
+        // @ts-expect-error - on-deploy inputs are NOT in the normal perform's params
+        params.backfillStartDate;
+        return { payload: { body: { data: "" }, headers: {} } };
+      },
+      onDeployPerform: async (_context, _payload, params) => {
+        // ...and onDeployPerform additionally sees the on-deploy-scoped input.
+        params.triggerInput;
+        params.backfillStartDate;
+        return { payload: { body: { data: "" }, headers: {} } };
+      },
+      onDeployResolver: {
+        resolveItems: () => [1, 2, 3],
+        inputs: { backfillStartDate: input({ label: "Backfill Start Date", type: "string" }) },
+      },
+    });
+  });
+
+  it("does not leak the author onDeployResolver object onto the wire trigger", () => {
+    const result = convertTrigger(
+      "myTrigger",
+      trigger({
+        ...baseTrigger,
+        batchConfig: { batchSize: 10 },
+        onDeployPerform: async () => ({ payload: { body: { data: "" }, headers: {} } }),
+        onDeployResolver: {
+          resolveItems: () => [1, 2, 3],
+          inputs: { backfillStartDate: input({ label: "Backfill Start Date", type: "string" }) },
+        },
+      }),
+    );
+    expect("onDeployResolver" in result).toBe(false);
+    expect("triggerResolver" in result).toBe(false);
+    expect("batchConfig" in result).toBe(false);
   });
 });
 

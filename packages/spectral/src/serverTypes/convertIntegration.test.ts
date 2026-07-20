@@ -117,6 +117,44 @@ describe("convertFlow with polling triggers", () => {
     });
   });
 
+  it("emits runInitialSyncOnDeploy on the flow wire when the CNI author opts in", () => {
+    const optedInFlow = flow({
+      ...baseFlowInput,
+      runInitialSyncOnDeploy: true,
+      batchConfig: { batchSize: 25 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+        onDeploy: async () => ({ items: [4, 5, 6] }),
+      }),
+    });
+
+    const result = convertFlow(optedInFlow, {}, "test-ref");
+
+    expect(result.triggerResolver).toEqual({
+      batchSize: 25,
+      enabled: true,
+      runInitialSyncOnDeploy: true,
+    });
+  });
+
+  it("omits runInitialSyncOnDeploy when the CNI author does not opt in (default off)", () => {
+    const defaultOffFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 25 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+        onDeploy: async () => ({ items: [4, 5, 6] }),
+      }),
+    });
+
+    const result = convertFlow(defaultOffFlow, {}, "test-ref");
+
+    expect(result.triggerResolver).toEqual({ batchSize: 25, enabled: true });
+    expect(
+      (result.triggerResolver as { runInitialSyncOnDeploy?: boolean }).runInitialSyncOnDeploy,
+    ).toBeUndefined();
+  });
+
   it("throws when the flow-level batch concurrentBatchLimit is invalid", () => {
     const invalidFlow = flow({
       ...baseFlowInput,

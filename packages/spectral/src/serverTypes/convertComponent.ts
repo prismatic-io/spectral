@@ -24,6 +24,7 @@ import {
 } from "../types/PollingTriggerDefinition";
 import type { BatchConfig, TriggerResolverBehavior } from "../types/TriggerDefinition";
 import type {
+  InputScope,
   Action as ServerAction,
   Component as ServerComponent,
   Connection as ServerConnection,
@@ -245,6 +246,7 @@ const buildOnDeployResolverFields = <
 export const convertInput = (
   key: string,
   definition: InputFieldDefinition | OnPremConnectionInput | ConnectionInput,
+  scope?: InputScope,
 ): ServerInput => {
   // Cast: the field union is wider than any single member; runtime guards below handle it.
   const {
@@ -306,6 +308,7 @@ export const convertInput = (
     keyLabel,
     onPremiseControlled: rest.onPremControlled === true ? true : undefined,
     inputs: nestedInputs,
+    ...(scope ? { scope } : {}),
   };
 };
 
@@ -498,6 +501,26 @@ export const convertTrigger = <
     );
   }
 
+  // On-deploy-scoped inputs live on `onDeployResolver.inputs` in the author model; the wire
+  // expects one flat `inputs[]`, so hoist them alongside the trigger inputs, each tagged
+  // `scope: "on_deploy"`. Both sets share one key namespace on the wire — reject collisions.
+  const onDeployInputs: Inputs = onDeployResolver?.inputs ?? {};
+  const onDeployInputEntries = Object.entries(onDeployInputs);
+  for (const [key] of onDeployInputEntries) {
+    if (triggerInputKeys.includes(key)) {
+      throw new Error(
+        `Trigger "${trigger.display.label}" declares an onDeployResolver input with key "${key}", which duplicates a trigger input. On-deploy and trigger inputs share one key namespace; give the on-deploy input a different key.`,
+      );
+    }
+  }
+  const convertedOnDeployInputs = onDeployInputEntries.map(([key, value]) =>
+    convertInput(key, value, "on_deploy"),
+  );
+  const onDeployInputCleaners = onDeployInputEntries.reduce<InputCleaners>(
+    (result, [key, value]) => ({ ...result, [key]: cleanerFor(value) }),
+    {},
+  );
+
   let convertedActionInputs: Array<ServerInput> = [];
   let performToUse: PerformFn;
 
@@ -558,7 +581,7 @@ export const convertTrigger = <
     // wire carries the serialized resolver behavior plus the single batch size instead.
     ...omit(trigger, ["batchConfig", "triggerResolver", "onDeployResolver"]),
     key: triggerKey,
-    inputs: convertedTriggerInputs.concat(convertedActionInputs),
+    inputs: convertedTriggerInputs.concat(convertedActionInputs, convertedOnDeployInputs),
     perform: performToUse,
     scheduleSupport,
     synchronousResponseSupport:
@@ -590,7 +613,7 @@ export const convertTrigger = <
 
   if (onDeployPerform) {
     result.onDeployPerform = createPerform(onDeployPerform, {
-      inputCleaners: triggerInputCleaners,
+      inputCleaners: { ...triggerInputCleaners, ...onDeployInputCleaners },
       errorHandler: hooks?.error,
     });
     result.hasOnDeployPerform = true;

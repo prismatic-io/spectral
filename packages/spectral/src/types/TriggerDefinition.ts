@@ -8,12 +8,13 @@ import type { TriggerBaseResult, TriggerResult } from "./TriggerResult";
 
 /**
  * Encodes the relationship between `triggerResolverSupport` and `triggerResolver`:
- * - absent or `"invalid"`: no resolver allowed
- * - `"valid"`: resolver optional
- * - `"required"`: resolver required
+ * - absent or `"invalid"`: no resolver allowed, no `batchConfig`
+ * - `"valid"`: resolver optional; when a resolver IS declared, `batchConfig` is required
+ * - `"required"`: resolver required, so `batchConfig` is required
  *
- * `triggerResolver` is the resolver *behavior* only; batch sizing comes from the
- * trigger's shared `batchConfig` (see `TriggerDefinition`).
+ * `triggerResolver` is the resolver *behavior* only; batch sizing comes from the shared,
+ * now-mandatory-when-batching `batchConfig`. A trigger that batches must declare a default
+ * batch size — the type enforces this at author time rather than defaulting silently.
  */
 export type TriggerResolverDecl<
   TConfigVars extends ConfigVarResultCollection,
@@ -21,15 +22,42 @@ export type TriggerResolverDecl<
   TItem = unknown,
   TPaginationState extends Record<string, unknown> = Record<string, unknown>,
 > =
-  | { triggerResolverSupport?: "invalid" | undefined; triggerResolver?: undefined }
+  | {
+      triggerResolverSupport?: "invalid" | undefined;
+      triggerResolver?: undefined;
+      batchConfig?: BatchConfig;
+    }
+  | { triggerResolverSupport: "valid"; triggerResolver?: undefined; batchConfig?: BatchConfig }
   | {
       triggerResolverSupport: "valid";
-      triggerResolver?: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TPaginationState>;
+      triggerResolver: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TPaginationState>;
+      batchConfig: BatchConfig;
     }
   | {
       triggerResolverSupport: "required";
       triggerResolver: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TPaginationState>;
+      batchConfig: BatchConfig;
     };
+
+/**
+ * The on-deploy resolver: the shared resolver behavior plus optional on-deploy-scoped
+ * `inputs`. These inputs only make sense while the initial sync runs on deploy (e.g. a
+ * backfill start date / page size). They are declared here — separate from the trigger's
+ * `inputs` — and the convert layer hoists them into the flat wire `inputs[]` tagged with
+ * `scope: "on_deploy"`. Because `TOnDeployInputs` parameterizes the on-deploy resolver, an
+ * author's `onDeployPerform` receives them on its params while the normal `perform` does not.
+ */
+export interface OnDeployResolverBehavior<
+  TOnDeployInputs extends Inputs = Inputs,
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TItem = unknown,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+> extends TriggerResolverBehavior<TConfigVars, TPayload, TItem, TPaginationState> {
+  /** Inputs presented only when the flow runs its initial sync on deploy. Values are passed
+   * to `onDeployPerform` (not to the normal `perform`). Kept separate from `TriggerDefinition.inputs`. */
+  inputs?: TOnDeployInputs;
+}
 
 /**
  * Encodes the relationship between `onDeployPerform` and `onDeployResolver`. On-deploy is
@@ -39,7 +67,8 @@ export type TriggerResolverDecl<
  *
  * `onDeployPerform` is the component-trigger sibling to `perform`. A CNI flow names the
  * same on-deploy fire `onDeployTrigger` (sibling to its `onTrigger`); both flatten to
- * `onDeployPerform` on the wire.
+ * `onDeployPerform` on the wire. `onDeployPerform`'s params merge the trigger's `TInputs`
+ * with the on-deploy resolver's own `TOnDeployInputs`.
  */
 export type OnDeployDecl<
   TInputs extends Inputs,
@@ -49,11 +78,34 @@ export type OnDeployDecl<
   TResult extends TriggerResult<TAllowsBranching, TPayload>,
   TItem = unknown,
   TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+  TOnDeployInputs extends Inputs = Inputs,
 > =
-  | { onDeployPerform?: undefined; onDeployResolver?: undefined }
+  | { onDeployPerform?: undefined; onDeployResolver?: undefined; batchConfig?: BatchConfig }
   | {
-      onDeployPerform: TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
-      onDeployResolver?: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TPaginationState>;
+      onDeployPerform: TriggerPerformFunction<
+        TInputs & TOnDeployInputs,
+        TConfigVars,
+        TAllowsBranching,
+        TResult
+      >;
+      onDeployResolver?: undefined;
+      batchConfig?: BatchConfig;
+    }
+  | {
+      onDeployPerform: TriggerPerformFunction<
+        TInputs & TOnDeployInputs,
+        TConfigVars,
+        TAllowsBranching,
+        TResult
+      >;
+      onDeployResolver: OnDeployResolverBehavior<
+        TOnDeployInputs,
+        TConfigVars,
+        TPayload,
+        TItem,
+        TPaginationState
+      >;
+      batchConfig: BatchConfig;
     };
 
 const optionChoices = ["invalid", "valid", "required"] as const;
@@ -143,9 +195,19 @@ export type TriggerDefinition<
     TAllowsBranching,
     TriggerPayload
   >,
+  TOnDeployInputs extends Inputs = Inputs,
 > = TriggerDefinitionBase<TInputs, TConfigVars, TAllowsBranching, TResult> &
   TriggerResolverDecl<TConfigVars, TriggerPayload> &
-  OnDeployDecl<TInputs, TConfigVars, TriggerPayload, TAllowsBranching, TResult>;
+  OnDeployDecl<
+    TInputs,
+    TConfigVars,
+    TriggerPayload,
+    TAllowsBranching,
+    TResult,
+    unknown,
+    Record<string, unknown>,
+    TOnDeployInputs
+  >;
 
 interface TriggerDefinitionBase<
   TInputs extends Inputs = Inputs,
@@ -160,12 +222,6 @@ interface TriggerDefinitionBase<
   display: ActionDisplayDefinition;
   /** Function to perform when this trigger is invoked. */
   perform: TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>;
-  /**
-   * Default batch-dispatch config shared by `triggerResolver` and `onDeployResolver`.
-   * Required when this trigger declares either (a `triggerResolver` with
-   * `triggerResolverSupport` `"valid"`/`"required"`, or an `onDeployResolver`).
-   */
-  batchConfig?: BatchConfig;
   /**
    * Function to execute when an instance of an integration with a flow that uses this trigger is deployed. See
    * https://prismatic.io/docs/custom-connectors/triggers/#instance-deploy-and-delete-events-for-triggers
