@@ -885,6 +885,12 @@ export const convertFlow = <
   const triggerResolver = "triggerResolver" in flow ? flow.triggerResolver : undefined;
   const onDeployResolver = "onDeployResolver" in flow ? flow.onDeployResolver : undefined;
   const batchConfig = "batchConfig" in flow ? flow.batchConfig : undefined;
+  // CNI authors referencing an existing component's batching trigger opt the initial
+  // on-deploy sync in/out with this flow-level flag (default off). A `batchFlowTrigger`
+  // flow instead drives the on-deploy fire structurally (presence of `onDeploy`), so the
+  // flag is not read there.
+  const runInitialSyncOnDeploy =
+    "runInitialSyncOnDeploy" in flow ? Boolean(flow.runInitialSyncOnDeploy) : false;
 
   // Resolver behaviors (resolveItems/getNextPaginationState) are serialized onto the
   // synthesized trigger below. On the flow wire we emit only `triggerResolver`, the single
@@ -922,6 +928,7 @@ export const convertFlow = <
       batchSize: validateBatchSize(flow.name, "batchConfig", batchConfig.batchSize),
       enabled: true,
       ...(concurrentBatchLimit !== undefined ? { concurrentBatchLimit } : {}),
+      ...(runInitialSyncOnDeploy ? { runInitialSyncOnDeploy: true } : {}),
     };
   }
 
