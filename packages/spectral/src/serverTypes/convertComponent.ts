@@ -503,7 +503,8 @@ export const convertTrigger = <
 
   // On-deploy-scoped inputs live on `onDeployResolver.inputs` in the author model; the wire
   // expects one flat `inputs[]`, so hoist them alongside the trigger inputs, each tagged
-  // `scope: "on_deploy"`. Both sets share one key namespace on the wire — reject collisions.
+  // `scope: "ON_DEPLOY"` (the GraphQL enum name the publish mutation coerces on, not the DB
+  // value `"on_deploy"`). Both sets share one key namespace on the wire — reject collisions.
   const onDeployInputs: Inputs = onDeployResolver?.inputs ?? {};
   const onDeployInputEntries = Object.entries(onDeployInputs);
   for (const [key] of onDeployInputEntries) {
@@ -514,7 +515,7 @@ export const convertTrigger = <
     }
   }
   const convertedOnDeployInputs = onDeployInputEntries.map(([key, value]) =>
-    convertInput(key, value, "on_deploy"),
+    convertInput(key, value, "ON_DEPLOY"),
   );
   const onDeployInputCleaners = onDeployInputEntries.reduce<InputCleaners>(
     (result, [key, value]) => ({ ...result, [key]: cleanerFor(value) }),

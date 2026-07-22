@@ -427,10 +427,14 @@ interface InputFieldChoice {
 
 /**
  * The scope in which an input is accessible, mirroring the platform's
- * `InputFieldScope`. `"on_deploy"` marks an input that only participates when the
+ * `InputFieldScope`. `"ON_DEPLOY"` marks an input that only participates when the
  * flow runs its initial sync on deploy; absent means a normal, always-included input.
+ *
+ * This is the GraphQL enum **name** (`InputFieldScope.ON_DEPLOY`), not the DB value
+ * `"on_deploy"` — the publish mutation types `scope` as the graphene enum and coerces
+ * on the name, rejecting the lowercase value.
  */
-export type InputScope = "on_deploy";
+export type InputScope = "ON_DEPLOY";
 
 export interface Input {
   key: string;
@@ -448,7 +452,7 @@ export interface Input {
   onPremiseControlled?: boolean;
   dataSource?: string;
   shown?: boolean;
-  /** Set to `"on_deploy"` for inputs hoisted from a trigger's `onDeployResolver.inputs`;
+  /** Set to `"ON_DEPLOY"` for inputs hoisted from a trigger's `onDeployResolver.inputs`;
    * absent for normal inputs. The platform reads this as `InputField.scope`. */
   scope?: InputScope;
   /** Nested children. For `structuredObject`, the declared inputs; for

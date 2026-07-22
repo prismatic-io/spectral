@@ -875,7 +875,7 @@ describe("convertTrigger on-deploy", () => {
     expect(typeof result.resolveOnDeployItems).toBe("function");
   });
 
-  it("hoists onDeployResolver.inputs into the flat inputs[] tagged scope 'on_deploy'", () => {
+  it("hoists onDeployResolver.inputs into the flat inputs[] tagged scope 'ON_DEPLOY'", () => {
     const result = convertTrigger(
       "myTrigger",
       trigger({
@@ -893,7 +893,7 @@ describe("convertTrigger on-deploy", () => {
     );
 
     const backfill = result.inputs.find((i) => i.key === "backfillStartDate");
-    expect(backfill?.scope).toBe("on_deploy");
+    expect(backfill?.scope).toBe("ON_DEPLOY");
 
     const triggerInput = result.inputs.find((i) => i.key === "triggerInput");
     expect(triggerInput).toBeDefined();
@@ -910,7 +910,7 @@ describe("convertTrigger on-deploy", () => {
         onDeployResolver: { resolveItems: () => [1, 2, 3] },
       }),
     );
-    expect(result.inputs.some((i) => i.scope === "on_deploy")).toBe(false);
+    expect(result.inputs.some((i) => i.scope === "ON_DEPLOY")).toBe(false);
   });
 
   it("rejects an onDeployResolver input whose key collides with a trigger input", () => {

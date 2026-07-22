@@ -44,7 +44,7 @@ export type TriggerResolverDecl<
  * `inputs`. These inputs only make sense while the initial sync runs on deploy (e.g. a
  * backfill start date / page size). They are declared here — separate from the trigger's
  * `inputs` — and the convert layer hoists them into the flat wire `inputs[]` tagged with
- * `scope: "on_deploy"`. Because `TOnDeployInputs` parameterizes the on-deploy resolver, an
+ * `scope: "ON_DEPLOY"`. Because `TOnDeployInputs` parameterizes the on-deploy resolver, an
  * author's `onDeployPerform` receives them on its params while the normal `perform` does not.
  */
 export interface OnDeployResolverBehavior<
