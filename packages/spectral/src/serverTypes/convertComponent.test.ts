@@ -71,7 +71,6 @@ describe("convertAction", () => {
         },
         perform: async () => ({ data: null }),
         examplePerform: examplePerform,
-        examplePerformSafety: PerformSafety.SAFE,
       }),
     );
 
@@ -85,21 +84,33 @@ describe("convertAction", () => {
     expect(result).toStrictEqual({ data: { count: 42 } });
   });
 
-  it("converts the safety values to their wire form (enum names)", () => {
+  it("converts performSafety to its wire form (enum name)", () => {
     const converted = convertAction(
       "doThing",
       action({
         display: baseDisplay,
         inputs: {},
         perform: async () => ({ data: null }),
-        performSafety: PerformSafety.SAFE,
         // Plain-string authoring must typecheck alongside the const companion.
-        examplePerformSafety: "notAllowed",
+        performSafety: "notAllowed",
       }),
     );
 
-    expect(converted.performSafety).toBe("SAFE");
-    expect(converted.examplePerformSafety).toBe("NOT_ALLOWED");
+    expect(converted.performSafety).toBe("NOT_ALLOWED");
+  });
+
+  it("derives examplePerformSafety from the presence of examplePerform", () => {
+    const converted = convertAction(
+      "doThing",
+      action({
+        display: baseDisplay,
+        inputs: {},
+        perform: async () => ({ data: null }),
+        examplePerform: async () => ({ data: null }),
+      }),
+    );
+
+    expect(converted.examplePerformSafety).toBe("SAFE");
   });
 
   it("omits examplePerform when the author does not define it", () => {

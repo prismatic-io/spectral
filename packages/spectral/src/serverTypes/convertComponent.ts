@@ -13,6 +13,7 @@ import {
   type Inputs,
   type OnPremConnectionInput,
   type OutputSchema,
+  PerformSafety,
   type TriggerDefinition,
   type TriggerOptionChoice,
   type TriggerPayload,
@@ -393,7 +394,6 @@ export const convertAction = (
     outputSchema,
     examplePerform,
     performSafety,
-    examplePerformSafety,
     ...action
   }: ActionDefinition<Inputs, any, boolean, any>,
   hooks?: ComponentHooks,
@@ -419,12 +419,10 @@ export const convertAction = (
             inputCleaners,
             errorHandler: hooks?.error,
           }),
+          examplePerformSafety: toServerPerformSafety(PerformSafety.SAFE),
         }
       : {}),
     ...(performSafety ? { performSafety: toServerPerformSafety(performSafety) } : {}),
-    ...(examplePerformSafety
-      ? { examplePerformSafety: toServerPerformSafety(examplePerformSafety) }
-      : {}),
   };
 };
 

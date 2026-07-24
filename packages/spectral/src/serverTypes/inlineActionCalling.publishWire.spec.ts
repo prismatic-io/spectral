@@ -48,13 +48,12 @@ const testComponent = component({
       inputs: sharedInputs,
       perform: noop,
     }),
-    // B — example perform + its safety flag.
+    // B — example perform.
     examplePerformAction: action({
       display: display("Example Perform Action"),
       inputs: sharedInputs,
       perform: noop,
       examplePerform: echo,
-      examplePerformSafety: PerformSafety.SAFE,
     }),
     // C — real perform marked runnable.
     runnablePerformAction: action({
@@ -84,11 +83,11 @@ describe("inline action calling: publish-wire conversion output", () => {
     expect(a.performSafety).toBeUndefined();
   });
 
-  it("B — example perform is wrapped (invokable) and its safety flag is carried", async () => {
+  it("B — example perform is wrapped (invokable) and implies a SAFE safety flag", async () => {
     const a = actionsByKey.examplePerformAction;
     expect(typeof a.examplePerform).toBe("function");
     expect(a.examplePerformSafety).toBe("SAFE");
-    // Only the field the author set is carried; no performSafety leaks in.
+    // The example flag must not imply anything about the real perform.
     expect(a.performSafety).toBeUndefined();
     // Wrapped fn is invokable and passes params through.
     const result: any = await a.examplePerform?.({} as any, { tags: ["x"] });

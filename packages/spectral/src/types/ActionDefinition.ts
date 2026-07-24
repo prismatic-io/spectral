@@ -47,7 +47,6 @@ export interface ActionDefinition<
     TAllowsBranching,
     TReturn
   >;
-  examplePerformSafety?: PerformSafety;
   performSafety?: PerformSafety;
   /**
    * The inputs to present a low-code integration builder. Values of these inputs
