@@ -17,6 +17,11 @@ updates:
       # Biome bumps require updating the $schema URL in biome.json files,
       # which dependabot doesn't do. Bump manually.
       - dependency-name: "@biomejs/biome"
+      # TypeScript 7 removes moduleResolution=node, and typescript-eslint
+      # does not support it yet. Keep TypeScript on the current major.
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
 
   - package-ecosystem: "github-actions"
     directory: "/"
