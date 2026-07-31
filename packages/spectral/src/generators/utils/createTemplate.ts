@@ -1,6 +1,6 @@
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { renderFile } from "ejs";
-import { copyFile, mkdirp, outputFile } from "fs-extra";
-import path from "path";
 import { format } from "prettier";
 
 interface CreateTemplateProps {
@@ -46,7 +46,8 @@ export const createTemplate = async ({
         console.info(`Rendering ${source} to ${destination}`);
       }
 
-      await outputFile(destination, formattedRender, { encoding: "utf-8" });
+      await mkdir(path.dirname(destination), { recursive: true });
+      await writeFile(destination, formattedRender, { encoding: "utf-8" });
     } else {
       if (dryRun) {
         console.info("");
@@ -58,7 +59,7 @@ export const createTemplate = async ({
         console.info(`Copying ${source} to ${destination}`);
       }
 
-      await mkdirp(path.dirname(destination));
+      await mkdir(path.dirname(destination), { recursive: true });
       await copyFile(source, destination);
     }
   } catch (err) {

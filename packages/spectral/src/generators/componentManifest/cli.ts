@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { existsSync } from "fs-extra";
-import path from "path";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { isObjectWithOneTruthyKey, isObjectWithTruthyKeys } from "../../util";
 import { createFlagHelpText } from "../utils/createFlagHelpText";
 import { getFlagsBooleanValue } from "../utils/getFlagBooleanValue";

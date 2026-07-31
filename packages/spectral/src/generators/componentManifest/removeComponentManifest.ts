@@ -1,25 +1,19 @@
-import { existsSync, rmSync } from "fs";
+import { rm } from "node:fs/promises";
 
 interface RemoveComponentManifestProps {
   destinationDir: string;
   verbose: boolean;
 }
 
-export const removeComponentManifest = ({
+export const removeComponentManifest = async ({
   destinationDir,
   verbose,
-}: RemoveComponentManifestProps) => {
+}: RemoveComponentManifestProps): Promise<void> => {
   if (verbose) {
     console.info("Removing existing component manifest files...");
   }
 
-  try {
-    if (existsSync(destinationDir)) {
-      rmSync(destinationDir, { recursive: true, force: true });
-    }
-  } catch (err) {
-    console.error(err);
-  }
+  await rm(destinationDir, { recursive: true, force: true });
 
   if (verbose) {
     console.info("");
