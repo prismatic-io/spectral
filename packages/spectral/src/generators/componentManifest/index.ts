@@ -1,13 +1,9 @@
-import path from "path";
+import path from "node:path";
 import type { Component } from "../../serverTypes";
 import type { ConfigVarResultCollection, Inputs, TriggerPayload, TriggerResult } from "../../types";
 import { getComponentSignatureWithPrism } from "../utils/prism";
-import { createActions } from "./createActions";
-import { createConnections } from "./createConnections";
-import { createDataSources } from "./createDataSources";
 import { createStaticFiles } from "./createStaticFiles";
-import { createTriggers } from "./createTriggers";
-import { removeComponentManifest } from "./removeComponentManifest";
+import { generateManifest } from "./generateManifest";
 
 interface CreateComponentManifestProps<
   TInputs extends Inputs,
@@ -68,58 +64,27 @@ export const createComponentManifest = async <
     console.log("");
   }
 
-  removeComponentManifest({
-    destinationDir,
-    verbose,
-  });
-
-  await createStaticFiles({
-    component,
-    dryRun,
-    packageName,
-    signature,
-    spectralVersion,
-    verbose,
-    sourceDir,
-    destinationDir,
-    registry,
-  });
-
   const srcDir = path.join(destinationDir, "src");
 
-  await createActions({
+  await generateManifest({
     component,
     dryRun,
     verbose,
-    sourceDir,
-    destinationDir: srcDir,
+    templatesDir: sourceDir,
+    manifestDir: destinationDir,
+    generatedSourceDir: srcDir,
+    createEntryPointFiles: () =>
+      createStaticFiles({
+        component,
+        dryRun,
+        packageName,
+        signature,
+        spectralVersion,
+        verbose,
+        sourceDir,
+        destinationDir,
+        registry,
+      }),
+    successMessage: `Component manifest created successfully for ${component.display.label} in ${destinationDir}!`,
   });
-
-  await createTriggers({
-    component,
-    dryRun,
-    verbose,
-    sourceDir,
-    destinationDir: srcDir,
-  });
-
-  await createConnections({
-    component,
-    dryRun,
-    verbose,
-    sourceDir,
-    destinationDir: srcDir,
-  });
-
-  await createDataSources({
-    component,
-    dryRun,
-    verbose,
-    sourceDir,
-    destinationDir: srcDir,
-  });
-
-  console.info(
-    `Component manifest created successfully for ${component.display.label} in ${destinationDir}!`,
-  );
 };

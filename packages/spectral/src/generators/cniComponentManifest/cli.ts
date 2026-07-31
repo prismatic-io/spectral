@@ -1,10 +1,5 @@
-import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { createActions } from "../componentManifest/createActions";
-import { createConnections } from "../componentManifest/createConnections";
-import { createDataSources } from "../componentManifest/createDataSources";
-import { createTriggers } from "../componentManifest/createTriggers";
-import { removeComponentManifest } from "../componentManifest/removeComponentManifest";
+import { generateManifest } from "../componentManifest/generateManifest";
 import { createFlagHelpText } from "../utils/createFlagHelpText";
 import { createTemplate } from "../utils/createTemplate";
 import { getFlagsBooleanValue } from "../utils/getFlagBooleanValue";
@@ -90,56 +85,24 @@ export const runMain = async (process: NodeJS.Process) => {
     console.info(`Creating component manifest for ${component.display.label}...`);
   }
 
-  removeComponentManifest({ destinationDir, verbose });
-
-  // Create the directory structure
-  mkdirSync(destinationDir, { recursive: true });
-
-  // Generate the source files
-  await await createTemplate({
-    source: path.join(templatesDir, "index.ts.ejs"),
-    destination: path.join(destinationDir, "index.ts"),
-    data: {
-      component,
-    },
-    verbose,
-    dryRun,
-  });
-
-  await createActions({
+  await generateManifest({
     component,
     dryRun,
     verbose,
-    sourceDir: templatesDir,
-    destinationDir,
-  });
-
-  await createTriggers({
-    component,
-    dryRun,
-    verbose,
-    sourceDir: templatesDir,
-    destinationDir,
-  });
-
-  await createConnections({
-    component,
-    dryRun,
-    verbose,
-    sourceDir: templatesDir,
-    destinationDir,
+    templatesDir,
+    manifestDir: destinationDir,
+    generatedSourceDir: destinationDir,
     reusableConnectionStableKeys,
+    createEntryPointFiles: () =>
+      createTemplate({
+        source: path.join(templatesDir, "index.ts.ejs"),
+        destination: path.join(destinationDir, "index.ts"),
+        data: {
+          component,
+        },
+        verbose,
+        dryRun,
+      }),
+    successMessage: `Component manifest created successfully for ${component.display.label} in ${destinationDir}!\nEnsure that you update your componentRegistry file accordingly.`,
   });
-
-  await createDataSources({
-    component,
-    dryRun,
-    verbose: flags.verbose.value,
-    sourceDir: templatesDir,
-    destinationDir,
-  });
-
-  console.info(
-    `Component manifest created successfully for ${component.display.label} in ${destinationDir}!\nEnsure that you update your componentRegistry file accordingly.`,
-  );
 };
