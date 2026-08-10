@@ -15,10 +15,16 @@ export type OrganizationActivatedConnectionConfigVar = {
   stableKey: string;
 };
 
+export type UserActivatedConnectionConfigVar = {
+  dataType: "connection";
+  stableKey: string;
+};
+
 /* More types may eventually be added to this union. */
 export type ScopedConfigVar =
   | CustomerActivatedConnectionConfigVar
-  | OrganizationActivatedConnectionConfigVar;
+  | OrganizationActivatedConnectionConfigVar
+  | UserActivatedConnectionConfigVar;
 
 /**
  * Root ScopedConfigVars type exposed for augmentation.
@@ -27,7 +33,7 @@ export type ScopedConfigVar =
  *
  * ```ts
  * interface IntegrationDefinitionScopedConfigVars {
- *   [key: string]: OrganizationActivatedConnectionConfigVar
+ *   [key: string]: ScopedConfigVar
  * }
  * ```
  *
@@ -39,11 +45,11 @@ type CreateScopedConfigVars<TScopedConfigVarMap> = keyof TScopedConfigVarMap ext
      *   introduce this union here so the ConfigVars type will correctly
      *   bottom out to empty when there are no ScopedConfigVars defined.
      */
-    { [key: string]: OrganizationActivatedConnectionConfigVar | string }
+    { [key: string]: ScopedConfigVar | string }
   : UnionToIntersection<
       keyof TScopedConfigVarMap extends infer TScopedConfigVarName
         ? TScopedConfigVarName extends keyof TScopedConfigVarMap
-          ? TScopedConfigVarMap[TScopedConfigVarName] extends OrganizationActivatedConnectionConfigVar
+          ? TScopedConfigVarMap[TScopedConfigVarName] extends ScopedConfigVar
             ? {
                 [Key in TScopedConfigVarName]: TScopedConfigVarMap[TScopedConfigVarName];
               }
@@ -54,9 +60,7 @@ type CreateScopedConfigVars<TScopedConfigVarMap> = keyof TScopedConfigVarMap ext
 
 export type ScopedConfigVarMap = CreateScopedConfigVars<IntegrationDefinitionScopedConfigVars>;
 
-export const isConnectionScopedConfigVar = (
-  cv: unknown,
-): cv is OrganizationActivatedConnectionConfigVar => {
+export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar => {
   if (!cv || typeof cv !== "object" || Array.isArray(cv)) {
     return false;
   }

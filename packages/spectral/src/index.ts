@@ -36,6 +36,7 @@ import type {
   TriggerDefinition,
   TriggerPayload,
   TriggerResult,
+  UserActivatedConnectionConfigVar,
 } from "./types";
 import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
 import type { Exact } from "./types/utils";
@@ -426,6 +427,27 @@ export const customerActivatedConnection = <T extends { stableKey: string }>(
 export const organizationActivatedConnection = <T extends { stableKey: string }>(
   definition: T,
 ): OrganizationActivatedConnectionConfigVar => {
+  return { ...definition, dataType: "connection" };
+};
+
+/**
+ * This function creates a user-activated connection for code-native
+ * integrations. User-activated connections are activated by each person who
+ * uses the integration, so every one of them supplies their own credentials
+ * rather than sharing the organization's.
+ *
+ * @param definition A User-Activated Connection Config Var type object.
+ * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
+ * @example
+ * import { userActivatedConnection } from "@prismatic-io/spectral";
+ *
+ * const userSlackConnection = userActivatedConnection({
+ *   stableKey: "user-slack-connection",
+ * });
+ */
+export const userActivatedConnection = <T extends { stableKey: string }>(
+  definition: T,
+): UserActivatedConnectionConfigVar => {
   return { ...definition, dataType: "connection" };
 };
 

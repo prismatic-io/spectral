@@ -18,6 +18,7 @@ expectAssignable<"A Connection" | "Ref Connection">(null as unknown as keyof Con
 expectAssignable<Connection>(null as unknown as ConfigVars["A Connection"]);
 expectAssignable<Connection>(null as unknown as ConfigVars["Ref Connection"]);
 expectAssignable<Connection>(null as unknown as ConfigVars["My Customer Connection"]);
+expectAssignable<Connection>(null as unknown as ConfigVars["My User Connection"]);
 
 expectAssignable<ConfigVar>({
   stableKey: "cni-oauth-connection",

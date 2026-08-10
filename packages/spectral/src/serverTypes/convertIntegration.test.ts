@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { batchFlowTrigger, configPage, configVar, flow, integration } from "..";
+import {
+  batchFlowTrigger,
+  configPage,
+  configVar,
+  customerActivatedConnection,
+  flow,
+  integration,
+  organizationActivatedConnection,
+  userActivatedConnection,
+} from "..";
 import type { ConfigVar, TriggerReference } from "../types";
 import {
   convertConfigPages,
@@ -401,11 +410,69 @@ describe("convertConfigPages", () => {
     expect(result[0].name).toBe("EmptyPage");
     expect(result[0].elements).toHaveLength(0);
   });
+
+  it("omits scoped config vars from page elements, so they reach the server only as required config vars", () => {
+    const pages = {
+      Connections: configPage({
+        elements: {
+          ApiKey: configVar({
+            stableKey: "api-key",
+            dataType: "string",
+          }),
+          Slack: organizationActivatedConnection({
+            stableKey: "org-slack-connection",
+          }),
+        },
+      }),
+    };
+
+    const result = convertConfigPages(pages, false);
+
+    expect(result[0].elements).toHaveLength(1);
+    expect(result[0].elements[0]).toEqual({ type: "configVar", value: "ApiKey" });
+  });
 });
 
 describe("convertConfigVar", () => {
   const referenceKey = "test-component";
   const componentRegistry = {};
+
+  describe("scoped config vars", () => {
+    it("emits a reference to the scoped config variable by stable key", () => {
+      const scopedConfigVar = organizationActivatedConnection({
+        stableKey: "org-slack-connection",
+      }) as ConfigVar;
+
+      const result = convertConfigVar("Slack", scopedConfigVar, referenceKey, componentRegistry);
+
+      expect(result).toEqual({
+        key: "Slack",
+        stableKey: "org-slack-connection",
+        dataType: "connection",
+        useScopedConfigVar: "org-slack-connection",
+      });
+    });
+
+    it("emits an identical definition whichever scope the author declared", () => {
+      const stableKey = "shared-connection";
+      const convert = (scopedConfigVar: ConfigVar) =>
+        convertConfigVar("Slack", scopedConfigVar, referenceKey, componentRegistry);
+
+      // Scope is resolved server-side from the Scoped Config Variable that the
+      // stable key names, so the declaration carries no scope of its own. The
+      // helpers differ only in what they tell a reader.
+      const asOrganizationActivated = convert(
+        organizationActivatedConnection({ stableKey }) as ConfigVar,
+      );
+
+      expect(convert(customerActivatedConnection({ stableKey }) as ConfigVar)).toEqual(
+        asOrganizationActivated,
+      );
+      expect(convert(userActivatedConnection({ stableKey }) as ConfigVar)).toEqual(
+        asOrganizationActivated,
+      );
+    });
+  });
 
   describe("onPremConnectionConfig validation", () => {
     it("should return onPremiseConnectionConfig when connection has onPremControlled inputs and config set", () => {
