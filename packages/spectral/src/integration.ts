@@ -16,5 +16,6 @@ export {
   oauth2Connection,
   onPremConnection,
   organizationActivatedConnection,
+  userActivatedConnection,
 } from "./index";
 export * from "./types/typeExportIntegration";

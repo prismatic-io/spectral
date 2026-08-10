@@ -10,6 +10,7 @@ import {
   OAuth2Type,
   type ObjectSelection,
   organizationActivatedConnection,
+  userActivatedConnection,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 
@@ -240,5 +241,8 @@ export const componentRegistry = {
 export const scopedConfigVars = {
   "My Customer Connection": organizationActivatedConnection({
     stableKey: "my-customer-connection-stable-key",
+  }),
+  "My User Connection": userActivatedConnection({
+    stableKey: "my-user-connection-stable-key",
   }),
 };
