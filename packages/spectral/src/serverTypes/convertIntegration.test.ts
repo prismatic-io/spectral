@@ -623,6 +623,24 @@ describe("convertConfigVar", () => {
       expect("scheduleType" in result && result.scheduleType).toBe("none");
     });
 
+    it("should respect a user-specified scheduleType of 'once' with no defaultValue", () => {
+      const scheduleConfigVar = configVar({
+        stableKey: "test-schedule",
+        dataType: "schedule",
+        scheduleType: "once",
+      });
+
+      const result = convertConfigVar(
+        "TestSchedule",
+        scheduleConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+
+      expect("scheduleType" in result && result.scheduleType).toBe("once");
+      expect("defaultValue" in result && result.defaultValue).toBeUndefined();
+    });
+
     it("should preserve timeZone on schedule config vars", () => {
       const scheduleConfigVar = configVar({
         stableKey: "test-schedule",

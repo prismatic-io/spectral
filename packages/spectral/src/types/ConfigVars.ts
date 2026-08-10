@@ -205,10 +205,11 @@ type NumberConfigVar = CreateStandardConfigVar<"number">;
  * Schedule type for a schedule-typed config variable. Mirrors the options
  * available in low-code:
  * - `"none"` (Never) - no schedule is set; the default when no `defaultValue` is provided.
+ * - `"once"` - run a single time, as soon as possible after the instance deploys, and never again.
  * - `"minute"` / `"hour"` / `"day"` / `"week"` - run on the corresponding interval.
  * - `"custom"` - run on a custom CRON expression supplied via `defaultValue`.
  */
-export type ScheduleType = "none" | "custom" | "minute" | "hour" | "day" | "week";
+export type ScheduleType = "none" | "once" | "custom" | "minute" | "hour" | "day" | "week";
 
 type ScheduleConfigVar = CreateStandardConfigVar<"schedule"> & {
   /** Timezone for the schedule. */
