@@ -28,10 +28,7 @@ import type {
   Schedule,
 } from "./Inputs";
 import type { ValidationMode } from "./jsonforms/ValidationMode";
-import type {
-  OrganizationActivatedConnectionConfigVar,
-  ScopedConfigVarMap,
-} from "./ScopedConfigVars";
+import type { ScopedConfigVar, ScopedConfigVarMap } from "./ScopedConfigVars";
 import type { Prettify, UnionToIntersection } from "./utils";
 
 /** Supported data types for config variables. */
@@ -385,7 +382,7 @@ export type ConfigVar =
   | StandardConfigVar
   | DataSourceConfigVar
   | ConnectionConfigVar
-  | OrganizationActivatedConnectionConfigVar;
+  | ScopedConfigVar;
 
 type WithCollectionType<TValue, TCollectionType extends CollectionType | undefined> =
   | undefined
@@ -458,15 +455,15 @@ type ExtractConfigVars<TConfigPages extends { [key: string]: ConfigPage }> =
 
 type ExtractScopedConfigVars<
   TScopedConfigVarMap extends {
-    [key: string]: string | OrganizationActivatedConnectionConfigVar;
+    [key: string]: string | ScopedConfigVar;
   },
 > = keyof TScopedConfigVarMap extends infer TScopedConfigVarName
   ? TScopedConfigVarName extends keyof TScopedConfigVarMap
     ? TScopedConfigVarMap[TScopedConfigVarName] extends infer TScopedConfigVar
-      ? TScopedConfigVar extends OrganizationActivatedConnectionConfigVar
+      ? TScopedConfigVar extends ScopedConfigVar
         ? {
             [Key in keyof TScopedConfigVarMap as Key extends string
-              ? TScopedConfigVarMap[Key] extends OrganizationActivatedConnectionConfigVar
+              ? TScopedConfigVarMap[Key] extends ScopedConfigVar
                 ? Key
                 : never
               : never]: Connection;
