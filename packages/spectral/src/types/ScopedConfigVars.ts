@@ -15,8 +15,16 @@ export type OrganizationActivatedConnectionConfigVar = {
   stableKey: string;
 };
 
+/**
+ * A connection each person activates for themselves.
+ *
+ * Carries its own `dataType` so it can be told apart from the organization- and
+ * customer-activated kinds, which are otherwise structurally identical. See
+ * `ConfigPageElement` for what that distinction buys. The convert layer rewrites it
+ * to the shape the API expects, so this name never reaches the server.
+ */
 export type UserActivatedConnectionConfigVar = {
-  dataType: "connection";
+  dataType: "userScopedConnection";
   stableKey: string;
 };
 
@@ -65,12 +73,28 @@ export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar 
     return false;
   }
 
-  if (!("dataType" in cv) || cv.dataType !== "connection") {
+  if (
+    !("dataType" in cv) ||
+    (cv.dataType !== "connection" && cv.dataType !== "userScopedConnection")
+  ) {
     return false;
   }
 
+  // Applied to both kinds: a declaration carrying a component reference or its own
+  // inputs is a connection definition rather than a reference to a Scoped Config
+  // Variable, whichever `dataType` it claims.
   return (
     !isConnectionDefinitionConfigVar(cv as ConfigVar) &&
     !isConnectionReferenceConfigVar(cv as ConfigVar)
   );
 };
+
+/** Whether this config var is a connection each person activates for themselves. */
+export const isUserScopedConnectionConfigVar = (
+  cv: unknown,
+): cv is UserActivatedConnectionConfigVar =>
+  Boolean(cv) &&
+  typeof cv === "object" &&
+  !Array.isArray(cv) &&
+  "dataType" in (cv as object) &&
+  (cv as { dataType: unknown }).dataType === "userScopedConnection";
