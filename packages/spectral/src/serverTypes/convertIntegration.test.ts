@@ -8,6 +8,7 @@ import {
   integration,
   organizationActivatedConnection,
   userActivatedConnection,
+  userLevelConfigPage,
 } from "..";
 import type { ConfigVar, TriggerReference } from "../types";
 import {
@@ -320,6 +321,57 @@ describe("convertFlow with polling triggers", () => {
 });
 
 describe("convertConfigPages", () => {
+  it("refuses a user-activated connection declared on an ordinary config page", () => {
+    const pages = {
+      Connections: {
+        tagline: "Set up your connections",
+        elements: {
+          "User Slack": userActivatedConnection({ stableKey: "user-slack-connection" }),
+        },
+      },
+    } as unknown as Parameters<typeof convertConfigPages>[0];
+
+    expect(() => convertConfigPages(pages, false)).toThrow(/belongs on a user level config page/);
+  });
+
+  it("names every misplaced connection at once, so fixing one does not uncover the next", () => {
+    const pages = {
+      "Page A": {
+        elements: { "User Slack": userActivatedConnection({ stableKey: "user-slack" }) },
+      },
+      "Page B": {
+        elements: { "User Jira": userActivatedConnection({ stableKey: "user-jira" }) },
+      },
+    } as unknown as Parameters<typeof convertConfigPages>[0];
+
+    expect(() => convertConfigPages(pages, false)).toThrow(
+      /"User Slack" on config page "Page A".*"User Jira" on config page "Page B"/,
+    );
+  });
+
+  it("accepts a user-activated connection on a user level config page", () => {
+    expect(
+      convertConfigPages(
+        {
+          Connections: userLevelConfigPage({
+            tagline: "Connect your account",
+            elements: {
+              "User Slack": userActivatedConnection({ stableKey: "user-slack-connection" }),
+            },
+          }),
+        },
+        true,
+      ),
+    ).toEqual([
+      {
+        name: "Connections",
+        tagline: "Connect your account",
+        userLevelConfigured: true,
+        elements: [],
+      },
+    ]);
+  });
+
   it("should handle HTML string elements correctly", () => {
     const pages = {
       Connections: configPage({
@@ -471,6 +523,20 @@ describe("convertConfigVar", () => {
       expect(convert(userActivatedConnection({ stableKey }) as ConfigVar)).toEqual(
         asOrganizationActivated,
       );
+    });
+
+    it("never sends the declaration-time discriminator to the server", () => {
+      const emitted = JSON.stringify(
+        convertConfigVar(
+          "Slack",
+          userActivatedConnection({ stableKey: "user-slack-connection" }) as ConfigVar,
+          referenceKey,
+          componentRegistry,
+        ),
+      );
+
+      expect(emitted).not.toContain("userScopedConnection");
+      expect(emitted).toContain('"dataType":"connection"');
     });
   });
 
