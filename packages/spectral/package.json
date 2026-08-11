@@ -50,7 +50,7 @@
     "jest-mock": "^30.4.1",
     "lodash": "^4.18.1",
     "object-sizeof": "^2.6.4",
-    "prettier": "^3.9.5",
+    "prettier": "^3.9.6",
     "safe-stable-stringify": "^2.5.0",
     "valid-url": "1.0.9",
     "yaml": "^2.9.0"
@@ -60,7 +60,7 @@
     "@fast-check/vitest": "^0.4.1",
     "@types/ejs": "3.1.5",
     "@types/lodash": "^4.17.24",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "@types/prettier": "^3.0.0",
     "@types/sax": "^1.2.7",
     "@types/valid-url": "^1.0.7",
