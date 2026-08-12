@@ -63,7 +63,7 @@ export interface DefaultRequiredConfigVariable {
     | "objectFieldMap"
     | "jsonForm";
   pickList?: string[];
-  scheduleType?: "none" | "custom" | "minute" | "hour" | "day" | "week";
+  scheduleType?: "none" | "once" | "custom" | "minute" | "hour" | "day" | "week";
   timeZone?: string;
   codeLanguage?: "json" | "xml" | "html";
   description?: string;
