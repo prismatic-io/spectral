@@ -34,6 +34,7 @@ import {
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
   isScheduleConfigVar,
+  isUserScopedConnectionConfigVar,
   type KeyValuePair,
   type OnPremiseConnectionConfigTypeEnum,
   type PermissionAndVisibilityType,
@@ -46,6 +47,7 @@ import {
   type TriggerPerformFunction,
   type TriggerResult as TriggerPerformResult,
   type TriggerReference,
+  type UserLevelConfigPages,
 } from "../types";
 import type {
   ActionContext,
@@ -265,11 +267,31 @@ export const convertIntegration = <
 };
 
 export const convertConfigPages = (
-  pages: ConfigPages | undefined,
+  pages: ConfigPages | UserLevelConfigPages | undefined,
   userLevelConfigured: boolean,
 ): ServerConfigPage[] => {
   if (!pages || !Object.keys(pages).length) {
     return [];
+  }
+
+  /**
+   * Checked before the filter below, which removes scoped connections from the page
+   * and with them the only record of which page they were declared on. See
+   * `ConfigPageElement` for why placement matters. Every page is inspected before
+   * throwing, so fixing one does not simply uncover the next.
+   */
+  if (!userLevelConfigured) {
+    const misplaced = Object.entries(pages).flatMap(([name, { elements }]) =>
+      Object.entries(elements)
+        .filter(([_key, value]) => isUserScopedConnectionConfigVar(value))
+        .map(([key]) => `"${key}" on config page "${name}"`),
+    );
+
+    if (misplaced.length) {
+      throw new Error(
+        `A user-activated connection is activated by each person individually, so it belongs on a user level config page. Move ${misplaced.join(", ")}.`,
+      );
+    }
   }
 
   return Object.entries(pages).map<ServerConfigPage>(([name, { tagline, elements }]) => ({
@@ -1008,6 +1030,11 @@ export const convertConfigVar = (
   if (isConnectionScopedConfigVar(configVar)) {
     const { stableKey } = pick(configVar, ["stableKey"]);
 
+    /**
+     * `userScopedConnection` is a declaration-time distinction only. The server
+     * resolves scope from the Scoped Config Variable the stable key names, so every
+     * scoped kind emits the same shape and the discriminator stops here.
+     */
     return {
       key,
       stableKey,

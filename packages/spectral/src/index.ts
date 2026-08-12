@@ -36,6 +36,8 @@ import type {
   TriggerDefinition,
   TriggerPayload,
   TriggerResult,
+  UserActivatedConnectionConfigVar,
+  UserLevelConfigPage,
 } from "./types";
 import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
 import type { Exact } from "./types/utils";
@@ -273,6 +275,33 @@ export const batchFlowTrigger = <
 export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T => definition;
 
 /**
+ * This function creates a config page each person configures for themselves.
+ *
+ * Use this rather than `configPage` for pages listed under `userLevelConfigPages`: it
+ * is the only page kind that accepts a connection created with
+ * `userActivatedConnection`, and declaring one on an ordinary page is a type error.
+ *
+ * @param definition A User Level Config Page type object.
+ * @returns This function returns a config page object that has the shape the Prismatic API expects.
+ * @example
+ * import { userActivatedConnection, userLevelConfigPage } from "@prismatic-io/spectral";
+ *
+ * export const userLevelConfigPages = {
+ *   "Connect your account": userLevelConfigPage({
+ *     tagline: "Connect the account you want this integration to act as",
+ *     elements: {
+ *       "Slack Connection": userActivatedConnection({
+ *         stableKey: "user-slack-connection",
+ *       }),
+ *     },
+ *   }),
+ * };
+ */
+export const userLevelConfigPage = <T extends UserLevelConfigPage = UserLevelConfigPage>(
+  definition: T,
+): T => definition;
+
+/**
  * This function creates a config variable object for code-native integrations.
  *
  * @param definition A Config Var type object.
@@ -427,6 +456,27 @@ export const organizationActivatedConnection = <T extends { stableKey: string }>
   definition: T,
 ): OrganizationActivatedConnectionConfigVar => {
   return { ...definition, dataType: "connection" };
+};
+
+/**
+ * This function creates a user-activated connection for code-native
+ * integrations. User-activated connections are activated by each person who
+ * uses the integration, so every one of them supplies their own credentials
+ * rather than sharing the organization's.
+ *
+ * @param definition A User-Activated Connection Config Var type object.
+ * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
+ * @example
+ * import { userActivatedConnection } from "@prismatic-io/spectral";
+ *
+ * const userSlackConnection = userActivatedConnection({
+ *   stableKey: "user-slack-connection",
+ * });
+ */
+export const userActivatedConnection = <T extends { stableKey: string }>(
+  definition: T,
+): UserActivatedConnectionConfigVar => {
+  return { ...definition, dataType: "userScopedConnection" };
 };
 
 /**

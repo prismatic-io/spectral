@@ -15,10 +15,24 @@ export type OrganizationActivatedConnectionConfigVar = {
   stableKey: string;
 };
 
+/**
+ * A connection each person activates for themselves.
+ *
+ * Carries its own `dataType` so it can be told apart from the organization- and
+ * customer-activated kinds, which are otherwise structurally identical. See
+ * `ConfigPageElement` for what that distinction buys. The convert layer rewrites it
+ * to the shape the API expects, so this name never reaches the server.
+ */
+export type UserActivatedConnectionConfigVar = {
+  dataType: "userScopedConnection";
+  stableKey: string;
+};
+
 /* More types may eventually be added to this union. */
 export type ScopedConfigVar =
   | CustomerActivatedConnectionConfigVar
-  | OrganizationActivatedConnectionConfigVar;
+  | OrganizationActivatedConnectionConfigVar
+  | UserActivatedConnectionConfigVar;
 
 /**
  * Root ScopedConfigVars type exposed for augmentation.
@@ -27,7 +41,7 @@ export type ScopedConfigVar =
  *
  * ```ts
  * interface IntegrationDefinitionScopedConfigVars {
- *   [key: string]: OrganizationActivatedConnectionConfigVar
+ *   [key: string]: ScopedConfigVar
  * }
  * ```
  *
@@ -39,11 +53,11 @@ type CreateScopedConfigVars<TScopedConfigVarMap> = keyof TScopedConfigVarMap ext
      *   introduce this union here so the ConfigVars type will correctly
      *   bottom out to empty when there are no ScopedConfigVars defined.
      */
-    { [key: string]: OrganizationActivatedConnectionConfigVar | string }
+    { [key: string]: ScopedConfigVar | string }
   : UnionToIntersection<
       keyof TScopedConfigVarMap extends infer TScopedConfigVarName
         ? TScopedConfigVarName extends keyof TScopedConfigVarMap
-          ? TScopedConfigVarMap[TScopedConfigVarName] extends OrganizationActivatedConnectionConfigVar
+          ? TScopedConfigVarMap[TScopedConfigVarName] extends ScopedConfigVar
             ? {
                 [Key in TScopedConfigVarName]: TScopedConfigVarMap[TScopedConfigVarName];
               }
@@ -54,19 +68,33 @@ type CreateScopedConfigVars<TScopedConfigVarMap> = keyof TScopedConfigVarMap ext
 
 export type ScopedConfigVarMap = CreateScopedConfigVars<IntegrationDefinitionScopedConfigVars>;
 
-export const isConnectionScopedConfigVar = (
-  cv: unknown,
-): cv is OrganizationActivatedConnectionConfigVar => {
+export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar => {
   if (!cv || typeof cv !== "object" || Array.isArray(cv)) {
     return false;
   }
 
-  if (!("dataType" in cv) || cv.dataType !== "connection") {
+  if (
+    !("dataType" in cv) ||
+    (cv.dataType !== "connection" && cv.dataType !== "userScopedConnection")
+  ) {
     return false;
   }
 
+  // Applied to both kinds: a declaration carrying a component reference or its own
+  // inputs is a connection definition rather than a reference to a Scoped Config
+  // Variable, whichever `dataType` it claims.
   return (
     !isConnectionDefinitionConfigVar(cv as ConfigVar) &&
     !isConnectionReferenceConfigVar(cv as ConfigVar)
   );
 };
+
+/** Whether this config var is a connection each person activates for themselves. */
+export const isUserScopedConnectionConfigVar = (
+  cv: unknown,
+): cv is UserActivatedConnectionConfigVar =>
+  Boolean(cv) &&
+  typeof cv === "object" &&
+  !Array.isArray(cv) &&
+  "dataType" in (cv as object) &&
+  (cv as { dataType: unknown }).dataType === "userScopedConnection";

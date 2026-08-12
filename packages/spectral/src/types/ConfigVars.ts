@@ -6,8 +6,8 @@ import type {
 import { isComponentReference } from "./ComponentRegistry";
 import type {
   ConfigPage,
-  ConfigPageElement,
   ConfigPages,
+  UserLevelConfigPage,
   UserLevelConfigPages,
 } from "./ConfigPages";
 import type {
@@ -28,10 +28,7 @@ import type {
   Schedule,
 } from "./Inputs";
 import type { ValidationMode } from "./jsonforms/ValidationMode";
-import type {
-  OrganizationActivatedConnectionConfigVar,
-  ScopedConfigVarMap,
-} from "./ScopedConfigVars";
+import type { ScopedConfigVar, ScopedConfigVarMap } from "./ScopedConfigVars";
 import type { Prettify, UnionToIntersection } from "./utils";
 
 /** Supported data types for config variables. */
@@ -385,7 +382,7 @@ export type ConfigVar =
   | StandardConfigVar
   | DataSourceConfigVar
   | ConnectionConfigVar
-  | OrganizationActivatedConnectionConfigVar;
+  | ScopedConfigVar;
 
 type WithCollectionType<TValue, TCollectionType extends CollectionType | undefined> =
   | undefined
@@ -408,7 +405,18 @@ type GetDataSourceReference<
     : never
   : never;
 
-type DataSourceToRuntimeType<TElement extends ConfigPageElement> =
+/**
+ * Any element either kind of config page may hold.
+ *
+ * Local to this module and deliberately not exported: mapping an element to its
+ * runtime type is the same work whichever page it was declared on, so the two
+ * helpers below should not appear to require a particular page kind. `ConfigPage`
+ * accepts a narrower set than this, and that narrowing is a placement rule rather
+ * than anything these helpers care about.
+ */
+type AnyPageElement = string | ConfigVar;
+
+type DataSourceToRuntimeType<TElement extends AnyPageElement> =
   TElement extends DataSourceDefinitionConfigVar
     ? TElement["dataSourceType"] extends infer TType
       ? TType extends DataSourceType
@@ -426,24 +434,30 @@ type DataSourceToRuntimeType<TElement extends ConfigPageElement> =
         : never
       : never;
 
-type ElementToRuntimeType<TElement extends ConfigPageElement> = TElement extends ConfigVar
+type ElementToRuntimeType<TElement extends AnyPageElement> = TElement extends ConfigVar
   ? TElement extends ConnectionConfigVar
     ? Connection
-    : TElement extends StandardConfigVar
-      ? WithCollectionType<
-          ConfigVarDataTypeRuntimeValueMap[TElement["dataType"]],
-          TElement["collectionType"]
-        >
-      : TElement extends DataSourceConfigVar
-        ? WithCollectionType<DataSourceToRuntimeType<TElement>, TElement["collectionType"]>
-        : never
+    : /* A page element naming a Scoped Config Variable resolves to a Connection like
+       * any other, matching what ExtractScopedConfigVars gives the same declaration
+       * made under `scopedConfigVars`. Without this the value is `never`, so the
+       * connection an author declared on a page cannot be used at runtime. */
+      TElement extends ScopedConfigVar
+      ? Connection
+      : TElement extends StandardConfigVar
+        ? WithCollectionType<
+            ConfigVarDataTypeRuntimeValueMap[TElement["dataType"]],
+            TElement["collectionType"]
+          >
+        : TElement extends DataSourceConfigVar
+          ? WithCollectionType<DataSourceToRuntimeType<TElement>, TElement["collectionType"]>
+          : never
   : never;
 
-type ExtractConfigVars<TConfigPages extends { [key: string]: ConfigPage }> =
+type ExtractConfigVars<TConfigPages extends { [key: string]: ConfigPage | UserLevelConfigPage }> =
   keyof TConfigPages extends infer TPageName
     ? TPageName extends keyof TConfigPages
       ? TConfigPages[TPageName] extends infer TConfigPage
-        ? TConfigPage extends ConfigPage
+        ? TConfigPage extends ConfigPage | UserLevelConfigPage
           ? {
               [Key in keyof TConfigPage["elements"] as Key extends string
                 ? TConfigPage["elements"][Key] extends ConfigVar
@@ -458,15 +472,15 @@ type ExtractConfigVars<TConfigPages extends { [key: string]: ConfigPage }> =
 
 type ExtractScopedConfigVars<
   TScopedConfigVarMap extends {
-    [key: string]: string | OrganizationActivatedConnectionConfigVar;
+    [key: string]: string | ScopedConfigVar;
   },
 > = keyof TScopedConfigVarMap extends infer TScopedConfigVarName
   ? TScopedConfigVarName extends keyof TScopedConfigVarMap
     ? TScopedConfigVarMap[TScopedConfigVarName] extends infer TScopedConfigVar
-      ? TScopedConfigVar extends OrganizationActivatedConnectionConfigVar
+      ? TScopedConfigVar extends ScopedConfigVar
         ? {
             [Key in keyof TScopedConfigVarMap as Key extends string
-              ? TScopedConfigVarMap[Key] extends OrganizationActivatedConnectionConfigVar
+              ? TScopedConfigVarMap[Key] extends ScopedConfigVar
                 ? Key
                 : never
               : never]: Connection;
