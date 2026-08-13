@@ -20,7 +20,7 @@ import type { TriggerPerformFunction } from "./TriggerPerformFunction";
 import type { TriggerResult } from "./TriggerResult";
 
 /**
- * Defines attributes of a code-native integration. See
+ * Defines attributes of a code-first integration. See
  * https://prismatic.io/docs/integrations/code-native/
  */
 export type IntegrationDefinition<
@@ -87,7 +87,7 @@ export type IntegrationDefinition<
    */
   instanceProfile?: string;
   /**
-   * A list of components this code-native integration uses. See
+   * A list of components this code-first integration uses. See
    * https://prismatic.io/docs/integrations/code-native/existing-components/
    */
   componentRegistry?: ComponentRegistry;
@@ -399,7 +399,7 @@ interface PollingFlow<
   >;
 }
 
-/** Defines attributes of a flow of a code-native integration. */
+/** Defines attributes of a flow of a code-first integration. */
 export type Flow<
   TInputs extends Inputs,
   TActionInputs extends Inputs,

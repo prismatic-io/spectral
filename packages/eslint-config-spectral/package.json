@@ -1,8 +1,11 @@
 {
   "name": "@prismatic-io/eslint-config-spectral",
   "version": "2.2.0",
-  "description": "ESLint config for building Prismatic connectors and code-native integrations",
-  "keywords": ["prismatic", "eslint"],
+  "description": "ESLint config for building Prismatic connectors and code-first integrations",
+  "keywords": [
+    "prismatic",
+    "eslint"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://prismatic.io",
@@ -23,7 +26,9 @@
     "build": "bun run clean && tsc",
     "prepack": "bun run build"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.65.0",

@@ -1,7 +1,7 @@
 {
   "name": "@prismatic-io/spectral",
   "version": "10.26.0",
-  "description": "Utility library for building Prismatic connectors and code-native integrations",
+  "description": "Utility library for building Prismatic connectors and code-first integrations",
   "keywords": [
     "prismatic"
   ],

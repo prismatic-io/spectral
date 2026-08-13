@@ -1,5 +1,5 @@
 /**
- * This module contains functions to help custom component and code-native
+ * This module contains functions to help custom component and code-first
  * integration authors create inputs, actions, components, and integrations
  * that can run on the Prismatic platform.
  */
@@ -41,12 +41,12 @@ import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition"
 import type { Exact } from "./types/utils";
 
 /**
- * This function creates a code-native integration object that can be
+ * This function creates a code-first integration object that can be
  * imported into Prismatic.
  *
  * @param definition An IntegrationDefinition type object.
  * @returns This function returns an integration object that has the shape the Prismatic API expects.
- * @see {@link https://prismatic.io/docs/integrations/code-native/ | Code-Native Integrations}
+ * @see {@link https://prismatic.io/docs/integrations/code-native/ | Code-First Integrations}
  * @example
  * import { integration } from "@prismatic-io/spectral";
  * import flows from "./flows";
@@ -108,11 +108,11 @@ export const integration = <
 };
 
 /**
- * This function creates a flow object for use in code-native integrations.
+ * This function creates a flow object for use in code-first integrations.
  *
  * @param definition A Flow type object.
  * @returns This function returns a flow object that has the shape the Prismatic API expects.
- * @see {@link https://prismatic.io/docs/integrations/code-native/flows/ | Code-Native Flows}
+ * @see {@link https://prismatic.io/docs/integrations/code-native/flows/ | Code-First Flows}
  * @example
  * // A webhook-triggered flow
  * import { flow } from "@prismatic-io/spectral";
@@ -203,7 +203,7 @@ export const flow = <
  *
  * @typeParam TItem - the item type each batched execution receives.
  * @typeParam TPaginationState - the pagination state round-tripped via `payload.paginationState`.
- * @see {@link https://prismatic.io/docs/integrations/code-native/flows/ | Code-Native Flows}
+ * @see {@link https://prismatic.io/docs/integrations/code-native/flows/ | Code-First Flows}
  * @example
  * import { flow, batchFlowTrigger } from "@prismatic-io/spectral";
  *
@@ -234,12 +234,12 @@ export const batchFlowTrigger = <
 ): BatchTrigger<TItem, TPaginationState> => trigger;
 
 /**
- * This function creates a config wizard page object for use in code-native
+ * This function creates a config wizard page object for use in code-first
  * integrations.
  *
  * @param definition A Config Page type object.
  * @returns This function returns a config page object that has the shape the Prismatic API expects.
- * @see {@link https://prismatic.io/docs/integrations/code-native/config-wizard/ | Code-Native Config Wizard}
+ * @see {@link https://prismatic.io/docs/integrations/code-native/config-wizard/ | Code-First Config Wizard}
  * @example
  * import { configPage, connectionConfigVar, configVar } from "@prismatic-io/spectral";
  *
@@ -273,7 +273,7 @@ export const batchFlowTrigger = <
 export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T => definition;
 
 /**
- * This function creates a config variable object for code-native integrations.
+ * This function creates a config variable object for code-first integrations.
  *
  * @param definition A Config Var type object.
  * @returns This function returns a standard config var object that has the shape the Prismatic API expects.
@@ -326,12 +326,12 @@ export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T 
 export const configVar = <T extends StandardConfigVar>(definition: T): T => definition;
 
 /**
- * This function creates a data source-backed config variable for code-native
+ * This function creates a data source-backed config variable for code-first
  * integrations.
  *
  * @param definition A Data Source Config Var type object.
  * @returns This function returns a data source config var object that has the shape the Prismatic API expects.
- * @see {@link https://prismatic.io/docs/integrations/code-native/config-wizard/#data-sources-is-code-native-integrations | Data Sources in Code-Native}
+ * @see {@link https://prismatic.io/docs/integrations/code-native/config-wizard/#data-sources-is-code-native-integrations | Data Sources in Code-First}
  * @example
  * import { dataSourceConfigVar } from "@prismatic-io/spectral";
  *
@@ -350,12 +350,12 @@ export const dataSourceConfigVar = <TDataSourceConfigVar extends DataSourceConfi
 ): TDataSourceConfigVar => definition;
 
 /**
- * This function creates a connection config variable for code-native
+ * This function creates a connection config variable for code-first
  * integrations.
  *
  * @param definition A Connection Config Var type object.
  * @returns This function returns a connection config var object that has the shape the Prismatic API expects.
- * @see {@link https://prismatic.io/docs/integrations/code-native/config-wizard/#connections-in-code-native-integrations | Connections in Code-Native}
+ * @see {@link https://prismatic.io/docs/integrations/code-native/config-wizard/#connections-in-code-native-integrations | Connections in Code-First}
  * @example
  * import { connectionConfigVar } from "@prismatic-io/spectral";
  * import { acmeConnection } from "./connections";
@@ -388,7 +388,7 @@ export const connectionConfigVar = <T extends ConnectionConfigVar = ConnectionCo
 ): T => definition;
 
 /**
- * This function creates a customer-activated connection for code-native
+ * This function creates a customer-activated connection for code-first
  * integrations. Customer-activated connections are configured by end-users
  * and can be shared across multiple integrations.
  *
@@ -409,7 +409,7 @@ export const customerActivatedConnection = <T extends { stableKey: string }>(
 };
 
 /**
- * This function creates an org-activated connection for code-native
+ * This function creates an org-activated connection for code-first
  * integrations. Org-activated connections are configured once by the
  * organization and shared across all customer instances.
  *
@@ -430,8 +430,8 @@ export const organizationActivatedConnection = <T extends { stableKey: string }>
 };
 
 /**
- * Generate a manifest of components that this code-native integration relies on.
- * Component manifests allow your code-native integration to reference actions,
+ * Generate a manifest of components that this code-first integration relies on.
+ * Component manifests allow your code-first integration to reference actions,
  * triggers, connections, and data sources from published Prismatic components.
  *
  * @param definition A Component Manifest type object.
@@ -848,7 +848,7 @@ export const dynamicObjectInput = <
 });
 
 /**
- * This function creates a connection that can be used by a code-native integration
+ * This function creates a connection that can be used by a code-first integration
  * or custom component. Connections define the fields (API keys, tokens, etc.) needed
  * to authenticate with a third-party service.
  *
@@ -885,7 +885,7 @@ export const connection = <T extends DefaultConnectionDefinition>(
 ): T => definition;
 
 /**
- * This function creates an on-prem connection for a code-native integration or custom component.
+ * This function creates an on-prem connection for a code-first integration or custom component.
  * On-prem connections include `host` and `port` fields that are automatically overridden by the
  * on-prem agent with local tunnel endpoints.
  *
@@ -934,7 +934,7 @@ export const onPremConnection = <T extends OnPremConnectionDefinition>(
 ): T => definition;
 
 /**
- * This function creates an OAuth 2.0 connection for a code-native integration or custom component.
+ * This function creates an OAuth 2.0 connection for a code-first integration or custom component.
  * Supports both Authorization Code and Client Credentials grant types.
  *
  * @param definition An OAuth2ConnectionDefinition object that describes the type of a connection for a custom component action or trigger, and information on how it should be displayed in the Prismatic WebApp.
@@ -996,7 +996,7 @@ export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(
 ): T => definition;
 
 /**
- * Register multiple component manifests for a code-native integration.
+ * Register multiple component manifests for a code-first integration.
  * Each manifest declares a published Prismatic component and the specific
  * actions, triggers, connections, and data sources your integration uses.
  *

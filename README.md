@@ -3,7 +3,7 @@
   <h1>@prismatic-io/spectral</h1>
 </div>
 
-This monorepo contains packages to build custom Prismatic connectors and code-native integrations using TypeScript.
+This monorepo contains packages to build custom Prismatic connectors and code-first integrations using TypeScript.
 
 ## Building Locally
 
@@ -13,13 +13,13 @@ Run `bun install` to install node dependencies, `mise run build` to build all wo
 
 ## What is Prismatic?
 
-Prismatic is the leading embedded iPaaS, enabling B2B SaaS teams to ship product integrations faster and with less dev time. The only embedded iPaaS that empowers both developers and non-developers with tools for the complete integration lifecycle, Prismatic includes low-code and code-native building options, deployment and management tooling, and self-serve customer tools.
+Prismatic is the leading embedded iPaaS, enabling B2B SaaS teams to ship product integrations faster and with less dev time. The only embedded iPaaS that empowers both developers and non-developers with tools for the complete integration lifecycle, Prismatic includes low-code and code-first building options, deployment and management tooling, and self-serve customer tools.
 
 Prismatic's unparalleled versatility lets teams deliver any integration from simple to complex in one powerful platform. SaaS companies worldwide, from startups to Fortune 500s, trust Prismatic to help connect their products to the other products their customers use.
 
 With Prismatic, you can:
 
-- Build [integrations](https://prismatic.io/docs/integrations/) using our [intuitive low-code designer](https://prismatic.io/docs/integrations/low-code-integration-designer/) or [code-native](https://prismatic.io/docs/integrations/code-native/) approach in your preferred IDE
+- Build [integrations](https://prismatic.io/docs/integrations/) using our [intuitive low-code designer](https://prismatic.io/docs/integrations/low-code-integration-designer/) or [code-first](https://prismatic.io/docs/integrations/code-native/) approach in your preferred IDE
 - Leverage pre-built [connectors](https://prismatic.io/docs/components/) for common integration tasks, or develop custom connectors using our TypeScript SDK
 - Embed a native [integration marketplace](https://prismatic.io/docs/embed/) in your product for customer self-service
 - Configure and deploy customer-specific integration instances with powerful configuration tools

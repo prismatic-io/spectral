@@ -139,7 +139,7 @@ async function invokeFlowTest(
 }
 
 /**
- * Creates basic component action mocks based on a code-native integration's
+ * Creates basic component action mocks based on a code-first integration's
  * component registry. Each action mock returns the action's `examplePayload`
  * by default. Pass overrides in the second argument to customize specific mocks.
  *
@@ -531,7 +531,7 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
 };
 
 /**
- * Invokes a code-native integration flow within a test harness. Runs the
+ * Invokes a code-first integration flow within a test harness. Runs the
  * flow's `onTrigger` (if defined) followed by `onExecution`, and returns
  * the execution result. Accepts optional config variables, context overrides,
  * and a custom trigger payload.

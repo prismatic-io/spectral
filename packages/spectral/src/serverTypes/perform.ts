@@ -267,7 +267,7 @@ export const createCNIPollingPerform = <
         context: cniContext,
         invokeAction: async () => {
           throw new Error(
-            "invokeAction is not available for code-native polling triggers. " +
+            "invokeAction is not available for code-first polling triggers. " +
               "Use getState/setState to manage polling state directly in your onTrigger function.",
           );
         },
