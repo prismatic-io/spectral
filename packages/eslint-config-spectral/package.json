@@ -25,8 +25,8 @@
   },
   "files": ["dist"],
   "dependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.65.0",
-    "@typescript-eslint/parser": "^8.65.0",
+    "@typescript-eslint/eslint-plugin": "^8.66.0",
+    "@typescript-eslint/parser": "^8.66.0",
     "eslint-plugin-import": "2.32.0",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-config-prettier": "10.1.8",
