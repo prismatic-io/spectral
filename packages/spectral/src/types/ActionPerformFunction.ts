@@ -2,6 +2,7 @@ import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import type { ActionInputParameters } from "./ActionInputParameters";
 import type { ActionLogger } from "./ActionLogger";
 import type { ActionPerformReturn } from "./ActionPerformReturn";
+import type { BatchInfo } from "./BatchContext";
 import type { ComponentManifest } from "./ComponentManifest";
 import type { CustomerAttributes } from "./CustomerAttributes";
 import type { FlowAttributes } from "./FlowAttributes";
@@ -168,4 +169,9 @@ export type ActionContext<
   flowSchemas: FlowSchemas;
   /** Whether the execution is being run with simulated data. */
   isSimulatedTestExecution?: boolean;
+  /**
+   * How this flow dispatches its trigger's items, and when batching is enabled,
+   * the size of the batches for each run of the flow.
+   */
+  batch?: BatchInfo;
 };
