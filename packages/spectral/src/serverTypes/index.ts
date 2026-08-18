@@ -2,6 +2,7 @@
  * component and integration definitions. */
 
 import type {
+  BatchInfo,
   ComponentManifest,
   ConfigVarResultCollection,
   CustomerAttributes,
@@ -144,6 +145,8 @@ export type ActionContext<
   startedAt: string;
   executionFrame: ExecutionFrame;
   flowSchemas: FlowSchemas;
+  /** How this flow dispatches its trigger's items. */
+  batch?: BatchInfo;
 
   // @TODO - Hidden from the user-facing ActionContext.
   globalDebug?: boolean;

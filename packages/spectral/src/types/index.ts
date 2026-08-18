@@ -8,6 +8,7 @@ export * from "./ActionInputParameters";
 export * from "./ActionLogger";
 export * from "./ActionPerformFunction";
 export * from "./ActionPerformReturn";
+export * from "./BatchContext";
 export * from "./ComponentDefinition";
 export * from "./ComponentManifest";
 export * from "./ComponentRegistry";
