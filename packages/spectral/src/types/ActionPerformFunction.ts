@@ -105,8 +105,9 @@ export type ActionPerformFunction<
     TAllowsBranching,
     unknown
   >,
+  TLogger extends ActionLogger = ActionLogger,
 > = (
-  context: ActionContext<TConfigVars, TComponentActions>,
+  context: ActionContext<TConfigVars, TComponentActions, string[], TLogger>,
   params: ActionInputParameters<TInputs>,
 ) => Promise<TReturn>;
 
@@ -118,9 +119,10 @@ export type ActionContext<
     ComponentManifest["actions"]
   >,
   TFlows extends string[] = string[],
+  TLogger extends ActionLogger = ActionLogger,
 > = {
   /** Logger for permanent logging; console calls are also captured. */
-  logger: ActionLogger;
+  logger: TLogger;
   /** A a flow-specific key/value store that may be used to store small amounts of data that is persisted between Instance executions. */
   instanceState: Record<string, unknown>;
   /** A key/value store that is shared between flows on an Instance that may be used to store small amounts of data that is persisted between Instance executions. */
