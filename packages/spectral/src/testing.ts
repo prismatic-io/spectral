@@ -6,7 +6,7 @@
  */
 
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
-import { spyOn } from "jest-mock";
+import { fn, spyOn } from "jest-mock";
 import type {
   ActionLogger,
   ActionLoggerFunction,
@@ -23,6 +23,7 @@ import type {
   ActionContext,
   ActionDefinition,
   ActionInputParameters,
+  CodeNativeActionLogger,
   ComponentManifest,
   ConfigVarResultCollection,
   ConnectionDefinition,
@@ -120,7 +121,7 @@ export const connectionValue = (
  * // Pass logger in context, then assert:
  * expect(logger.info).toHaveBeenCalledWith("Processing started");
  */
-export const loggerMock = (): ActionLogger => ({
+export const loggerMock = (): CodeNativeActionLogger => ({
   metric: console.log as ActionLoggerFunction,
   trace: spyOn(console, "trace") as unknown as ActionLoggerFunction,
   debug: spyOn(console, "debug") as unknown as ActionLoggerFunction,
@@ -128,6 +129,8 @@ export const loggerMock = (): ActionLogger => ({
   log: spyOn(console, "log") as unknown as ActionLoggerFunction,
   warn: spyOn(console, "warn") as unknown as ActionLoggerFunction,
   error: spyOn(console, "error") as unknown as ActionLoggerFunction,
+  section: fn() as unknown as CodeNativeActionLogger["section"],
+  sectionEnd: fn() as unknown as CodeNativeActionLogger["sectionEnd"],
 });
 
 async function invokeFlowTest(
@@ -608,7 +611,7 @@ export const invokeFlow = async <
     params.onTrigger = { results: triggerResult?.payload };
   }
 
-  const result = await flow.onExecution(realizedContext, params);
+  const result = await flow.onExecution(realizedContext as any, params);
 
   return {
     result,
