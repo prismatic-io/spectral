@@ -1,3 +1,4 @@
+import type { CodeNativeActionLogger } from "./ActionLogger";
 import type { ActionContext, ActionPerformFunction } from "./ActionPerformFunction";
 import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type {
@@ -173,14 +174,17 @@ export type FlowOnExecution<
     [Key in keyof ComponentRegistry]: ComponentRegistry[Key]["actions"];
   },
   false,
-  ActionPerformReturn<false, unknown>
+  ActionPerformReturn<false, unknown>,
+  CodeNativeActionLogger
 >;
 
 export type FlowExecutionContext = ActionContext<
   ConfigVars,
   {
     [Key in keyof ComponentRegistry]: ComponentRegistry[Key]["actions"];
-  }
+  },
+  string[],
+  CodeNativeActionLogger
 >;
 
 export type FlowExecutionContextActions = FlowExecutionContext["components"];
