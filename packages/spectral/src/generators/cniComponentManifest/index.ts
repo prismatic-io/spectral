@@ -6,6 +6,7 @@ import type {
   TriggerPayload,
   TriggerResult,
 } from "../../types";
+import { camelizeLowercaseType } from "../utils/camelizeLowercaseType";
 import { getPrismAccessToken } from "../utils/prism";
 import type {
   ActionNode,
@@ -18,13 +19,79 @@ import type {
 } from "./types";
 
 // Helper to transform input nodes from GraphQL response to the expected format
-function transformInputNodes(inputs: InputNode[]) {
-  return inputs.map((node) => ({
-    ...node,
-    collection: node.collection ? node.collection.toLowerCase() : undefined,
-    type: node.type.toLowerCase(),
-  }));
+export type TransformedInputNode = Omit<InputNode, "id" | "parentId" | "collection" | "model"> & {
+  collection: string | undefined;
+  model?: Array<{ label: string; value: string }>;
+  inputs?: TransformedInputNode[];
+};
+
+const isInputFieldChoice = (choice: unknown): choice is { label: string; value: string } =>
+  choice !== null &&
+  typeof choice === "object" &&
+  typeof (choice as { label?: unknown }).label === "string" &&
+  typeof (choice as { value?: unknown }).value === "string";
+
+export const parseInputModel = (
+  model: InputNode["model"],
+): Array<{ label: string; value: string }> | undefined => {
+  if (!model) return undefined;
+  try {
+    const encoded: unknown = JSON.parse(model);
+    if (typeof encoded !== "string") return undefined;
+    const parsed: unknown = JSON.parse(encoded);
+    if (!Array.isArray(parsed) || !parsed.every(isInputFieldChoice)) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+};
+
+export function transformInputNodes(inputs: InputNode[]): TransformedInputNode[] {
+  const transformedById = new Map<string, TransformedInputNode>();
+
+  for (const { id, parentId: _, ...node } of inputs) {
+    const type = camelizeLowercaseType(node.type);
+    transformedById.set(id, {
+      ...node,
+      collection: node.collection ? node.collection.toLowerCase() : undefined,
+      type,
+      model: parseInputModel(node.model),
+      ...(type === "structuredObject" || type === "dynamicObject" ? { inputs: [] } : {}),
+    });
+  }
+
+  const roots: TransformedInputNode[] = [];
+  for (const { id, parentId } of inputs) {
+    const input = transformedById.get(id);
+    if (!input) continue;
+
+    const parent = parentId ? transformedById.get(parentId) : undefined;
+    if (parent) {
+      parent.inputs ??= [];
+      parent.inputs.push(input);
+    } else {
+      roots.push(input);
+    }
+  }
+
+  return roots;
 }
+
+const INPUT_FIELD_FRAGMENT = `
+fragment ManifestInputField on InputField {
+  id
+  parentId
+  key
+  label
+  type
+  required
+  default
+  collection
+  shown
+  onPremiseControlled
+  model
+}
+`;
 
 // This function does not return a complete Component as described in ServerTypes;
 // it instead selectively returns only what's needed to generate a manifest.
@@ -64,14 +131,7 @@ export const fetchComponentDataForManifest = async <
               comments
               inputs {
                 nodes {
-                  key
-                  label
-                  type
-                  required
-                  default
-                  collection
-                  shown
-                  onPremiseControlled
+                  ...ManifestInputField
                 }
               }
             }
@@ -79,6 +139,7 @@ export const fetchComponentDataForManifest = async <
         }
       }
     }
+    ${INPUT_FIELD_FRAGMENT}
   `;
 
   try {
@@ -256,14 +317,7 @@ async function getComponentActions(componentId: string, prismaticUrl: string, ac
               description
               inputs {
                 nodes {
-                  key
-                  label
-                  type
-                  required
-                  default
-                  collection
-                  shown
-                  onPremiseControlled
+                  ...ManifestInputField
                 }
               }
               examplePayload
@@ -276,6 +330,7 @@ async function getComponentActions(componentId: string, prismaticUrl: string, ac
             }
           }
         }
+        ${INPUT_FIELD_FRAGMENT}
       `;
 
       const response: ComponentActionsQueryResponse = await axios.post(

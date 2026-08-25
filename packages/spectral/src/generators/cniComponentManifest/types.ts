@@ -51,6 +51,8 @@ export interface ConnectionNode {
 }
 
 export interface InputNode {
+  id: string;
+  parentId: string | null;
   key: string;
   label: string;
   type: string;
@@ -59,6 +61,7 @@ export interface InputNode {
   collection: string;
   shown: boolean;
   onPremiseControlled: boolean;
+  model?: string | null;
 }
 
 export type FormattedAction = Pick<

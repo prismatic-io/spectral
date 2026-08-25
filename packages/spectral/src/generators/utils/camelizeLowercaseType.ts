@@ -1,11 +1,11 @@
-const LOWER_TO_CAMEL_MAP: Record<string, string> = {
-  objectfieldmap: "objectFieldMap",
-  objectselection: "objectSelection",
-  dynamicfieldselection: "dynamicFieldSelection",
-  dynamicobjectselection: "dynamicObjectSelection",
-  jsonform: "jsonForm",
-};
+import { InputFieldDefaultMap, type InputFieldType } from "../../types/Inputs";
 
-export const camelizeLowercaseType = (type: string) => {
-  return LOWER_TO_CAMEL_MAP[type] ?? type;
-};
+const inputFieldTypes = Object.keys(InputFieldDefaultMap) as InputFieldType[];
+const normalizeType = (type: string) => type.replaceAll("_", "").toLowerCase();
+
+/** Converts API enum spellings such as `OBJECTSELECTION` and
+ * `STRUCTURED_OBJECT` back to Spectral's canonical input type. Deriving the
+ * choices from the exhaustive default map means new input types are supported
+ * here as soon as they are added to `InputFieldType`. */
+export const camelizeLowercaseType = (type: string): InputFieldType | string =>
+  inputFieldTypes.find((candidate) => normalizeType(candidate) === normalizeType(type)) ?? type;
