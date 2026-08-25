@@ -25,8 +25,8 @@
   },
   "files": ["dist"],
   "dependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.66.0",
-    "@typescript-eslint/parser": "^8.66.0",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
     "eslint-plugin-import": "2.32.0",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-config-prettier": "10.1.8",
@@ -34,8 +34,8 @@
   },
   "devDependencies": {
     "@types/eslint": "9.6.1",
-    "@types/node": "26.1.2",
-    "eslint": "^10.8.0",
+    "@types/node": "26.2.0",
+    "eslint": "^10.8.1",
     "prettier": "^3",
     "typescript": "^6"
   },

@@ -60,7 +60,7 @@
     "@fast-check/vitest": "^0.4.1",
     "@types/ejs": "3.1.5",
     "@types/lodash": "^4.17.25",
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "@types/prettier": "^3.0.0",
     "@types/sax": "^1.2.7",
     "@types/valid-url": "^1.0.7",
