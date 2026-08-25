@@ -2,8 +2,53 @@ import { access, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { manifestTestInputs } from "../componentManifest/manifestTestInputs";
+import { transformInputNodes } from ".";
 
 type CniComponentManifestModule = typeof import(".");
+
+const [cniStructuredObjectInput] = transformInputNodes([
+  {
+    id: "contact-id",
+    parentId: null,
+    key: "contact",
+    label: "contact",
+    type: "STRUCTUREDOBJECT",
+    required: false,
+    default: undefined,
+    collection: "",
+    shown: true,
+    onPremiseControlled: false,
+  },
+  {
+    id: "first-name-id",
+    parentId: "contact-id",
+    key: "firstName",
+    label: "firstName",
+    type: "STRING",
+    required: true,
+    default: undefined,
+    collection: "",
+    shown: true,
+    onPremiseControlled: false,
+  },
+  {
+    id: "active-id",
+    parentId: "contact-id",
+    key: "active",
+    label: "active",
+    type: "BOOLEAN",
+    required: false,
+    default: undefined,
+    collection: "",
+    shown: true,
+    onPremiseControlled: false,
+  },
+]);
+
+const cniManifestTestInputs = manifestTestInputs.map((input) =>
+  input.key === "contact" ? cniStructuredObjectInput : input,
+);
 
 const component: Awaited<ReturnType<CniComponentManifestModule["fetchComponentDataForManifest"]>> =
   {
@@ -21,7 +66,7 @@ const component: Awaited<ReturnType<CniComponentManifestModule["fetchComponentDa
           label: "Do Thing",
           description: "Does a thing",
         },
-        inputs: [],
+        inputs: cniManifestTestInputs,
         examplePayload: {
           data: {
             result: "done",
@@ -175,7 +220,7 @@ describe("cni-component-manifest filesystem behavior", () => {
     await expectPathNotToExist(staleFile);
     const generatedFiles = new Map([
       ["index.ts", 'key: "acme"'],
-      [path.join("actions", "doThing.ts"), 'key: "doThing"'],
+      [path.join("actions", "doThing.ts"), "contact?: { firstName: string; active: boolean }"],
       [path.join("triggers", "onEvent.ts"), 'key: "onEvent"'],
       [path.join("connections", "apiKey.ts"), 'key: "apiKey"'],
       [path.join("dataSources", "selectItem.ts"), 'key: "selectItem"'],
@@ -189,5 +234,14 @@ describe("cni-component-manifest filesystem behavior", () => {
         );
       }),
     );
+
+    const action = await readFile(path.join(destinationDir, "actions", "doThing.ts"), "utf8");
+    expect(action).toMatchSnapshot();
+    expect(action).toContain('inputType: "structuredObject"');
+    expect(action).not.toContain('inputType: "structuredobject"');
+    expect(action).not.toContain("collection: undefined");
+    expect(action).not.toContain("default: undefined");
+    expect(action).not.toContain("dynamicSelection");
+    expect(action).not.toContain("dynamicField");
   });
 });

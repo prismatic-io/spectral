@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Component } from "../../serverTypes";
+import { manifestTestInputs } from "./manifestTestInputs";
 
 type PrismModule = typeof import("../utils/prism");
 
@@ -22,7 +23,13 @@ const component = {
     label: "Acme",
     description: "An Acme component",
   },
-  actions: {},
+  actions: {
+    doThing: {
+      key: "doThing",
+      display: { label: "Do Thing", description: "Does a thing" },
+      inputs: manifestTestInputs,
+    },
+  },
   triggers: {},
   dataSources: {},
   connections: [],
@@ -96,7 +103,7 @@ describe("component-manifest filesystem behavior", () => {
     );
   });
 
-  test("replaces stale files and generates a manifest outside dry-run mode", async () => {
+  test("replaces stale files and generates a type-safe manifest outside dry-run mode", async () => {
     const staleFile = path.join(destinationDir, "stale.ts");
     await mkdir(destinationDir, { recursive: true });
     await writeFile(staleFile, "stale content", "utf8");
@@ -107,5 +114,17 @@ describe("component-manifest filesystem behavior", () => {
     expect(await readFile(path.join(destinationDir, "src", "index.ts"), "utf8")).toContain(
       'key: "acme"',
     );
+
+    const action = await readFile(
+      path.join(destinationDir, "src", "actions", "doThing.ts"),
+      "utf8",
+    );
+    expect(action).toMatchSnapshot();
+    expect(action).toContain("contact?: { firstName: string; active: boolean }");
+    expect(action).toContain('inputType: "structuredObject"');
+    expect(action).not.toContain("collection: undefined");
+    expect(action).not.toContain("default: undefined");
+    expect(action).not.toContain("dynamicSelection");
+    expect(action).not.toContain("dynamicField");
   });
 });

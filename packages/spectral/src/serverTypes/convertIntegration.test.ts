@@ -1063,8 +1063,9 @@ describe("custom-trigger reference input values reach the trigger functions", ()
         acmeTrigger: {
           key: "acmeTrigger",
           inputs: {
-            inputOne: { key: "inputOne", type: "string", default: "" },
-            inputTwo: { key: "inputTwo", type: "string", default: "" },
+            inputOne: { inputType: "string" },
+            inputTwo: { inputType: "string" },
+            withDefault: { inputType: "string", default: "fallback" },
           },
         },
       },
@@ -1107,6 +1108,26 @@ describe("custom-trigger reference input values reach the trigger functions", ()
     const [triggerStep] = result.steps as Array<Record<string, unknown>>;
 
     expect(triggerStep.inputs).toMatchObject(expectedStepInputs);
+  });
+
+  it("treats an omitted default as undefined and still propagates an explicit default", () => {
+    const defaultedReference = {
+      component: "acme-component",
+      key: "acmeTrigger",
+    } as unknown as TriggerReference;
+    const defaultedFlow = flow({
+      name: "Defaulted Flow",
+      stableKey: "defaulted-flow",
+      description: "Reference using generated manifest defaults",
+      onTrigger: defaultedReference,
+      onExecution: async () => ({ data: "test" }),
+    });
+
+    const result = convertFlow(defaultedFlow, registry, "test-ref");
+    const [triggerStep] = result.steps as Array<{ inputs: Record<string, unknown> }>;
+
+    expect(triggerStep.inputs.inputOne).toMatchObject({ type: "value", value: "" });
+    expect(triggerStep.inputs.withDefault).toMatchObject({ type: "value", value: "fallback" });
   });
 
   it("a reference WITH onInstanceDeploy still puts the values on the trigger step inputs", () => {

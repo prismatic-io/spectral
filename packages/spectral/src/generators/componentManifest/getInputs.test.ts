@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
+import { InputFieldDefaultMap } from "../../types/Inputs";
 import type { ServerTypeInput } from "./getInputs";
-import { getInputs } from "./getInputs";
+import { getInputs, INPUT_TYPE_MAP } from "./getInputs";
 
 const baseInput = (
   overrides: Partial<ServerTypeInput> & { key: string; type: string },
 ): ServerTypeInput => ({ label: overrides.key, required: false, ...overrides }) as ServerTypeInput;
+
+describe("getInputs — supported input types", () => {
+  it("has a manifest value-type mapping for every Spectral input type", () => {
+    expect(Object.keys(INPUT_TYPE_MAP).sort()).toEqual(Object.keys(InputFieldDefaultMap).sort());
+  });
+});
 
 describe("getInputs — structuredObject", () => {
   it("emits an inline object type from declared children", () => {

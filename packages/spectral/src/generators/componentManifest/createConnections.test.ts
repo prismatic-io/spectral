@@ -112,14 +112,10 @@ describe("connection helper template", () => {
         inputs: {
           clientId: {
             inputType: "string",
-            collection: undefined,
-            default: undefined,
             required: true,
           },
           authorizeUrl: {
             inputType: "string",
-            collection: undefined,
-            default: undefined,
           },
         },
       } as const;
