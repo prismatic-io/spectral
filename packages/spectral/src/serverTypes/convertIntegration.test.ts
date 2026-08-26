@@ -334,6 +334,50 @@ describe("convertConfigPages", () => {
     expect(() => convertConfigPages(pages, false)).toThrow(/belongs on a user level config page/);
   });
 
+  it("accepts a user-activated connection on a user level config page", () => {
+    const pages = {
+      "User Configuration": {
+        tagline: "Connect your account",
+        elements: {
+          "User Slack": userActivatedConnection({ stableKey: "user-slack-connection" }),
+        },
+      },
+    } as unknown as Parameters<typeof convertConfigPages>[0];
+
+    expect(() => convertConfigPages(pages, true)).not.toThrow();
+  });
+
+  /**
+   * The inverse rule. Every other connection kind is supplied once rather than by each
+   * person, so a user level page would ask every individual for a credential that is not
+   * theirs to give.
+   */
+  it("refuses an organization- or customer-activated connection on a user level config page", () => {
+    const pages = {
+      "User Configuration": {
+        elements: {
+          "Shared Slack": { dataType: "connection", stableKey: "shared-slack" },
+        },
+      },
+    } as unknown as Parameters<typeof convertConfigPages>[0];
+
+    expect(() => convertConfigPages(pages, true)).toThrow(
+      /Only a user-activated connection belongs on a user level config page/,
+    );
+  });
+
+  it("leaves config vars that are not connections alone on a user level page", () => {
+    const pages = {
+      "User Configuration": {
+        elements: {
+          Nickname: { dataType: "string", stableKey: "nickname" },
+        },
+      },
+    } as unknown as Parameters<typeof convertConfigPages>[0];
+
+    expect(() => convertConfigPages(pages, true)).not.toThrow();
+  });
+
   it("names every misplaced connection at once, so fixing one does not uncover the next", () => {
     const pages = {
       "Page A": {

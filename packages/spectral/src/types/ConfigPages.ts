@@ -1,5 +1,9 @@
-import type { ConfigVar } from "./ConfigVars";
-import type { UserActivatedConnectionConfigVar } from "./ScopedConfigVars";
+import type { ConfigVar, ConnectionConfigVar } from "./ConfigVars";
+import type {
+  CustomerActivatedConnectionConfigVar,
+  OrganizationActivatedConnectionConfigVar,
+  UserActivatedConnectionConfigVar,
+} from "./ScopedConfigVars";
 import type { UnionToIntersection } from "./utils";
 
 /**
@@ -41,9 +45,35 @@ export interface IntegrationDefinitionUserLevelConfigPages {}
  */
 export type ConfigPageElement = string | Exclude<ConfigVar, UserActivatedConnectionConfigVar>;
 
-/** What a user level config page may contain: anything an ordinary page may, plus a
- * connection each person activates for themselves. */
-export type UserLevelConfigPageElement = string | ConfigVar;
+/**
+ * What a user level config page may contain.
+ *
+ * Every connection kind except the per-person one is excluded. A page on this wizard is
+ * shown to each individual, and the credential behind any other kind is supplied once –
+ * by the organization or by the customer – so putting one here asks every person for
+ * something that is not theirs to give, and asks it repeatedly. Config vars that are not
+ * connections are unaffected: a per-person string or picklist is a real thing to collect.
+ *
+ * The mirror of `ConfigPageElement`, and stated the same way: the type is the canonical
+ * rule and the convert layer enforces it at build time, so a JavaScript author hits it
+ * too.
+ */
+export type UserLevelConfigPageElement =
+  | string
+  | Exclude<
+      ConfigVar,
+      | ConnectionConfigVar
+      | CustomerActivatedConnectionConfigVar
+      | OrganizationActivatedConnectionConfigVar
+    >;
+
+/**
+ * An element on a page of either kind.
+ *
+ * For the code that walks both wizards at once. The two element types are deliberately
+ * different sets now, so a shared consumer has no single narrower type to reach for.
+ */
+export type AnyConfigPageElement = ConfigPageElement | UserLevelConfigPageElement;
 
 type CreateConfigPages<TIntegrationDefinitionConfigPages, TPage> =
   keyof TIntegrationDefinitionConfigPages extends never
