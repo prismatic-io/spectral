@@ -7,6 +7,7 @@ import pick from "lodash/pick";
 import path from "path";
 import YAML from "yaml";
 import {
+  type AnyConfigPageElement,
   type BatchTrigger,
   type CollectionType,
   type ComponentManifest,
@@ -221,24 +222,23 @@ export const convertIntegration = <
       ...acc,
       ...Object.values(configPages).reduce<Record<string, ConfigVar>>(
         (acc, configPage) =>
-          Object.entries(configPage.elements).reduce<Record<string, ConfigVar>>(
-            (acc, [key, element]) => {
-              // "string" elements are HTML elements and should be ignored.
-              if (typeof element === "string") {
-                return acc;
-              }
+          Object.entries(configPage.elements as Record<string, AnyConfigPageElement>).reduce<
+            Record<string, ConfigVar>
+          >((acc, [key, element]) => {
+            // "string" elements are HTML elements and should be ignored.
+            if (typeof element === "string") {
+              return acc;
+            }
 
-              if (key in acc || key in scopedConfigVars) {
-                throw new Error(`Duplicate config var key: "${key}"`);
-              }
+            if (key in acc || key in scopedConfigVars) {
+              throw new Error(`Duplicate config var key: "${key}"`);
+            }
 
-              return {
-                ...acc,
-                [key]: element,
-              };
-            },
-            acc,
-          ),
+            return {
+              ...acc,
+              [key]: element,
+            };
+          }, acc),
         {},
       ),
     }),
@@ -290,6 +290,31 @@ export const convertConfigPages = (
     if (misplaced.length) {
       throw new Error(
         `A user-activated connection is activated by each person individually, so it belongs on a user level config page. Move ${misplaced.join(", ")}.`,
+      );
+    }
+  }
+
+  /**
+   * The inverse, and refused for the opposite reason: every other connection kind is
+   * supplied once, by the organization or by the customer, so a user level page would ask
+   * each individual for a credential that is not theirs. See `UserLevelConfigPageElement`.
+   */
+  if (userLevelConfigured) {
+    const misplaced = Object.entries(pages).flatMap(([name, { elements }]) =>
+      Object.entries(elements)
+        .filter(
+          ([_key, value]) =>
+            !isUserScopedConnectionConfigVar(value) &&
+            (isConnectionScopedConfigVar(value) ||
+              isConnectionDefinitionConfigVar(value as ConfigVar) ||
+              isConnectionReferenceConfigVar(value as ConfigVar)),
+        )
+        .map(([key]) => `"${key}" on user level config page "${name}"`),
+    );
+
+    if (misplaced.length) {
+      throw new Error(
+        `Only a user-activated connection belongs on a user level config page: every other kind is supplied once rather than by each person. Move ${misplaced.join(", ")}.`,
       );
     }
   }
