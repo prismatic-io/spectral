@@ -1,5 +1,6 @@
 import {
   configPage,
+  configVar,
   connectionConfigVar,
   customerActivatedConnection,
   organizationActivatedConnection,
@@ -67,15 +68,61 @@ configPage({
   },
 });
 
-/** A user level page accepts them too, so a mixed page stays expressible. */
+/**
+ * The mirror, and refused for the opposite reason. A user level page is shown to each
+ * person, and every connection kind but the per-person one is supplied once – by the
+ * organization or by the customer – so putting one here asks each individual for a
+ * credential that is not theirs to give.
+ */
+expectError(
+  userLevelConfigPage({
+    tagline: "Connect your account",
+    elements: {
+      "Org Slack": organizationActivatedConnection({
+        stableKey: "org-slack-connection",
+      }),
+    },
+  }),
+);
+
+expectError(
+  userLevelConfigPage({
+    tagline: "Connect your account",
+    elements: {
+      "Customer Slack": customerActivatedConnection({
+        stableKey: "customer-slack-connection",
+      }),
+    },
+  }),
+);
+
+expectError(
+  userLevelConfigPage({
+    tagline: "Connect your account",
+    elements: {
+      "Acme Connection": connectionConfigVar({
+        stableKey: "acme-connection",
+        dataType: "connection",
+        inputs: {
+          apiKey: { label: "API Key", type: "password", required: true },
+        },
+      }),
+    },
+  }),
+);
+
+/** What a user level page does accept: the per-person connection, copy, and any config
+ * var that is not a connection – a per-person string is a real thing to collect. */
 userLevelConfigPage({
   tagline: "Connect your account",
   elements: {
-    "Org Slack": organizationActivatedConnection({
-      stableKey: "org-slack-connection",
-    }),
     "User Slack": userActivatedConnection({
       stableKey: "user-slack-connection",
     }),
+    "Their Region": configVar({
+      stableKey: "their-region",
+      dataType: "string",
+    }),
+    "Some Copy": "<h1>Hello</h1>",
   },
 });
