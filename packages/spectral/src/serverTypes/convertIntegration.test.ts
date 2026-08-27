@@ -393,7 +393,7 @@ describe("convertConfigPages", () => {
     );
   });
 
-  it("accepts a user-activated connection on a user level config page", () => {
+  it("keeps a user-activated connection on its user level config page", () => {
     expect(
       convertConfigPages(
         {
@@ -411,7 +411,29 @@ describe("convertConfigPages", () => {
         name: "Connections",
         tagline: "Connect your account",
         userLevelConfigured: true,
-        elements: [],
+        elements: [{ type: "configVar", value: "User Slack" }],
+      },
+    ]);
+  });
+
+  it("still removes connections supplied once from an ordinary config page", () => {
+    expect(
+      convertConfigPages(
+        {
+          Connections: configPage({
+            elements: {
+              "Shared Slack": organizationActivatedConnection({ stableKey: "org-slack" }),
+              Region: configVar({ stableKey: "region", dataType: "string" }),
+            },
+          }),
+        },
+        false,
+      ),
+    ).toEqual([
+      {
+        name: "Connections",
+        tagline: undefined,
+        elements: [{ type: "configVar", value: "Region" }],
       },
     ]);
   });
