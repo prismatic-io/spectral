@@ -323,8 +323,24 @@ export const convertConfigPages = (
     name,
     tagline,
     ...(userLevelConfigured ? { userLevelConfigured } : {}),
+    /**
+     * Scoped connections are supplied once, ahead of the wizard, so they are not
+     * elements anyone fills in and are removed here.
+     *
+     * A user-activated connection is the exception, and stays. Each person activates
+     * it themselves, so which page it was declared on is the whole of what marks it
+     * user level — the platform reads that from page membership and has nothing else
+     * to go on. Removing it left the connection looking like ordinary instance
+     * configuration, which the platform refuses.
+     *
+     * Only reachable on a user level page: the guard above rejects a user-activated
+     * connection declared anywhere else.
+     */
     elements: Object.entries(elements)
-      .filter(([_key, value]) => !isConnectionScopedConfigVar(value))
+      .filter(
+        ([_key, value]) =>
+          !isConnectionScopedConfigVar(value) || isUserScopedConnectionConfigVar(value),
+      )
       .map(([key, value]) => {
         if (typeof value === "string") {
           return {
