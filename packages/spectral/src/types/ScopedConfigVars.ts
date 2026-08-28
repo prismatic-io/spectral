@@ -90,15 +90,16 @@ export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar 
 };
 
 /**
- * Whether this is a reusable connection: one the organization or the customer
- * activates once, which every person then shares. True of every scoped kind
- * except the user-activated one, the only connection an individual activates for
- * themselves.
+ * Whether this connection is activated by the organization or the customer rather
+ * than by each person. Both kinds are reusable, so that is not the distinction:
+ * a user-activated connection is reused across every instance its owner
+ * configures. What separates them is who activates it, and how many people it
+ * then answers for.
  *
- * This is the distinction that decides whether a connection survives as a config
- * page element: a reusable one is stripped, because nobody fills it in.
+ * This is what decides whether a connection survives as a config page element.
+ * The others are stripped, because nobody fills them in on the wizard.
  */
-export const isConnectionReusable = (
+export const isNonUserActivatedConnection = (
   cv: unknown,
 ): cv is CustomerActivatedConnectionConfigVar | OrganizationActivatedConnectionConfigVar =>
   isConnectionScopedConfigVar(cv) && !isUserScopedConnectionConfigVar(cv);
