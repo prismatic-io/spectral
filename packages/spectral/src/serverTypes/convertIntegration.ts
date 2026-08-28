@@ -28,8 +28,8 @@ import {
   isComponentReference,
   isConnectionDefinitionConfigVar,
   isConnectionReferenceConfigVar,
+  isConnectionReusable,
   isConnectionScopedConfigVar,
-  isConnectionSuppliedBeforeWizard,
   isDataSourceDefinitionConfigVar,
   isDataSourceReferenceConfigVar,
   isHtmlElementConfigVar,
@@ -297,15 +297,16 @@ export const convertConfigPages = (
 
   /**
    * The inverse, and refused for the opposite reason: every other connection kind is
-   * supplied once, by the organization or by the customer, so a user level page would ask
-   * each individual for a credential that is not theirs. See `UserLevelConfigPageElement`.
+   * reusable, activated once by the organization or the customer, so a user level page
+   * would ask each individual for a credential that is not theirs. See
+   * `UserLevelConfigPageElement`.
    */
   if (userLevelConfigured) {
     const misplaced = Object.entries(pages).flatMap(([name, { elements }]) =>
       Object.entries(elements)
         .filter(
           ([_key, value]) =>
-            isConnectionSuppliedBeforeWizard(value) ||
+            isConnectionReusable(value) ||
             isConnectionDefinitionConfigVar(value as ConfigVar) ||
             isConnectionReferenceConfigVar(value as ConfigVar),
         )
@@ -314,7 +315,7 @@ export const convertConfigPages = (
 
     if (misplaced.length) {
       throw new Error(
-        `Only a user-activated connection belongs on a user level config page: every other kind is supplied once rather than by each person. Move ${misplaced.join(", ")}.`,
+        `Only a user-activated connection belongs on a user level config page: every other kind is reusable rather than activated by each person. Move ${misplaced.join(", ")}.`,
       );
     }
   }
@@ -334,7 +335,7 @@ export const convertConfigPages = (
      * connection declared anywhere else.
      */
     elements: Object.entries(elements)
-      .filter(([_key, value]) => !isConnectionSuppliedBeforeWizard(value))
+      .filter(([_key, value]) => !isConnectionReusable(value))
       .map(([key, value]) => {
         if (typeof value === "string") {
           return {

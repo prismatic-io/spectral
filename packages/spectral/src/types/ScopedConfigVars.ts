@@ -90,14 +90,17 @@ export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar 
 };
 
 /**
- * Whether this connection is supplied once, ahead of the wizard, rather than by
- * each person. True of every scoped kind except the user-activated one, which is
- * the only connection an individual activates for themselves.
+ * Whether this is a reusable connection: one the organization or the customer
+ * activates once, which every person then shares. True of every scoped kind
+ * except the user-activated one, the only connection an individual activates for
+ * themselves.
  *
  * This is the distinction that decides whether a connection survives as a config
- * page element: the rest are stripped, because nobody fills them in.
+ * page element: a reusable one is stripped, because nobody fills it in.
  */
-export const isConnectionSuppliedBeforeWizard = (cv: unknown): boolean =>
+export const isConnectionReusable = (
+  cv: unknown,
+): cv is CustomerActivatedConnectionConfigVar | OrganizationActivatedConnectionConfigVar =>
   isConnectionScopedConfigVar(cv) && !isUserScopedConnectionConfigVar(cv);
 
 /** Whether this config var is a connection each person activates for themselves. */
