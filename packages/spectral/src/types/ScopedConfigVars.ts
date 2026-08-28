@@ -89,6 +89,17 @@ export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar 
   );
 };
 
+/**
+ * Whether this connection is supplied once, ahead of the wizard, rather than by
+ * each person. True of every scoped kind except the user-activated one, which is
+ * the only connection an individual activates for themselves.
+ *
+ * This is the distinction that decides whether a connection survives as a config
+ * page element: the rest are stripped, because nobody fills them in.
+ */
+export const isConnectionSuppliedBeforeWizard = (cv: unknown): boolean =>
+  isConnectionScopedConfigVar(cv) && !isUserScopedConnectionConfigVar(cv);
+
 /** Whether this config var is a connection each person activates for themselves. */
 export const isUserScopedConnectionConfigVar = (
   cv: unknown,
