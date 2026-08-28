@@ -29,6 +29,7 @@ import {
   isConnectionDefinitionConfigVar,
   isConnectionReferenceConfigVar,
   isConnectionScopedConfigVar,
+  isConnectionSuppliedBeforeWizard,
   isDataSourceDefinitionConfigVar,
   isDataSourceReferenceConfigVar,
   isHtmlElementConfigVar,
@@ -304,10 +305,9 @@ export const convertConfigPages = (
       Object.entries(elements)
         .filter(
           ([_key, value]) =>
-            !isUserScopedConnectionConfigVar(value) &&
-            (isConnectionScopedConfigVar(value) ||
-              isConnectionDefinitionConfigVar(value as ConfigVar) ||
-              isConnectionReferenceConfigVar(value as ConfigVar)),
+            isConnectionSuppliedBeforeWizard(value) ||
+            isConnectionDefinitionConfigVar(value as ConfigVar) ||
+            isConnectionReferenceConfigVar(value as ConfigVar),
         )
         .map(([key]) => `"${key}" on user level config page "${name}"`),
     );
@@ -324,23 +324,17 @@ export const convertConfigPages = (
     tagline,
     ...(userLevelConfigured ? { userLevelConfigured } : {}),
     /**
-     * Scoped connections are supplied once, ahead of the wizard, so they are not
-     * elements anyone fills in and are removed here.
-     *
-     * A user-activated connection is the exception, and stays. Each person activates
-     * it themselves, so which page it was declared on is the whole of what marks it
-     * user level — the platform reads that from page membership and has nothing else
-     * to go on. Removing it left the connection looking like ordinary instance
-     * configuration, which the platform refuses.
+     * A user-activated connection is the one connection that stays. Which page it
+     * was declared on is the whole of what marks it user level — the platform reads
+     * that from page membership and has nothing else to go on. Removing it left the
+     * connection looking like ordinary instance configuration, which the platform
+     * refuses.
      *
      * Only reachable on a user level page: the guard above rejects a user-activated
      * connection declared anywhere else.
      */
     elements: Object.entries(elements)
-      .filter(
-        ([_key, value]) =>
-          !isConnectionScopedConfigVar(value) || isUserScopedConnectionConfigVar(value),
-      )
+      .filter(([_key, value]) => !isConnectionSuppliedBeforeWizard(value))
       .map(([key, value]) => {
         if (typeof value === "string") {
           return {
