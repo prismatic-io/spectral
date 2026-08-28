@@ -28,13 +28,13 @@ import {
   isComponentReference,
   isConnectionDefinitionConfigVar,
   isConnectionReferenceConfigVar,
-  isConnectionReusable,
   isConnectionScopedConfigVar,
   isDataSourceDefinitionConfigVar,
   isDataSourceReferenceConfigVar,
   isHtmlElementConfigVar,
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
+  isNonUserActivatedConnection,
   isScheduleConfigVar,
   isUserScopedConnectionConfigVar,
   type KeyValuePair,
@@ -297,8 +297,8 @@ export const convertConfigPages = (
 
   /**
    * The inverse, and refused for the opposite reason: every other connection kind is
-   * reusable, activated once by the organization or the customer, so a user level page
-   * would ask each individual for a credential that is not theirs. See
+   * activated once by the organization or the customer, so a user level page would ask
+   * each individual for a credential that is not theirs. See
    * `UserLevelConfigPageElement`.
    */
   if (userLevelConfigured) {
@@ -306,7 +306,7 @@ export const convertConfigPages = (
       Object.entries(elements)
         .filter(
           ([_key, value]) =>
-            isConnectionReusable(value) ||
+            isNonUserActivatedConnection(value) ||
             isConnectionDefinitionConfigVar(value as ConfigVar) ||
             isConnectionReferenceConfigVar(value as ConfigVar),
         )
@@ -315,7 +315,7 @@ export const convertConfigPages = (
 
     if (misplaced.length) {
       throw new Error(
-        `Only a user-activated connection belongs on a user level config page: every other kind is reusable rather than activated by each person. Move ${misplaced.join(", ")}.`,
+        `Only a user-activated connection belongs on a user level config page: every other kind is activated by the organization or the customer rather than by each person. Move ${misplaced.join(", ")}.`,
       );
     }
   }
@@ -335,7 +335,7 @@ export const convertConfigPages = (
      * connection declared anywhere else.
      */
     elements: Object.entries(elements)
-      .filter(([_key, value]) => !isConnectionReusable(value))
+      .filter(([_key, value]) => !isNonUserActivatedConnection(value))
       .map(([key, value]) => {
         if (typeof value === "string") {
           return {

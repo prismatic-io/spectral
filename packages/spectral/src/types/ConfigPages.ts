@@ -49,9 +49,9 @@ export type ConfigPageElement = string | Exclude<ConfigVar, UserActivatedConnect
  * What a user level config page may contain.
  *
  * Every connection kind except the per-person one is excluded. A page on this wizard is
- * shown to each individual, and any other kind is reusable – activated once by the
- * organization or by the customer – so putting one here asks every person for something
- * that is not theirs to give, and asks it repeatedly. Config vars that are not
+ * shown to each individual, and any other kind is activated once – by the organization
+ * or by the customer – so putting one here asks every person for something that is not
+ * theirs to give, and asks it repeatedly. Config vars that are not
  * connections are unaffected: a per-person string or picklist is a real thing to collect.
  *
  * The mirror of `ConfigPageElement`, and stated the same way: the type is the canonical

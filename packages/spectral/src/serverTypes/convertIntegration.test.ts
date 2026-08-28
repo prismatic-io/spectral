@@ -348,9 +348,9 @@ describe("convertConfigPages", () => {
   });
 
   /**
-   * The inverse rule. Every other connection kind is reusable rather than activated by
-   * each person, so a user level page would ask every individual for a credential that is
-   * not theirs to give.
+   * The inverse rule. Every other connection kind is activated by the organization or
+   * the customer rather than by each person, so a user level page would ask every
+   * individual for a credential that is not theirs to give.
    */
   it("refuses an organization- or customer-activated connection on a user level config page", () => {
     const pages = {
@@ -416,7 +416,7 @@ describe("convertConfigPages", () => {
     ]);
   });
 
-  it("still removes reusable connections from an ordinary config page", () => {
+  it("still removes organization- and customer-activated connections from an ordinary config page", () => {
     expect(
       convertConfigPages(
         {
