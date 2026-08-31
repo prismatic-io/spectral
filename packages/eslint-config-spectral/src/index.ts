@@ -7,7 +7,7 @@ module.exports = {
     project: true,
     sourceType: "module",
   },
-  plugins: ["@typescript-eslint", "import", "prettier"],
+  plugins: ["@typescript-eslint", "import", "prettier", "@prismatic-io/spectral"],
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended-type-checked",
@@ -34,6 +34,10 @@ module.exports = {
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/prefer-nullish-coalescing": "off",
     "@typescript-eslint/restrict-template-expressions": "off",
+    "@prismatic-io/spectral/no-nested-section": "error",
+    "@prismatic-io/spectral/no-section-outside-flow": "error",
+    "@prismatic-io/spectral/no-unclosed-section": "error",
+    "@prismatic-io/spectral/section-label-match": "error",
   },
   settings: {
     "import/parsers": {
