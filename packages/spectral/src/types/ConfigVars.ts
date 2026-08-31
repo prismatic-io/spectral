@@ -408,11 +408,8 @@ type GetDataSourceReference<
 /**
  * Any element either kind of config page may hold.
  *
- * Local to this module and deliberately not exported: mapping an element to its
- * runtime type is the same work whichever page it was declared on, so the two
- * helpers below should not appear to require a particular page kind. `ConfigPage`
- * accepts a narrower set than this, and that narrowing is a placement rule rather
- * than anything these helpers care about.
+ * Not exported. Mapping an element to its runtime type is the same work whichever page
+ * it was declared on, so the helpers below should not appear to require a page kind.
  */
 type AnyPageElement = string | ConfigVar;
 
@@ -437,10 +434,9 @@ type DataSourceToRuntimeType<TElement extends AnyPageElement> =
 type ElementToRuntimeType<TElement extends AnyPageElement> = TElement extends ConfigVar
   ? TElement extends ConnectionConfigVar
     ? Connection
-    : /* A page element naming a Scoped Config Variable resolves to a Connection like
-       * any other, matching what ExtractScopedConfigVars gives the same declaration
-       * made under `scopedConfigVars`. Without this the value is `never`, so the
-       * connection an author declared on a page cannot be used at runtime. */
+    : /* A page element naming a Scoped Config Variable resolves to a Connection, matching
+       * what ExtractScopedConfigVars gives the same declaration under `scopedConfigVars`.
+       * Without this it resolves to `never` and the connection is unusable at runtime. */
       TElement extends ScopedConfigVar
       ? Connection
       : TElement extends StandardConfigVar

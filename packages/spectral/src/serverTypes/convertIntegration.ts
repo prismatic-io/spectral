@@ -276,10 +276,9 @@ export const convertConfigPages = (
   }
 
   /**
-   * Checked before the filter below, which removes scoped connections from the page
-   * and with them the only record of which page they were declared on. See
-   * `ConfigPageElement` for why placement matters. Every page is inspected before
-   * throwing, so fixing one does not simply uncover the next.
+   * Checked before the filter below, which strips scoped connections and with them the
+   * only record of which page they were declared on. Every page is inspected before
+   * throwing, so fixing one does not uncover the next.
    */
   if (!userLevelConfigured) {
     const misplaced = Object.entries(pages).flatMap(([name, { elements }]) =>
@@ -296,10 +295,9 @@ export const convertConfigPages = (
   }
 
   /**
-   * The inverse, and refused for the opposite reason: every other connection kind is
-   * activated once by the organization or the customer, so a user level page would ask
-   * each individual for a credential that is not theirs. See
-   * `UserLevelConfigPageElement`.
+   * The inverse: every other connection kind is activated once by the organization or
+   * the customer, so a user level page would ask each person for a credential that is
+   * not theirs. See `UserLevelConfigPageElement`.
    */
   if (userLevelConfigured) {
     const misplaced = Object.entries(pages).flatMap(([name, { elements }]) =>
@@ -325,14 +323,9 @@ export const convertConfigPages = (
     tagline,
     ...(userLevelConfigured ? { userLevelConfigured } : {}),
     /**
-     * A user-activated connection is the one connection that stays. Which page it
-     * was declared on is the whole of what marks it user level — the platform reads
-     * that from page membership and has nothing else to go on. Removing it left the
-     * connection looking like ordinary instance configuration, which the platform
-     * refuses.
-     *
-     * Only reachable on a user level page: the guard above rejects a user-activated
-     * connection declared anywhere else.
+     * A user-activated connection is the one connection that stays. Page membership is
+     * all that marks it user level, so stripping it leaves the connection looking like
+     * ordinary instance configuration, which the platform refuses.
      */
     elements: Object.entries(elements)
       .filter(([_key, value]) => !isNonUserActivatedConnection(value))
@@ -1067,9 +1060,9 @@ export const convertConfigVar = (
     const { stableKey } = pick(configVar, ["stableKey"]);
 
     /**
-     * `userScopedConnection` is a declaration-time distinction only. The server
-     * resolves scope from the Scoped Config Variable the stable key names, so every
-     * scoped kind emits the same shape and the discriminator stops here.
+     * `userScopedConnection` is a declaration-time distinction only. The server resolves
+     * scope from the Scoped Config Variable the stable key names, so every scoped kind
+     * emits the same shape and the discriminator stops here.
      */
     return {
       key,
