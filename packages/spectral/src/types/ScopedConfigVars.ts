@@ -19,9 +19,8 @@ export type OrganizationActivatedConnectionConfigVar = {
  * A connection each person activates for themselves.
  *
  * Carries its own `dataType` so it can be told apart from the organization- and
- * customer-activated kinds, which are otherwise structurally identical. See
- * `ConfigPageElement` for what that distinction buys. The convert layer rewrites it
- * to the shape the API expects, so this name never reaches the server.
+ * customer-activated kinds, which are otherwise identical. The convert layer rewrites
+ * it to the shape the API expects before it reaches the server.
  */
 export type UserActivatedConnectionConfigVar = {
   dataType: "userScopedConnection";
@@ -80,9 +79,8 @@ export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar 
     return false;
   }
 
-  // Applied to both kinds: a declaration carrying a component reference or its own
-  // inputs is a connection definition rather than a reference to a Scoped Config
-  // Variable, whichever `dataType` it claims.
+  // A declaration carrying a component reference or its own inputs is a connection
+  // definition, not a reference to a Scoped Config Variable.
   return (
     !isConnectionDefinitionConfigVar(cv as ConfigVar) &&
     !isConnectionReferenceConfigVar(cv as ConfigVar)
@@ -90,14 +88,11 @@ export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar 
 };
 
 /**
- * Whether this connection is activated by the organization or the customer rather
- * than by each person. Both kinds are reusable, so that is not the distinction:
- * a user-activated connection is reused across every instance its owner
- * configures. What separates them is who activates it, and how many people it
- * then answers for.
+ * Whether this connection is scoped to the organization or the customer rather than to
+ * a specific person.
  *
- * This is what decides whether a connection survives as a config page element.
- * The others are stripped, because nobody fills them in on the wizard.
+ * Only a user-activated connection survives as a config page element. The rest are
+ * stripped, because nobody fills them in on the wizard.
  */
 export const isNonUserActivatedConnection = (
   cv: unknown,
