@@ -24,6 +24,20 @@ You will need to update your [ESLint configuration](https://eslint.org/docs/user
 
 Note that you do not need to install the plugin packages as peer dependencies as resolution of those packages is handled with [Microsoft's ESLint patch](https://www.npmjs.com/package/@rushstack/eslint-patch). There are still a handful of peer dependencies you will need to install - use `npm info "@prismatic-io/eslint-config-spectral@latest" peerDependencies` to list them or use `npx install-peerdeps --dev @prismatic-io/eslint-config-spectral` to install them automatically.
 
+## Rules for Code-Native Integrations
+
+This config enables [`@prismatic-io/eslint-plugin-spectral`](../eslint-plugin-spectral), which
+checks the `logger.section()` / `logger.sectionEnd()` calls used to group a code-native flow's
+logs. Misusing them is not a crash — the runtime logs a warning and drops the section — so these
+rules surface the mistake at lint time instead:
+
+| Rule | Catches |
+| --- | --- |
+| `@prismatic-io/spectral/no-nested-section` | A section opened while another is still open |
+| `@prismatic-io/spectral/no-unclosed-section` | A section never closed, or a `sectionEnd` with nothing open |
+| `@prismatic-io/spectral/section-label-match` | A `sectionEnd` label that does not match the open section |
+| `@prismatic-io/spectral/no-section-outside-flow` | A section opened in a helper rather than in a flow handler |
+
 ## What is Prismatic?
 
 Prismatic is the leading embedded iPaaS, enabling B2B SaaS teams to ship product integrations faster and with less dev time. The only embedded iPaaS that empowers both developers and non-developers with tools for the complete integration lifecycle, Prismatic includes low-code and code-native building options, deployment and management tooling, and self-serve customer tools.
