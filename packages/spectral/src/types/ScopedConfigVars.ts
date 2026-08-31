@@ -94,7 +94,7 @@ export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar 
  * Only a user-activated connection survives as a config page element. The rest are
  * stripped, because nobody fills them in on the wizard.
  */
-export const isNonUserActivatedConnection = (
+export const isOrgOrCustomerActivatedConnection = (
   cv: unknown,
 ): cv is CustomerActivatedConnectionConfigVar | OrganizationActivatedConnectionConfigVar =>
   isConnectionScopedConfigVar(cv) && !isUserScopedConnectionConfigVar(cv);

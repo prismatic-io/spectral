@@ -34,7 +34,7 @@ import {
   isHtmlElementConfigVar,
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
-  isNonUserActivatedConnection,
+  isOrgOrCustomerActivatedConnection,
   isScheduleConfigVar,
   isUserScopedConnectionConfigVar,
   type KeyValuePair,
@@ -267,6 +267,18 @@ export const convertIntegration = <
   };
 };
 
+/**
+ * Whether this element is a connection of a kind a user level page does not collect.
+ *
+ * Three shapes rather than one: `isOrgOrCustomerActivatedConnection` covers a bare
+ * pointer at a Scoped Config Variable, and a connection declared inline or referenced
+ * from a component is deliberately excluded from that predicate, so each needs naming.
+ */
+const isRefusedOnUserLevelPage = (value: unknown): boolean =>
+  isOrgOrCustomerActivatedConnection(value) ||
+  isConnectionDefinitionConfigVar(value as ConfigVar) ||
+  isConnectionReferenceConfigVar(value as ConfigVar);
+
 export const convertConfigPages = (
   pages: ConfigPages | UserLevelConfigPages | undefined,
   userLevelConfigured: boolean,
@@ -302,12 +314,7 @@ export const convertConfigPages = (
   if (userLevelConfigured) {
     const misplaced = Object.entries(pages).flatMap(([name, { elements }]) =>
       Object.entries(elements)
-        .filter(
-          ([_key, value]) =>
-            isNonUserActivatedConnection(value) ||
-            isConnectionDefinitionConfigVar(value as ConfigVar) ||
-            isConnectionReferenceConfigVar(value as ConfigVar),
-        )
+        .filter(([_key, value]) => isRefusedOnUserLevelPage(value))
         .map(([key]) => `"${key}" on user level config page "${name}"`),
     );
 
@@ -328,7 +335,7 @@ export const convertConfigPages = (
      * ordinary instance configuration, which the platform refuses.
      */
     elements: Object.entries(elements)
-      .filter(([_key, value]) => !isNonUserActivatedConnection(value))
+      .filter(([_key, value]) => !isOrgOrCustomerActivatedConnection(value))
       .map(([key, value]) => {
         if (typeof value === "string") {
           return {
