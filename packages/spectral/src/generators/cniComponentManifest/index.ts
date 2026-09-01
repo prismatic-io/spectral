@@ -260,7 +260,11 @@ export const fetchConnectionStableKeys = async ({
 
   const query = `
     query connectionStableKeysQuery($componentSelector: [ComponentSelector]!) {
-      scopedConfigVariables(connection_Component_In: $componentSelector) {
+      scopedConfigVariables(
+        connection_Component_In: $componentSelector
+        managedBy_In: ["org", "customer"]
+        variableScope_In: ["org", "customer"]
+      ) {
         nodes {
           stableKey
         }
