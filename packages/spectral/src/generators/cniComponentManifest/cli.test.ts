@@ -112,6 +112,8 @@ const apiMocks = vi.hoisted(() => ({
   fetchComponentDataForManifest:
     vi.fn<CniComponentManifestModule["fetchComponentDataForManifest"]>(),
   fetchConnectionStableKeys: vi.fn<CniComponentManifestModule["fetchConnectionStableKeys"]>(),
+  fetchUserActivatedConnectionStableKeys:
+    vi.fn<CniComponentManifestModule["fetchUserActivatedConnectionStableKeys"]>(),
 }));
 
 vi.mock(import("."), async (importOriginal) => ({
@@ -158,6 +160,7 @@ describe("cni-component-manifest filesystem behavior", () => {
     workingDir = await mkdtemp(path.join(tmpdir(), "spectral-cni-manifest-"));
     apiMocks.fetchComponentDataForManifest.mockResolvedValue(component);
     apiMocks.fetchConnectionStableKeys.mockResolvedValue(["existing-connection"]);
+    apiMocks.fetchUserActivatedConnectionStableKeys.mockResolvedValue(["existing-user-connection"]);
     consoleInfo = vi.spyOn(console, "info").mockImplementation(() => undefined);
   });
 
@@ -234,6 +237,19 @@ describe("cni-component-manifest filesystem behavior", () => {
         );
       }),
     );
+
+    const connectionsIndex = await readFile(
+      path.join(destinationDir, "connections", "index.ts"),
+      "utf8",
+    );
+
+    // The two helpers differ by the config var they build, so each is asserted on the
+    // dataType it produces rather than on its name alone.
+    expect(connectionsIndex).toContain("acmeReusableConnection");
+    expect(connectionsIndex).toContain('dataType: "connection"');
+    expect(connectionsIndex).toContain("acmeUserActivatedConnection");
+    expect(connectionsIndex).toContain('"existing-user-connection"');
+    expect(connectionsIndex).toContain('dataType: "userScopedConnection"');
 
     const action = await readFile(path.join(destinationDir, "actions", "doThing.ts"), "utf8");
     expect(action).toMatchSnapshot();

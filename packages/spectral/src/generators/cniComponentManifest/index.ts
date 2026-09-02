@@ -300,6 +300,76 @@ export const fetchConnectionStableKeys = async ({
   }
 };
 
+/**
+ * The user-activated connections of one component that this organization has set up.
+ *
+ * A sibling of the fetch above rather than part of it: an integration declares this
+ * kind with `userActivatedConnection`, which builds a `userScopedConnection` config
+ * var, so its keys cannot appear in the same union as the reusable ones.
+ *
+ * Containers only. An integration references the container so the platform can
+ * resolve whose credential to run with, and the leaves beneath it are one person's
+ * own credential and the organization's for testing - neither is a choice. The API
+ * has no `treeLocation` filter, so that last narrowing happens here.
+ *
+ * `variableScope` filters lower case but comes back upper case, so the two spellings
+ * below are both deliberate.
+ */
+export const fetchUserActivatedConnectionStableKeys = async ({
+  componentKey,
+  isPrivate,
+}: {
+  componentKey: string;
+  isPrivate: boolean;
+}): Promise<string[]> => {
+  const accessToken = await getPrismAccessToken();
+  const prismaticUrl = process.env.PRISMATIC_URL ?? "https://app.prismatic.io";
+
+  const query = `
+    query userActivatedConnectionStableKeysQuery($componentSelector: [ComponentSelector]!) {
+      scopedConfigVariables(
+        connection_Component_In: $componentSelector
+        managedBy_In: ["org"]
+        variableScope_In: ["user"]
+      ) {
+        nodes {
+          stableKey
+          treeLocation
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      new URL("/api", prismaticUrl).toString(),
+      {
+        query,
+        variables: {
+          componentSelector: [{ key: componentKey, isPublic: !isPrivate }],
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Prismatic-Client": "spectral",
+        },
+      },
+    );
+
+    const nodes: Array<{ stableKey: string; treeLocation: "ROOT" | "LEAF" }> =
+      response.data?.data?.scopedConfigVariables?.nodes ?? [];
+
+    return nodes.filter((node) => node.treeLocation === "ROOT").map((node) => node.stableKey);
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.data?.errors) {
+      throw new Error(JSON.stringify(error.response.data.errors, null, 2));
+    }
+    throw error;
+  }
+};
+
 async function getComponentActions(componentId: string, prismaticUrl: string, accessToken: string) {
   let hasNextPage = true;
   let cursor: string | null = null;

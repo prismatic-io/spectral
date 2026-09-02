@@ -1,6 +1,15 @@
 <%- include('../partials/generatedHeader.ejs') -%>
-<% if (reusableConnectionStableKeys.length > 0) { -%>
-import type { CustomerActivatedConnectionConfigVar, OrganizationActivatedConnectionConfigVar } from "@prismatic-io/spectral";
+<%
+  const configVarTypes = [];
+  if (reusableConnectionStableKeys.length > 0) {
+    configVarTypes.push("CustomerActivatedConnectionConfigVar", "OrganizationActivatedConnectionConfigVar");
+  }
+  if (userActivatedConnectionStableKeys.length > 0) {
+    configVarTypes.push("UserActivatedConnectionConfigVar");
+  }
+-%>
+<% if (configVarTypes.length > 0) { -%>
+import type { <%- configVarTypes.join(", ") %> } from "@prismatic-io/spectral";
 <% } -%>
 <%- include('../partials/importBarrel.ejs', { imports }) -%>
 <% if (reusableConnectionStableKeys.length > 0) { %>
@@ -9,5 +18,13 @@ export const <%- helpers.camelCase(componentKey) %>ReusableConnection = (
 ): OrganizationActivatedConnectionConfigVar | CustomerActivatedConnectionConfigVar => ({
   stableKey,
   dataType: "connection",
+});
+<% } -%>
+<% if (userActivatedConnectionStableKeys.length > 0) { %>
+export const <%- helpers.camelCase(componentKey) %>UserActivatedConnection = (
+  stableKey: <%- userActivatedConnectionStableKeys.map(k => JSON.stringify(k)).join(" | ") %> | (string & {}),
+): UserActivatedConnectionConfigVar => ({
+  stableKey,
+  dataType: "userScopedConnection",
 });
 <% } -%>

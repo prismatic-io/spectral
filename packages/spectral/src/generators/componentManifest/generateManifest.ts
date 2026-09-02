@@ -31,6 +31,7 @@ interface GenerateManifestProps<
   manifestDir: string;
   generatedSourceDir: string;
   reusableConnectionStableKeys?: string[];
+  userActivatedConnectionStableKeys?: string[];
   createEntryPointFiles: () => Promise<unknown>;
   successMessage: string;
 }
@@ -53,6 +54,7 @@ export const generateManifest = async <
   manifestDir,
   generatedSourceDir,
   reusableConnectionStableKeys,
+  userActivatedConnectionStableKeys,
   createEntryPointFiles,
   successMessage,
 }: GenerateManifestProps<
@@ -93,6 +95,7 @@ export const generateManifest = async <
       sourceDir: templatesDir,
       destinationDir: generatedSourceDir,
       reusableConnectionStableKeys,
+      userActivatedConnectionStableKeys,
     }),
     createDataSources({
       component,
