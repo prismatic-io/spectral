@@ -163,8 +163,8 @@ export const validateConcurrentBatchLimit = (
  * Emits the trigger's single default batch size to the one wire field the platform reads
  * (`triggerResolverDefaultBatchSize`), shared by both the trigger and on-deploy resolution.
  * Emitted when the trigger declares a resolver — `triggerResolverSupport` `"valid"`/`"required"`
- * for the normal path, or an `onDeployResolver` for the on-deploy path. Defaults to 1 when no
- * `batchConfig` was declared.
+ * for the normal path, or an `onDeployResolver` for the on-deploy path. Throws when such a
+ * trigger declares no `batchConfig`.
  */
 const buildBatchDefaultField = (
   triggerLabel: string,
@@ -175,17 +175,22 @@ const buildBatchDefaultField = (
   if (triggerResolverSupport === "invalid" && !hasOnDeployResolver) {
     return {};
   }
-  const concurrentBatchLimit = batchConfig
-    ? validateConcurrentBatchLimit(
-        `Trigger "${triggerLabel}"`,
-        "batchConfig",
-        batchConfig.concurrentBatchLimit,
-      )
-    : undefined;
+  if (!batchConfig) {
+    throw new Error(
+      `Trigger "${triggerLabel}" supports batching but declares no batchConfig. Add \`batchConfig: { batchSize }\` to set its default batch size.`,
+    );
+  }
+  const concurrentBatchLimit = validateConcurrentBatchLimit(
+    `Trigger "${triggerLabel}"`,
+    "batchConfig",
+    batchConfig.concurrentBatchLimit,
+  );
   return {
-    triggerResolverDefaultBatchSize: batchConfig
-      ? validateBatchSize(`Trigger "${triggerLabel}"`, "batchConfig", batchConfig.batchSize)
-      : 1,
+    triggerResolverDefaultBatchSize: validateBatchSize(
+      `Trigger "${triggerLabel}"`,
+      "batchConfig",
+      batchConfig.batchSize,
+    ),
     ...(concurrentBatchLimit !== undefined
       ? { triggerResolverDefaultConcurrentBatchLimit: concurrentBatchLimit }
       : {}),
