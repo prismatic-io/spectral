@@ -11,6 +11,7 @@ on:
         options:
           - spectral
           - eslint-config-spectral
+          - eslint-plugin-spectral
       bump:
         description: "Version bump type"
         required: true

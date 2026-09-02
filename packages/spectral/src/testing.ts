@@ -34,6 +34,7 @@ import type {
   ActionPerformReturn as InvokeActionPerformReturn,
   DataSourceResult as InvokeDataSourceResult,
   TriggerResult as InvokeTriggerResult,
+  PollingContext,
   TriggerDefinition,
   TriggerEventFunctionReturn,
 } from "./types";
@@ -277,6 +278,28 @@ const createActionContext = <
     },
     flowSchemas: {},
     ...context,
+  };
+};
+
+/**
+ * The context a code-native flow handler receives: an `ActionContext` whose logger carries
+ * the section methods that only code-native integrations get.
+ */
+type CodeNativeTestContext<TConfigVars extends ConfigVarResultCollection> = ActionContext<
+  TConfigVars,
+  Record<string, ComponentManifest["actions"]>,
+  string[],
+  CodeNativeActionLogger
+>;
+
+const createCodeNativeActionContext = <TConfigVars extends ConfigVarResultCollection>(
+  context?: Partial<CodeNativeTestContext<TConfigVars>>,
+): CodeNativeTestContext<TConfigVars> => {
+  const actionContext = createActionContext<TConfigVars>(context);
+
+  return {
+    ...actionContext,
+    logger: context?.logger ?? loggerMock(),
   };
 };
 
@@ -586,12 +609,12 @@ export const invokeFlow = async <
     payload,
   }: {
     configVars?: TConfigVarValues;
-    context?: Partial<ActionContext<TConfigVars>>;
+    context?: Partial<CodeNativeTestContext<TConfigVars>>;
     payload?: Partial<TriggerPayload>;
   } = {},
 ): Promise<InvokeReturn<InvokeActionPerformReturn<false, unknown>>> => {
   const realizedConfigVars = createConfigVars(configVars);
-  const realizedContext = createActionContext({
+  const realizedContext = createCodeNativeActionContext({
     ...context,
     configVars: realizedConfigVars,
   });
@@ -603,7 +626,9 @@ export const invokeFlow = async <
 
   if ("onTrigger" in flow && typeof flow.onTrigger === "function") {
     const triggerResult = await flow.onTrigger(
-      realizedContext as any,
+      // A polling trigger's perform additionally expects the `polling` helpers, which this
+      // tester does not simulate; the cast is narrowed to just that gap.
+      realizedContext as typeof realizedContext & PollingContext<TActionInputs>,
       realizedPayload,
       params as ActionInputParameters<TInputs>,
     );
@@ -611,7 +636,7 @@ export const invokeFlow = async <
     params.onTrigger = { results: triggerResult?.payload };
   }
 
-  const result = await flow.onExecution(realizedContext as any, params);
+  const result = await flow.onExecution(realizedContext, params);
 
   return {
     result,

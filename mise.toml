@@ -30,10 +30,10 @@ description = "Run all CI validation checks"
 depends = ["check", "test", "tsd"]
 
 [tasks.version-bump]
-description = "Bump a package's version (set PACKAGE=spectral|eslint-config-spectral and BUMP_TYPE=patch|minor|major|preview)"
+description = "Bump a package's version (set PACKAGE=spectral|eslint-config-spectral|eslint-plugin-spectral and BUMP_TYPE=patch|minor|major|preview)"
 run = """
 if [ -z "$PACKAGE" ]; then
-  echo "ERROR: PACKAGE env var is required (spectral|eslint-config-spectral)."
+  echo "ERROR: PACKAGE env var is required (spectral|eslint-config-spectral|eslint-plugin-spectral)."
   exit 1
 fi
 if [ ! -d "packages/$PACKAGE" ]; then
@@ -52,7 +52,7 @@ fi
 description = "Trigger a release workflow on GitHub"
 usage = '''
 arg "<package>" help="Package to release" {
-  choices "spectral" "eslint-config-spectral"
+  choices "spectral" "eslint-config-spectral" "eslint-plugin-spectral"
 }
 arg "<bump>" help="Version bump type" {
   choices "patch" "minor" "major" "preview"
