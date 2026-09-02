@@ -3,7 +3,11 @@ import { generateManifest } from "../componentManifest/generateManifest";
 import { createFlagHelpText } from "../utils/createFlagHelpText";
 import { createTemplate } from "../utils/createTemplate";
 import { getFlagsBooleanValue } from "../utils/getFlagBooleanValue";
-import { fetchComponentDataForManifest, fetchConnectionStableKeys } from ".";
+import {
+  fetchComponentDataForManifest,
+  fetchConnectionStableKeys,
+  fetchUserActivatedConnectionStableKeys,
+} from ".";
 
 export const runMain = async (process: NodeJS.Process) => {
   const args = process.argv.slice(2);
@@ -70,10 +74,12 @@ export const runMain = async (process: NodeJS.Process) => {
     isPrivate: flags.isPrivate.value || false,
   });
 
-  const reusableConnectionStableKeys = await fetchConnectionStableKeys({
-    componentKey: component.key,
-    isPrivate: flags.isPrivate.value || false,
-  });
+  const isPrivate = flags.isPrivate.value || false;
+
+  const [reusableConnectionStableKeys, userActivatedConnectionStableKeys] = await Promise.all([
+    fetchConnectionStableKeys({ componentKey: component.key, isPrivate }),
+    fetchUserActivatedConnectionStableKeys({ componentKey: component.key, isPrivate }),
+  ]);
 
   // Generate the manifest
   const destinationDir = path.join(process.cwd(), "src", "manifests", component.key);
@@ -93,6 +99,7 @@ export const runMain = async (process: NodeJS.Process) => {
     manifestDir: destinationDir,
     generatedSourceDir: destinationDir,
     reusableConnectionStableKeys,
+    userActivatedConnectionStableKeys,
     createEntryPointFiles: () =>
       createTemplate({
         source: path.join(templatesDir, "index.ts.ejs"),

@@ -32,6 +32,7 @@ interface CreateConnectionsProps<
   sourceDir: string;
   destinationDir: string;
   reusableConnectionStableKeys?: string[];
+  userActivatedConnectionStableKeys?: string[];
 }
 
 export const createConnections = async <
@@ -51,6 +52,7 @@ export const createConnections = async <
   sourceDir,
   destinationDir,
   reusableConnectionStableKeys = [],
+  userActivatedConnectionStableKeys = [],
 }: CreateConnectionsProps<
   TInputs,
   TActionInputs,
@@ -74,6 +76,7 @@ export const createConnections = async <
     sourceDir,
     destinationDir,
     reusableConnectionStableKeys,
+    userActivatedConnectionStableKeys,
     componentKey: component.key,
   });
 
@@ -134,6 +137,7 @@ interface RenderConnectionsIndexProps {
   sourceDir: string;
   destinationDir: string;
   reusableConnectionStableKeys?: string[];
+  userActivatedConnectionStableKeys?: string[];
   componentKey: string;
 }
 
@@ -144,6 +148,7 @@ const renderConnectionsIndex = async ({
   sourceDir,
   destinationDir,
   reusableConnectionStableKeys = [],
+  userActivatedConnectionStableKeys = [],
   componentKey,
 }: RenderConnectionsIndexProps) => {
   return await createTemplate({
@@ -152,6 +157,7 @@ const renderConnectionsIndex = async ({
     data: {
       imports,
       reusableConnectionStableKeys,
+      userActivatedConnectionStableKeys,
       componentKey,
       helpers,
     },
