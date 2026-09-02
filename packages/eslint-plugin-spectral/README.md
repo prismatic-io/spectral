@@ -60,9 +60,9 @@ logger.sectionEnd({ label: "order" }); // reported
 
 ### `no-section-outside-flow`
 
-Sections belong in a flow handler — `onExecution`, `onTrigger`, `onDeployTrigger`,
-`onInstanceDeploy`, or `onInstanceDelete`. A section opened inside a helper function nests
-inside its caller's section without either author being able to see it.
+Sections belong in a flow's `onExecution` handler, the only handler whose logger exposes the
+section methods. A section opened inside a helper function nests inside its caller's section
+without either author being able to see it.
 
 ```ts
 const syncCustomers = async (logger) => {
@@ -83,12 +83,6 @@ onExecution: async (context) => {
 
 A section opened in a loop is still subject to the section limit, which `section-in-loop`
 reports separately.
-
-The handler names can be overridden:
-
-```jsonc
-"@prismatic-io/spectral/no-section-outside-flow": ["error", { "handlers": ["onExecution"] }]
-```
 
 Note that this rule only ever applies to code-native integrations. Connector `perform`
 functions receive a plain `ActionLogger` with no `section` methods at all, so there is nothing

@@ -1,8 +1,6 @@
 import rule from "./noSectionOutsideFlow";
 import { ruleTester } from "./ruleTester";
 
-const handlerList = "onExecution, onTrigger, onDeployTrigger, onInstanceDeploy, onInstanceDelete";
-
 ruleTester.run("no-section-outside-flow", rule, {
   valid: [
     `export const syncFlow = flow({
@@ -30,9 +28,6 @@ ruleTester.run("no-section-outside-flow", rule, {
          });
        },
      });`,
-    // Every handler that receives a code-native logger is allowed.
-    `flow({ onTrigger: async () => { logger.section("t"); logger.sectionEnd({ label: "t" }); } });`,
-    `flow({ onInstanceDeploy: async () => { logger.section("d"); logger.sectionEnd({ label: "d" }); } });`,
     // A handler declared separately and passed in by name.
     `const onExecution = async (context) => {
        logger.section("one");
@@ -51,10 +46,6 @@ ruleTester.run("no-section-outside-flow", rule, {
          logger.sectionEnd({ label: "one" });
        },
      });`,
-    {
-      code: `const runFlow = async () => { logger.section("one"); };`,
-      options: [{ handlers: ["runFlow"] }],
-    },
     // Not a section call at all.
     `const helper = () => { logger.info("hi"); };`,
   ],
@@ -65,15 +56,15 @@ ruleTester.run("no-section-outside-flow", rule, {
                logger.sectionEnd({ label: "customers" });
              };`,
       errors: [
-        { messageId: "outsideFlow", data: { name: "section", handlerList } },
-        { messageId: "outsideFlow", data: { name: "sectionEnd", handlerList } },
+        { messageId: "outsideFlow", data: { name: "section" } },
+        { messageId: "outsideFlow", data: { name: "sectionEnd" } },
       ],
     },
     {
       code: `function syncOrders() {
                logger.section("orders");
              }`,
-      errors: [{ messageId: "outsideFlow", data: { name: "section", handlerList } }],
+      errors: [{ messageId: "outsideFlow", data: { name: "section" } }],
     },
     {
       // Module scope is not a handler either.
@@ -81,9 +72,18 @@ ruleTester.run("no-section-outside-flow", rule, {
       errors: [{ messageId: "outsideFlow" }],
     },
     {
-      code: `const onExecution = async () => { logger.section("one"); };`,
-      options: [{ handlers: ["onTrigger"] }],
-      errors: [{ messageId: "outsideFlow" }],
+      // A helper is a helper no matter what it is named.
+      code: `const runFlow = async () => { logger.section("one"); };`,
+      errors: [{ messageId: "outsideFlow", data: { name: "section" } }],
+    },
+    {
+      // Other flow handlers do not receive a logger with section methods.
+      code: `flow({ onTrigger: async () => { logger.section("t"); } });`,
+      errors: [{ messageId: "outsideFlow", data: { name: "section" } }],
+    },
+    {
+      code: `flow({ onInstanceDeploy: async () => { logger.section("d"); } });`,
+      errors: [{ messageId: "outsideFlow", data: { name: "section" } }],
     },
   ],
 });
