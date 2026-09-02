@@ -37,6 +37,12 @@ rules surface the mistake at lint time instead:
 | `@prismatic-io/spectral/no-unclosed-section` | A section never closed, or a `sectionEnd` with nothing open |
 | `@prismatic-io/spectral/section-label-match` | A `sectionEnd` label that does not match the open section |
 | `@prismatic-io/spectral/no-section-outside-flow` | A section opened in a helper rather than in a flow handler |
+| `@prismatic-io/spectral/section-in-loop` | A section opened in a loop, which can exhaust an execution's section limit |
+
+Every rule above is an error except `section-in-loop`, which is a warning. A section opened in a
+loop is not a mistake, but it opens one section per iteration and an execution records at most
+1000, after which logs are still written but are no longer grouped. Since the rule cannot know how
+many times a loop runs, it reports every one.
 
 ## What is Prismatic?
 

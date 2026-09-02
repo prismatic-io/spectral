@@ -37,6 +37,7 @@ module.exports = {
     "@prismatic-io/spectral/no-nested-section": "error",
     "@prismatic-io/spectral/no-section-outside-flow": "error",
     "@prismatic-io/spectral/no-unclosed-section": "error",
+    "@prismatic-io/spectral/section-in-loop": "warn",
     "@prismatic-io/spectral/section-label-match": "error",
   },
   settings: {

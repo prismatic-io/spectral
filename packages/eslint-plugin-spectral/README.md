@@ -75,11 +75,14 @@ Inline callbacks within a handler are fine, since they are still visible in the 
 ```ts
 onExecution: async (context) => {
   for (const record of records) {
-    logger.section(record.id); // allowed
+    logger.section(record.id); // allowed by this rule
     logger.sectionEnd({ label: record.id });
   }
 },
 ```
+
+A section opened in a loop is still subject to the section limit, which `section-in-loop`
+reports separately.
 
 The handler names can be overridden:
 
@@ -91,6 +94,39 @@ Note that this rule only ever applies to code-native integrations. Connector `pe
 functions receive a plain `ActionLogger` with no `section` methods at all, so there is nothing
 for it to report there.
 
+### `section-in-loop`
+
+Advisory. A flow execution records at most 1000 sections. A `section()` opened in a loop creates
+one section per iteration, so a loop over a collection that grows with a customer's data can
+exhaust the limit. Past it the logs are still written, but are no longer grouped into sections.
+The runtime warns in the execution log when an execution reaches the limit; this rule reports the
+loop that gets you there before you deploy.
+
+```ts
+for (const record of records) {
+  logger.section(record.id); // reported
+  logger.sectionEnd({ label: record.id });
+}
+```
+
+Prefer one section per batch over one per record:
+
+```ts
+logger.section(`page ${page}`);
+for (const record of records) {
+  logger.info(record.id);
+}
+logger.sectionEnd({ label: `page ${page}` });
+```
+
+Array iteration methods count as loops too — `forEach`, `map`, `flatMap`, `filter`, `reduce`,
+`reduceRight`, `some`, and `every`.
+
+This is the one rule the recommended config sets to `warn` rather than `error`. It cannot know how
+many times a loop will run, so it reports every section opened in a loop, including loops that stay
+well under the limit. A loop over a handful of records is fine, and silencing the warning with
+`// eslint-disable-next-line` is a reasonable response.
+
 ## Limitations
 
 Each function body is analyzed on its own, in source order. That keeps the rules free of false
@@ -98,6 +134,8 @@ positives on ordinary code, at the cost of two blind spots:
 
 - A section opened in one function and closed in another is not tracked. Keep a section's start and
   end in the same function.
+- Loop iteration counts are unknown, so `section-in-loop` cannot tell a loop over ten records
+  from a loop over a million. It reports both.
 - Concurrency is not modeled. Two helpers that each open a section, run under `Promise.all`, will
   interleave at runtime; no lint rule can see that. Sections are designed for a linear, top-level
   flow body.
