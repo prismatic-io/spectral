@@ -15,7 +15,11 @@ export type ActionLoggerFunction = (...args: unknown[]) => void;
  * section identified by `label` until the matching `sectionEnd(label)` is called.
  *
  * Sections cannot be nested: calling `section` again while a section is open keeps
- * the open section and ignores the new one.
+ * the open section and ignores the new one. Sections should be called at the top-level
+ * to prevent accidental nesting (i.e. in the `onExecution`).
+ *
+ * Individual executions have a cap of 1000 sections. Any further sections are ignored--
+ * the logs will continue to flow, but they will be ungrouped.
  */
 export type ActionLoggerSectionFunction = (label: string) => void;
 
