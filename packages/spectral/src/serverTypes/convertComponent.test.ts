@@ -175,6 +175,32 @@ describe("convertInput", () => {
     });
   });
 
+  it("serializes a JSON Schema declared on a JSON code input", () => {
+    const schema = { type: "object", properties: { name: { type: "string" } } } as const;
+    const body = input({ label: "Body", type: "code", language: "json", schema });
+
+    const converted = convertInput("body", body);
+
+    expect(converted.schema).toBe(JSON.stringify(schema));
+  });
+
+  it("converts a Zod schema declared on a JSON code input to serialized JSON Schema", () => {
+    const jsonSchema = { type: "object", properties: { name: { type: "string" } } };
+    const zodSchema = { toJSONSchema: vi.fn(() => jsonSchema) };
+    const body = input({ label: "Body", type: "code", language: "json", schema: zodSchema });
+
+    const converted = convertInput("body", body);
+
+    expect(zodSchema.toJSONSchema).toHaveBeenCalledOnce();
+    expect(converted.schema).toBe(JSON.stringify(jsonSchema));
+  });
+
+  it("does not emit `schema` on a code input that declares none", () => {
+    const body = input({ label: "Body", type: "code", language: "json" });
+    const converted = convertInput("body", body);
+    expect("schema" in converted).toBe(false);
+  });
+
   it("does not emit `inputs` on a non-structuredObject input", () => {
     const basicInput = input({ type: "string", label: "Basic" });
     const converted = convertInput("basic", basicInput);

@@ -3,8 +3,10 @@ import {
   type Connection,
   type InputCleanFunction,
   input,
+  type JsonSchema,
+  type ZodSchema,
 } from "@prismatic-io/spectral";
-import { expectType } from "tsd";
+import { expectAssignable, expectError, expectType } from "tsd";
 
 const omittedCollectionInput = input({
   label: "Omitted Collection",
@@ -51,3 +53,29 @@ const mapCollectionInput = input({
   clean: (value) => value,
 });
 expectType<InputCleanFunction<unknown, unknown>>(mapCollectionInput.clean);
+
+const jsonCodeInput = input({
+  label: "JSON Code",
+  type: "code",
+  language: "json",
+  schema: { type: "object", properties: { name: { type: "string" } } },
+});
+expectAssignable<JsonSchema | ZodSchema | undefined>(jsonCodeInput.schema);
+
+const zodLikeSchema = { toJSONSchema: () => ({ type: "object" }) };
+const zodJsonCodeInput = input({
+  label: "JSON Code",
+  type: "code",
+  language: "json",
+  schema: zodLikeSchema,
+});
+expectAssignable<JsonSchema | ZodSchema | undefined>(zodJsonCodeInput.schema);
+
+expectError(
+  input({
+    label: "YAML Code",
+    type: "code",
+    language: "yaml",
+    schema: { type: "object" },
+  }),
+);

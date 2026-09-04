@@ -18,7 +18,9 @@ import {
   type TriggerOptionChoice,
   type TriggerPayload,
   type TriggerResult,
+  type ZodSchema,
 } from "../types";
+import type { JsonSchema } from "../types/jsonforms/JsonSchema";
 import {
   isPollingTriggerDefinition,
   type PollingTriggerDefinition,
@@ -257,9 +259,11 @@ export const convertInput = (
     collection,
     inputs: childInputs,
     configurations,
+    schema,
     ...rest
   } = definition as {
     default?: unknown;
+    schema?: JsonSchema | ZodSchema;
     type: InputFieldDefinition["type"] | "template";
     label: string | { key: string; value: string };
     collection?: "valuelist" | "keyvaluelist";
@@ -309,9 +313,16 @@ export const convertInput = (
     keyLabel,
     onPremiseControlled: rest.onPremControlled === true ? true : undefined,
     inputs: nestedInputs,
+    ...(schema ? { schema: convertInputSchema(schema) } : {}),
     ...(scope ? { scope } : {}),
   };
 };
+
+const isZodSchema = (schema: JsonSchema | ZodSchema): schema is ZodSchema =>
+  typeof (schema as ZodSchema).toJSONSchema === "function";
+
+const convertInputSchema = (schema: JsonSchema | ZodSchema): string =>
+  JSON.stringify(isZodSchema(schema) ? schema.toJSONSchema() : schema);
 
 const TEMPLATE_VALUE_REGEX = /{{#(\w+)}}/g;
 const TEMPLATE_VALUE_ERRORS = {

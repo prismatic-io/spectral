@@ -245,33 +245,63 @@ export type ConnectionTemplateInputField = BaseInputField & {
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
 
-/** Defines attributes of a CodeInputField. */
-export type CodeInputField = BaseInputField & {
+/** Code language for syntax highlighting. For no syntax highlighting, choose "plaintext" */
+export type CodeLanguage =
+  | "css"
+  | "graphql"
+  | "handlebars"
+  | "hcl"
+  | "html"
+  | "javascript"
+  | "json"
+  | "liquid"
+  | "markdown"
+  | "mysql"
+  | "pgsql"
+  | "plaintext"
+  | "sql"
+  | "typescript"
+  | "xml"
+  | "yaml";
+
+/**
+ * Structural stand-in for a Zod 4 schema (`z.ZodType`). Spectral does not depend
+ * on `zod`; any object that exposes Zod 4.1's `toJSONSchema()` instance method
+ * qualifies. The schema is converted to JSON Schema when the component is published.
+ */
+export interface ZodSchema {
+  toJSONSchema(params?: unknown): object;
+}
+
+type CodeInputFieldBase = BaseInputField & {
   /** Data type the input will collect. */
   type: "code";
-  /** Code language for syntax highlighting. For no syntax highlighting, choose "plaintext" */
-  language:
-    | "css"
-    | "graphql"
-    | "handlebars"
-    | "hcl"
-    | "html"
-    | "javascript"
-    | "json"
-    | "liquid"
-    | "markdown"
-    | "mysql"
-    | "pgsql"
-    | "plaintext"
-    | "sql"
-    | "typescript"
-    | "xml"
-    | "yaml";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
   /** Clean function. */
   clean?: InputCleanFunction<unknown>;
 } & CollectionOptions<string>;
+
+/** A code input that collects JSON. May declare the shape of that JSON with a schema. */
+export type JsonCodeInputField = CodeInputFieldBase & {
+  /** Code language for syntax highlighting. */
+  language: "json";
+  /**
+   * Schema describing the JSON this input collects, as a JSON Schema or a Zod
+   * schema. Used by the Prismatic UI to validate and assist input authoring.
+   */
+  schema?: JsonSchema | ZodSchema;
+};
+
+/** A code input for any language other than JSON. */
+export type NonJsonCodeInputField = CodeInputFieldBase & {
+  /** Code language for syntax highlighting. For no syntax highlighting, choose "plaintext" */
+  language: Exclude<CodeLanguage, "json">;
+  schema?: never;
+};
+
+/** Defines attributes of a CodeInputField. */
+export type CodeInputField = JsonCodeInputField | NonJsonCodeInputField;
 
 /** Defines attributes of a ConditionalInputField. */
 export interface ConditionalInputField extends BaseInputField {

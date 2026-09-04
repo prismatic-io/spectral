@@ -448,6 +448,7 @@ export interface Input {
   required?: boolean;
   model?: InputFieldChoice[];
   language?: string;
+  schema?: string;
   onPremiseControlled?: boolean;
   dataSource?: string;
   shown?: boolean;

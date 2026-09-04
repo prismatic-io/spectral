@@ -814,6 +814,19 @@ export const dataSource = <
  *
  * @example
  * import { input } from "@prismatic-io/spectral";
+ * import { z } from "zod";
+ *
+ * // A JSON code input with a schema describing the expected JSON.
+ * // `schema` accepts a JSON Schema object or a Zod 4 schema.
+ * const contact = input({
+ *   label: "Contact",
+ *   type: "code",
+ *   language: "json",
+ *   schema: z.object({ name: z.string(), email: z.string().email() }),
+ * });
+ *
+ * @example
+ * import { input } from "@prismatic-io/spectral";
  *
  * // A key-value list collection input
  * const headers = input({
