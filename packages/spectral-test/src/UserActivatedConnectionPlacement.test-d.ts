@@ -96,20 +96,23 @@ expectError(
   }),
 );
 
-expectError(
-  userLevelConfigPage({
-    tagline: "Connect your account",
-    elements: {
-      "Acme Connection": connectionConfigVar({
-        stableKey: "acme-connection",
-        dataType: "connection",
-        inputs: {
-          apiKey: { label: "API Key", type: "password", required: true },
-        },
-      }),
-    },
-  }),
-);
+/**
+ * A connection the integration defines is collected here, not refused. Nobody has
+ * supplied its credential in advance, which is the reason this wizard exists - it is
+ * the original shape of a user level page and predates the per-person kind.
+ */
+userLevelConfigPage({
+  tagline: "Connect your account",
+  elements: {
+    "Acme Connection": connectionConfigVar({
+      stableKey: "acme-connection",
+      dataType: "connection",
+      inputs: {
+        apiKey: { label: "API Key", type: "password", required: true },
+      },
+    }),
+  },
+});
 
 /** What a user level page does accept: the per-person connection, copy, and any config
  * var that is not a connection – a per-person string is a real thing to collect. */
