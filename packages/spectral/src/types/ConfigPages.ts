@@ -1,4 +1,4 @@
-import type { ConfigVar, ConnectionConfigVar } from "./ConfigVars";
+import type { ConfigVar } from "./ConfigVars";
 import type {
   CustomerActivatedConnectionConfigVar,
   OrganizationActivatedConnectionConfigVar,
@@ -46,18 +46,24 @@ export type ConfigPageElement = string | Exclude<ConfigVar, UserActivatedConnect
 /**
  * What a user level config page may contain.
  *
- * Only the per-person connection kind. Every other kind is activated once by the
- * organization or the customer, so putting one here asks each person for a credential
- * that is not theirs to give. Config vars that are not connections are unaffected.
- * The convert layer enforces this at build time.
+ * Everything an ordinary page may, except the two reusable kinds. Those are activated
+ * once - by the organization or by the customer - so putting one here asks each person
+ * for a credential that is not theirs to give.
+ *
+ * A connection defined by the integration, or referenced from a component, is fine
+ * here: nobody has supplied its credential in advance, which is the whole reason a
+ * user level page exists. That is the original shape of this wizard and it predates
+ * the per-person connection kind.
+ *
+ * The mirror of `ConfigPageElement`, and stated the same way: the type is the canonical
+ * rule and the convert layer enforces it at build time, so a JavaScript author hits it
+ * too.
  */
 export type UserLevelConfigPageElement =
   | string
   | Exclude<
       ConfigVar,
-      | ConnectionConfigVar
-      | CustomerActivatedConnectionConfigVar
-      | OrganizationActivatedConnectionConfigVar
+      CustomerActivatedConnectionConfigVar | OrganizationActivatedConnectionConfigVar
     >;
 
 /** An element on a page of either kind, for code that walks both wizards at once. */

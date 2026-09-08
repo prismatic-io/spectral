@@ -362,8 +362,39 @@ describe("convertConfigPages", () => {
     } as unknown as Parameters<typeof convertConfigPages>[0];
 
     expect(() => convertConfigPages(pages, true)).toThrow(
-      /Only a user-activated connection belongs on a user level config page/,
+      /does not belong on a user level config page/,
     );
+  });
+
+  it("accepts a connection the integration defines on a user level page", () => {
+    const pages = {
+      "Your Account": {
+        elements: {
+          "Your Account": {
+            stableKey: "your-account",
+            dataType: "connection",
+            inputs: { apiKey: { label: "API key", type: "string" } },
+          },
+        },
+      },
+    } as never;
+
+    expect(() => convertConfigPages(pages, true)).not.toThrow();
+  });
+
+  it("accepts a connection referenced from a component on a user level page", () => {
+    const pages = {
+      "Your Slack": {
+        elements: {
+          "Your Slack": {
+            stableKey: "your-slack",
+            connection: { component: "slack", key: "oauth2", values: {} },
+          },
+        },
+      },
+    } as never;
+
+    expect(() => convertConfigPages(pages, true)).not.toThrow();
   });
 
   it("leaves config vars that are not connections alone on a user level page", () => {

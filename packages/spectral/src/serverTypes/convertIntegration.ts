@@ -270,14 +270,15 @@ export const convertIntegration = <
 /**
  * Whether this element is a connection of a kind a user level page does not collect.
  *
- * Three shapes rather than one: `isOrgOrCustomerActivatedConnection` covers a bare
- * pointer at a Scoped Config Variable, and a connection declared inline or referenced
- * from a component is deliberately excluded from that predicate, so each needs naming.
+ * Only the two reusable kinds. Their credential is supplied once, by the organization
+ * or by the customer, so a page shown to each individual cannot ask for it.
+ *
+ * A connection the integration defines, or references from a component, is collected
+ * per person here and is the original reason this wizard exists - refusing those broke
+ * every integration that had one.
  */
 const isRefusedOnUserLevelPage = (value: unknown): boolean =>
-  isOrgOrCustomerActivatedConnection(value) ||
-  isConnectionDefinitionConfigVar(value as ConfigVar) ||
-  isConnectionReferenceConfigVar(value as ConfigVar);
+  isOrgOrCustomerActivatedConnection(value);
 
 export const convertConfigPages = (
   pages: ConfigPages | UserLevelConfigPages | undefined,
@@ -320,7 +321,7 @@ export const convertConfigPages = (
 
     if (misplaced.length) {
       throw new Error(
-        `Only a user-activated connection belongs on a user level config page: every other kind is activated by the organization or the customer rather than by each person. Move ${misplaced.join(", ")}.`,
+        `A connection activated once by the organization or the customer does not belong on a user level config page, which asks each person for their own. Move ${misplaced.join(", ")}.`,
       );
     }
   }
