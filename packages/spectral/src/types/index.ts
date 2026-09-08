@@ -29,6 +29,7 @@ export * from "./HttpResponse";
 export * from "./Inputs";
 export * from "./InstanceAttributes";
 export * from "./IntegrationAttributes";
+export * from "./IntegrationConfiguration";
 export * from "./IntegrationDefinition";
 export * from "./OutputSchema";
 export * from "./PollingTriggerDefinition";
