@@ -60,14 +60,14 @@
     "@fast-check/vitest": "^0.4.1",
     "@types/ejs": "3.1.5",
     "@types/lodash": "^4.17.25",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.3.0",
     "@types/prettier": "^3.0.0",
     "@types/sax": "^1.2.7",
     "@types/valid-url": "^1.0.7",
-    "@vitest/ui": "^4.1.10",
+    "@vitest/ui": "^4.1.11",
     "copyfiles": "2.4.1",
     "fast-check": "^4.9.0",
     "typescript": "6.0.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }
