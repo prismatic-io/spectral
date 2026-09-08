@@ -7,7 +7,7 @@ import type { ComponentManifest } from "./ComponentManifest";
 import type { CustomerAttributes } from "./CustomerAttributes";
 import type { FlowAttributes } from "./FlowAttributes";
 import type { FlowSchemas } from "./FlowSchemas";
-import type { ConfigVarResultCollection, Inputs } from "./Inputs";
+import type { ConfigVarResultCollection, Connection, Inputs } from "./Inputs";
 import type { InstanceAttributes } from "./InstanceAttributes";
 import type { IntegrationAttributes } from "./IntegrationAttributes";
 import type { UserAttributes } from "./UserAttributes";
@@ -133,6 +133,25 @@ export type ActionContext<
   integrationState: Record<string, unknown>;
   /** Key/value collection of config variables of the integration. */
   configVars: TConfigVars;
+  /**
+   * The value of a function-backed (headless) configuration, present only on
+   * integrations that define `configuration` rather than `configPages`. The
+   * runner supplies it already parsed, so a flow reads it with ordinary
+   * property access.
+   *
+   * TODO — type this from the author's schema. `ConfigurationValue<TSchema>`
+   * already resolves it; what is missing is threading that type from
+   * `configuration({…})` through `IntegrationDefinition` and `flow()` to here.
+   * Deferred because it adds a generic to the context type every existing
+   * integration uses.
+   */
+  configuration?: unknown;
+  /**
+   * The resolved connections of a function-backed (headless) integration, keyed
+   * by the author's names. Present only on that surface; the same values are in
+   * `configVars`, but under keys the convert layer chose.
+   */
+  connections?: Record<string, Connection>;
   /** Available component actions registered in the `componentRegistry`. */
   components: {
     [K in keyof TComponentActions]: {

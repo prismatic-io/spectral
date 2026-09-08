@@ -75,6 +75,11 @@ import {
   validateConcurrentBatchLimit,
 } from "./convertComponent";
 import {
+  convertHeadlessConfiguration,
+  type HeadlessConfigurationYaml,
+} from "./convertHeadlessConfiguration";
+import { createHeadlessConnections, type HeadlessRuntimeShape } from "./headlessContext";
+import {
   DefinitionVersion,
   type ComponentReference as ServerComponentReference,
   type ConfigPage as ServerConfigPage,
@@ -214,6 +219,28 @@ export const convertIntegration = <
   // inline as part of the integration definition.
   const referenceKey = randomUUID();
 
+  if (definition.configuration && definition.configPages) {
+    throw new Error(
+      "An integration must not define both `configuration` (function-backed) and `configPages` (declared).",
+    );
+  }
+
+  // Adds no config pages: only the author's connections join the declared
+  // shape, because those really are config vars.
+  const headless = definition.configuration
+    ? convertHeadlessConfiguration(definition.configuration)
+    : undefined;
+
+  if (headless) {
+    definition = {
+      ...definition,
+      scopedConfigVars: {
+        ...(definition.scopedConfigVars ?? {}),
+        ...headless.scopedConfigVars,
+      },
+    };
+  }
+
   const scopedConfigVars = definition.scopedConfigVars ?? {};
   const configVars: Record<string, ConfigVar> = Object.values({
     configPages: definition.configPages ?? {},
@@ -256,12 +283,27 @@ export const convertIntegration = <
     // No-op. If there's no metadata file then we move on.
   }
 
-  const cniComponent = codeNativeIntegrationComponent(definition, referenceKey, configVars);
-  const cniYaml = codeNativeIntegrationYaml(definition, referenceKey, configVars, metadata);
+  const cniComponent = codeNativeIntegrationComponent(
+    definition,
+    referenceKey,
+    configVars,
+    headless?.runtimeShape,
+  );
+  const cniYaml = codeNativeIntegrationYaml(
+    definition,
+    referenceKey,
+    configVars,
+    metadata,
+    headless?.configuration,
+  );
   const publishingMetadata = codeNativeIntegrationPublishingMetadata(definition);
 
   return {
     ...cniComponent,
+    // `init` rides the `configuration` export, not `dataSources`; the platform
+    // discovers it only through `hasConfigurationInit`.
+    ...(headless?.componentConfiguration ? { configuration: headless.componentConfiguration } : {}),
+    ...(headless ? { hasConfigurationInit: headless.hasConfigurationInit } : {}),
     codeNativeIntegrationYAML: cniYaml,
     publishingMetadata,
   };
@@ -391,6 +433,7 @@ const codeNativeIntegrationYaml = <
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
   metadata?: Record<string, unknown>,
+  headlessConfiguration?: HeadlessConfigurationYaml,
 ): string => {
   // Expand any batched `trigger` (built with `batchFlowTrigger`) into the flat
   // onTrigger/onDeployTrigger/triggerResolver/onDeployResolver shape the rest of this
@@ -473,6 +516,8 @@ const codeNativeIntegrationYaml = <
     ),
     flows: flows.map((flow) => convertFlow(flow, componentRegistry, referenceKey)),
     ...(instanceProfile && { defaultInstanceProfile: instanceProfile }),
+    // A peer of `requiredConfigVars`, not an entry in it.
+    ...(headlessConfiguration && { configuration: headlessConfiguration }),
     configPages: [
       ...convertConfigPages(configPages, false),
       ...convertConfigPages(userLevelConfigPages, true),
@@ -1663,9 +1708,22 @@ const convertOnExecution =
   (
     onExecution: ActionPerformFunction,
     componentRegistry: ComponentRegistry,
+    headlessShape?: HeadlessRuntimeShape,
   ): ServerActionPerformFunction =>
   async (context, params) => {
-    const actionContext = createCNIContext(context, componentRegistry);
+    const baseContext = createCNIContext(context, componentRegistry);
+
+    // The runner supplies `configuration` already parsed. An unconfigured
+    // instance gets `{}` so a flow reading into it sees `undefined` for the
+    // field rather than throwing. Connections are rekeyed to the author's names.
+    const configVars = baseContext.configVars as unknown as Record<string, unknown>;
+    const actionContext = headlessShape
+      ? Object.assign(baseContext, {
+          configuration:
+            (baseContext as unknown as { configuration?: unknown }).configuration ?? {},
+          connections: createHeadlessConnections(headlessShape, configVars),
+        })
+      : baseContext;
 
     // Using runWithContext allows for component action invocation via manifest.
     const result = await runWithContext(actionContext, async () => {
@@ -1698,6 +1756,7 @@ const codeNativeIntegrationComponent = <
   }: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
+  headlessShape?: HeadlessRuntimeShape,
 ): ServerComponent<
   TInputs,
   TActionInputs,
@@ -1723,6 +1782,7 @@ const codeNativeIntegrationComponent = <
           perform: convertOnExecution(
             onExecution as ServerActionPerformFunction,
             componentRegistry,
+            headlessShape,
           ),
           inputs: [],
         },
