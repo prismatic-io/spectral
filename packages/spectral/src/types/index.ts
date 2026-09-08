@@ -24,6 +24,7 @@ export * from "./DataSourceResult";
 export * from "./DisplayDefinition";
 export * from "./FlowAttributes";
 export * from "./FlowSchemas";
+export * from "./HeadlessConfiguration";
 export * from "./HttpResponse";
 export * from "./Inputs";
 export * from "./InstanceAttributes";

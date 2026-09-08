@@ -23,6 +23,7 @@ import type {
   DefaultConnectionDefinition,
   DynamicObjectInputField,
   Flow,
+  HeadlessConfiguration,
   InputFieldDefinition,
   Inputs,
   IntegrationDefinition,
@@ -31,6 +32,7 @@ import type {
   OnPremConnectionDefinition,
   OrganizationActivatedConnectionConfigVar,
   OutputSchema,
+  SchemaInput,
   StandardConfigVar,
   StructuredObjectInputField,
   TriggerDefinition,
@@ -273,6 +275,42 @@ export const batchFlowTrigger = <
  * };
  */
 export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T => definition;
+
+/**
+ * Defines the configuration of a function-backed (headless) integration.
+ *
+ * One schema describes the whole configuration. There are no config pages and
+ * no config variables: the host renders what it likes, writes back a value
+ * matching `schema`, and a flow reads it as `context.configuration`.
+ *
+ * `schema` takes a zod schema or a JSON Schema literal. `init` receives
+ * `logger`, `customer`, `instance`, `connections` keyed by the names in
+ * `connections`, and `configuration`.
+ *
+ * @param definition The schema and eTag, plus optional `uiSchema`, `init`,
+ *   and `connections`.
+ * @returns The definition, for use as an integration's `configuration`.
+ * @example
+ * import { z } from "zod";
+ * import { configuration } from "@prismatic-io/spectral";
+ *
+ * const config = configuration({
+ *   schema: z.object({
+ *     mappings: z.array(z.object({ source: z.string(), destination: z.string() })),
+ *   }),
+ *   uiSchema: {
+ *     type: "VerticalLayout",
+ *     elements: [{ type: "Control", scope: "#/properties/mappings" }],
+ *   },
+ *   eTag: "config-v1",
+ *   init: async ({ configuration: current, configurationEtag }) => ({
+ *     migratedValues: migrate(current, configurationEtag),
+ *   }),
+ * });
+ */
+export const configuration = <const TSchema extends SchemaInput, TInitResult = unknown>(
+  definition: HeadlessConfiguration<TSchema, TInitResult>,
+): HeadlessConfiguration<TSchema, TInitResult> => definition;
 
 /**
  * This function creates a config page each person configures for themselves.
