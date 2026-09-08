@@ -1,4 +1,9 @@
-import type { ConfigVar } from "./ConfigVars";
+import type {
+  ConfigVar,
+  ConnectionConfigVar,
+  DataSourceConfigVar,
+  StandardConfigVar,
+} from "./ConfigVars";
 import type {
   CustomerActivatedConnectionConfigVar,
   OrganizationActivatedConnectionConfigVar,
@@ -46,25 +51,25 @@ export type ConfigPageElement = string | Exclude<ConfigVar, UserActivatedConnect
 /**
  * What a user level config page may contain.
  *
- * Everything an ordinary page may, except the two reusable kinds. Those are activated
- * once - by the organization or by the customer - so putting one here asks each person
- * for a credential that is not theirs to give.
+ * A connection the integration defines, or references from a component, belongs here:
+ * nobody has supplied its credential in advance, which is the reason this wizard
+ * exists. So does the per-person kind, and any config var that is not a connection.
  *
- * A connection defined by the integration, or referenced from a component, is fine
- * here: nobody has supplied its credential in advance, which is the whole reason a
- * user level page exists. That is the original shape of this wizard and it predates
- * the per-person connection kind.
+ * The two reusable kinds do not. Their credential is supplied once - by the
+ * organization or by the customer - so a page shown to each individual cannot ask
+ * for it.
  *
- * The mirror of `ConfigPageElement`, and stated the same way: the type is the canonical
- * rule and the convert layer enforces it at build time, so a JavaScript author hits it
- * too.
+ * Stated as what it accepts rather than as an `Exclude` of what it does not, which
+ * looks equivalent and is not: the reusable kinds are
+ * `{ dataType: "connection"; stableKey: string }`, and every other connection kind is
+ * assignable to that, so excluding them takes the rest with them.
  */
 export type UserLevelConfigPageElement =
   | string
-  | Exclude<
-      ConfigVar,
-      CustomerActivatedConnectionConfigVar | OrganizationActivatedConnectionConfigVar
-    >;
+  | StandardConfigVar
+  | DataSourceConfigVar
+  | ConnectionConfigVar
+  | UserActivatedConnectionConfigVar;
 
 /** An element on a page of either kind, for code that walks both wizards at once. */
 export type AnyConfigPageElement = ConfigPageElement | UserLevelConfigPageElement;
@@ -110,3 +115,21 @@ export interface UserLevelConfigPage {
   /** Specifies an optional tagline for this Config Page. */
   tagline?: string;
 }
+
+/**
+ * Every kind of config var is either collectable on a user level page or one of the
+ * two reusable kinds that page refuses.
+ *
+ * Listing what the page accepts is the only formulation that works - see the note on
+ * `UserLevelConfigPageElement` - but a list does not follow `ConfigVar` when a kind is
+ * added to it. This fails the build in that case, so the new kind has to be given an
+ * answer rather than silently becoming un-collectable.
+ */
+type UnclassifiedConfigVar = Exclude<
+  ConfigVar,
+  | UserLevelConfigPageElement
+  | CustomerActivatedConnectionConfigVar
+  | OrganizationActivatedConnectionConfigVar
+>;
+type AssertNever<T extends never> = T;
+type _EveryConfigVarIsClassified = AssertNever<UnclassifiedConfigVar>;
