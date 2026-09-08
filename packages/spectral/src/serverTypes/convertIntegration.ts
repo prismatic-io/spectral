@@ -75,6 +75,11 @@ import {
   validateConcurrentBatchLimit,
 } from "./convertComponent";
 import {
+  convertIntegrationConfiguration,
+  type IntegrationConfigurationYaml,
+} from "./convertIntegrationConfiguration";
+import { createConfigurationConnections, type ConnectionNameMap } from "./configurationContext";
+import {
   DefinitionVersion,
   type ComponentReference as ServerComponentReference,
   type ConfigPage as ServerConfigPage,
@@ -214,6 +219,28 @@ export const convertIntegration = <
   // inline as part of the integration definition.
   const referenceKey = randomUUID();
 
+  if (definition.configuration && definition.configPages) {
+    throw new Error(
+      "An integration must not define both `configuration` (function-backed) and `configPages` (declared).",
+    );
+  }
+
+  // Adds no config pages: only the author's connections join the declared
+  // shape, because those really are config vars.
+  const integrationConfiguration = definition.configuration
+    ? convertIntegrationConfiguration(definition.configuration)
+    : undefined;
+
+  if (integrationConfiguration) {
+    definition = {
+      ...definition,
+      scopedConfigVars: {
+        ...(definition.scopedConfigVars ?? {}),
+        ...integrationConfiguration.scopedConfigVars,
+      },
+    };
+  }
+
   const scopedConfigVars = definition.scopedConfigVars ?? {};
   const configVars: Record<string, ConfigVar> = Object.values({
     configPages: definition.configPages ?? {},
@@ -256,12 +283,27 @@ export const convertIntegration = <
     // No-op. If there's no metadata file then we move on.
   }
 
-  const cniComponent = codeNativeIntegrationComponent(definition, referenceKey, configVars);
-  const cniYaml = codeNativeIntegrationYaml(definition, referenceKey, configVars, metadata);
+  const cniComponent = codeNativeIntegrationComponent(
+    definition,
+    referenceKey,
+    configVars,
+    integrationConfiguration?.connectionNames,
+  );
+  const cniYaml = codeNativeIntegrationYaml(
+    definition,
+    referenceKey,
+    configVars,
+    metadata,
+    integrationConfiguration?.configuration,
+  );
   const publishingMetadata = codeNativeIntegrationPublishingMetadata(definition);
 
   return {
     ...cniComponent,
+    // `init` rides the `configuration` export, not `dataSources`; the platform
+    // discovers it only through `hasConfigurationInit`.
+    ...(integrationConfiguration?.componentConfiguration ? { configuration: integrationConfiguration.componentConfiguration } : {}),
+    ...(integrationConfiguration ? { hasConfigurationInit: integrationConfiguration.hasConfigurationInit } : {}),
     codeNativeIntegrationYAML: cniYaml,
     publishingMetadata,
   };
@@ -392,6 +434,7 @@ const codeNativeIntegrationYaml = <
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
   metadata?: Record<string, unknown>,
+  integrationConfiguration?: IntegrationConfigurationYaml,
 ): string => {
   // Expand any batched `trigger` (built with `batchFlowTrigger`) into the flat
   // onTrigger/onDeployTrigger/triggerResolver/onDeployResolver shape the rest of this
@@ -474,6 +517,8 @@ const codeNativeIntegrationYaml = <
     ),
     flows: flows.map((flow) => convertFlow(flow, componentRegistry, referenceKey)),
     ...(instanceProfile && { defaultInstanceProfile: instanceProfile }),
+    // A peer of `requiredConfigVars`, not an entry in it.
+    ...(integrationConfiguration && { configuration: integrationConfiguration }),
     configPages: [
       ...convertConfigPages(configPages, false),
       ...convertConfigPages(userLevelConfigPages, true),
@@ -1664,9 +1709,22 @@ const convertOnExecution =
   (
     onExecution: ActionPerformFunction,
     componentRegistry: ComponentRegistry,
+    connectionNames?: ConnectionNameMap,
   ): ServerActionPerformFunction =>
   async (context, params) => {
-    const actionContext = createCNIContext(context, componentRegistry);
+    const baseContext = createCNIContext(context, componentRegistry);
+
+    // The runner supplies `configuration` already parsed. An unconfigured
+    // instance gets `{}` so a flow reading into it sees `undefined` for the
+    // field rather than throwing. Connections are rekeyed to the author's names.
+    const configVars = baseContext.configVars as unknown as Record<string, unknown>;
+    const actionContext = connectionNames
+      ? Object.assign(baseContext, {
+          configuration:
+            (baseContext as unknown as { configuration?: unknown }).configuration ?? {},
+          connections: createConfigurationConnections(connectionNames, configVars),
+        })
+      : baseContext;
 
     // Using runWithContext allows for component action invocation via manifest.
     const result = await runWithContext(actionContext, async () => {
@@ -1699,6 +1757,7 @@ const codeNativeIntegrationComponent = <
   }: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
+  connectionNames?: ConnectionNameMap,
 ): ServerComponent<
   TInputs,
   TActionInputs,
@@ -1724,6 +1783,7 @@ const codeNativeIntegrationComponent = <
           perform: convertOnExecution(
             onExecution as ServerActionPerformFunction,
             componentRegistry,
+            connectionNames,
           ),
           inputs: [],
         },

@@ -12,6 +12,7 @@ import type { ConfigVars } from "./ConfigVars";
 import type { FlowDefinitionFlowSchema } from "./FlowSchemas";
 import type { HttpResponse } from "./HttpResponse";
 import type { Inputs } from "./Inputs";
+import type { IntegrationConfiguration } from "./IntegrationConfiguration";
 import type { PollingTriggerPerformFunction } from "./PollingTriggerDefinition";
 import type { ScopedConfigVarMap } from "./ScopedConfigVars";
 import type { BatchConfig } from "./TriggerDefinition";
@@ -83,6 +84,12 @@ export type IntegrationDefinition<
   userLevelConfigPages?: UserLevelConfigPages;
   /** Scoped ConfigVars for this integration. */
   scopedConfigVars?: ScopedConfigVarMap;
+  /**
+   * Integration configuration: one schema describing the whole
+   * configuration, plus optional `init`, connection pointers, and callable data
+   * sources. Mutually exclusive with `configPages`.
+   */
+  configuration?: IntegrationConfiguration;
   /** Instance Profile used for this integration.
    * If not specified, the tenant's default Instance Profile will be used.
    */
