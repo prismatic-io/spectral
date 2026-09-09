@@ -78,3 +78,20 @@ export const wrapBatchedFire =
       ...(isFirstPage && polledNoChanges !== undefined ? { polledNoChanges } : {}),
     };
   };
+
+/**
+ * Maps a batched perform's `polledNoChanges` onto the `resultType` the platform reads. The
+ * polling wrappers do this for `pollingTrigger` and CNI flows; a component `batchTrigger` runs
+ * through the plain trigger wrapper, so it carries its own mapping.
+ */
+export const withPolledResultType =
+  <TArgs extends unknown[], TResult extends { polledNoChanges?: boolean }>(
+    perform: (...args: TArgs) => Promise<TResult>,
+  ) =>
+  async (...args: TArgs) => {
+    const { polledNoChanges, ...rest } = await perform(...args);
+    return {
+      ...rest,
+      resultType: polledNoChanges ? ("polled_no_changes" as const) : ("completed" as const),
+    };
+  };
