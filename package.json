@@ -6,11 +6,11 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "bun run --filter @prismatic-io/eslint-plugin-spectral build && bun run --filter @prismatic-io/eslint-config-spectral build && bun run --filter @prismatic-io/spectral build && bun run --filter spectral-test build",
-    "test": "bun run --filter @prismatic-io/spectral test && bun run --filter @prismatic-io/eslint-plugin-spectral test",
+    "build": "bun run --filter @prismatic-io/eslint-plugin-spectral build && bun run --filter @prismatic-io/eslint-config-spectral build && bun run --filter @prismatic-io/spectral build && bun run --filter @prismatic-io/spectral-codemod build && bun run --filter spectral-test build",
+    "test": "bun run --filter @prismatic-io/spectral test && bun run --filter @prismatic-io/eslint-plugin-spectral test && bun run --filter @prismatic-io/spectral-codemod test",
     "tsd": "bun run --filter spectral-test tsd",
-    "check": "bun run --filter @prismatic-io/spectral check && bun run --filter @prismatic-io/eslint-plugin-spectral check",
-    "lint": "bun run --filter @prismatic-io/spectral lint && bun run --filter @prismatic-io/eslint-plugin-spectral lint",
+    "check": "bun run --filter @prismatic-io/spectral check && bun run --filter @prismatic-io/eslint-plugin-spectral check && bun run --filter @prismatic-io/spectral-codemod check",
+    "lint": "bun run --filter @prismatic-io/spectral lint && bun run --filter @prismatic-io/eslint-plugin-spectral lint && bun run --filter @prismatic-io/spectral-codemod lint",
     "all": "bun run check && bun run lint && bun run build && bun run test && bun run tsd"
   }
 }
