@@ -216,6 +216,23 @@ describe("batchTrigger", () => {
     expect("onDeploy" in wire).toBe(false);
   });
 
+  it("maps polledNoChanges from the first page to the polled_no_changes result type", async () => {
+    const pollsNothing = batchTrigger({
+      display: { label: "Nothing", description: "" },
+      inputs: {},
+      scheduleSupport: "required",
+      batchConfig: { batchSize: 1 },
+      perform: async () => ({ items: [], polledNoChanges: true }),
+    });
+
+    const firstPage = await invokeTrigger(pollsNothing, undefined, payload(), {});
+    expect(firstPage.result).toMatchObject({ resultType: "polled_no_changes" });
+    expect(firstPage.result).not.toHaveProperty("polledNoChanges");
+
+    const laterPage = await invokeTrigger(pollsNothing, undefined, payload({ page: 1 }), {});
+    expect(laterPage.result).toMatchObject({ resultType: "completed" });
+  });
+
   it("is accepted as a component trigger", () => {
     const definition = component({
       key: "orders",

@@ -5,7 +5,12 @@
  */
 
 import { runWithIntegrationContext } from "./serverTypes";
-import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./serverTypes/batching";
+import {
+  defaultBatchResolver,
+  withPolledResultType,
+  withPollingState,
+  wrapBatchedFire,
+} from "./serverTypes/batching";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
 import type {
@@ -745,13 +750,15 @@ export const batchTrigger = <
   const { perform, onDeploy, ...rest } = definition;
   return {
     ...rest,
-    perform: wrapBatchedFire(withPollingState(perform)),
+    perform: withPolledResultType(wrapBatchedFire(withPollingState(perform))),
     synchronousResponseSupport: "invalid",
     triggerResolverSupport: "required",
     triggerResolver: defaultBatchResolver,
     ...(onDeploy
       ? {
-          onDeployPerform: wrapBatchedFire(withPollingState(onDeploy.perform)),
+          onDeployPerform: withPolledResultType(
+            wrapBatchedFire(withPollingState(onDeploy.perform)),
+          ),
           onDeployResolver: { ...defaultBatchResolver, inputs: onDeploy.inputs },
         }
       : {}),
