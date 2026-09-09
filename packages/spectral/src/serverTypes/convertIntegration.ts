@@ -67,7 +67,7 @@ import type {
   TriggerResult,
 } from ".";
 import { runWithContext } from "./asyncContext";
-import { defaultBatchResolver, wrapBatchedFire } from "./batching";
+import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./batching";
 import { createCNIContext, logDebugResults } from "./context";
 import {
   convertInput,
@@ -104,9 +104,10 @@ interface WireResolver {
 /**
  * Expands a flow's batched `trigger` (built with `batchFlowTrigger`) into the flat
  * `onTrigger`/`onDeployTrigger`/`triggerResolver`/`onDeployResolver` shape the rest of the
- * conversion pipeline understands. {@link wrapBatchedFire} turns each fire into a
- * `TriggerPerformFunction`, and {@link defaultBatchResolver} reads the items and cursor back.
- * Flows without a `trigger` pass through unchanged.
+ * conversion pipeline understands. {@link withPollingState} gives each fire `context.polling`,
+ * {@link wrapBatchedFire} turns it into a `TriggerPerformFunction`, and
+ * {@link defaultBatchResolver} reads the items and cursor back. Flows without a `trigger` pass
+ * through unchanged.
  *
  * Returns the same `Flow` type it received; the synthesized `triggerResolver`/`onDeployResolver`
  * are wire-only fields (not on the author-facing `Flow`), read downstream via `"x" in flow` checks.
@@ -132,8 +133,8 @@ const normalizeBatchedFlow = <
 
   return {
     ...rest,
-    onTrigger: wrapBatchedFire(onTrigger),
-    ...(onDeploy ? { onDeployTrigger: wrapBatchedFire(onDeploy) } : {}),
+    onTrigger: wrapBatchedFire(withPollingState(onTrigger)),
+    ...(onDeploy ? { onDeployTrigger: wrapBatchedFire(withPollingState(onDeploy)) } : {}),
     triggerResolver: defaultBatchResolver,
     ...(onDeploy ? { onDeployResolver: defaultBatchResolver } : {}),
   } as unknown as Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>;
