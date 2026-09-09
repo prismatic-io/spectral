@@ -13,7 +13,7 @@ import type { FlowDefinitionFlowSchema } from "./FlowSchemas";
 import type { HttpResponse } from "./HttpResponse";
 import type { Inputs } from "./Inputs";
 import type { IntegrationConfiguration } from "./IntegrationConfiguration";
-import type { PollingTriggerPerformFunction } from "./PollingTriggerDefinition";
+import type { PollingState, PollingTriggerPerformFunction } from "./PollingTriggerDefinition";
 import type { ScopedConfigVarMap } from "./ScopedConfigVars";
 import type { BatchConfig } from "./TriggerDefinition";
 import type { TriggerEventFunction } from "./TriggerEventFunction";
@@ -127,7 +127,15 @@ export interface BatchedTriggerReturn<
   paginationState?: TPaginationState | null;
   /** Optional HTTP response to the request that invoked the integration. */
   response?: HttpResponse;
+  /**
+   * On a polling flow, says whether the execution found anything. Return `true` when the page
+   * has no items and no next cursor; the platform reads it from the first page only.
+   */
+  polledNoChanges?: boolean;
 }
+
+/** The context a batched trigger fire receives: the flow's context plus `polling` for state kept between runs. */
+export type BatchTriggerContext = ActionContext<ConfigVars> & { polling: PollingState };
 
 /**
  * A batched trigger built by {@link batchFlowTrigger}. Bundles the normal and on-deploy trigger
@@ -136,6 +144,9 @@ export interface BatchedTriggerReturn<
  * flow: `TItem` types `onExecution`'s `params.onTrigger.results.body.data`, and
  * `TPaginationState` types both `payload.paginationState` and the `paginationState` each fire
  * returns.
+ *
+ * Each fire also receives `context.polling` for a watermark that carries between runs, while
+ * `paginationState` lives for one run.
  */
 export interface BatchTrigger<
   TItem,
@@ -147,7 +158,7 @@ export interface BatchTrigger<
    * cursor arrives on `payload.paginationState`.
    */
   onTrigger: (
-    context: ActionContext<ConfigVars>,
+    context: BatchTriggerContext,
     payload: TriggerPayload<TPaginationState>,
   ) => Promise<BatchedTriggerReturn<TItem, TPaginationState>>;
   /**
@@ -155,7 +166,7 @@ export interface BatchTrigger<
    * return `paginationState` to page through the backfill.
    */
   onDeploy?: (
-    context: ActionContext<ConfigVars>,
+    context: BatchTriggerContext,
     payload: TriggerPayload<TPaginationState>,
   ) => Promise<BatchedTriggerReturn<TItem, TPaginationState>>;
 }
@@ -351,10 +362,9 @@ interface StandardFlow<
 
 export type PollingTriggerType = "polling";
 
-/** A polling flow that runs on a schedule and has access to polling context (getState/setState). */
-interface PollingFlow<
+/** The fields of a polling flow other than its trigger function. */
+interface PollingFlowBase<
   TInputs extends Inputs,
-  TActionInputs extends Inputs,
   TPayload extends TriggerPayload = TriggerPayload,
   TAllowsBranching extends boolean = boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
@@ -375,17 +385,6 @@ interface PollingFlow<
     timezone?: string;
   };
   /**
-   * Specifies the trigger function for this flow.
-   */
-  onTrigger: PollingTriggerPerformFunction<
-    TInputs,
-    TActionInputs,
-    ConfigVars,
-    TPayload,
-    TAllowsBranching,
-    TResult
-  >;
-  /**
    * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.
    * Typically used to backfill baseline records for systems whose webhooks only emit future events.
    */
@@ -395,6 +394,45 @@ interface PollingFlow<
     TAllowsBranching,
     TResult,
     TPaginationState
+  >;
+}
+
+/**
+ * A polling flow that runs on a schedule and has access to polling context (getState/setState).
+ * A polling flow that batches defines its trigger with {@link batchFlowTrigger} in place of
+ * `onTrigger`; see {@link BatchFields}.
+ */
+interface PollingFlow<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+  TTriggerPayload extends TriggerPayload = TriggerPayload,
+  TItem = unknown,
+  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+> extends PollingFlowBase<
+    TInputs,
+    TPayload,
+    TAllowsBranching,
+    TResult,
+    TTriggerPayload,
+    TItem,
+    TPaginationState
+  > {
+  /**
+   * Specifies the trigger function for this flow.
+   */
+  onTrigger: PollingTriggerPerformFunction<
+    TInputs,
+    TActionInputs,
+    ConfigVars,
+    TPayload,
+    TAllowsBranching,
+    TResult
   >;
 }
 
@@ -432,7 +470,17 @@ export type Flow<
       TItem,
       TPaginationState
     > &
-      BatchDiscriminant<TItem, TPaginationState>);
+      NonBatchFields)
+  | (PollingFlowBase<
+      TInputs,
+      TPayload,
+      TAllowsBranching,
+      TResult,
+      TTriggerPayload,
+      TItem,
+      TPaginationState
+    > &
+      BatchFields<TItem, TPaginationState>);
 
 export type FlowTriggerType = PollingTriggerType | StandardTriggerType;
 
