@@ -287,6 +287,10 @@ export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T 
  * `logger`, `customer`, `instance`, `connections` keyed by the names in
  * `connections`, and `configuration`.
  *
+ * A connection may point at a reusable connection, define its own inputs, or
+ * reference one on a published component. Each is read under the name it is
+ * given here.
+ *
  * @param definition The schema and eTag, plus optional `uiSchema`, `init`,
  *   and `connections`.
  * @returns The definition, for use as an integration's `configuration`.

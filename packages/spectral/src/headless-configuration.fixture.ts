@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   configuration,
+  connectionConfigVar,
   customerActivatedConnection,
   flow,
   type HeadlessInitContext,
@@ -16,6 +17,7 @@ import {
 
 export const ORG_CONNECTION_STABLE_KEY = "headless-org-slack";
 export const CUSTOMER_CONNECTION_STABLE_KEY = "headless-customer-salesforce";
+export const INLINE_CONNECTION_STABLE_KEY = "headless-inline-acme";
 
 /** The configuration schema, authored in zod — the recommended path. */
 export const configurationSchema = z.object({
@@ -106,6 +108,16 @@ export const headlessConfigurationDefinition = {
       }),
       customerConnection: customerActivatedConnection({
         stableKey: CUSTOMER_CONNECTION_STABLE_KEY,
+      }),
+      // Integration-specific: carries its own inputs, so the platform collects
+      // them and the generated component owns the connection.
+      inlineConnection: connectionConfigVar({
+        stableKey: INLINE_CONNECTION_STABLE_KEY,
+        dataType: "connection",
+        inputs: {
+          apiKey: { label: "API Key", type: "password", required: true },
+          endpoint: { label: "Endpoint", type: "string", default: "https://api.acme.test" },
+        },
       }),
     },
   }),

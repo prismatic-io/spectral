@@ -270,7 +270,10 @@ export const convertIntegration = <
         {},
       ),
     }),
-    {},
+    // A headless integration declares no pages, so its component-owned
+    // connections seed the map instead. They reach `requiredConfigVars` and the
+    // generated component by the same paths a page-declared connection does.
+    { ...(headless?.componentConnections ?? {}) },
   );
 
   let metadata: Record<string, unknown> = {};

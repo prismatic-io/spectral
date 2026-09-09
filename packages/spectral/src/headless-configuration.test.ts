@@ -6,6 +6,7 @@ import {
   configurationUiSchema,
   headlessConfigurationDefinition,
   headlessConfigurationIntegration,
+  INLINE_CONNECTION_STABLE_KEY,
   noInitIntegration,
   ORG_CONNECTION_STABLE_KEY,
   PREVIOUS_CONFIGURATION_E_TAG,
@@ -66,6 +67,7 @@ describe("the function-backed authoring surface", () => {
     expect(Object.keys(configuration.connections as object)).toEqual([
       "orgConnection",
       "customerConnection",
+      "inlineConnection",
     ]);
   });
 
@@ -400,7 +402,7 @@ describe("no implicit cascade", () => {
 });
 
 describe("connections", () => {
-  it("emits each declared connection as a useScopedConfigVar reference", () => {
+  it("emits a reusable connection as a useScopedConfigVar pointer", () => {
     const emitted = yaml();
 
     for (const stableKey of [ORG_CONNECTION_STABLE_KEY, CUSTOMER_CONNECTION_STABLE_KEY]) {
@@ -409,25 +411,58 @@ describe("connections", () => {
     expect(emitted).toContain("useScopedConfigVar");
   });
 
-  it("does not emit any inline connection definition", () => {
-    // Connections are managed outside the configuration; there must be no way to
-    // collect credentials in-flow.
-    expect(convert().connections ?? []).toHaveLength(0);
+  it("gives a reusable connection no connection on the generated component", () => {
+    // It points at something the platform already holds, so there is nothing
+    // for the component to own.
+    const keys = (convert().connections ?? []).map((connection) => connection.key);
+
+    expect(keys).not.toContain("orgConnection");
+    expect(keys).not.toContain("customerConnection");
   });
 
-  it("offers no API for inline credential collection", () => {
-    const { configuration } = headlessConfigurationDefinition as unknown as {
-      configuration: { connections: Record<string, Record<string, unknown>> };
+  it("emits an integration-specific connection with its inputs", () => {
+    // The platform collects these, so they ride requiredConfigVars rather than
+    // pointing at a scoped config var.
+    const emitted = yaml();
+
+    expect(emitted).toContain(INLINE_CONNECTION_STABLE_KEY);
+    expect(emitted).toMatch(/key: inlineConnection/);
+    expect(emitted).toContain("apiKey");
+  });
+
+  it("also emits an integration-specific connection on the generated component", () => {
+    // Both halves are required, and their keys have to agree: the config var's
+    // `connection.key` names the component connection the platform collects.
+    const connection = (convert().connections ?? []).find(
+      (candidate) => candidate.key === "inlineConnection",
+    );
+
+    expect(connection).toBeDefined();
+    expect((connection?.inputs ?? []).map((input) => input.key)).toEqual(["apiKey", "endpoint"]);
+    expect(yaml()).toMatch(/connection:\n\s+key: inlineConnection/);
+  });
+
+  it("hands every kind to a flow under the author's own name", async () => {
+    const action = Object.values(convert().actions ?? {})[0] as unknown as {
+      perform: (context: unknown, params: unknown) => Promise<{ data: unknown }>;
     };
 
-    // An `inputs` key would mean credential collection had crept back in.
-    for (const connection of Object.values(configuration.connections)) {
-      expect(connection).toEqual({
-        dataType: "connection",
-        stableKey: expect.any(String),
-      });
-      expect(connection.inputs).toBeUndefined();
-      expect(connection.oauth2Type).toBeUndefined();
-    }
+    const { data } = await action.perform(
+      {
+        logger: console,
+        configuration: { mappings: [] },
+        configVars: {
+          ...runtimeConfigVars(),
+          inlineConnection: connectionValue("inlineConnection"),
+        },
+      },
+      {},
+    );
+
+    expect((data as { connectionNames: string[] }).connectionNames).toEqual([
+      "orgConnection",
+      "customerConnection",
+      "inlineConnection",
+    ]);
   });
 });
