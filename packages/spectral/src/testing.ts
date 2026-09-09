@@ -330,10 +330,13 @@ const createDataSourceContext = <TConfigVars extends ConfigVarResultCollection>(
 
 /**
  * The type of data returned by an `invoke()` function used for unit testing component actions and triggers.
+ *
+ * `TLogger` widens to `CodeNativeActionLogger` for `invokeFlow`, whose context
+ * carries the section methods that only code-native integrations get.
  */
-interface InvokeReturn<ReturnData> {
+interface InvokeReturn<ReturnData, TLogger extends ActionLogger = ActionLogger> {
   result: ReturnData;
-  loggerMock: ActionLogger;
+  loggerMock: TLogger;
 }
 
 /**
@@ -612,7 +615,7 @@ export const invokeFlow = async <
     context?: Partial<CodeNativeTestContext<TConfigVars>>;
     payload?: Partial<TriggerPayload>;
   } = {},
-): Promise<InvokeReturn<InvokeActionPerformReturn<false, unknown>>> => {
+): Promise<InvokeReturn<InvokeActionPerformReturn<false, unknown>, CodeNativeActionLogger>> => {
   const realizedConfigVars = createConfigVars(configVars);
   const realizedContext = createCodeNativeActionContext({
     ...context,
