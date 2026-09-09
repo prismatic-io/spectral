@@ -12,6 +12,7 @@ on:
           - spectral
           - eslint-config-spectral
           - eslint-plugin-spectral
+          - spectral-codemod
       bump:
         description: "Version bump type"
         required: true

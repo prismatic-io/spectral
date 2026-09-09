@@ -1,0 +1,51 @@
+{
+  "name": "@prismatic-io/spectral-codemod",
+  "version": "0.1.0",
+  "description": "Codemods that migrate Prismatic connectors and code-native integrations across @prismatic-io/spectral releases",
+  "keywords": [
+    "prismatic",
+    "codemod",
+    "spectral"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "spectral-codemod": "bin/spectral-codemod.js"
+  },
+  "homepage": "https://prismatic.io",
+  "bugs": {
+    "url": "https://github.com/prismatic-io/spectral"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prismatic-io/spectral.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "license": "MIT",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "bun run format && bun run clean && tsc",
+    "prepack": "bun run build",
+    "lint": "biome lint .",
+    "format": "biome check --write --unsafe .",
+    "check": "biome check .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "dependencies": {
+    "ts-morph": "^28.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
+    "@types/node": "26.2.0",
+    "typescript": "^6",
+    "vitest": "^4.1.10"
+  }
+}
