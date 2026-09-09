@@ -1,10 +1,11 @@
 import { z } from "zod";
 
 import {
+  type ConfigurationInitContext,
   configuration,
+  connectionConfigVar,
   customerActivatedConnection,
   flow,
-  type ConfigurationInitContext,
   integration,
   organizationActivatedConnection,
 } from ".";
@@ -16,6 +17,7 @@ import {
 
 export const ORG_CONNECTION_STABLE_KEY = "integration-config-org-slack";
 export const CUSTOMER_CONNECTION_STABLE_KEY = "integration-config-customer-salesforce";
+export const INLINE_CONNECTION_STABLE_KEY = "integration-config-inline-acme";
 
 /** The configuration schema, authored in zod — the recommended path. */
 export const configurationSchema = z.object({
@@ -112,13 +114,21 @@ export const integrationConfigurationDefinition = {
       customerConnection: customerActivatedConnection({
         stableKey: CUSTOMER_CONNECTION_STABLE_KEY,
       }),
+      // Integration-specific: carries its own inputs, so the platform collects
+      // them and the generated component owns the connection.
+      inlineConnection: connectionConfigVar({
+        stableKey: INLINE_CONNECTION_STABLE_KEY,
+        dataType: "connection",
+        inputs: {
+          apiKey: { label: "API Key", type: "password", required: true },
+          endpoint: { label: "Endpoint", type: "string", default: "https://api.acme.test" },
+        },
+      }),
     },
   }),
 } as const;
 
-export const configuredIntegration = integration(
-  integrationConfigurationDefinition as never,
-);
+export const configuredIntegration = integration(integrationConfigurationDefinition as never);
 
 /** A minimal definition with no `init` and no `uiSchema`, to assert the defaults. */
 export const noInitDefinition = {

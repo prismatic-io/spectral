@@ -2,10 +2,14 @@ import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 import type { ZodType } from "zod";
 
 import type { ActionLogger } from "./ActionLogger";
+import type { ConnectionConfigVar } from "./ConfigVars";
 import type { CustomerAttributes } from "./CustomerAttributes";
 import type { Connection } from "./Inputs";
 import type { InstanceAttributes } from "./InstanceAttributes";
-import type { ScopedConfigVarMap } from "./ScopedConfigVars";
+import type {
+  CustomerActivatedConnectionConfigVar,
+  OrganizationActivatedConnectionConfigVar,
+} from "./ScopedConfigVars";
 
 /** The integration configuration surface. */
 
@@ -21,6 +25,23 @@ export type ConfigurationValue<TSchema extends SchemaInput> = TSchema extends Zo
 
 /** Rendering hints, forwarded to the host verbatim. */
 export type UiSchema = { readonly [key: string]: unknown };
+
+/**
+ * A connection an author may declare, keyed by the name `init` and a flow read
+ * it under.
+ *
+ * Three kinds, which differ in what the platform has to do with them rather
+ * than in how an author names them: a pointer at a reusable connection managed
+ * outside the integration, an inline definition carrying its own inputs, or a
+ * reference to a connection on a published component.
+ *
+ * User-activated connections are not here yet. The platform resolves them
+ * through a user-level config page, which this surface has no equivalent for.
+ */
+export type ConfigurationConnection =
+  | CustomerActivatedConnectionConfigVar
+  | OrganizationActivatedConnectionConfigVar
+  | ConnectionConfigVar;
 
 /** What `init` and a data-source `perform` receive. */
 export interface ConfigurationContext<TConfiguration = unknown> {
@@ -49,7 +70,9 @@ export type ConfigurationInitContext = ConfigurationContext<DeepReadonly<unknown
  * own shape rather than the configuration value, and a host may run this to
  * preview a migration and discard it.
  */
-export type ConfigurationInit<TResult = unknown> = (context: ConfigurationInitContext) => Promise<TResult>;
+export type ConfigurationInit<TResult = unknown> = (
+  context: ConfigurationInitContext,
+) => Promise<TResult>;
 
 export type DeepReadonly<T> = T extends (infer TElement)[]
   ? ReadonlyArray<DeepReadonly<TElement>>
@@ -72,9 +95,6 @@ export interface IntegrationConfiguration<
   uiSchema?: UiSchema;
   /** Seeds the configuration on first load; migrates it after an ETag change. */
   init?: ConfigurationInit<TInitResult>;
-  /**
-   * Stable-key pointers to reusable connections managed outside this surface,
-   * telling the platform which tokens to load. Not credential collection.
-   */
-  connections?: ScopedConfigVarMap;
+  /** Keyed by the name `init` and a flow read each connection under. */
+  connections?: Record<string, ConfigurationConnection>;
 }

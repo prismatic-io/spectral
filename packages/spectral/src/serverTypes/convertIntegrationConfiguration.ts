@@ -1,17 +1,19 @@
+import type { ConfigVar } from "../types/ConfigVars";
 import type {
-  IntegrationConfiguration,
+  ConfigurationConnection,
   ConfigurationInit,
+  IntegrationConfiguration,
   JsonSchema,
   UiSchema,
 } from "../types/IntegrationConfiguration";
-import type { ScopedConfigVarMap } from "../types/ScopedConfigVars";
-import { createConfigurationContext, type ConnectionNameMap } from "./configurationContext";
+import { isConnectionScopedConfigVar, type ScopedConfigVarMap } from "../types/ScopedConfigVars";
+import { type ConnectionNameMap, createConfigurationContext } from "./configurationContext";
 import { toJsonSchema } from "./configurationSchema";
 
 /**
- * Converts a function-backed `configuration` into what it publishes as: the
+ * Converts an integration `configuration` into what it publishes as: the
  * integration YAML's `configuration` block, the component's `configuration`
- * export, and scoped config vars for the author's connections.
+ * export, and the author's connections.
  */
 
 /**
@@ -36,7 +38,15 @@ export interface ConvertedIntegrationConfiguration {
   componentConfiguration?: ServerComponentConfiguration;
   /** The platform's only means of discovering `init`; when false, initialization no-ops. */
   hasConfigurationInit: boolean;
+  /** Pointers at reusable connections, lifted to the definition's root. */
   scopedConfigVars: ScopedConfigVarMap;
+  /**
+   * Connections the generated component owns: inline definitions and references
+   * to a published component's connection. These reach `requiredConfigVars` and
+   * the component's `connections`, which is what the platform needs to collect
+   * their inputs.
+   */
+  componentConnections: Record<string, ConfigVar>;
   connectionNames: ConnectionNameMap;
 }
 
@@ -54,14 +64,24 @@ export const convertIntegrationConfiguration = (
     throw new Error("configuration.eTag is required.");
   }
 
-  const connectionEntries = Object.entries(connections as Record<string, { stableKey: string }>);
+  const connectionEntries = Object.entries(connections as Record<string, ConfigurationConnection>);
 
-  const scopedConfigVars = connectionEntries.reduce<Record<string, unknown>>(
+  // A scoped connection points at something the platform already holds, so it
+  // only needs a config var. The other two carry inputs the platform collects,
+  // so they also need a connection on the generated component.
+  const { scopedConfigVars, componentConnections } = connectionEntries.reduce<{
+    scopedConfigVars: Record<string, unknown>;
+    componentConnections: Record<string, ConfigVar>;
+  }>(
     (acc, [name, connection]) => {
-      acc[name] = connection;
+      if (isConnectionScopedConfigVar(connection as ConfigVar)) {
+        acc.scopedConfigVars[name] = connection;
+      } else {
+        acc.componentConnections[name] = connection as ConfigVar;
+      }
       return acc;
     },
-    {},
+    { scopedConfigVars: {}, componentConnections: {} },
   );
 
   // Identical to the runtime key today, but this is what tells the perform
@@ -77,9 +97,12 @@ export const convertIntegrationConfiguration = (
       ...(uiSchema ? { uiSchema } : {}),
       eTag,
     },
-    ...(init ? { componentConfiguration: { init: convertConfigurationInit(init, connectionNames) } } : {}),
+    ...(init
+      ? { componentConfiguration: { init: convertConfigurationInit(init, connectionNames) } }
+      : {}),
     hasConfigurationInit: Boolean(init),
     scopedConfigVars: scopedConfigVars as ScopedConfigVarMap,
+    componentConnections,
     connectionNames,
   };
 };
@@ -101,7 +124,11 @@ const readConfigurationEtag = (context: unknown): string | null | undefined =>
 export const convertConfigurationInit =
   (init: ConfigurationInit, connectionNames: ConnectionNameMap = noConnections) =>
   async (context: unknown): Promise<unknown> => {
-    const authorContext = createConfigurationContext(context, connectionNames, readConfiguration(context));
+    const authorContext = createConfigurationContext(
+      context,
+      connectionNames,
+      readConfiguration(context),
+    );
 
     return init(
       Object.assign(authorContext, {

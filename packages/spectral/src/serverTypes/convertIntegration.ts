@@ -67,6 +67,7 @@ import type {
   TriggerResult,
 } from ".";
 import { runWithContext } from "./asyncContext";
+import { type ConnectionNameMap, createConfigurationConnections } from "./configurationContext";
 import { createCNIContext, logDebugResults } from "./context";
 import {
   convertInput,
@@ -78,7 +79,6 @@ import {
   convertIntegrationConfiguration,
   type IntegrationConfigurationYaml,
 } from "./convertIntegrationConfiguration";
-import { createConfigurationConnections, type ConnectionNameMap } from "./configurationContext";
 import {
   DefinitionVersion,
   type ComponentReference as ServerComponentReference,
@@ -270,7 +270,10 @@ export const convertIntegration = <
         {},
       ),
     }),
-    {},
+    // An integration configuration declares no pages, so its component-owned
+    // connections seed the map instead. They reach `requiredConfigVars` and the
+    // generated component by the same paths a page-declared connection does.
+    { ...(integrationConfiguration?.componentConnections ?? {}) },
   );
 
   let metadata: Record<string, unknown> = {};
@@ -302,8 +305,12 @@ export const convertIntegration = <
     ...cniComponent,
     // `init` rides the `configuration` export, not `dataSources`; the platform
     // discovers it only through `hasConfigurationInit`.
-    ...(integrationConfiguration?.componentConfiguration ? { configuration: integrationConfiguration.componentConfiguration } : {}),
-    ...(integrationConfiguration ? { hasConfigurationInit: integrationConfiguration.hasConfigurationInit } : {}),
+    ...(integrationConfiguration?.componentConfiguration
+      ? { configuration: integrationConfiguration.componentConfiguration }
+      : {}),
+    ...(integrationConfiguration
+      ? { hasConfigurationInit: integrationConfiguration.hasConfigurationInit }
+      : {}),
     codeNativeIntegrationYAML: cniYaml,
     publishingMetadata,
   };
