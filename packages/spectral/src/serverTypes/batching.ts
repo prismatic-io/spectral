@@ -15,6 +15,7 @@ export interface BatchedFireReturn {
   paginationState?: object | null;
   response?: HttpResponse;
   branch?: string;
+  polledNoChanges?: boolean;
 }
 
 /** Default `resolveItems`: reads back the items {@link wrapBatchedFire} writes to `payload.body.data`. */
@@ -50,12 +51,13 @@ export const withPollingState =
     perform({ ...context, polling: createPollingState(context) }, ...rest);
 
 /**
- * Wraps a batched fire (returning `{ items, paginationState?, response?, branch? }`) into a
+ * Wraps a batched fire (returning `{ items, paginationState?, response?, branch?, polledNoChanges? }`) into a
  * trigger perform whose result carries the items at `payload.body.data` and the next-page
  * cursor at `payload.paginationState`, `null` after the last page. Every argument is forwarded,
  * so the two-argument CNI fire and the three-argument component perform both fit. The fire has
  * already read the incoming cursor, so the returned one replaces it for
- * `getNextPaginationState` to read back.
+ * `getNextPaginationState` to read back. `polledNoChanges` describes the whole execution, so
+ * only the first page (the one without an incoming `paginationState`) forwards it.
  */
 export const wrapBatchedFire =
   <TArgs extends [ActionContext, TriggerPayload, ...unknown[]]>(
@@ -63,7 +65,8 @@ export const wrapBatchedFire =
   ) =>
   async (...args: TArgs) => {
     const payload = args[1];
-    const { items, paginationState, response, branch } = await fire(...args);
+    const { items, paginationState, response, branch, polledNoChanges } = await fire(...args);
+    const isFirstPage = !payload.paginationState;
     return {
       payload: {
         ...payload,
@@ -72,5 +75,23 @@ export const wrapBatchedFire =
       },
       ...(response ? { response } : {}),
       ...(branch !== undefined ? { branch } : {}),
+      ...(isFirstPage && polledNoChanges !== undefined ? { polledNoChanges } : {}),
+    };
+  };
+
+/**
+ * Maps a batched perform's `polledNoChanges` onto the `resultType` the platform reads. The
+ * polling wrappers do this for `pollingTrigger` and CNI flows; a component `batchTrigger` runs
+ * through the plain trigger wrapper, so it carries its own mapping.
+ */
+export const withPolledResultType =
+  <TArgs extends unknown[], TResult extends { polledNoChanges?: boolean }>(
+    perform: (...args: TArgs) => Promise<TResult>,
+  ) =>
+  async (...args: TArgs) => {
+    const { polledNoChanges, ...rest } = await perform(...args);
+    return {
+      ...rest,
+      resultType: polledNoChanges ? ("polled_no_changes" as const) : ("completed" as const),
     };
   };

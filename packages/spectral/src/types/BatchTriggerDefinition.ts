@@ -25,6 +25,11 @@ export interface BatchTriggerBaseReturn<TItem, TPaginationState extends object =
   paginationState?: TPaginationState | null;
   /** Optional HTTP response to the request that invoked the trigger. */
   response?: HttpResponse;
+  /**
+   * Says whether the execution found anything. Return `true` when the page has no items and no
+   * next cursor; the platform reads it from the first page only.
+   */
+  polledNoChanges?: boolean;
 }
 
 /** A page that also names the branch every execution from it follows. */

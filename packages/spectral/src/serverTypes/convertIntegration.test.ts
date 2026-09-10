@@ -10,7 +10,7 @@ import {
   userActivatedConnection,
   userLevelConfigPage,
 } from "..";
-import type { ConfigVar, TriggerReference } from "../types";
+import type { ConfigVar, TriggerPayload, TriggerReference } from "../types";
 import {
   convertConfigPages,
   convertConfigVar,
@@ -295,6 +295,161 @@ describe("convertFlow with polling triggers", () => {
     expect(trigger.hasOnDeployPerform).toBe(true);
     expect(trigger.hasResolveOnDeployItems).toBe(true);
     expect(trigger.hasGetOnDeployNextDiscoveryState).toBe(true);
+  });
+
+  it("gives a batched flow's fires context.polling backed by the instance state", async () => {
+    const batchedFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger<string, { cursor: number }>({
+        onTrigger: async (context) => {
+          const { since } = context.polling.getState();
+          context.polling.setState({ since: "2026-02-01" });
+          return { items: [since as string] };
+        },
+        onDeploy: async (context) => {
+          context.polling.setState({ since: "backfilled" });
+          return { items: [] };
+        },
+      }),
+    });
+
+    const result = integration({
+      name: "Test",
+      flows: [batchedFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    type Perform = (
+      ctx: unknown,
+      payload: unknown,
+      params: unknown,
+    ) => Promise<{ payload: { body: { data: unknown } } }>;
+    const instanceState: Record<string, unknown> = {
+      __prismaticInternal: { polling: { since: "2026-01-01" } },
+    };
+
+    const page = await (trigger.perform as Perform)({ instanceState }, {}, {});
+    expect(page.payload.body.data).toEqual(["2026-01-01"]);
+    expect(instanceState.__prismaticInternal).toEqual({ polling: { since: "2026-02-01" } });
+
+    await (trigger.onDeployPerform as Perform)({ instanceState }, {}, {});
+    expect(instanceState.__prismaticInternal).toEqual({ polling: { since: "backfilled" } });
+  });
+
+  it("converts a polling flow with a batched trigger and maps polledNoChanges from the first fire to its result type", async () => {
+    // The first fire of an execution returns everything after the `since` watermark. An empty first
+    // page marks the execution polled_no_changes; later pages are `completed` even when empty, because
+    // `polledNoChanges` describes the execution as a whole.
+    const pollingBatchedFlow = flow({
+      ...baseFlowInput,
+      triggerType: "polling",
+      schedule: { value: "*/5 * * * *" },
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger<number, { cursor: number }>({
+        onTrigger: async (context, payload) => {
+          const isFirstPage = !payload.paginationState;
+          const { since } = context.polling.getState();
+          const items = isFirstPage && since === undefined ? [1] : [];
+          if (isFirstPage && items.length > 0) {
+            context.polling.setState({ since: items[items.length - 1] });
+            return { items, paginationState: { cursor: 1 } };
+          }
+          return {
+            items,
+            paginationState: null,
+            polledNoChanges: isFirstPage && items.length === 0,
+          };
+        },
+      }),
+    });
+
+    const result = integration({
+      name: "Test",
+      flows: [pollingBatchedFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    expect(trigger.triggerResolverSupport).toBe("valid");
+    expect(trigger.triggerResolverDefaultBatchSize).toBe(10);
+    const perform = trigger.perform as (
+      ctx: unknown,
+      payload: unknown,
+      params: unknown,
+    ) => Promise<{ payload: { body: { data: unknown } }; resultType: string }>;
+    const instanceState: Record<string, unknown> = {};
+
+    const firstPage = await perform({ instanceState }, {}, {});
+    expect(firstPage.payload.body.data).toEqual([1]);
+    expect(firstPage.resultType).toBe("completed");
+    expect(instanceState.__prismaticInternal).toEqual({ polling: { since: 1 } });
+
+    const lastPage = await perform({ instanceState }, { paginationState: { cursor: 1 } }, {});
+    expect(lastPage.payload.body.data).toEqual([]);
+    expect(lastPage.resultType).toBe("completed");
+
+    const nextRun = await perform({ instanceState }, {}, {});
+    expect(nextRun.payload.body.data).toEqual([]);
+    expect(nextRun.resultType).toBe("polled_no_changes");
+  });
+
+  it("forwards polledNoChanges from the first page only", async () => {
+    const alwaysEmptyFlow = flow({
+      ...baseFlowInput,
+      triggerType: "polling",
+      schedule: { value: "*/5 * * * *" },
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger<number, { cursor: number }>({
+        onTrigger: async () => ({ items: [], polledNoChanges: true }),
+      }),
+    });
+
+    const result = integration({
+      name: "Test",
+      flows: [alwaysEmptyFlow],
+      configPages: {},
+      componentRegistry: {},
+    });
+
+    const trigger = Object.values(result.triggers)[0] as Record<string, unknown>;
+    const perform = trigger.perform as (
+      ctx: unknown,
+      payload: unknown,
+      params: unknown,
+    ) => Promise<{ resultType: string }>;
+
+    const firstPage = await perform({ instanceState: {} }, {}, {});
+    expect(firstPage.resultType).toBe("polled_no_changes");
+
+    const laterPage = await perform({ instanceState: {} }, { paginationState: { cursor: 1 } }, {});
+    expect(laterPage.resultType).toBe("completed");
+  });
+
+  it("requires a polling flow to define its trigger in exactly one place", () => {
+    const pollingBase = {
+      ...baseFlowInput,
+      triggerType: "polling" as const,
+      schedule: { value: "*/5 * * * *" },
+    };
+    const onTrigger = async (_ctx: unknown, payload: TriggerPayload) => ({ payload });
+
+    // @ts-expect-error - a polling flow with batchConfig defines its trigger with batchFlowTrigger
+    flow({ ...pollingBase, batchConfig: { batchSize: 10 }, onTrigger });
+    // @ts-expect-error - a polling flow with batchConfig requires a batched trigger
+    flow({ ...pollingBase, batchConfig: { batchSize: 10 } });
+    // @ts-expect-error - a polling flow without batchConfig requires onTrigger
+    flow({ ...pollingBase });
+    // @ts-expect-error - a batched polling flow's fire lives inside trigger
+    flow({
+      ...pollingBase,
+      batchConfig: { batchSize: 10 },
+      onTrigger,
+      trigger: batchFlowTrigger({ onTrigger: async () => ({ items: [1] }) }),
+    });
   });
 
   it("does not synthesize on-deploy resolver fields when the trigger omits onDeploy", () => {

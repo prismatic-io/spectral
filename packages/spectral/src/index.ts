@@ -5,7 +5,12 @@
  */
 
 import { runWithIntegrationContext } from "./serverTypes";
-import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./serverTypes/batching";
+import {
+  defaultBatchResolver,
+  withPolledResultType,
+  withPollingState,
+  wrapBatchedFire,
+} from "./serverTypes/batching";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
 import type {
@@ -202,6 +207,12 @@ export const flow = <
  * the trigger fires return `Order[]`, `payload.paginationState` reads back as `{ cursor: number }`,
  * and the flow's `onExecution` sees `params.onTrigger.results.body.data` typed as `Order | Order[]`.
  *
+ * To poll for changes, give the flow `triggerType: "polling"` and a `schedule`, and keep a
+ * watermark in `context.polling`: read it with `getState` before fetching and advance it with
+ * `setState` once the run has found its records. `polledNoChanges` says whether the execution
+ * found anything: return `true` when a page has no items and no next cursor. The platform reads
+ * it from the first page only.
+ *
  * @typeParam TItem - the item type each batched execution receives.
  * @typeParam TPaginationState - the pagination state round-tripped via `payload.paginationState`.
  * @see {@link https://prismatic.io/docs/integrations/code-native/flows/ | Code-Native Flows}
@@ -211,13 +222,21 @@ export const flow = <
  * flow({
  *   name: "Sync Orders",
  *   stableKey: "sync-orders",
+ *   triggerType: "polling",
+ *   schedule: { value: "0 * * * *" },
  *   batchConfig: { batchSize: 50 },
  *   trigger: batchFlowTrigger<Order, { cursor: number }>({
  *     onTrigger: async (context, payload) => {
- *       const page = await fetchOrders(payload.paginationState?.cursor);
+ *       const { since } = context.polling.getState();
+ *       const page = await fetchOrders(since, payload.paginationState?.cursor);
+ *       if (!page.nextCursor) {
+ *         context.polling.setState({ since: page.newestUpdatedAt });
+ *       }
  *       return {
  *         items: page.orders,
  *         paginationState: page.nextCursor ? { cursor: page.nextCursor } : null,
+ *         polledNoChanges:
+ *           !payload.paginationState && page.orders.length === 0 && !page.nextCursor,
  *       };
  *     },
  *   }),
@@ -731,13 +750,15 @@ export const batchTrigger = <
   const { perform, onDeploy, ...rest } = definition;
   return {
     ...rest,
-    perform: wrapBatchedFire(withPollingState(perform)),
+    perform: withPolledResultType(wrapBatchedFire(withPollingState(perform))),
     synchronousResponseSupport: "invalid",
     triggerResolverSupport: "required",
     triggerResolver: defaultBatchResolver,
     ...(onDeploy
       ? {
-          onDeployPerform: wrapBatchedFire(withPollingState(onDeploy.perform)),
+          onDeployPerform: withPolledResultType(
+            wrapBatchedFire(withPollingState(onDeploy.perform)),
+          ),
           onDeployResolver: { ...defaultBatchResolver, inputs: onDeploy.inputs },
         }
       : {}),
