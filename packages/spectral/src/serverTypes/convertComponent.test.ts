@@ -701,16 +701,29 @@ describe("convertTrigger triggerResolver", () => {
     });
   });
 
-  it("emits default batchSize 1 when triggerResolverSupport is 'valid' without a batch config", () => {
+  it("rejects triggerResolverSupport 'valid' without a batchConfig", () => {
+    const definition = trigger({
+      ...baseTrigger,
+      // @ts-expect-error - a trigger a flow can batch declares its default batch size
+      triggerResolverSupport: "valid",
+    });
+    expect(() => convertTrigger("myTrigger", definition)).toThrow(
+      'Trigger "My Trigger" supports batching but declares no batchConfig.',
+    );
+  });
+
+  it("emits the batch default when triggerResolverSupport is 'valid' without a resolver", () => {
     const result = convertTrigger(
       "myTrigger",
       trigger({
         ...baseTrigger,
         triggerResolverSupport: "valid",
+        batchConfig: { batchSize: 25 },
       }),
     );
     expect(result.triggerResolverSupport).toBe("valid");
-    expect(result.triggerResolverDefaultBatchSize).toBe(1);
+    expect(result.triggerResolverDefaultBatchSize).toBe(25);
+    expect(result.hasResolveTriggerItems).toBeUndefined();
   });
 
   it("rejects triggerResolverSupport='required' without triggerResolver", () => {

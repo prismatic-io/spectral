@@ -7,27 +7,26 @@ import type { TriggerPerformFunction } from "./TriggerPerformFunction";
 import type { TriggerBaseResult, TriggerResult } from "./TriggerResult";
 
 /**
- * Encodes the relationship between `triggerResolverSupport` and `triggerResolver`:
- * - absent or `"invalid"`: no resolver allowed, no `batchConfig`
- * - `"valid"`: resolver optional; when a resolver IS declared, `batchConfig` is required
- * - `"required"`: resolver required, so `batchConfig` is required
+ * Encodes the relationship between `triggerResolverSupport`, `triggerResolver`, and `batchConfig`:
+ * - absent or `"invalid"`: no resolver
+ * - `"valid"`: resolver optional; `batchConfig` required
+ * - `"required"`: resolver and `batchConfig` required
  *
- * `triggerResolver` is the resolver *behavior* only; batch sizing comes from the shared,
- * now-mandatory-when-batching `batchConfig`. A trigger that batches must declare a default
- * batch size — the type enforces this at author time rather than defaulting silently.
+ * `triggerResolver` holds the resolver behavior only. Any trigger a flow can batch declares its
+ * default batch size in `batchConfig`, checked at author time.
  */
 export type TriggerResolverDecl<
   TConfigVars extends ConfigVarResultCollection,
   TPayload extends TriggerPayload,
   TItem = unknown,
-  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends object = object,
 > =
   | {
       triggerResolverSupport?: "invalid" | undefined;
       triggerResolver?: undefined;
       batchConfig?: BatchConfig;
     }
-  | { triggerResolverSupport: "valid"; triggerResolver?: undefined; batchConfig?: BatchConfig }
+  | { triggerResolverSupport: "valid"; triggerResolver?: undefined; batchConfig: BatchConfig }
   | {
       triggerResolverSupport: "valid";
       triggerResolver: TriggerResolverBehavior<TConfigVars, TPayload, TItem, TPaginationState>;
@@ -40,35 +39,28 @@ export type TriggerResolverDecl<
     };
 
 /**
- * The on-deploy resolver: the shared resolver behavior plus optional on-deploy-scoped
- * `inputs`. These inputs only make sense while the initial sync runs on deploy (e.g. a
- * backfill start date / page size). They are declared here — separate from the trigger's
- * `inputs` — and the convert layer hoists them into the flat wire `inputs[]` tagged with
- * `scope: "ON_DEPLOY"`. Because `TOnDeployInputs` parameterizes the on-deploy resolver, an
- * author's `onDeployPerform` receives them on its params while the normal `perform` does not.
+ * The on-deploy resolver: the shared resolver behavior plus optional `inputs` collected only
+ * when a flow runs its initial sync on deploy, such as a backfill start date. They are declared
+ * separately from the trigger's `inputs` and reach only `onDeployPerform`'s params.
  */
 export interface OnDeployResolverBehavior<
   TOnDeployInputs extends Inputs = Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
-  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends object = object,
 > extends TriggerResolverBehavior<TConfigVars, TPayload, TItem, TPaginationState> {
-  /** Inputs presented only when the flow runs its initial sync on deploy. Values are passed
-   * to `onDeployPerform` (not to the normal `perform`). Kept separate from `TriggerDefinition.inputs`. */
+  /** Inputs collected only when the flow runs its initial sync on deploy. Passed to `onDeployPerform` alongside the trigger's inputs. */
   inputs?: TOnDeployInputs;
 }
 
 /**
- * Encodes the relationship between `onDeployPerform` and `onDeployResolver`. On-deploy is
- * presence-driven — there is no separate support flag: a trigger fires on deploy if it
- * defines `onDeployPerform`, and batches that fire if it also defines an `onDeployResolver`.
- * An `onDeployResolver` therefore requires an `onDeployPerform`.
+ * Encodes the relationship between `onDeployPerform` and `onDeployResolver`. A trigger runs an
+ * initial sync on deploy when it defines `onDeployPerform`, and batches that sync when it also
+ * defines `onDeployResolver`, which therefore requires `onDeployPerform`.
  *
- * `onDeployPerform` is the component-trigger sibling to `perform`. A CNI flow names the
- * same on-deploy fire `onDeployTrigger` (sibling to its `onTrigger`); both flatten to
- * `onDeployPerform` on the wire. `onDeployPerform`'s params merge the trigger's `TInputs`
- * with the on-deploy resolver's own `TOnDeployInputs`.
+ * `onDeployPerform` is the component-trigger counterpart of a CNI flow's `onDeployTrigger`.
+ * Its params merge the trigger's `TInputs` with the on-deploy resolver's `TOnDeployInputs`.
  */
 export type OnDeployDecl<
   TInputs extends Inputs,
@@ -77,7 +69,7 @@ export type OnDeployDecl<
   TAllowsBranching extends boolean,
   TResult extends TriggerResult<TAllowsBranching, TPayload>,
   TItem = unknown,
-  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends object = object,
   TOnDeployInputs extends Inputs = Inputs,
 > =
   | { onDeployPerform?: undefined; onDeployResolver?: undefined; batchConfig?: BatchConfig }
@@ -115,12 +107,10 @@ export type TriggerOptionChoice = (typeof optionChoices)[number];
 export const TriggerOptionChoices: TriggerOptionChoice[] = [...optionChoices];
 
 /**
- * The batching/pagination behavior shared by every resolver surface — component
- * triggers (`TriggerResolver`), CNI flows (`TriggerResolverConfig`), and the
- * on-deploy variants. Defining it once keeps the contract from drifting across
- * those surfaces.
+ * The batching and pagination behavior shared by a component trigger's `triggerResolver` and
+ * `onDeployResolver`.
  *
- * The two type variables ARE the data that flows through the batch chain:
+ * The two type variables are the data that flows through the batch chain:
  *
  *   perform ──▶ resolveItems ──▶ [batch of TItem] ──▶ onExecution
  *                    │
@@ -139,14 +129,14 @@ export interface TriggerResolverBehavior<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
-  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends object = object,
 > {
-  /** Extracts the items to dispatch from one trigger result. Receives the same context as the trigger's perform function. With `batchSize: 1` each item is delivered to its own execution; with `batchSize > 1` items are grouped into `TItem[]` slices. */
+  /** Extracts the items to dispatch from one trigger result. Receives the same context as the trigger's `perform`. With `batchSize: 1` each item gets its own execution; with `batchSize > 1` items are grouped into `TItem[]` batches. */
   resolveItems?: (
     context: ActionContext<TConfigVars>,
     result: TriggerBaseResult<WithPaginationState<TPayload, TPaginationState>>,
   ) => TItem[];
-  /** Returns the cursor for the next page, or `null` to stop. A non-null return re-invokes the trigger with this object stamped onto `payload.paginationState`. */
+  /** Returns the cursor for the next page, or `null` on the last page. A non-null cursor runs the trigger again with it on `payload.paginationState`. */
   getNextPaginationState?: (
     context: ActionContext<TConfigVars>,
     result: TriggerBaseResult<WithPaginationState<TPayload, TPaginationState>>,
@@ -160,21 +150,18 @@ export interface TriggerResolverBehavior<
  */
 export type WithPaginationState<
   TPayload extends TriggerPayload,
-  TPaginationState extends Record<string, unknown>,
+  TPaginationState extends object,
 > = Omit<TPayload, "paginationState"> & { paginationState?: TPaginationState };
 
 /**
- * The single batch-dispatch config shared by a trigger's `triggerResolver` and
- * `onDeployResolver` — they always batch the same way. One place for batch settings.
- *
- * On a CNI flow (`flow.batchConfig`) this value is authoritative. On a component trigger
- * (`TriggerDefinition.batchConfig`) it's the default the platform seeds, which a low-code
- * user may override per instance.
+ * Batch settings shared by a trigger's `triggerResolver` and `onDeployResolver`. On a CNI flow
+ * (`flow.batchConfig`) the value applies as written. On a component trigger
+ * (`TriggerDefinition.batchConfig`) it is the default, which a low-code builder may override.
  */
 export interface BatchConfig {
-  /** Number of items per batch. Must be an integer >= 1. `1` dispatches each item individually; `>1` groups items into batches. */
+  /** Number of items per batch. Must be an integer >= 1. `1` gives each item its own execution; `>1` groups items into batches. */
   batchSize: number;
-  /** Max batches of a single execution dispatched concurrently. Must be an integer >= 1 when set. Omit for unlimited. */
+  /** Maximum number of batches from one trigger run processed concurrently. Must be an integer >= 1 when set. Omit for unlimited. */
   concurrentBatchLimit?: number;
 }
 
@@ -205,7 +192,7 @@ export type TriggerDefinition<
     TAllowsBranching,
     TResult,
     unknown,
-    Record<string, unknown>,
+    object,
     TOnDeployInputs
   >;
 

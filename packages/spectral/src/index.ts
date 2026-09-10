@@ -5,12 +5,14 @@
  */
 
 import { runWithIntegrationContext } from "./serverTypes";
+import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./serverTypes/batching";
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
 import type {
   ActionDefinition,
   ActionPerformReturn,
   BatchTrigger,
+  BatchTriggerDefinition,
   ComponentDefinition,
   ComponentManifest,
   ConfigPage,
@@ -160,7 +162,7 @@ export const flow = <
   >,
   TTriggerPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
-  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+  TPaginationState extends object = object,
   T extends Flow<
     TInputs,
     TActionInputs,
@@ -181,24 +183,21 @@ export const flow = <
     TPaginationState
   >,
 >(
-  // The intersection adds an explicit inference site for `TItem`/`TPaginationState` that the
-  // `T extends Flow<...>` capture alone does not provide, while `T` still preserves the precise
-  // literal type for the return value. They are inferred from a batched `trigger`'s
-  // `items`/pagination-state types (see `batchFlowTrigger`).
+  // The intersection gives `TItem`/`TPaginationState` an explicit inference site, taken from a
+  // batched `trigger`'s items and cursor types (see `batchFlowTrigger`), while `T` preserves the
+  // precise literal type for the return value.
   definition: T & {
     trigger?: BatchTrigger<TItem, TPaginationState>;
   },
 ): T => definition;
 
 /**
- * Builds a flow's batched `trigger` — the ergonomic way to define a batching flow. Instead of
- * writing `onTrigger`/`onDeployTrigger` (returning a full payload) plus `triggerResolver`/
- * `onDeployResolver` (to extract and paginate), each trigger fire returns `{ items,
- * paginationState? }`: the records to dispatch and, when paginating, the cursor for the next
- * page. spectral wraps the items into the wire payload and synthesizes the `resolveItems` and
- * `getNextPaginationState` that read them back — there is no separate pagination callback.
+ * Builds a flow's batched `trigger`. Each trigger fire returns `{ items, paginationState? }`:
+ * the records to dispatch and, when paginating, the cursor for the next page. Items are split
+ * into batches of the flow's `batchConfig.batchSize`, one execution per batch, and a non-null
+ * cursor fires the trigger again with it on `payload.paginationState`.
  *
- * Supply the item and pagination-state types explicitly —
+ * Supply the item and pagination-state types explicitly:
  * `batchFlowTrigger<Order, { cursor: number }>({ ... })`. They flow through the whole flow:
  * the trigger fires return `Order[]`, `payload.paginationState` reads back as `{ cursor: number }`,
  * and the flow's `onExecution` sees `params.onTrigger.results.body.data` typed as `Order | Order[]`.
@@ -228,10 +227,7 @@ export const flow = <
  *   },
  * });
  */
-export const batchFlowTrigger = <
-  TItem,
-  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
->(
+export const batchFlowTrigger = <TItem, TPaginationState extends object = object>(
   trigger: BatchTrigger<TItem, TPaginationState>,
 ): BatchTrigger<TItem, TPaginationState> => trigger;
 
@@ -663,6 +659,96 @@ export const trigger = <
   definition: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult, TOnDeployInputs>,
 ): TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult, TOnDeployInputs> =>
   definition;
+
+/**
+ * This function creates a batched trigger object that can be referenced by a custom component.
+ * Every flow that uses the trigger batches. The `perform` fetches one page of records and
+ * returns `{ items, paginationState? }`. Items are split into batches of the flow's batch size,
+ * one execution per batch. While `paginationState` is non-null, the perform runs again with that
+ * cursor on `payload.paginationState` to fetch the next page. Each run of the trigger starts
+ * from the first page, and the cursor lives only for that run.
+ *
+ * To poll for changes, keep a watermark in `context.polling`: read it with `getState` before
+ * fetching and advance it with `setState` once the run has found its records. Batches found
+ * and queued are processed even if a later page fails, so it is safe to advance the watermark
+ * on any page.
+ *
+ * Annotate `payload` as `TriggerPayload<YourCursor>` to type the cursor. Define `onDeploy` to
+ * offer an initial sync when an instance is first deployed. Flows opt in with
+ * `runInitialSyncOnDeploy`, and only then are `onDeploy.inputs` collected. The on-deploy
+ * perform types its own cursor, so a webhook trigger without one can still page through its
+ * backfill.
+ *
+ * @param definition A BatchTriggerDefinition.
+ * @returns A TriggerDefinition that batches every flow that uses it, with the resolver derived from `perform`.
+ * @see {@link https://prismatic.io/docs/custom-connectors/triggers/ | Triggers}
+ * @example
+ * import { batchTrigger, input, type TriggerPayload } from "@prismatic-io/spectral";
+ *
+ * const syncOrders = batchTrigger({
+ *   display: { label: "Sync Orders", description: "Fetches orders updated since the last run" },
+ *   inputs: { connection: input({ label: "Connection", type: "connection", required: true }) },
+ *   scheduleSupport: "required",
+ *   batchConfig: { batchSize: 50 },
+ *   perform: async (context, payload: TriggerPayload<{ cursor: string }>, params) => {
+ *     const { since } = context.polling.getState();
+ *     const page = await fetchOrders(params.connection, since, payload.paginationState?.cursor);
+ *     if (!page.nextCursor) {
+ *       context.polling.setState({ since: page.newestUpdatedAt });
+ *     }
+ *     return {
+ *       items: page.orders,
+ *       paginationState: page.nextCursor ? { cursor: page.nextCursor } : null,
+ *     };
+ *   },
+ * });
+ */
+export const batchTrigger = <
+  TInputs extends Inputs,
+  TConfigVars extends ConfigVarResultCollection,
+  TAllowsBranching extends boolean,
+  TItem,
+  TPaginationState extends object,
+  TOnDeployInputs extends Inputs = Inputs,
+  TOnDeployPaginationState extends object = object,
+>(
+  definition: BatchTriggerDefinition<
+    TInputs,
+    TConfigVars,
+    TAllowsBranching,
+    TItem,
+    TPaginationState,
+    TOnDeployInputs,
+    TOnDeployPaginationState
+  >,
+): TriggerDefinition<
+  TInputs,
+  TConfigVars,
+  TAllowsBranching,
+  TriggerResult<TAllowsBranching, TriggerPayload<TPaginationState>>,
+  TOnDeployInputs
+> => {
+  const { perform, onDeploy, ...rest } = definition;
+  return {
+    ...rest,
+    perform: wrapBatchedFire(withPollingState(perform)),
+    synchronousResponseSupport: "invalid",
+    triggerResolverSupport: "required",
+    triggerResolver: defaultBatchResolver,
+    ...(onDeploy
+      ? {
+          onDeployPerform: wrapBatchedFire(withPollingState(onDeploy.perform)),
+          onDeployResolver: { ...defaultBatchResolver, inputs: onDeploy.inputs },
+        }
+      : {}),
+  } as unknown as TriggerDefinition<
+    TInputs,
+    TConfigVars,
+    TAllowsBranching,
+    TriggerResult<TAllowsBranching, TriggerPayload<TPaginationState>>,
+    TOnDeployInputs
+  >;
+};
 
 /**
  * This function creates a polling trigger object that can be referenced

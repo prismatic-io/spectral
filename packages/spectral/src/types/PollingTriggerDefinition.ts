@@ -9,17 +9,23 @@ import type { TriggerEventFunction } from "./TriggerEventFunction";
 import type { TriggerPayload } from "./TriggerPayload";
 import type { TriggerResult } from "./TriggerResult";
 
+/** Reads and writes the small state object a trigger keeps between runs, such as a watermark. */
+export interface PollingState {
+  /** Returns the state saved by the previous run, or `{}` on the first run. */
+  getState: () => Record<string, unknown>;
+  /** Replaces the saved state for the next run to read. */
+  setState: (newState: Record<string, unknown>) => void;
+}
+
 export interface PollingContext<
   TInputs extends Inputs = Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   ReturnData = unknown,
 > extends ActionContext<TConfigVars> {
-  polling: {
+  polling: PollingState & {
     invokeAction: (
       params: ActionInputParameters<TInputs>,
     ) => Promise<ActionPerformReturn<boolean, ReturnData>>;
-    getState: () => Record<string, unknown>;
-    setState: (newState: Record<string, unknown>) => void;
   };
 }
 

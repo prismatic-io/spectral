@@ -67,6 +67,7 @@ import type {
   TriggerResult,
 } from ".";
 import { runWithContext } from "./asyncContext";
+import { defaultBatchResolver, wrapBatchedFire } from "./batching";
 import { createCNIContext, logDebugResults } from "./context";
 import {
   convertInput,
@@ -101,34 +102,11 @@ interface WireResolver {
 }
 
 /**
- * Default `resolveItems`: a batched `trigger`'s fires return their records under
- * `payload.body.data` (the wrapper {@link normalizeBatchedFlow} builds writes them there),
- * so extraction is just reading that array back. Authors never write this themselves.
- */
-const defaultResolveItems = (
-  _context: ActionContext,
-  result: { payload: { body: { data: unknown } } },
-) => result.payload.body.data as unknown[];
-
-/**
- * Default `getNextPaginationState`: a batched fire returns the next page's cursor as
- * `paginationState`, which the wrapper {@link normalizeBatchedFlow} builds stamps onto
- * `payload.paginationState`. Reading it back (defaulting to `null`) is the whole loop: a
- * non-null value re-invokes the fire, `null` ends it. Authors never write this.
- */
-const defaultGetNextPaginationState = (
-  _context: ActionContext,
-  result: { payload: { paginationState?: Record<string, unknown> | null } },
-) => result.payload.paginationState ?? null;
-
-/**
  * Expands a flow's batched `trigger` (built with `batchFlowTrigger`) into the flat
  * `onTrigger`/`onDeployTrigger`/`triggerResolver`/`onDeployResolver` shape the rest of the
- * conversion pipeline already understands. The trigger fires return `{ items, paginationState? }`;
- * here we wrap each into a `TriggerPerformFunction` that emits `{ payload: { …payload, body: {
- * data: items }, paginationState } }`, then synthesize the default `resolveItems` (reads the
- * items back) and `getNextPaginationState` (reads the cursor back). Flows without a `trigger`
- * pass through unchanged.
+ * conversion pipeline understands. {@link wrapBatchedFire} turns each fire into a
+ * `TriggerPerformFunction`, and {@link defaultBatchResolver} reads the items and cursor back.
+ * Flows without a `trigger` pass through unchanged.
  *
  * Returns the same `Flow` type it received; the synthesized `triggerResolver`/`onDeployResolver`
  * are wire-only fields (not on the author-facing `Flow`), read downstream via `"x" in flow` checks.
@@ -150,43 +128,14 @@ const normalizeBatchedFlow = <
 
   const { onTrigger, onDeploy } = trigger;
 
-  // Wrap a batched fire (returns `{ items, paginationState?, response? }`) into a
-  // TriggerPerformFunction that emits the wire payload shape: items at `body.data` and the
-  // next-page cursor at `paginationState` (defaulting `null` to terminate the loop). The
-  // incoming payload's `paginationState` was already consumed by the fire, so overwriting it
-  // with the returned cursor is safe — `getNextPaginationState` reads it straight back.
-  const wrapFire =
-    (fire: NonNullable<BatchTrigger<unknown>["onTrigger"]>) =>
-    async (context: ActionContext, payload: TriggerPayload) => {
-      const { items, paginationState, response } = await fire(context as never, payload as never);
-      return {
-        payload: {
-          ...payload,
-          body: { data: items, contentType: "application/json" },
-          paginationState: paginationState ?? null,
-        },
-        ...(response ? { response } : {}),
-      };
-    };
-
   const { trigger: _omitTrigger, ...rest } = flow as unknown as Record<string, unknown>;
 
   return {
     ...rest,
-    onTrigger: wrapFire(onTrigger),
-    ...(onDeploy ? { onDeployTrigger: wrapFire(onDeploy) } : {}),
-    triggerResolver: {
-      resolveItems: defaultResolveItems,
-      getNextPaginationState: defaultGetNextPaginationState,
-    },
-    ...(onDeploy
-      ? {
-          onDeployResolver: {
-            resolveItems: defaultResolveItems,
-            getNextPaginationState: defaultGetNextPaginationState,
-          },
-        }
-      : {}),
+    onTrigger: wrapBatchedFire(onTrigger),
+    ...(onDeploy ? { onDeployTrigger: wrapBatchedFire(onDeploy) } : {}),
+    triggerResolver: defaultBatchResolver,
+    ...(onDeploy ? { onDeployResolver: defaultBatchResolver } : {}),
   } as unknown as Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>;
 };
 

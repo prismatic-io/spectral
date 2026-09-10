@@ -6,13 +6,11 @@ import type { UserAttributes } from "./UserAttributes";
 
 /** Represents a Trigger Payload, which is data passed into a Trigger to invoke an Integration execution.
  *
- * The optional `TPaginationState` parameter types the `paginationState` field, so authors who
- * declare a pagination-state shape on their `getNextPaginationState` resolver can read back
- * the same shape on the next round's payload. Defaults to `Record<string, unknown>`.
+ * The optional `TPaginationState` parameter types the `paginationState` field, so a perform
+ * reads back the same cursor shape its resolver returns. Any object type fits, interface or
+ * alias. Without it the field is a bare `object`, so declare the shape to read its properties.
  */
-export interface TriggerPayload<
-  TPaginationState extends Record<string, unknown> = Record<string, unknown>,
-> {
+export interface TriggerPayload<TPaginationState extends object = object> {
   /** The headers sent in the webhook request. */
   headers: {
     [key: string]: string;
@@ -58,8 +56,7 @@ export interface TriggerPayload<
   startedAt: string;
   /** Determines whether the execution will run in debug mode. */
   globalDebug: boolean;
-  /** Managed by the execution when this trigger invocation is a paginated re-run.
-   *  Contains the object returned by `getNextPaginationState` from the previous round.
-   *  Absent on the initial invocation. */
+  /** The cursor returned by `getNextPaginationState` (or a batched perform's `paginationState`)
+   *  on the previous page. Absent on the first page. */
   paginationState?: TPaginationState;
 }
