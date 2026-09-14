@@ -22,6 +22,7 @@ export * from "./DataSourceDefinition";
 export * from "./DataSourcePerformFunction";
 export * from "./DataSourceResult";
 export * from "./DisplayDefinition";
+export * from "./Experimental";
 export * from "./FlowAttributes";
 export * from "./FlowSchemas";
 export * from "./HttpResponse";
