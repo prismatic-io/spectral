@@ -5,11 +5,13 @@ import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type { BatchInfo } from "./BatchContext";
 import type { ComponentManifest } from "./ComponentManifest";
 import type { CustomerAttributes } from "./CustomerAttributes";
+import type { WithExperimentalFlag } from "./Experimental";
 import type { FlowAttributes } from "./FlowAttributes";
 import type { FlowSchemas } from "./FlowSchemas";
-import type { ConfigVarResultCollection, Connection, Inputs } from "./Inputs";
+import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { InstanceAttributes } from "./InstanceAttributes";
 import type { IntegrationAttributes } from "./IntegrationAttributes";
+import type { ConfiguredConnections, ConfiguredValue } from "./IntegrationConfiguration";
 import type { UserAttributes } from "./UserAttributes";
 
 interface StandardLineage {
@@ -133,25 +135,6 @@ export type ActionContext<
   integrationState: Record<string, unknown>;
   /** Key/value collection of config variables of the integration. */
   configVars: TConfigVars;
-  /**
-   * The value of an integration configuration, present only on
-   * integrations that define `configuration` rather than `configPages`. The
-   * runner supplies it already parsed, so a flow reads it with ordinary
-   * property access.
-   *
-   * TODO — type this from the author's schema. `ConfigurationValue<TSchema>`
-   * already resolves it; what is missing is threading that type from
-   * `configuration({…})` through `IntegrationDefinition` and `flow()` to here.
-   * Deferred because it adds a generic to the context type every existing
-   * integration uses.
-   */
-  configuration?: unknown;
-  /**
-   * The resolved connections of an integration configuration, keyed
-   * by the author's names. Present only on that surface; the same values are in
-   * `configVars`, but under keys the convert layer chose.
-   */
-  connections?: Record<string, Connection>;
   /** Available component actions registered in the `componentRegistry`. */
   components: {
     [K in keyof TComponentActions]: {
@@ -195,4 +178,16 @@ export type ActionContext<
    * the size of the batches for each run of the flow.
    */
   batch?: BatchInfo;
-};
+} & WithExperimentalFlag<
+  "integrationConfiguration",
+  {
+    /** The value of an integration configuration, supplied already parsed. */
+    configuration?: ConfiguredValue;
+    /**
+     * The resolved connections of an integration configuration, keyed by the
+     * author's names. The same values are in `configVars`, but under keys the
+     * convert layer chose.
+     */
+    connections?: Partial<ConfiguredConnections>;
+  }
+>;

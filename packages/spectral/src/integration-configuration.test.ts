@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CONFIGURATION_E_TAG,
   CUSTOMER_CONNECTION_STABLE_KEY,
+  type configurationSchema,
   configurationUiSchema,
   configuredIntegration,
   INLINE_CONNECTION_STABLE_KEY,
@@ -14,6 +15,7 @@ import {
 import type { ConnectionNameMap } from "./serverTypes/configurationContext";
 import { toJsonSchema } from "./serverTypes/configurationSchema";
 import { convertConfigurationInit } from "./serverTypes/convertIntegrationConfiguration";
+import type { ConfigurationValue, SchemaInput } from "./types/IntegrationConfiguration";
 
 /**
  * Drift guards for integration configuration. The negative tests carry the weight:
@@ -55,6 +57,31 @@ const fixtureConnectionNames: ConnectionNameMap = {
   orgConnection: "orgConnection",
   customerConnection: "customerConnection",
 };
+
+/**
+ * `ConfiguredValue` and `ConfiguredConnections` resolve through module
+ * augmentation, which is global to a compilation. Asserting the resolution
+ * directly keeps that out of the rest of the suite.
+ */
+type Augmented = { schema: typeof configurationSchema; connections: { crm: never } };
+type Value = Augmented extends { schema: infer TSchema extends SchemaInput }
+  ? ConfigurationValue<TSchema>
+  : never;
+
+describe("a flow reads the configuration typed by its schema", () => {
+  it("resolves the schema's value, not unknown", () => {
+    const value: Value = { mappings: [{ source: "Name", destination: "full_name" }] };
+
+    // Fails to compile if `Value` widened to `unknown`.
+    expect(value.mappings[0].source).toBe("Name");
+  });
+
+  it("keys connections by the names the integration declared", () => {
+    const connections: { [Key in keyof Augmented["connections"]]: string } = { crm: "resolved" };
+
+    expect(Object.keys(connections)).toEqual(["crm"]);
+  });
+});
 
 describe("the integration configuration authoring surface", () => {
   it("accepts configuration.schema / eTag / init / connections", () => {

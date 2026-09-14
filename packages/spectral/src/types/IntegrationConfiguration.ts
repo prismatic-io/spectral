@@ -98,3 +98,28 @@ export interface IntegrationConfiguration<
   /** Keyed by the name `init` and a flow read each connection under. */
   connections?: Record<string, ConfigurationConnection>;
 }
+
+/**
+ * Augmented by an integration to type its flows:
+ *
+ * ```ts
+ * declare module "@prismatic-io/spectral" {
+ *   interface IntegrationDefinitionConfiguration extends TConfiguration {}
+ * }
+ * ```
+ */
+export interface IntegrationDefinitionConfiguration {}
+
+/** The configuration value a flow reads, `unknown` until an integration augments. */
+export type ConfiguredValue = keyof IntegrationDefinitionConfiguration extends never
+  ? unknown
+  : IntegrationDefinitionConfiguration extends { schema: infer TSchema extends SchemaInput }
+    ? ConfigurationValue<TSchema>
+    : unknown;
+
+/** The connections a flow reads, keyed by the names the integration declared. */
+export type ConfiguredConnections = keyof IntegrationDefinitionConfiguration extends never
+  ? Record<string, Connection>
+  : IntegrationDefinitionConfiguration extends { connections: infer TConnections }
+    ? { [Key in keyof TConnections]: Connection }
+    : Record<string, Connection>;
