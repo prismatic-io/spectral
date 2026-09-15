@@ -606,6 +606,69 @@ describe("server functions", () => {
     });
   });
 
+  it("invokes a registry component through the runner's invoker", async () => {
+    const invoked: unknown[] = [];
+    const registry = {
+      slack: {
+        key: "slack",
+        public: true,
+        signature: "sig",
+        actions: { listChannels: { key: "listChannels", inputs: {} } },
+      },
+    };
+    const wrapped = convertServerFunction(
+      {
+        ...searchChannels,
+        perform: async ({ components }) =>
+          (
+            components as never as Record<string, Record<string, (values: unknown) => unknown>>
+          ).slack.listChannels({ search: "general" }),
+      } as never,
+      fixtureConnectionNames,
+      registry as never,
+    );
+
+    await wrapped(
+      {
+        configVars: {},
+        _components: {
+          invoke: (...args: unknown[]) => {
+            invoked.push(args);
+            return Promise.resolve({ data: "ok" });
+          },
+        },
+      },
+      {},
+    );
+
+    expect(invoked).toHaveLength(1);
+  });
+
+  it("resolves a component action to undefined when the runner supplied no invoker", async () => {
+    // The fallback is silent by design in createCNIContext; this pins that a
+    // server function outside an extended scope degrades rather than throwing.
+    const wrapped = convertServerFunction(
+      {
+        ...searchChannels,
+        perform: async ({ components }) =>
+          (
+            components as never as Record<string, Record<string, (values: unknown) => unknown>>
+          ).slack.listChannels({}),
+      } as never,
+      fixtureConnectionNames,
+      {
+        slack: {
+          key: "slack",
+          public: true,
+          signature: "sig",
+          actions: { listChannels: { key: "listChannels", inputs: {} } },
+        },
+      } as never,
+    );
+
+    expect(await wrapped({ configVars: {} }, {})).toBeUndefined();
+  });
+
   it("withholds the configuration from the context", async () => {
     // A host invokes these mid-configuration, so the saved value is stale;
     // in-progress values arrive as params instead.
@@ -620,6 +683,12 @@ describe("server functions", () => {
     )) as Record<string, unknown>;
 
     expect(context).not.toHaveProperty("configuration");
-    expect(Object.keys(context).sort()).toEqual(["connections", "customer", "instance", "logger"]);
+    expect(Object.keys(context).sort()).toEqual([
+      "components",
+      "connections",
+      "customer",
+      "instance",
+      "logger",
+    ]);
   });
 });

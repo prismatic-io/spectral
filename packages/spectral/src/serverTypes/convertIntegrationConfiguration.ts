@@ -1,3 +1,4 @@
+import type { ComponentRegistry } from "../types/ComponentRegistry";
 import type { ConfigVar } from "../types/ConfigVars";
 import type {
   AnyServerFunction,
@@ -10,6 +11,7 @@ import type {
 import { isConnectionScopedConfigVar, type ScopedConfigVarMap } from "../types/ScopedConfigVars";
 import { type ConnectionNameMap, createConfigurationContext } from "./configurationContext";
 import { serializeSchema, toJsonSchema } from "./configurationSchema";
+import { createComponentMethods } from "./context";
 
 /**
  * Converts an integration `configuration` into what it publishes as: the
@@ -74,6 +76,7 @@ export interface ConvertedIntegrationConfiguration {
 
 export const convertIntegrationConfiguration = (
   configuration: IntegrationConfiguration,
+  componentRegistry: ComponentRegistry = {},
 ): ConvertedIntegrationConfiguration => {
   const { schema, uiSchema, eTag, init, connections = {}, serverFunctions = {} } = configuration;
 
@@ -116,7 +119,7 @@ export const convertIntegrationConfiguration = (
   const serverFunctionEntries = Object.entries(serverFunctions);
   const convertedServerFunctions = serverFunctionEntries.reduce<ServerComponentFunctions>(
     (acc, [key, serverFunction]) => {
-      acc[key] = convertServerFunction(serverFunction, connectionNames);
+      acc[key] = convertServerFunction(serverFunction, connectionNames, componentRegistry);
       return acc;
     },
     {},
@@ -185,7 +188,11 @@ export const convertConfigurationInit =
  * stale.
  */
 export const convertServerFunction =
-  (serverFunction: AnyServerFunction, connectionNames: ConnectionNameMap = noConnections) =>
+  (
+    serverFunction: AnyServerFunction,
+    connectionNames: ConnectionNameMap = noConnections,
+    componentRegistry: ComponentRegistry = {},
+  ) =>
   async (context: unknown, inputs: unknown): Promise<unknown> => {
     const { configuration: _withheld, ...authorContext } = createConfigurationContext(
       context,
@@ -193,7 +200,12 @@ export const convertServerFunction =
       undefined,
     );
 
-    return serverFunction.perform(authorContext, inputs as never);
+    return serverFunction.perform(
+      Object.assign(authorContext, {
+        components: createComponentMethods(context as never, componentRegistry),
+      }),
+      inputs as never,
+    );
   };
 
 /** The platform requires both schemas and a label, so a key stands in for an absent label. */
