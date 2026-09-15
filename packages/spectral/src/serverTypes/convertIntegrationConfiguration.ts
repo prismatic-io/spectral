@@ -1,5 +1,6 @@
 import type { ConfigVar } from "../types/ConfigVars";
 import type {
+  AnyServerFunction,
   ConfigurationConnection,
   ConfigurationInit,
   IntegrationConfiguration,
@@ -8,7 +9,7 @@ import type {
 } from "../types/IntegrationConfiguration";
 import { isConnectionScopedConfigVar, type ScopedConfigVarMap } from "../types/ScopedConfigVars";
 import { type ConnectionNameMap, createConfigurationContext } from "./configurationContext";
-import { toJsonSchema } from "./configurationSchema";
+import { serializeSchema, toJsonSchema } from "./configurationSchema";
 
 /**
  * Converts an integration `configuration` into what it publishes as: the
@@ -32,6 +33,24 @@ export interface ServerComponentConfiguration {
   init: (context: unknown) => Promise<unknown>;
 }
 
+/** The component's `serverFunctions` export, which the runner calls by key. */
+export type ServerComponentFunctions = Record<
+  string,
+  (context: unknown, inputs: unknown) => Promise<unknown>
+>;
+
+/**
+ * A server function's publish metadata. Rides its own mutation variable rather
+ * than the component definition, so the schemas are JSON strings here while
+ * `configuration.schema` stays an object.
+ */
+export interface ServerFunctionDefinition {
+  key: string;
+  display: { label: string; description: string };
+  inputSchema: string;
+  outputSchema: string;
+}
+
 export interface ConvertedIntegrationConfiguration {
   configuration: IntegrationConfigurationYaml;
   /** Absent when the author wrote no `init`. */
@@ -48,12 +67,15 @@ export interface ConvertedIntegrationConfiguration {
    */
   componentConnections: Record<string, ConfigVar>;
   connectionNames: ConnectionNameMap;
+  /** Absent when the author declared none, so the export stays off the component. */
+  serverFunctions?: ServerComponentFunctions;
+  serverFunctionDefinitions: ServerFunctionDefinition[];
 }
 
 export const convertIntegrationConfiguration = (
   configuration: IntegrationConfiguration,
 ): ConvertedIntegrationConfiguration => {
-  const { schema, uiSchema, eTag, init, connections = {} } = configuration;
+  const { schema, uiSchema, eTag, init, connections = {}, serverFunctions = {} } = configuration;
 
   if (!schema) {
     throw new Error("configuration.schema is required.");
@@ -91,6 +113,15 @@ export const convertIntegrationConfiguration = (
     return acc;
   }, {});
 
+  const serverFunctionEntries = Object.entries(serverFunctions);
+  const convertedServerFunctions = serverFunctionEntries.reduce<ServerComponentFunctions>(
+    (acc, [key, serverFunction]) => {
+      acc[key] = convertServerFunction(serverFunction, connectionNames);
+      return acc;
+    },
+    {},
+  );
+
   return {
     configuration: {
       schema: toJsonSchema(schema),
@@ -104,6 +135,10 @@ export const convertIntegrationConfiguration = (
     scopedConfigVars: scopedConfigVars as ScopedConfigVarMap,
     componentConnections,
     connectionNames,
+    ...(serverFunctionEntries.length ? { serverFunctions: convertedServerFunctions } : {}),
+    serverFunctionDefinitions: serverFunctionEntries.map(([key, serverFunction]) =>
+      convertServerFunctionDefinition(key, serverFunction),
+    ),
   };
 };
 
@@ -140,3 +175,34 @@ export const convertConfigurationInit =
       }) as never,
     );
   };
+
+/**
+ * Wraps a `perform` for the component's `serverFunctions` export, mapping the
+ * platform context onto the author's and its `inputs` onto `params`.
+ *
+ * The platform supplies a `configuration` on every invocation; it is withheld
+ * here because a host calls this mid-configuration, when the saved value is
+ * stale.
+ */
+export const convertServerFunction =
+  (serverFunction: AnyServerFunction, connectionNames: ConnectionNameMap = noConnections) =>
+  async (context: unknown, inputs: unknown): Promise<unknown> => {
+    const { configuration: _withheld, ...authorContext } = createConfigurationContext(
+      context,
+      connectionNames,
+      undefined,
+    );
+
+    return serverFunction.perform(authorContext, inputs as never);
+  };
+
+/** The platform requires both schemas and a label, so a key stands in for an absent label. */
+export const convertServerFunctionDefinition = (
+  key: string,
+  { inputSchema, outputSchema, label, description }: AnyServerFunction,
+): ServerFunctionDefinition => ({
+  key,
+  display: { label: label ?? key, description: description ?? "" },
+  inputSchema: serializeSchema(inputSchema),
+  outputSchema: serializeSchema(outputSchema),
+});
