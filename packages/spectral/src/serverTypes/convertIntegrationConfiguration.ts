@@ -116,6 +116,9 @@ const readConfiguration = (context: unknown): unknown =>
 const readConfigurationEtag = (context: unknown): string | null | undefined =>
   (context as { configurationEtag?: string | null } | undefined)?.configurationEtag;
 
+const readConfigVars = (context: unknown): Record<string, unknown> =>
+  (context as { configVars?: Record<string, unknown> } | undefined)?.configVars ?? {};
+
 /**
  * Wraps `init` for the component's `configuration` export, mapping the platform
  * context onto the author's. The return passes through untouched: the platform
@@ -133,6 +136,7 @@ export const convertConfigurationInit =
     return init(
       Object.assign(authorContext, {
         configurationEtag: readConfigurationEtag(context) ?? null,
+        configVars: readConfigVars(context),
       }) as never,
     );
   };

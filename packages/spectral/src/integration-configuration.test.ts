@@ -218,6 +218,26 @@ describe("init rides the component's configuration export, not a data source", (
     expect(result.seen).toBe(PREVIOUS_CONFIGURATION_E_TAG);
   });
 
+  it("hands init the config vars an instance was configured under", async () => {
+    const wrapped = convertConfigurationInit(async ({ configVars }) => ({ seen: configVars }));
+
+    const result = (await wrapped({
+      configuration: {},
+      configVars: { objectKey: "Contact", crmConnection: { configVarKey: "crm", fields: {} } },
+    })) as { seen: Record<string, unknown> };
+
+    expect(result.seen.objectKey).toBe("Contact");
+    expect(result.seen.crmConnection).toEqual({ configVarKey: "crm", fields: {} });
+  });
+
+  it("passes an empty bag when an instance has no config vars", async () => {
+    const wrapped = convertConfigurationInit(async ({ configVars }) => ({ seen: configVars }));
+
+    const result = (await wrapped({ configuration: {} })) as { seen: unknown };
+
+    expect(result.seen).toEqual({});
+  });
+
   it("passes null rather than undefined before a first deploy", async () => {
     const wrapped = convertConfigurationInit(async ({ configurationEtag }) => ({
       seen: configurationEtag,
@@ -243,7 +263,7 @@ describe("init rides the component's configuration export, not a data source", (
 });
 
 describe("one context for init and flows", () => {
-  it("hands init the connections under the author's names, not the raw configVars bag", async () => {
+  it("hands init the connections under the author's names", async () => {
     const wrapped = convertConfigurationInit(
       async (context) => ({
         keys: Object.keys(context).sort(),
@@ -261,8 +281,8 @@ describe("one context for init and flows", () => {
       orgConnection: connectionValue("orgConnection"),
       customerConnection: connectionValue("customerConnection"),
     });
-    // The bag stays inside the convert layer.
     expect(result.keys).toEqual([
+      "configVars",
       "configuration",
       "configurationEtag",
       "connections",

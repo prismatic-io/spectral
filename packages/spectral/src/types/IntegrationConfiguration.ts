@@ -61,6 +61,12 @@ export interface ConfigurationContext<TConfiguration = unknown> {
  */
 export type ConfigurationInitContext = ConfigurationContext<DeepReadonly<unknown> | undefined> & {
   configurationEtag: string | null;
+  /**
+   * The values an instance configured under `configPages`, for migrating into
+   * `schema`. Connections appear here under their page keys as well as in
+   * `connections` under the author's.
+   */
+  configVars: Record<string, unknown>;
 };
 
 /**
