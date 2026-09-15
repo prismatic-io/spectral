@@ -86,6 +86,56 @@ export type DeepReadonly<T> = T extends (infer TElement)[]
     ? { readonly [TKey in keyof T]: DeepReadonly<T[TKey]> }
     : T;
 
+/** What a `serverFunction` perform receives. */
+export interface ServerFunctionContext {
+  logger: ActionLogger;
+  customer?: CustomerAttributes;
+  instance?: InstanceAttributes;
+  /** Keyed by the author's names in `configuration.connections`; unresolved connections are absent. */
+  connections: Record<string, Connection>;
+}
+
+/**
+ * Runs against a deployed instance while a host configures it.
+ *
+ * The saved configuration is not in scope: a host calls this with values a
+ * person is still editing, so it passes them through `params` instead.
+ */
+export type ServerFunctionPerform<TInputSchema extends SchemaInput, TResult> = (
+  context: ServerFunctionContext,
+  params: ConfigurationValue<TInputSchema>,
+) => Promise<TResult>;
+
+/**
+ * A server function of any schemas, for collections.
+ *
+ * Structural rather than `ServerFunction<any, any, any>`: `params` is
+ * contravariant, so a specific server function is not assignable to one over
+ * `SchemaInput`, and instantiating `ConfigurationValue<any>` recurses without
+ * terminating.
+ */
+export interface AnyServerFunction {
+  inputSchema: SchemaInput;
+  outputSchema: SchemaInput;
+  perform: (context: ServerFunctionContext, params: never) => Promise<unknown>;
+  label?: string;
+  description?: string;
+}
+
+export interface ServerFunction<
+  TInputSchema extends SchemaInput = SchemaInput,
+  TOutputSchema extends SchemaInput = SchemaInput,
+  TResult = unknown,
+> {
+  /** Schema of `params`, which the platform validates before invoking. */
+  inputSchema: TInputSchema;
+  /** Published for hosts to read; the platform never validates the result against it. */
+  outputSchema: TOutputSchema;
+  perform: ServerFunctionPerform<TInputSchema, TResult>;
+  label?: string;
+  description?: string;
+}
+
 export interface IntegrationConfiguration<
   TSchema extends SchemaInput = SchemaInput,
   TInitResult = unknown,
@@ -103,6 +153,8 @@ export interface IntegrationConfiguration<
   init?: ConfigurationInit<TInitResult>;
   /** Keyed by the name `init` and a flow read each connection under. */
   connections?: Record<string, ConfigurationConnection>;
+  /** Invocable by a host against a deployed instance while configuring it. */
+  serverFunctions?: Record<string, AnyServerFunction>;
 }
 
 /**
