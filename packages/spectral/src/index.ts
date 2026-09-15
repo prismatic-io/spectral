@@ -21,6 +21,7 @@ import type {
   ComponentDefinition,
   ComponentManifest,
   ConfigPage,
+  ConfigurationValue,
   ConfigVarResultCollection,
   ConnectionConfigVar,
   CustomerActivatedConnectionConfigVar,
@@ -40,6 +41,7 @@ import type {
   OrganizationActivatedConnectionConfigVar,
   OutputSchema,
   SchemaInput,
+  ServerFunction,
   StandardConfigVar,
   StructuredObjectInputField,
   TriggerDefinition,
@@ -333,6 +335,41 @@ export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T 
 export const configuration = <const TSchema extends SchemaInput, TInitResult = unknown>(
   definition: IntegrationConfiguration<TSchema, TInitResult>,
 ): IntegrationConfiguration<TSchema, TInitResult> => definition;
+
+/**
+ * Defines a function a host may invoke against a deployed instance while
+ * configuring it, to fetch the choices a person picks from.
+ *
+ * `perform` receives `logger`, `customer`, `instance`, and `connections` keyed
+ * by the names in `configuration.connections`. The configuration itself is not
+ * in scope: a host calls this with values a person is still editing, so those
+ * arrive as `params`.
+ *
+ * The platform validates `params` against `inputSchema` before invoking.
+ * `outputSchema` is published for hosts to read and is never enforced.
+ *
+ * @param definition The input and output schemas and a `perform`, plus an
+ *   optional `label` and `description`.
+ * @returns The definition, for use in an integration configuration's
+ *   `serverFunctions`.
+ * @example
+ * import { z } from "zod";
+ * import { serverFunction } from "@prismatic-io/spectral";
+ *
+ * const searchChannels = serverFunction({
+ *   inputSchema: z.object({ search: z.string() }),
+ *   outputSchema: z.array(z.object({ id: z.string(), name: z.string() })),
+ *   perform: async ({ connections }, { search }) =>
+ *     listChannels(connections.slack, search),
+ * });
+ */
+export const serverFunction = <
+  const TInputSchema extends SchemaInput,
+  const TOutputSchema extends SchemaInput,
+  TResult extends ConfigurationValue<TOutputSchema>,
+>(
+  definition: ServerFunction<TInputSchema, TOutputSchema, TResult>,
+): ServerFunction<TInputSchema, TOutputSchema, TResult> => definition;
 
 /**
  * This function creates a config page each person configures for themselves.
