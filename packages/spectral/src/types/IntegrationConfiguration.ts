@@ -2,6 +2,7 @@ import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 import type { ZodType } from "zod";
 
 import type { ActionLogger } from "./ActionLogger";
+import type { ComponentRegistry } from "./ComponentRegistry";
 import type { ConnectionConfigVar } from "./ConfigVars";
 import type { CustomerAttributes } from "./CustomerAttributes";
 import type { Connection } from "./Inputs";
@@ -86,6 +87,17 @@ export type DeepReadonly<T> = T extends (infer TElement)[]
     ? { readonly [TKey in keyof T]: DeepReadonly<T[TKey]> }
     : T;
 
+/** The actions of the integration's `componentRegistry`, invocable directly. */
+export type ConfiguredComponents = {
+  [Key in keyof ComponentRegistry]: {
+    [Action in keyof ComponentRegistry[Key]["actions"]]: ComponentRegistry[Key]["actions"][Action] extends {
+      perform: infer TPerform;
+    }
+      ? TPerform
+      : never;
+  };
+};
+
 /** What a `serverFunction` perform receives. */
 export interface ServerFunctionContext {
   logger: ActionLogger;
@@ -93,6 +105,8 @@ export interface ServerFunctionContext {
   instance?: InstanceAttributes;
   /** Keyed by the author's names in `configuration.connections`; unresolved connections are absent. */
   connections: Record<string, Connection>;
+  /** Only the components the integration supplies reach the runner, so others are absent. */
+  components: ConfiguredComponents;
 }
 
 /**

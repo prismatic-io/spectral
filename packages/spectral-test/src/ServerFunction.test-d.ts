@@ -19,4 +19,5 @@ const searchChannels = serverFunction({
 expectAssignable<AnyServerFunction>(searchChannels);
 
 expectNotAssignable<keyof ServerFunctionContext>("configuration");
+expectAssignable<keyof ServerFunctionContext>("components");
 expectAssignable<keyof ServerFunctionContext>("connections");
