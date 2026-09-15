@@ -11,10 +11,15 @@ import {
   noInitIntegration,
   ORG_CONNECTION_STABLE_KEY,
   PREVIOUS_CONFIGURATION_E_TAG,
+  searchChannels,
 } from "./integration-configuration.fixture";
 import type { ConnectionNameMap } from "./serverTypes/configurationContext";
 import { toJsonSchema } from "./serverTypes/configurationSchema";
-import { convertConfigurationInit } from "./serverTypes/convertIntegrationConfiguration";
+import {
+  convertConfigurationInit,
+  convertServerFunction,
+  type ServerFunctionDefinition,
+} from "./serverTypes/convertIntegrationConfiguration";
 import type { ConfigurationValue, SchemaInput } from "./types/IntegrationConfiguration";
 
 /**
@@ -39,6 +44,18 @@ const yaml = () => {
 const emittedConfiguration = () =>
   (convert() as unknown as { configuration?: { init?: (context: unknown) => Promise<unknown> } })
     .configuration;
+
+/** The component's `serverFunctions` export, which the runner calls by key. */
+const emittedServerFunctions = () =>
+  (
+    convert() as unknown as {
+      serverFunctions?: Record<string, (context: unknown, inputs: unknown) => Promise<unknown>>;
+    }
+  ).serverFunctions;
+
+const serverFunctionDefinitions = (): ServerFunctionDefinition[] =>
+  (convert() as unknown as { serverFunctionDefinitions?: ServerFunctionDefinition[] })
+    .serverFunctionDefinitions ?? [];
 
 /** A resolved connection as the runtime hands it to a flow or data source. */
 const connectionValue = (configVarKey: string) => ({
@@ -524,5 +541,85 @@ describe("connections", () => {
       "customerConnection",
       "inlineConnection",
     ]);
+  });
+});
+
+describe("server functions", () => {
+  it("emits each one on the component, keyed as the author named it", () => {
+    expect(Object.keys(emittedServerFunctions() ?? {})).toEqual(["searchChannels", "listRegions"]);
+  });
+
+  it("keeps them off dataSources", () => {
+    // They are a bespoke system invocation; riding dataSources is what the
+    // platform moved away from.
+    expect(dataSourceKeys()).not.toContain("searchChannels");
+  });
+
+  it("omits the export when the author declared none", () => {
+    expect(
+      (noInitIntegration as unknown as { serverFunctions?: unknown }).serverFunctions,
+    ).toBeUndefined();
+  });
+
+  it("publishes both schemas as JSON strings", () => {
+    // They ride their own mutation variable as JSONString, unlike the
+    // configuration schema, which is an object in the YAML.
+    const [definition] = serverFunctionDefinitions();
+
+    expect(JSON.parse(definition.inputSchema)).toMatchObject({
+      properties: { search: { type: "string" } },
+    });
+    expect(JSON.parse(definition.outputSchema)).toMatchObject({ type: "array" });
+  });
+
+  it("falls back to the key when the author wrote no label", () => {
+    const definition = serverFunctionDefinitions().find(({ key }) => key === "listRegions");
+
+    expect(definition?.display).toEqual({ label: "listRegions", description: "" });
+  });
+
+  it("carries the author's label and description when given", () => {
+    const definition = serverFunctionDefinitions().find(({ key }) => key === "searchChannels");
+
+    expect(definition?.display).toEqual({
+      label: "Search Channels",
+      description: "Lists channels matching a search string",
+    });
+  });
+
+  it("hands perform the connections under the author's names", async () => {
+    const wrapped = convertServerFunction(searchChannels as never, fixtureConnectionNames);
+
+    const result = await wrapped({ configVars: runtimeConfigVars() }, { search: "org" });
+
+    expect(result).toEqual([{ id: "orgConnection", name: "orgConnection" }]);
+  });
+
+  it("passes inputs through as params", async () => {
+    const wrapped = convertServerFunction(
+      { ...searchChannels, perform: async (_context, params) => params } as never,
+      fixtureConnectionNames,
+    );
+
+    expect(await wrapped({ configVars: {} }, { search: "anything" })).toEqual({
+      search: "anything",
+    });
+  });
+
+  it("withholds the configuration from the context", async () => {
+    // A host invokes these mid-configuration, so the saved value is stale;
+    // in-progress values arrive as params instead.
+    const wrapped = convertServerFunction(
+      { ...searchChannels, perform: async (context) => context } as never,
+      fixtureConnectionNames,
+    );
+
+    const context = (await wrapped(
+      { configVars: runtimeConfigVars(), configuration: { mappings: [] } },
+      { search: "" },
+    )) as Record<string, unknown>;
+
+    expect(context).not.toHaveProperty("configuration");
+    expect(Object.keys(context).sort()).toEqual(["connections", "customer", "instance", "logger"]);
   });
 });
