@@ -8,6 +8,7 @@ import {
   flow,
   integration,
   organizationActivatedConnection,
+  serverFunction,
 } from ".";
 
 /**
@@ -98,6 +99,24 @@ const syncFlow = flow({
   },
 });
 
+export const searchChannels = serverFunction({
+  inputSchema: z.object({ search: z.string() }),
+  outputSchema: z.array(z.object({ id: z.string(), name: z.string() })),
+  label: "Search Channels",
+  description: "Lists channels matching a search string",
+  perform: async ({ connections }, { search }) => {
+    const names = Object.keys(connections);
+    return names.filter((name) => name.includes(search)).map((name) => ({ id: name, name }));
+  },
+});
+
+/** No label or description, to assert what the convert layer substitutes. */
+export const listRegions = serverFunction({
+  inputSchema: z.object({}),
+  outputSchema: z.array(z.string()),
+  perform: async () => ["us-east-1", "us-west-2"],
+});
+
 export const integrationConfigurationDefinition = {
   name: "Integration Configuration",
   description: "Fixture for integration configuration",
@@ -125,6 +144,7 @@ export const integrationConfigurationDefinition = {
         },
       }),
     },
+    serverFunctions: { searchChannels, listRegions },
   }),
 } as const;
 

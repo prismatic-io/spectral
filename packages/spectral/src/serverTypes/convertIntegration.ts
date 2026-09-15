@@ -262,6 +262,12 @@ export const convertIntegration = <
     ...(integrationConfiguration
       ? { hasConfigurationInit: integrationConfiguration.hasConfigurationInit }
       : {}),
+    ...(integrationConfiguration?.serverFunctions
+      ? {
+          serverFunctions: integrationConfiguration.serverFunctions,
+          serverFunctionDefinitions: integrationConfiguration.serverFunctionDefinitions,
+        }
+      : {}),
     codeNativeIntegrationYAML: cniYaml,
     publishingMetadata,
   };
