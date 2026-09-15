@@ -67,6 +67,13 @@ export interface Component<
   >;
   dataSources: Record<string, DataSource>;
   connections: Connection[];
+  /**
+   * A function-backed configuration's `init`, which the platform invokes by a
+   * bespoke system call rather than as a data source.
+   */
+  configuration?: { init: (context: unknown) => Promise<unknown> };
+  /** The platform's only means of discovering `init`; when false, it no-ops. */
+  hasConfigurationInit?: boolean;
   codeNativeIntegrationYAML?: string;
   publishingMetadata?: PublishingMetadata;
 }
