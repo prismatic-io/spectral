@@ -302,7 +302,7 @@ export interface Trigger<
   getNextPaginationState?: (
     context: ActionContext<TConfigVars>,
     result: TriggerBaseResult<TPayload>,
-  ) => Record<string, unknown> | null;
+  ) => object | null;
   hasGetNextDiscoveryState?: boolean;
   onDeployPerform?:
     | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
@@ -325,7 +325,7 @@ export interface Trigger<
   getOnDeployNextPaginationState?: (
     context: ActionContext<TConfigVars>,
     result: TriggerBaseResult<TPayload>,
-  ) => Record<string, unknown> | null;
+  ) => object | null;
   hasGetOnDeployNextDiscoveryState?: boolean;
   examplePayload?: unknown;
   isCommonTrigger?: boolean;

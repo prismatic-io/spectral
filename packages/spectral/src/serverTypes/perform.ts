@@ -21,12 +21,10 @@ import {
   type TriggerActionInvokeFunction,
 } from "./convertIntegration";
 import type { ComponentReference as ServerComponentReference } from "./integration";
+import { createPollingState } from "./pollingState";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 export type PerformFn = (...args: any[]) => Promise<any>;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 interface CreatePollingContext {
   context: ActionContext;
@@ -38,22 +36,7 @@ export const createPollingContext = ({
   invokeAction,
 }: CreatePollingContext): Pick<PollingContext, "polling"> => {
   return {
-    polling: {
-      invokeAction,
-      getState: () => {
-        const internal = context.instanceState.__prismaticInternal;
-        const internalState = isRecord(internal) ? internal : {};
-        return isRecord(internalState.polling) ? internalState.polling : {};
-      },
-      setState: (newState: Record<string, unknown>) => {
-        const internal = context.instanceState.__prismaticInternal;
-        const internalState = isRecord(internal) ? internal : {};
-        context.instanceState.__prismaticInternal = {
-          ...internalState,
-          polling: newState,
-        };
-      },
-    },
+    polling: { invokeAction, ...createPollingState(context) },
   };
 };
 

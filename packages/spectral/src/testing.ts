@@ -472,8 +472,9 @@ export const invokeTrigger = async <
   TConfigVars extends ConfigVarResultCollection,
   TAllowsBranching extends boolean,
   TResult extends InvokeTriggerResult<TAllowsBranching, TriggerPayload>,
+  TOnDeployInputs extends Inputs = Inputs,
 >(
-  { perform }: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult>,
+  { perform }: TriggerDefinition<TInputs, TConfigVars, TAllowsBranching, TResult, TOnDeployInputs>,
   context?: Partial<ActionContext<TConfigVars>>,
   payload?: TriggerPayload,
   params?: ActionInputParameters<TInputs>,
