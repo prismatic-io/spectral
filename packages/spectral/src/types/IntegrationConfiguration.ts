@@ -98,13 +98,13 @@ export type ConfiguredComponents = {
   };
 };
 
-/** What a `serverFunction` perform receives. */
-export interface ServerFunctionContext {
+/** What a `serverFunction` perform receives, holding only the connections it declared. */
+export interface ServerFunctionContext<TConnectionKey extends string = string> {
   logger: ActionLogger;
   customer?: CustomerAttributes;
   instance?: InstanceAttributes;
-  /** Keyed by the author's names in `configuration.connections`; unresolved connections are absent. */
-  connections: Record<string, Connection>;
+  /** Keyed by the names in `configuration.connections`; the caller supplies each value. */
+  connections: Record<TConnectionKey, Connection>;
   /** Only the components the integration supplies reach the runner, so others are absent. */
   components: ConfiguredComponents;
 }
@@ -115,8 +115,12 @@ export interface ServerFunctionContext {
  * The saved configuration is not in scope: a host calls this with values a
  * person is still editing, so it passes them through `params` instead.
  */
-export type ServerFunctionPerform<TInputSchema extends SchemaInput, TResult> = (
-  context: ServerFunctionContext,
+export type ServerFunctionPerform<
+  TInputSchema extends SchemaInput,
+  TConnectionKey extends string,
+  TResult,
+> = (
+  context: ServerFunctionContext<TConnectionKey>,
   params: ConfigurationValue<TInputSchema>,
 ) => Promise<TResult>;
 
@@ -131,21 +135,36 @@ export type ServerFunctionPerform<TInputSchema extends SchemaInput, TResult> = (
 export interface AnyServerFunction {
   inputSchema: SchemaInput;
   outputSchema: SchemaInput;
-  perform: (context: ServerFunctionContext, params: never) => Promise<unknown>;
+  connections?: readonly string[];
+  perform: (context: never, params: never) => Promise<unknown>;
   label?: string;
   description?: string;
 }
 
+/** The connection names a `serverFunctions` record declares across all of its entries. */
+export type DeclaredConnectionKeys<TServerFunctions> =
+  TServerFunctions[keyof TServerFunctions] extends {
+    connections?: readonly (infer TKey extends string)[];
+  }
+    ? TKey
+    : never;
+
 export interface ServerFunction<
   TInputSchema extends SchemaInput = SchemaInput,
   TOutputSchema extends SchemaInput = SchemaInput,
+  TConnectionKey extends string = string,
   TResult = unknown,
 > {
   /** Schema of `params`, which the platform validates before invoking. */
   inputSchema: TInputSchema;
   /** Published for hosts to read; the platform never validates the result against it. */
   outputSchema: TOutputSchema;
-  perform: ServerFunctionPerform<TInputSchema, TResult>;
+  /**
+   * Names from `configuration.connections` this function needs, which the
+   * caller supplies per invocation rather than the instance implying them.
+   */
+  connections?: readonly TConnectionKey[];
+  perform: ServerFunctionPerform<TInputSchema, TConnectionKey, TResult>;
   label?: string;
   description?: string;
 }

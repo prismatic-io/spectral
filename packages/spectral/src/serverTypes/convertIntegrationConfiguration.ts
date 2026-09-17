@@ -51,6 +51,8 @@ export interface ServerFunctionDefinition {
   display: { label: string; description: string };
   inputSchema: string;
   outputSchema: string;
+  /** Names the caller must supply values for; absent when the function declared none. */
+  connections?: string[];
 }
 
 export interface ConvertedIntegrationConfiguration {
@@ -203,7 +205,7 @@ export const convertServerFunction =
     return serverFunction.perform(
       Object.assign(authorContext, {
         components: createComponentMethods(context as never, componentRegistry),
-      }),
+      }) as never,
       inputs as never,
     );
   };
@@ -211,10 +213,11 @@ export const convertServerFunction =
 /** The platform requires both schemas and a label, so a key stands in for an absent label. */
 export const convertServerFunctionDefinition = (
   key: string,
-  { inputSchema, outputSchema, label, description }: AnyServerFunction,
+  { inputSchema, outputSchema, connections, label, description }: AnyServerFunction,
 ): ServerFunctionDefinition => ({
   key,
   display: { label: label ?? key, description: description ?? "" },
   inputSchema: serializeSchema(inputSchema),
   outputSchema: serializeSchema(outputSchema),
+  ...(connections?.length ? { connections: [...connections] } : {}),
 });

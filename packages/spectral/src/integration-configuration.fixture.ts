@@ -102,6 +102,7 @@ const syncFlow = flow({
 export const searchChannels = serverFunction({
   inputSchema: z.object({ search: z.string() }),
   outputSchema: z.array(z.object({ id: z.string(), name: z.string() })),
+  connections: ["orgConnection"],
   label: "Search Channels",
   description: "Lists channels matching a search string",
   perform: async ({ connections }, { search }) => {

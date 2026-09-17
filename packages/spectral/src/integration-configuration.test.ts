@@ -669,6 +669,20 @@ describe("server functions", () => {
     expect(await wrapped({ configVars: {} }, {})).toBeUndefined();
   });
 
+  it("publishes the connections a function declared", () => {
+    const definition = serverFunctionDefinitions().find(({ key }) => key === "searchChannels");
+
+    expect(definition?.connections).toEqual(["orgConnection"]);
+  });
+
+  it("omits connections when a function declared none", () => {
+    // The platform demands a value for every name published here, so an empty
+    // list and an absent one are not the same thing.
+    const definition = serverFunctionDefinitions().find(({ key }) => key === "listRegions");
+
+    expect(definition).not.toHaveProperty("connections");
+  });
+
   it("withholds the configuration from the context", async () => {
     // A host invokes these mid-configuration, so the saved value is stale;
     // in-progress values arrive as params instead.
