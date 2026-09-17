@@ -16,11 +16,13 @@ import { convertIntegration } from "./serverTypes/convertIntegration";
 import type {
   ActionDefinition,
   ActionPerformReturn,
+  AnyServerFunction,
   BatchTrigger,
   BatchTriggerDefinition,
   ComponentDefinition,
   ComponentManifest,
   ConfigPage,
+  ConfigurationConnection,
   ConfigurationValue,
   ConfigVarResultCollection,
   ConnectionConfigVar,
@@ -28,6 +30,7 @@ import type {
   DataSourceConfigVar,
   DataSourceDefinition,
   DataSourceType,
+  DeclaredConnectionKeys,
   DefaultConnectionDefinition,
   DynamicObjectInputField,
   Flow,
@@ -332,8 +335,21 @@ export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T 
  *   }),
  * });
  */
-export const configuration = <const TSchema extends SchemaInput, TInitResult = unknown>(
-  definition: IntegrationConfiguration<TSchema, TInitResult>,
+export const configuration = <
+  const TSchema extends SchemaInput,
+  const TConnections extends Record<string, ConfigurationConnection>,
+  const TServerFunctions extends Record<string, AnyServerFunction>,
+  TInitResult = unknown,
+>(
+  definition: IntegrationConfiguration<TSchema, TInitResult> & {
+    connections?: TConnections;
+    serverFunctions?: TServerFunctions;
+  } & (DeclaredConnectionKeys<TServerFunctions> extends Extract<keyof TConnections, string>
+      ? unknown
+      : {
+          /** A server function names a connection `configuration.connections` does not declare. */
+          connections: TConnections & Record<DeclaredConnectionKeys<TServerFunctions>, unknown>;
+        }),
 ): IntegrationConfiguration<TSchema, TInitResult> => definition;
 
 /**
@@ -366,10 +382,11 @@ export const configuration = <const TSchema extends SchemaInput, TInitResult = u
 export const serverFunction = <
   const TInputSchema extends SchemaInput,
   const TOutputSchema extends SchemaInput,
+  const TConnectionKey extends string,
   TResult extends ConfigurationValue<TOutputSchema>,
 >(
-  definition: ServerFunction<TInputSchema, TOutputSchema, TResult>,
-): ServerFunction<TInputSchema, TOutputSchema, TResult> => definition;
+  definition: ServerFunction<TInputSchema, TOutputSchema, TConnectionKey, TResult>,
+): ServerFunction<TInputSchema, TOutputSchema, TConnectionKey, TResult> => definition;
 
 /**
  * This function creates a config page each person configures for themselves.
