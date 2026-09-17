@@ -2,6 +2,7 @@ import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 import type { ZodType } from "zod";
 
 import type { ActionLogger } from "./ActionLogger";
+import type { ComponentRegistry } from "./ComponentRegistry";
 import type { ConnectionConfigVar } from "./ConfigVars";
 import type { CustomerAttributes } from "./CustomerAttributes";
 import type { Connection } from "./Inputs";
@@ -86,6 +87,88 @@ export type DeepReadonly<T> = T extends (infer TElement)[]
     ? { readonly [TKey in keyof T]: DeepReadonly<T[TKey]> }
     : T;
 
+/** The actions of the integration's `componentRegistry`, invocable directly. */
+export type ConfiguredComponents = {
+  [Key in keyof ComponentRegistry]: {
+    [Action in keyof ComponentRegistry[Key]["actions"]]: ComponentRegistry[Key]["actions"][Action] extends {
+      perform: infer TPerform;
+    }
+      ? TPerform
+      : never;
+  };
+};
+
+/** What a `serverFunction` perform receives, holding only the connections it declared. */
+export interface ServerFunctionContext<TConnectionKey extends string = string> {
+  logger: ActionLogger;
+  customer?: CustomerAttributes;
+  instance?: InstanceAttributes;
+  /** Keyed by the names in `configuration.connections`; the caller supplies each value. */
+  connections: Record<TConnectionKey, Connection>;
+  /** Only the components the integration supplies reach the runner, so others are absent. */
+  components: ConfiguredComponents;
+}
+
+/**
+ * Runs against a deployed instance while a host configures it.
+ *
+ * The saved configuration is not in scope: a host calls this with values a
+ * person is still editing, so it passes them through `params` instead.
+ */
+export type ServerFunctionPerform<
+  TInputSchema extends SchemaInput,
+  TConnectionKey extends string,
+  TResult,
+> = (
+  context: ServerFunctionContext<TConnectionKey>,
+  params: ConfigurationValue<TInputSchema>,
+) => Promise<TResult>;
+
+/**
+ * A server function of any schemas, for collections.
+ *
+ * Structural rather than `ServerFunction<any, any, any>`: `params` is
+ * contravariant, so a specific server function is not assignable to one over
+ * `SchemaInput`, and instantiating `ConfigurationValue<any>` recurses without
+ * terminating.
+ */
+export interface AnyServerFunction {
+  inputSchema: SchemaInput;
+  outputSchema: SchemaInput;
+  connections?: readonly string[];
+  perform: (context: never, params: never) => Promise<unknown>;
+  label?: string;
+  description?: string;
+}
+
+/** The connection names a `serverFunctions` record declares across all of its entries. */
+export type DeclaredConnectionKeys<TServerFunctions> =
+  TServerFunctions[keyof TServerFunctions] extends {
+    connections?: readonly (infer TKey extends string)[];
+  }
+    ? TKey
+    : never;
+
+export interface ServerFunction<
+  TInputSchema extends SchemaInput = SchemaInput,
+  TOutputSchema extends SchemaInput = SchemaInput,
+  TConnectionKey extends string = string,
+  TResult = unknown,
+> {
+  /** Schema of `params`, which the platform validates before invoking. */
+  inputSchema: TInputSchema;
+  /** Published for hosts to read; the platform never validates the result against it. */
+  outputSchema: TOutputSchema;
+  /**
+   * Names from `configuration.connections` this function needs, which the
+   * caller supplies per invocation rather than the instance implying them.
+   */
+  connections?: readonly TConnectionKey[];
+  perform: ServerFunctionPerform<TInputSchema, TConnectionKey, TResult>;
+  label?: string;
+  description?: string;
+}
+
 export interface IntegrationConfiguration<
   TSchema extends SchemaInput = SchemaInput,
   TInitResult = unknown,
@@ -103,6 +186,8 @@ export interface IntegrationConfiguration<
   init?: ConfigurationInit<TInitResult>;
   /** Keyed by the name `init` and a flow read each connection under. */
   connections?: Record<string, ConfigurationConnection>;
+  /** Invocable by a host against a deployed instance while configuring it. */
+  serverFunctions?: Record<string, AnyServerFunction>;
 }
 
 /**

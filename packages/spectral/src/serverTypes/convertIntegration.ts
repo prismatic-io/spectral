@@ -178,7 +178,7 @@ export const convertIntegration = <
   // Adds no config pages: only the author's connections join the declared
   // shape, because those really are config vars.
   const integrationConfiguration = definition.configuration
-    ? convertIntegrationConfiguration(definition.configuration)
+    ? convertIntegrationConfiguration(definition.configuration, definition.componentRegistry)
     : undefined;
 
   if (integrationConfiguration) {
@@ -260,6 +260,12 @@ export const convertIntegration = <
       : {}),
     ...(integrationConfiguration
       ? { hasConfigurationInit: integrationConfiguration.hasConfigurationInit }
+      : {}),
+    ...(integrationConfiguration?.serverFunctions
+      ? {
+          serverFunctions: integrationConfiguration.serverFunctions,
+          serverFunctionDefinitions: integrationConfiguration.serverFunctionDefinitions,
+        }
       : {}),
     codeNativeIntegrationYAML: cniYaml,
     publishingMetadata,

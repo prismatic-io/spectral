@@ -32,7 +32,13 @@ type ComponentActionInvokeFunction = <
   values: TValues,
 ) => Promise<unknown>;
 
-export function createCNIContext<
+/**
+ * Builds the invocable actions of `context.components` from the registry.
+ *
+ * The runner attaches `_components` only to a scope allowed to call other
+ * components; without it every action resolves to a no-op returning undefined.
+ */
+export function createComponentMethods<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
     string,
@@ -42,10 +48,7 @@ export function createCNIContext<
 >(
   context: ActionContext<TConfigVars, TComponentActions, TFlows>,
   componentRegistry: ComponentRegistry,
-): ActionContext<TConfigVars, TComponentActions, TFlows> {
-  // Component, debug, and invokeFlow methods are not provided as part of the server context.
-  // They are added to the context via spectral, here.
-
+): ActionContext<TConfigVars, TComponentActions, TFlows>["components"] {
   // @ts-expect-error _components isn't part of the public API
   const _components = context._components ?? { invoke: () => {} };
   const invoke = (_components as { invoke: ComponentActionInvokeFunction }).invoke;
@@ -111,10 +114,26 @@ export function createCNIContext<
     {} as ActionContext<TConfigVars, TComponentActions, TFlows>["components"],
   );
 
+  return componentMethods;
+}
+
+export function createCNIContext<
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
+    string,
+    ComponentManifest["actions"]
+  >,
+  TFlows extends string[] = string[],
+>(
+  context: ActionContext<TConfigVars, TComponentActions, TFlows>,
+  componentRegistry: ComponentRegistry,
+): ActionContext<TConfigVars, TComponentActions, TFlows> {
+  // Component, debug, and invokeFlow methods are not provided as part of the
+  // server context. They are added to the context via spectral, here.
   return {
     ...context,
     debug: createDebugContext(context),
-    components: componentMethods,
+    components: createComponentMethods(context, componentRegistry),
     invokeFlow: createInvokeFlow(context, { isCNI: true }),
   };
 }
