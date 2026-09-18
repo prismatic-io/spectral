@@ -18,11 +18,35 @@ export type JsonSchema = JSONSchema;
 
 export type SchemaInput = ZodType | JsonSchema;
 
-export type ConfigurationValue<TSchema extends SchemaInput> = TSchema extends ZodType
-  ? TSchema["_zod"]["output"]
-  : TSchema extends JsonSchema
-    ? FromSchema<TSchema>
-    : never;
+// Resolved behind interface properties, which TypeScript caches per type
+// argument; written as bare conditionals these re-walk zod's output inference at
+// every use site.
+interface ZodOutputOf<TSchema extends ZodType> {
+  value: TSchema["_zod"]["output"];
+}
+
+interface JsonSchemaValueOf<TSchema extends JsonSchema> {
+  value: FromSchema<TSchema>;
+}
+
+interface ConfigurationValueOf<TSchema extends SchemaInput> {
+  value: TSchema extends ZodType
+    ? ZodOutputOf<TSchema>["value"]
+    : TSchema extends JsonSchema
+      ? JsonSchemaValueOf<TSchema>["value"]
+      : never;
+}
+
+export type ConfigurationValue<TSchema extends SchemaInput> =
+  ConfigurationValueOf<TSchema>["value"];
+
+/** A schema's value as `init` reads it. */
+interface StoredConfigurationValueOf<TSchema extends SchemaInput> {
+  value: DeepReadonly<ConfigurationValueOf<TSchema>["value"]>;
+}
+
+export type StoredConfigurationValue<TSchema extends SchemaInput> =
+  StoredConfigurationValueOf<TSchema>["value"];
 
 /** Rendering hints, forwarded to the host verbatim. */
 export type UiSchema = { readonly [key: string]: unknown };
@@ -55,20 +79,93 @@ export interface ConfigurationContext<TConfiguration = unknown> {
 }
 
 /**
- * `configuration` holds the schema's defaults with the instance's persisted
- * value over them, untyped because a stored shape may predate the schema.
- * `configurationEtag` names the shape it was written under, null before a
- * first deploy.
+ * The etag of a value written under a shape the author never declared. Branded
+ * rather than `string`, which would overlap every declared etag and leave
+ * `configuration` unnarrowed in all of them.
  */
-export type ConfigurationInitContext = ConfigurationContext<DeepReadonly<unknown> | undefined> & {
-  configurationEtag: string | null;
+declare const unrecognizedEtag: unique symbol;
+export type UnrecognizedEtag = typeof unrecognizedEtag;
+
+/** The schemas an author declares for shapes a stored value may still be in. */
+export type ETagSchemas = Record<string, SchemaInput>;
+
+/**
+ * The key `configPagesSchema` rides under inside the etag map, since `null`
+ * cannot key one. `ETagArms` maps it back to a `null` discriminant, so it never
+ * reaches an author.
+ */
+type ConfigPagesKey = "__prismatic_config_pages__";
+
+/**
+ * Every shape a stored value may be in, keyed by the etag it was written under,
+ * with `schema` under the current `eTag` and `configPagesSchema` under
+ * `ConfigPagesKey`. `Omit` first, so an etag appearing in both `eTagSchemas` and
+ * `eTag` resolves to `schema` rather than to both shapes at once.
+ */
+export type ETagSchemaMap<
+  TSchema extends SchemaInput,
+  TETag extends string,
+  TETagsSchema extends ETagSchemas,
+  TConfigPagesSchema extends SchemaInput,
+> = ETagSchemaMapOf<TSchema, TETag, TETagsSchema, TConfigPagesSchema>["map"];
+
+interface ETagSchemaMapOf<
+  TSchema extends SchemaInput,
+  TETag extends string,
+  TETagsSchema extends ETagSchemas,
+  TConfigPagesSchema extends SchemaInput,
+> {
+  map: Omit<TETagsSchema, TETag | ConfigPagesKey> & { [Key in TETag]: TSchema } & {
+    [Key in ConfigPagesKey]: TConfigPagesSchema;
+  };
+}
+
+/** The fields every `init` context arm shares. */
+export interface ConfigurationInitContextBase {
+  logger: ActionLogger;
+  customer?: CustomerAttributes;
+  instance?: InstanceAttributes;
+  /** Keyed by the author's names in `configuration.connections`; unresolved connections are absent. */
+  connections: Record<string, Connection>;
   /**
-   * The values an instance configured under `configPages`, for migrating into
-   * `schema`. Connections appear here under their page keys as well as in
-   * `connections` under the author's.
+   * The values an instance configured under `configPages`, keyed by page key,
+   * and also folded onto `configuration` before a first deploy. Connections
+   * appear here as well as in `connections` under the author's names.
    */
   configVars: Record<string, unknown>;
-};
+}
+
+/**
+ * One arm per key in the finished map, with the `configPages` key reported as
+ * the `null` etag and its value widened by `undefined`, since an instance that
+ * was never configured reaches `init` under that same etag with nothing to read.
+ */
+export type ETagArms<TMap extends ETagSchemas> = {
+  [Key in keyof TMap & string]: Key extends ConfigPagesKey
+    ? { configurationEtag: null; configuration: StoredConfigurationValue<TMap[Key]> | undefined }
+    : { configurationEtag: Key; configuration: StoredConfigurationValue<TMap[Key]> };
+}[keyof TMap & string];
+
+/**
+ * What `init` receives. Testing `configurationEtag` narrows `configuration` to
+ * the schema that etag was written under:
+ *
+ * - `null`, before a first deploy: the `configPagesSchema` shape, or `undefined`
+ *   when there was nothing to migrate.
+ * - a declared etag: its schema in `eTagSchemas`.
+ * - the current `eTag`: `schema`.
+ * - an etag nobody declared: `unknown`.
+ */
+export type ConfigurationInitContext<
+  TSchema extends SchemaInput = SchemaInput,
+  TETag extends string = string,
+  TETagsSchema extends ETagSchemas = ETagSchemas,
+  TConfigPagesSchema extends SchemaInput = never,
+> = ConfigurationInitContextBase &
+  (
+    | ETagArms<ETagSchemaMap<TSchema, TETag, TETagsSchema, TConfigPagesSchema>>
+    | { configurationEtag: UnrecognizedEtag; configuration: unknown }
+  );
 
 /**
  * Seeds the configuration on first load; migrates it after an ETag change.
@@ -77,9 +174,33 @@ export type ConfigurationInitContext = ConfigurationContext<DeepReadonly<unknown
  * own shape rather than the configuration value, and a host may run this to
  * preview a migration and discard it.
  */
-export type ConfigurationInit<TResult = unknown> = (
-  context: ConfigurationInitContext,
+export type ConfigurationInit<
+  TResult = unknown,
+  TSchema extends SchemaInput = SchemaInput,
+  TETag extends string = string,
+  TETagsSchema extends ETagSchemas = ETagSchemas,
+  TConfigPagesSchema extends SchemaInput = never,
+> = (
+  context: ConfigurationInitContext<TSchema, TETag, TETagsSchema, TConfigPagesSchema>,
 ) => Promise<TResult>;
+
+/**
+ * An `init` of any schemas, for the conversion layer, which only moves the
+ * context through. Instantiating `ConfigurationInit` at its defaults instead
+ * would map `ConfigurationValue` over every schema `SchemaInput` admits.
+ */
+export type AnyConfigurationInit = (
+  context: ConfigurationInitContextBase & {
+    configurationEtag: string | null;
+    configuration: unknown;
+  },
+) => Promise<unknown>;
+
+/** An integration configuration of any schemas, for the conversion layer. */
+export interface AnyIntegrationConfiguration
+  extends Omit<IntegrationConfiguration, "init" | "eTagSchemas" | "configPagesSchema"> {
+  init?: AnyConfigurationInit;
+}
 
 export type DeepReadonly<T> = T extends (infer TElement)[]
   ? ReadonlyArray<DeepReadonly<TElement>>
@@ -172,6 +293,9 @@ export interface ServerFunction<
 export interface IntegrationConfiguration<
   TSchema extends SchemaInput = SchemaInput,
   TInitResult = unknown,
+  TETag extends string = string,
+  TETagsSchema extends ETagSchemas = ETagSchemas,
+  TConfigPagesSchema extends SchemaInput = never,
 > {
   /** Schema of the value the host saves — zod or a JSON Schema literal. */
   schema: TSchema;
@@ -179,11 +303,23 @@ export interface IntegrationConfiguration<
    * Version marker for `schema`, compared for equality only. Required by the
    * platform: its YAML declares `eTag: str()` and the column is non-null.
    */
-  eTag: string;
+  eTag: TETag;
+  /**
+   * Schemas a stored value may still be in, keyed by the etag it was written
+   * under, so `init` can narrow by testing `configurationEtag`. Never published,
+   * and the current `eTag` need not appear — `schema` covers it.
+   */
+  eTagSchemas?: TETagsSchema;
+  /**
+   * The shape of an instance's `configPages` values, for an integration moving
+   * off a headed configuration. Narrows `configuration` on the `null` etag arm,
+   * where those values are folded in. Never published.
+   */
+  configPagesSchema?: TConfigPagesSchema;
   /** Rendering hints, forwarded to the host verbatim. */
   uiSchema?: UiSchema;
   /** Seeds the configuration on first load; migrates it after an ETag change. */
-  init?: ConfigurationInit<TInitResult>;
+  init?: ConfigurationInit<TInitResult, TSchema, TETag, TETagsSchema, TConfigPagesSchema>;
   /** Keyed by the name `init` and a flow read each connection under. */
   connections?: Record<string, ConfigurationConnection>;
   /** Invocable by a host against a deployed instance while configuring it. */
