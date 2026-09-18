@@ -23,6 +23,7 @@ import type {
   ComponentManifest,
   ConfigPage,
   ConfigurationConnection,
+  ConfigurationInitContext,
   ConfigurationValue,
   ConfigVarResultCollection,
   ConnectionConfigVar,
@@ -33,6 +34,7 @@ import type {
   DeclaredConnectionKeys,
   DefaultConnectionDefinition,
   DynamicObjectInputField,
+  ETagSchemas,
   Flow,
   InputFieldDefinition,
   Inputs,
@@ -50,6 +52,7 @@ import type {
   TriggerDefinition,
   TriggerPayload,
   TriggerResult,
+  UiSchema,
   UserActivatedConnectionConfigVar,
   UserLevelConfigPage,
 } from "./types";
@@ -314,43 +317,72 @@ export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T 
  * reference one on a published component. Each is read under the name it is
  * given here.
  *
- * @param definition The schema and eTag, plus optional `uiSchema`, `init`,
- *   and `connections`.
+ * `eTagSchemas` records the shapes a stored value may still be in, so testing
+ * `configurationEtag` inside `init` narrows `configuration` to the schema that
+ * etag was written under. `configPagesSchema` does the same for the `null` etag,
+ * where an instance's `configPages` values are folded onto `configuration`.
+ *
+ * @param definition The schema and eTag, plus optional `eTagSchemas`,
+ *   `configPagesSchema`, `uiSchema`, `init`, and `connections`.
  * @returns The definition, for use as an integration's `configuration`.
  * @example
  * import { z } from "zod";
  * import { configuration } from "@prismatic-io/spectral";
  *
  * const config = configuration({
- *   schema: z.object({
- *     mappings: z.array(z.object({ source: z.string(), destination: z.string() })),
- *   }),
- *   uiSchema: {
- *     type: "VerticalLayout",
- *     elements: [{ type: "Control", scope: "#/properties/mappings" }],
+ *   schema: z.object({ objectName: z.string() }),
+ *   eTag: "config-v2",
+ *   eTagSchemas: { "config-v1": z.object({ objectKey: z.string() }) },
+ *   configPagesSchema: z.object({ objectKey: z.string().optional() }),
+ *   init: async (context) => {
+ *     if (context.configurationEtag === null) {
+ *       return { migratedValues: { objectName: context.configuration?.objectKey ?? "" } };
+ *     }
+ *     if (context.configurationEtag === "config-v1") {
+ *       return { migratedValues: { objectName: context.configuration.objectKey } };
+ *     }
+ *     if (context.configurationEtag === "config-v2") {
+ *       return { migratedValues: context.configuration };
+ *     }
+ *     return { migratedValues: { objectName: "" } };
  *   },
- *   eTag: "config-v1",
- *   init: async ({ configuration: current, configurationEtag }) => ({
- *     migratedValues: migrate(current, configurationEtag),
- *   }),
  * });
  */
 export const configuration = <
   const TSchema extends SchemaInput,
+  const TETag extends string,
   const TConnections extends Record<string, ConfigurationConnection>,
   const TServerFunctions extends Record<string, AnyServerFunction>,
+  // biome-ignore lint/complexity/noBannedTypes: necessary for the fallback case
+  TETagsSchema extends ETagSchemas = {},
+  TConfigPagesSchema extends SchemaInput = never,
   TInitResult = unknown,
 >(
-  definition: IntegrationConfiguration<TSchema, TInitResult> & {
+  definition: {
+    schema: TSchema;
+    eTag: TETag;
+    eTagSchemas?: TETagsSchema;
+    configPagesSchema?: TConfigPagesSchema;
+    uiSchema?: UiSchema;
     connections?: TConnections;
     serverFunctions?: TServerFunctions;
+    init?: (
+      context: NoInfer<ConfigurationInitContext<TSchema, TETag, TETagsSchema, TConfigPagesSchema>>,
+    ) => Promise<TInitResult>;
   } & (DeclaredConnectionKeys<TServerFunctions> extends Extract<keyof TConnections, string>
-      ? unknown
-      : {
-          /** A server function names a connection `configuration.connections` does not declare. */
-          connections: TConnections & Record<DeclaredConnectionKeys<TServerFunctions>, unknown>;
-        }),
-): IntegrationConfiguration<TSchema, TInitResult> => definition;
+    ? unknown
+    : {
+        /** A server function names a connection `configuration.connections` does not declare. */
+        connections: TConnections & Record<DeclaredConnectionKeys<TServerFunctions>, unknown>;
+      }),
+): IntegrationConfiguration<TSchema, TInitResult, TETag, TETagsSchema, TConfigPagesSchema> =>
+  definition as unknown as IntegrationConfiguration<
+    TSchema,
+    TInitResult,
+    TETag,
+    TETagsSchema,
+    TConfigPagesSchema
+  >;
 
 /**
  * Defines a function a host may invoke against a deployed instance while

@@ -1,10 +1,10 @@
 import type { ComponentRegistry } from "../types/ComponentRegistry";
 import type { ConfigVar } from "../types/ConfigVars";
 import type {
+  AnyConfigurationInit,
+  AnyIntegrationConfiguration,
   AnyServerFunction,
   ConfigurationConnection,
-  ConfigurationInit,
-  IntegrationConfiguration,
   JsonSchema,
   UiSchema,
 } from "../types/IntegrationConfiguration";
@@ -77,7 +77,7 @@ export interface ConvertedIntegrationConfiguration {
 }
 
 export const convertIntegrationConfiguration = (
-  configuration: IntegrationConfiguration,
+  configuration: AnyIntegrationConfiguration,
   componentRegistry: ComponentRegistry = {},
 ): ConvertedIntegrationConfiguration => {
   const { schema, uiSchema, eTag, init, connections = {}, serverFunctions = {} } = configuration;
@@ -159,26 +159,52 @@ const readConfigurationEtag = (context: unknown): string | null | undefined =>
 const readConfigVars = (context: unknown): Record<string, unknown> =>
   (context as { configVars?: Record<string, unknown> } | undefined)?.configVars ?? {};
 
+const isEmpty = (value: unknown): boolean =>
+  value === undefined ||
+  value === null ||
+  (typeof value === "object" && Object.keys(value as object).length === 0);
+
+/**
+ * What `init` reads as `configuration` before a first deploy: the instance's
+ * config vars folded in, with any stored value over them.
+ *
+ * The runner sends `request.configuration || {}`, so a never-configured instance
+ * arrives as `{}`; it is reported as `undefined`, which is the only thing
+ * separating it from one migrating off `configPages` under the same null etag.
+ */
+const readInitialConfiguration = (
+  configuration: unknown,
+  configVars: Record<string, unknown>,
+): unknown => {
+  const storedIsEmpty = isEmpty(configuration);
+
+  if (Object.keys(configVars).length === 0) {
+    return storedIsEmpty ? undefined : configuration;
+  }
+
+  return storedIsEmpty
+    ? { ...configVars }
+    : { ...configVars, ...(configuration as Record<string, unknown>) };
+};
+
 /**
  * Wraps `init` for the component's `configuration` export, mapping the platform
  * context onto the author's. The return passes through untouched: the platform
  * neither trims it to the schema nor saves it.
  */
 export const convertConfigurationInit =
-  (init: ConfigurationInit, connectionNames: ConnectionNameMap = noConnections) =>
+  (init: AnyConfigurationInit, connectionNames: ConnectionNameMap = noConnections) =>
   async (context: unknown): Promise<unknown> => {
-    const authorContext = createConfigurationContext(
-      context,
-      connectionNames,
-      readConfiguration(context),
-    );
+    const configurationEtag = readConfigurationEtag(context) ?? null;
+    const configVars = readConfigVars(context);
+    const configuration =
+      configurationEtag === null
+        ? readInitialConfiguration(readConfiguration(context), configVars)
+        : readConfiguration(context);
 
-    return init(
-      Object.assign(authorContext, {
-        configurationEtag: readConfigurationEtag(context) ?? null,
-        configVars: readConfigVars(context),
-      }) as never,
-    );
+    const authorContext = createConfigurationContext(context, connectionNames, configuration);
+
+    return init(Object.assign(authorContext, { configurationEtag, configVars }) as never);
   };
 
 /**
