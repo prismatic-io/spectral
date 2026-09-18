@@ -51,6 +51,7 @@ import {
   type TriggerReference,
   type UserLevelConfigPages,
 } from "../types";
+import type { AnyIntegrationConfiguration } from "../types/IntegrationConfiguration";
 import type {
   ActionContext,
   ActionPerformFunction,
@@ -178,7 +179,11 @@ export const convertIntegration = <
   // Adds no config pages: only the author's connections join the declared
   // shape, because those really are config vars.
   const integrationConfiguration = definition.configuration
-    ? convertIntegrationConfiguration(definition.configuration, definition.componentRegistry)
+    ? // The narrowed `init` context is authoring-time only.
+      convertIntegrationConfiguration(
+        definition.configuration as unknown as AnyIntegrationConfiguration,
+        definition.componentRegistry,
+      )
     : undefined;
 
   if (integrationConfiguration) {
