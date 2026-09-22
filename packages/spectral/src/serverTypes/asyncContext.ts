@@ -9,8 +9,28 @@ import type { ActionContext } from "../types/ActionPerformFunction";
 
 // Only import async_hooks in Node.js environments
 const asyncHooks = typeof window === "undefined" ? require("node:async_hooks") : null;
-const actionContextStorage = asyncHooks ? new asyncHooks.AsyncLocalStorage() : null;
-const integrationContextStorage = asyncHooks ? new asyncHooks.AsyncLocalStorage() : null;
+
+/**
+ * A bundler (e.g. a component's own webpack build) can end up shipping its
+ * own separate copy of this module alongside the CNI's.
+ *
+ * `Symbol.for` is a process-wide registry, so keying storage
+ * off it here — rather than a plain module-level `const` — makes every copy
+ * of spectral in a given process share the same underlying storage, however
+ * many times it's been bundled.
+ */
+const getSharedStorage = (key: string): any => {
+  if (!asyncHooks) {
+    return null;
+  }
+  const registryKey = Symbol.for(`@prismatic-io/spectral/${key}`);
+  const registry = globalThis as unknown as Record<symbol, any>;
+  registry[registryKey] ??= new asyncHooks.AsyncLocalStorage();
+  return registry[registryKey];
+};
+
+const actionContextStorage = getSharedStorage("actionContextStorage");
+const integrationContextStorage = getSharedStorage("integrationContextStorage");
 
 export function runWithContext<T>(
   context: ActionContext,
