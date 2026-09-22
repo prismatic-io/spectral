@@ -51,7 +51,7 @@
     },
     "packages/spectral": {
       "name": "@prismatic-io/spectral",
-      "version": "10.34.0",
+      "version": "10.34.1",
       "bin": {
         "component-manifest": "bin/component-manifest.js",
         "cni-component-manifest": "bin/cni-component-manifest.js",
@@ -65,6 +65,7 @@
         "jest-mock": "^30.5.2",
         "json-schema-to-ts": "^3.1.1",
         "lodash": "^4.18.1",
+        "mime-types": "^2.1.35",
         "object-sizeof": "^2.6.4",
         "prettier": "^3.9.8",
         "safe-stable-stringify": "^2.5.0",
@@ -77,6 +78,7 @@
         "@fast-check/vitest": "^0.5.0",
         "@types/ejs": "3.1.5",
         "@types/lodash": "^4.17.25",
+        "@types/mime-types": "^2.1.4",
         "@types/node": "^26.6.2",
         "@types/prettier": "^3.0.0",
         "@types/sax": "^1.2.7",
@@ -329,6 +331,8 @@
     "@types/json5": ["@types/json5@0.0.29", "", {}, "sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ=="],
 
     "@types/lodash": ["@types/lodash@4.17.25", "", {}, "sha512-+K1NIO8I+F9/wNulfVvu23QYd0Pe9/OCqRrim4NoYIf1VoEDL90Ve4ClzpyqBLc7NpGGWRvYNCKZ1BE/Jpf8dQ=="],
+
+    "@types/mime-types": ["@types/mime-types@2.1.4", "", {}, "sha512-lfU4b34HOri+kAY5UheuFMWPDOI+OPceBSHZKp69gEyTL/mmJ4cnU6Y/rlme3UL3GyOn6Y42hyIEw0/q8sWx5w=="],
 
     "@types/minimist": ["@types/minimist@1.2.5", "", {}, "sha512-hov8bUuiLiyFPGyFPE1lwWhmzYbirOXQNNo40+y3zow8aFVTeyn3VWL0VFFfdNddA8S4Vf0Tc062rzyNr7Paag=="],
 
