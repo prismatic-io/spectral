@@ -8,8 +8,10 @@
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import { fn, spyOn } from "jest-mock";
 import type {
+  Action,
   ActionLogger,
   ActionLoggerFunction,
+  AnyConvertedAction,
   Component,
   ConnectionValue,
   DataSourceContext,
@@ -658,13 +660,18 @@ export class ComponentTestHarness<
     TAllowsBranching,
     TPayload
   >,
+  // The 7th argument is the loose `AnyConvertedAction` bound rather than
+  // `Record<string, Action>`, so a component whose actions carry their input
+  // types satisfies the constraint. `TComponent` is what actually carries those
+  // types through to `harness.component`.
   TComponent extends Component<
     TInputs,
     TActionInputs,
     TConfigVars,
     TPayload,
     TAllowsBranching,
-    TResult
+    TResult,
+    Record<string, AnyConvertedAction>
   > = Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
 > {
   component: TComponent;
@@ -770,7 +777,10 @@ export class ComponentTestHarness<
     params?: Record<string, unknown>,
     context?: Partial<ActionContext<TConfigVars>>,
   ): Promise<ServerActionPerformReturn> {
-    const action = this.component.actions[key];
+    // `key` is an untyped runtime string, so this dispatch is erased by
+    // construction. Read the entry back through the erased `Action` shape;
+    // per-key typing of the harness would be a separate change.
+    const action = this.component.actions[key] as unknown as Action;
     return action.perform(createActionContext(context), this.buildParams(action.inputs, params));
   }
 
@@ -830,13 +840,18 @@ export const createHarness = <
     TAllowsBranching,
     TPayload
   >,
+  // The 7th argument is the loose `AnyConvertedAction` bound rather than
+  // `Record<string, Action>`, so a component whose actions carry their input
+  // types satisfies the constraint. `TComponent` is what actually carries those
+  // types through to `harness.component`.
   TComponent extends Component<
     TInputs,
     TActionInputs,
     TConfigVars,
     TPayload,
     TAllowsBranching,
-    TResult
+    TResult,
+    Record<string, AnyConvertedAction>
   > = Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
 >(
   component: TComponent,

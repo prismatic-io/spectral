@@ -4,6 +4,7 @@
  * that can run on the Prismatic platform.
  */
 
+import type { ConvertedAction, Component as ServerComponent } from "./serverTypes";
 import { runWithIntegrationContext } from "./serverTypes";
 import {
   defaultBatchResolver,
@@ -16,6 +17,7 @@ import { convertIntegration } from "./serverTypes/convertIntegration";
 import type {
   ActionDefinition,
   ActionPerformReturn,
+  AnyActionDefinition,
   BatchTrigger,
   BatchTriggerDefinition,
   ComponentDefinition,
@@ -590,9 +592,30 @@ export const componentManifest = <T extends ComponentManifest>(definition: T): T
  *   connections,
  * });
  */
-export const component = <TPublic extends boolean, TKey extends string>(
-  definition: ComponentDefinition<TPublic, TKey>,
-): ReturnType<typeof convertComponent> => convertComponent(definition);
+export const component = <
+  TPublic extends boolean,
+  TKey extends string,
+  TActions extends Record<string, AnyActionDefinition> = Record<string, AnyActionDefinition>,
+>(
+  definition: ComponentDefinition<TPublic, TKey, TActions>,
+): ServerComponent<
+  Inputs,
+  Inputs,
+  ConfigVarResultCollection,
+  TriggerPayload,
+  boolean,
+  TriggerResult<boolean, TriggerPayload>,
+  { [K in keyof TActions]: ConvertedAction<TActions[K]> }
+> =>
+  convertComponent(definition) as ServerComponent<
+    Inputs,
+    Inputs,
+    ConfigVarResultCollection,
+    TriggerPayload,
+    boolean,
+    TriggerResult<boolean, TriggerPayload>,
+    { [K in keyof TActions]: ConvertedAction<TActions[K]> }
+  >;
 
 /**
  * This function creates an action object that can be referenced
