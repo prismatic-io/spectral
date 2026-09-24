@@ -36,6 +36,7 @@ import {
   isJsonFormDataSourceConfigVar,
   isOrgOrCustomerActivatedConnection,
   isScheduleConfigVar,
+  isScheduleDataSourceConfigVar,
   isUserScopedConnectionConfigVar,
   type KeyValuePair,
   type OnPremiseConnectionConfigTypeEnum,
@@ -1208,13 +1209,13 @@ export const convertConfigVar = (
     ]),
   ) as ServerDefaultRequiredConfigVariable;
 
-  if (isScheduleConfigVar(configVar)) {
+  if (isScheduleConfigVar(configVar) || isScheduleDataSourceConfigVar(configVar)) {
     // Mirror the low-code options: callers may supply `scheduleType`
     // explicitly ("none" / "minute" / "hour" / "day" / "week" / "custom").
-    // Otherwise infer from defaultValue: a non-empty string is treated as a
-    // custom CRON expression; missing/empty means "never".
     if (configVar.scheduleType) {
       result.scheduleType = configVar.scheduleType;
+    } else if (isScheduleDataSourceConfigVar(configVar)) {
+      result.scheduleType = "custom";
     } else if (typeof defaultValue === "string" && defaultValue.length > 0) {
       result.scheduleType = "custom";
     } else {
