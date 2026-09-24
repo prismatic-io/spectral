@@ -19,7 +19,7 @@ const isTextBuffer = (data: unknown, contentType: unknown): data is Buffer =>
  * `ConnectionError`s and `UserError`s are let through unchanged so the platform's
  * behavior there remains unchanged.
  */
-export const executeAction = async (
+export const performActionFunctionExecutor = async (
   performFn: PerformFn,
   context: ActionContext,
   params: Record<string, unknown>,
