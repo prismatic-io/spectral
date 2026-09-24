@@ -1,6 +1,6 @@
 import type { CollectionType } from "../types/ConfigVars";
 import type { Action, AnyConvertedAction, Component, Input } from ".";
-import { executeAction } from "./actionExecutor";
+import { performActionFunctionExecutor } from "./actionExecutor";
 import { requireContext } from "./asyncContext";
 import { convertInputValue } from "./convertIntegration";
 
@@ -27,7 +27,7 @@ export const createCallableAction = (action: Action): CallableAction => {
   const callable = async (values: Record<string, unknown> = {}) => {
     const context = requireContext();
     const filledValues = fillDefaults(action.inputs, values);
-    return executeAction(action.perform, context, filledValues);
+    return performActionFunctionExecutor(action.perform, context, filledValues);
   };
 
   return Object.assign(callable, action);
