@@ -4,6 +4,7 @@ import {
   configPage,
   configVar,
   customerActivatedConnection,
+  dataSourceConfigVar,
   flow,
   integration,
   organizationActivatedConnection,
@@ -1041,6 +1042,41 @@ describe("convertConfigVar", () => {
       );
 
       expect("timeZone" in result && result.timeZone).toBe("America/Chicago");
+    });
+
+    it("should default to scheduleType 'custom' for a data-source-driven schedule config var", () => {
+      const scheduleDataSourceConfigVar = dataSourceConfigVar({
+        stableKey: "test-schedule-data-source",
+        dataSourceType: "schedule",
+        perform: async () => ({ result: { value: "*/5 * * * *" } }),
+      });
+
+      const result = convertConfigVar(
+        "TestScheduleDataSource",
+        scheduleDataSourceConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+
+      expect("scheduleType" in result && result.scheduleType).toBe("custom");
+    });
+
+    it("should respect a user-specified scheduleType on a data-source-driven schedule config var", () => {
+      const scheduleDataSourceConfigVar = dataSourceConfigVar({
+        stableKey: "test-schedule-data-source",
+        dataSourceType: "schedule",
+        scheduleType: "hour",
+        perform: async () => ({ result: { value: "*/5 * * * *" } }),
+      });
+
+      const result = convertConfigVar(
+        "TestScheduleDataSource",
+        scheduleDataSourceConfigVar,
+        referenceKey,
+        componentRegistry,
+      );
+
+      expect("scheduleType" in result && result.scheduleType).toBe("hour");
     });
   });
 });

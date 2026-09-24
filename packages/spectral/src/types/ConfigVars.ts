@@ -256,34 +256,40 @@ export type StandardConfigVar =
 
 // Data Source Config Vars
 type BaseDataSourceConfigVar<TDataSourceType extends DataSourceType = DataSourceType> =
-  TDataSourceType extends CollectionDataSourceType
-    ? {
-        dataSourceType: TDataSourceType;
+  TDataSourceType extends Extract<DataSourceType, "schedule">
+    ? BaseConfigVar & {
+        dataSourceType: Extract<DataSourceType, "schedule">;
         collectionType?: CollectionType | undefined;
-      } & BaseConfigVar
-    : TDataSourceType extends Exclude<DataSourceType, CollectionDataSourceType>
-      ? TDataSourceType extends Extract<DataSourceType, "jsonForm">
-        ? BaseConfigVar & {
-            dataSourceType: Extract<DataSourceType, "jsonForm">;
-            collectionType?: undefined;
-            validationMode?: ValidationMode;
-          }
-        : BaseConfigVar & {
-            dataSourceType: TDataSourceType;
-            collectionType?: undefined;
-          }
-      :
-          | ({
-              dataSourceType: Extract<CollectionDataSourceType, TDataSourceType>;
-              collectionType: CollectionType;
-            } & BaseConfigVar)
-          | (BaseConfigVar & {
-              dataSourceType: Extract<
-                Exclude<DataSourceType, CollectionDataSourceType>,
-                TDataSourceType
-              >;
+        scheduleType?: ScheduleType;
+      }
+    : TDataSourceType extends CollectionDataSourceType
+      ? {
+          dataSourceType: TDataSourceType;
+          collectionType?: CollectionType | undefined;
+        } & BaseConfigVar
+      : TDataSourceType extends Exclude<DataSourceType, CollectionDataSourceType>
+        ? TDataSourceType extends Extract<DataSourceType, "jsonForm">
+          ? BaseConfigVar & {
+              dataSourceType: Extract<DataSourceType, "jsonForm">;
               collectionType?: undefined;
-            });
+              validationMode?: ValidationMode;
+            }
+          : BaseConfigVar & {
+              dataSourceType: TDataSourceType;
+              collectionType?: undefined;
+            }
+        :
+            | ({
+                dataSourceType: Extract<CollectionDataSourceType, TDataSourceType>;
+                collectionType: CollectionType;
+              } & BaseConfigVar)
+            | (BaseConfigVar & {
+                dataSourceType: Extract<
+                  Exclude<DataSourceType, CollectionDataSourceType>,
+                  TDataSourceType
+                >;
+                collectionType?: undefined;
+              });
 
 type DataSourceDefinitionConfigVar = DataSourceType extends infer TDataSourceType
   ? TDataSourceType extends DataSourceType
@@ -506,6 +512,11 @@ export const isJsonFormDataSourceConfigVar = (
   cv: ConfigVar,
 ): cv is JsonFormDataSourceDefinitionConfigVar =>
   "dataSourceType" in cv && cv.dataSourceType === "jsonForm";
+
+export const isScheduleDataSourceConfigVar = (
+  cv: ConfigVar,
+): cv is DataSourceDefinitionConfigVar & { dataSourceType: "schedule" } =>
+  "dataSourceType" in cv && cv.dataSourceType === "schedule";
 
 export const isDataSourceDefinitionConfigVar = (
   cv: ConfigVar,
