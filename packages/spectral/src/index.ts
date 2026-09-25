@@ -16,17 +16,21 @@ import { convertIntegration } from "./serverTypes/convertIntegration";
 import type {
   ActionDefinition,
   ActionPerformReturn,
+  AnyServerFunction,
   BatchTrigger,
   BatchTriggerDefinition,
   ComponentDefinition,
   ComponentManifest,
   ConfigPage,
+  ConfigurationConnection,
+  ConfigurationValue,
   ConfigVarResultCollection,
   ConnectionConfigVar,
   CustomerActivatedConnectionConfigVar,
   DataSourceConfigVar,
   DataSourceDefinition,
   DataSourceType,
+  DeclaredConnectionKeys,
   DefaultConnectionDefinition,
   DynamicObjectInputField,
   Flow,
@@ -40,6 +44,7 @@ import type {
   OrganizationActivatedConnectionConfigVar,
   OutputSchema,
   SchemaInput,
+  ServerFunction,
   StandardConfigVar,
   StructuredObjectInputField,
   TriggerDefinition,
@@ -330,9 +335,58 @@ export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T 
  *   }),
  * });
  */
-export const configuration = <const TSchema extends SchemaInput, TInitResult = unknown>(
-  definition: IntegrationConfiguration<TSchema, TInitResult>,
+export const configuration = <
+  const TSchema extends SchemaInput,
+  const TConnections extends Record<string, ConfigurationConnection>,
+  const TServerFunctions extends Record<string, AnyServerFunction>,
+  TInitResult = unknown,
+>(
+  definition: IntegrationConfiguration<TSchema, TInitResult> & {
+    connections?: TConnections;
+    serverFunctions?: TServerFunctions;
+  } & (DeclaredConnectionKeys<TServerFunctions> extends Extract<keyof TConnections, string>
+      ? unknown
+      : {
+          /** A server function names a connection `configuration.connections` does not declare. */
+          connections: TConnections & Record<DeclaredConnectionKeys<TServerFunctions>, unknown>;
+        }),
 ): IntegrationConfiguration<TSchema, TInitResult> => definition;
+
+/**
+ * Defines a function a host may invoke against a deployed instance while
+ * configuring it, to fetch the choices a person picks from.
+ *
+ * `perform` receives `logger`, `customer`, `instance`, and `connections` keyed
+ * by the names in `configuration.connections`. The configuration itself is not
+ * in scope: a host calls this with values a person is still editing, so those
+ * arrive as `params`.
+ *
+ * The platform validates `params` against `inputSchema` before invoking.
+ * `outputSchema` is published for hosts to read and is never enforced.
+ *
+ * @param definition The input and output schemas and a `perform`, plus an
+ *   optional `label` and `description`.
+ * @returns The definition, for use in an integration configuration's
+ *   `serverFunctions`.
+ * @example
+ * import { z } from "zod";
+ * import { serverFunction } from "@prismatic-io/spectral";
+ *
+ * const searchChannels = serverFunction({
+ *   inputSchema: z.object({ search: z.string() }),
+ *   outputSchema: z.array(z.object({ id: z.string(), name: z.string() })),
+ *   perform: async ({ connections }, { search }) =>
+ *     listChannels(connections.slack, search),
+ * });
+ */
+export const serverFunction = <
+  const TInputSchema extends SchemaInput,
+  const TOutputSchema extends SchemaInput,
+  const TConnectionKey extends string,
+  TResult extends ConfigurationValue<TOutputSchema>,
+>(
+  definition: ServerFunction<TInputSchema, TOutputSchema, TConnectionKey, TResult>,
+): ServerFunction<TInputSchema, TOutputSchema, TConnectionKey, TResult> => definition;
 
 /**
  * This function creates a config page each person configures for themselves.
