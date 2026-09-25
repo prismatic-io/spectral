@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import {
-  type ConfigurationInitContext,
   configuration,
   connectionConfigVar,
   customerActivatedConnection,
@@ -51,30 +50,18 @@ export const literalSchema = {
 export const CONFIGURATION_E_TAG = "config-v2";
 export const PREVIOUS_CONFIGURATION_E_TAG = "config-v1";
 
-/**
- * Seeds on a first run and migrates a stale one, branching on the etag the
- * instance has deployed. Returns the author's own shape, not the configuration
- * value.
- */
-export const configurationInit = async ({
-  configuration: previousValues,
-  configurationEtag,
-}: ConfigurationInitContext) => {
-  if (!previousValues) {
-    return { previousValues: undefined, migratedValues: { mappings: [] } };
-  }
+/** A v1 value stored its rows under `pairs`; v2 calls them `mappings`. */
+export const previousConfigurationSchema = z.object({
+  pairs: z.array(z.object({ source: z.string(), destination: z.string() })),
+});
 
-  // A v1 value stored its rows under `pairs`; v2 calls them `mappings`.
-  const stale = previousValues as
-    | { readonly pairs?: readonly unknown[]; readonly mappings?: readonly unknown[] }
-    | undefined;
-  const migratedValues =
-    configurationEtag === CONFIGURATION_E_TAG
-      ? stale
-      : { mappings: stale?.pairs ?? stale?.mappings ?? [] };
+/** The shape an instance's `configPages` values arrive in, before a first deploy. */
+export const configPagesSchema = z.object({
+  pairs: z.array(z.object({ source: z.string(), destination: z.string() })).optional(),
+});
 
-  // The return is the author's own shape, so it can carry more than the value.
-  return { previousValues, migratedValues, configurationEtag };
+export const eTagSchemas = {
+  [PREVIOUS_CONFIGURATION_E_TAG]: previousConfigurationSchema,
 };
 
 const syncFlow = flow({
@@ -126,7 +113,42 @@ export const integrationConfigurationDefinition = {
     schema: configurationSchema,
     uiSchema: configurationUiSchema,
     eTag: CONFIGURATION_E_TAG,
-    init: configurationInit,
+    eTagSchemas,
+    configPagesSchema,
+    /**
+     * Seeds on a first run and migrates a stale one, branching on the etag the
+     * instance has deployed. Returns the author's own shape, not the
+     * configuration value.
+     *
+     * Every branch reads `configuration` without a cast: the etag narrows it to
+     * the schema it was written under.
+     */
+    init: async ({ configuration: previousValues, configurationEtag }) => {
+      if (configurationEtag === null) {
+        // Nothing deployed: either a new instance, or config vars to migrate.
+        return {
+          previousValues,
+          migratedValues: { mappings: previousValues?.pairs ?? [] },
+          configurationEtag,
+        };
+      }
+
+      if (configurationEtag === PREVIOUS_CONFIGURATION_E_TAG) {
+        return {
+          previousValues,
+          migratedValues: { mappings: previousValues.pairs },
+          configurationEtag,
+        };
+      }
+
+      if (configurationEtag === CONFIGURATION_E_TAG) {
+        // Already the current shape.
+        return { previousValues, migratedValues: previousValues, configurationEtag };
+      }
+
+      // An etag nobody declared.
+      return { previousValues, migratedValues: { mappings: [] }, configurationEtag };
+    },
     connections: {
       orgConnection: organizationActivatedConnection({
         stableKey: ORG_CONNECTION_STABLE_KEY,

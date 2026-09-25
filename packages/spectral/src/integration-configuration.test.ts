@@ -211,6 +211,66 @@ describe("init rides the component's configuration export, not a data source", (
     await expect(wrapped({ configuration: {} }, {})).resolves.toEqual(authorShape);
   });
 
+  it("reports an empty stored configuration as undefined before a first deploy", async () => {
+    // The runner sends `request.configuration || {}`, so a never-configured
+    // instance arrives as `{}`. Only `undefined` distinguishes it from one
+    // migrating off `configPages`, which reaches `init` under the same etag.
+    const wrapped = convertConfigurationInit(async ({ configuration }) => ({
+      wasUndefined: configuration === undefined,
+    }));
+
+    const result = (await wrapped({ configuration: {}, configurationEtag: null })) as {
+      wasUndefined: boolean;
+    };
+
+    expect(result.wasUndefined).toBe(true);
+  });
+
+  it("folds config vars onto the configuration before a first deploy", async () => {
+    // An author migrating off a headed configuration reads one place, not two.
+    const wrapped = convertConfigurationInit(async ({ configuration }) => ({
+      seen: configuration,
+    }));
+
+    const result = (await wrapped({
+      configuration: {},
+      configurationEtag: null,
+      configVars: { objectKey: "Contact", region: "us-east" },
+    })) as { seen: Record<string, unknown> };
+
+    expect(result.seen).toEqual({ objectKey: "Contact", region: "us-east" });
+  });
+
+  it("keeps a stored value over a config var of the same name", async () => {
+    // Only a value the platform kept is authoritative.
+    const wrapped = convertConfigurationInit(async ({ configuration }) => ({
+      seen: configuration,
+    }));
+
+    const result = (await wrapped({
+      configuration: { objectKey: "Stored" },
+      configurationEtag: null,
+      configVars: { objectKey: "FromConfigVars", region: "us-east" },
+    })) as { seen: Record<string, unknown> };
+
+    expect(result.seen).toEqual({ objectKey: "Stored", region: "us-east" });
+  });
+
+  it("leaves the configuration alone once an etag is deployed", async () => {
+    // Config vars are folded in only before a first deploy.
+    const wrapped = convertConfigurationInit(async ({ configuration }) => ({
+      seen: configuration,
+    }));
+
+    const result = (await wrapped({
+      configuration: { mappings: [] },
+      configurationEtag: PREVIOUS_CONFIGURATION_E_TAG,
+      configVars: { objectKey: "Contact" },
+    })) as { seen: Record<string, unknown> };
+
+    expect(result.seen).toEqual({ mappings: [] });
+  });
+
   it("passes undefined before a first save so an author can distinguish seeding", async () => {
     const wrapped = convertConfigurationInit(async ({ configuration }) => ({
       wasUndefined: configuration === undefined,
