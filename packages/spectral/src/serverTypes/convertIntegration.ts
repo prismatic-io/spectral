@@ -46,6 +46,7 @@ import {
   type StandardQueueConfig,
   type StandardTriggerType,
   type TriggerEventFunctionReturn,
+  type TriggerOptionChoice,
   type TriggerPerformFunction,
   type TriggerResult as TriggerPerformResult,
   type TriggerReference,
@@ -54,6 +55,7 @@ import {
 import type {
   ActionContext,
   ActionPerformFunction,
+  AnyTrigger,
   PublishingMetadata,
   Action as ServerAction,
   ActionPerformFunction as ServerActionPerformFunction,
@@ -68,6 +70,7 @@ import type {
 } from ".";
 import { runWithContext } from "./asyncContext";
 import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./batching";
+import { isNpmTriggerReference, type NpmTriggerReference } from "./callableTrigger";
 import { type ConnectionNameMap, createConfigurationConnections } from "./configurationContext";
 import { createCNIContext, logDebugResults } from "./context";
 import {
@@ -90,6 +93,14 @@ import {
 } from "./integration";
 import { createCNIComponentRefPerform, createCNIPerform, createCNIPollingPerform } from "./perform";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
+
+/** `NpmTriggerReference` concretized to the real server `Trigger` type used throughout this
+ * file's conversion logic (the author-facing type in `types/` leaves `trigger` as `unknown` to
+ * avoid a `types` → `serverTypes` import cycle). */
+type ConvertedNpmTriggerReference = NpmTriggerReference<AnyTrigger>;
+
+const asNpmTriggerReference = (ref: unknown): ConvertedNpmTriggerReference | undefined =>
+  isNpmTriggerReference(ref) ? (ref as ConvertedNpmTriggerReference) : undefined;
 
 export const CONCURRENCY_LIMIT_MAX = 15;
 export const CONCURRENCY_LIMIT_MIN = 2;
@@ -565,6 +576,79 @@ const convertConfigVarPermissionAndVisibility = ({
   };
 };
 
+const convertReferenceValues = (
+  referenceInputs: Record<string, { collection?: string; default?: unknown }>,
+  values: ComponentReference["values"] | undefined,
+): Record<string, ServerInput> => {
+  return Object.entries(referenceInputs).reduce((result, [key, referenceInput]) => {
+    const isCollection = Boolean(referenceInput.collection);
+    // Retrieve the input value or default to the input's own default value
+
+    const value = values?.[key] ?? {
+      value: isCollection
+        ? referenceInput.default === ""
+          ? []
+          : referenceInput.default
+        : (referenceInput.default ?? ""),
+    };
+
+    const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
+
+    if ("value" in value) {
+      const valueExpr =
+        referenceInput.collection === "keyvaluelist" && value.value instanceof Object
+          ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
+              name: { type: "value", value: k },
+              type: "value",
+              value: JSON.stringify(v),
+            }))
+          : referenceInput.collection === "valuelist" && Array.isArray(value.value)
+            ? value.value.map((v) => ({ type: "value", value: v }))
+            : value.value;
+
+      const formattedValue =
+        type === "complex" || typeof valueExpr === "string" ? valueExpr : JSON.stringify(valueExpr);
+
+      const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
+        convertInputPermissionAndVisibility(
+          pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
+            permissionAndVisibilityType?: PermissionAndVisibilityType;
+            visibleToOrgDeployer?: boolean;
+          },
+        );
+
+      const { writeOnly } = pick(value, ["writeOnly"]) as {
+        writeOnly?: true;
+      };
+
+      if (writeOnly) {
+        meta.writeOnly = writeOnly;
+      }
+
+      return {
+        ...result,
+        [key]: { type: type, value: formattedValue, meta },
+      };
+    }
+
+    if ("configVar" in value) {
+      return {
+        ...result,
+        [key]: { type: "configVar", value: value.configVar },
+      };
+    }
+
+    if ("template" in value) {
+      return {
+        ...result,
+        [key]: { type: "template", value: value.template },
+      };
+    }
+
+    return result;
+  }, {});
+};
+
 const convertComponentReference = (
   componentReference: ComponentReference,
   componentRegistry: ComponentRegistry,
@@ -602,83 +686,24 @@ const convertComponentReference = (
     key: manifestEntry.key ?? componentReference.key,
   };
 
-  const inputs = Object.entries(manifestEntry.inputs).reduce(
-    (result, [key, manifestEntryInput]) => {
-      const isCollection = Boolean(manifestEntryInput.collection);
-      // Retrieve the input value or default to the manifest's default value
-
-      const value = componentReference.values?.[key] ?? {
-        value: isCollection
-          ? manifestEntryInput.default === ""
-            ? []
-            : manifestEntryInput.default
-          : (manifestEntryInput.default ?? ""),
-      };
-
-      const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
-
-      if ("value" in value) {
-        const valueExpr =
-          manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
-            ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
-                name: { type: "value", value: k },
-                type: "value",
-                value: JSON.stringify(v),
-              }))
-            : manifestEntryInput.collection === "valuelist" && Array.isArray(value.value)
-              ? value.value.map((v) => ({ type: "value", value: v }))
-              : value.value;
-
-        const formattedValue =
-          type === "complex" || typeof valueExpr === "string"
-            ? valueExpr
-            : JSON.stringify(valueExpr);
-
-        const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
-          convertInputPermissionAndVisibility(
-            pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-              permissionAndVisibilityType?: PermissionAndVisibilityType;
-              visibleToOrgDeployer?: boolean;
-            },
-          );
-
-        const { writeOnly } = pick(value, ["writeOnly"]) as {
-          writeOnly?: true;
-        };
-
-        if (writeOnly) {
-          meta.writeOnly = writeOnly;
-        }
-
-        return {
-          ...result,
-          [key]: { type: type, value: formattedValue, meta },
-        };
-      }
-
-      if ("configVar" in value) {
-        return {
-          ...result,
-          [key]: { type: "configVar", value: value.configVar },
-        };
-      }
-
-      if ("template" in value) {
-        return {
-          ...result,
-          [key]: { type: "template", value: value.template },
-        };
-      }
-
-      return result;
-    },
-    {},
-  );
-
   return {
     ref,
-    inputs,
+    inputs: convertReferenceValues(manifestEntry.inputs, componentReference.values),
   };
+};
+
+/** The npm-reference counterpart of `convertComponentReference`'s `inputs` — keyed directly off
+ * the referenced trigger's own already-converted `Input[]`, no component registry involved. */
+const convertNpmTriggerReferenceInputs = (
+  npmTriggerReference: ConvertedNpmTriggerReference,
+): Record<string, ServerInput> => {
+  const inputsByKey = Object.fromEntries(
+    npmTriggerReference.trigger.inputs.map((input) => [input.key, input]),
+  );
+  return convertReferenceValues(
+    inputsByKey,
+    npmTriggerReference.values as ComponentReference["values"],
+  );
 };
 
 const convertComponentRegistry = (
@@ -736,6 +761,7 @@ const flowUsesWrapperTrigger = <
 ) => {
   return (
     typeof flow.onTrigger === "function" ||
+    isNpmTriggerReference(flow.onTrigger) ||
     flow.onInstanceDelete ||
     flow.onInstanceDeploy ||
     flow.webhookLifecycleHandlers
@@ -853,9 +879,12 @@ export const convertFlow = <
     // trigger, still carry that reference's configured input values onto the
     // step so the wrapper trigger receives them as params (and can forward them
     // to the referenced trigger via invokeTrigger).
+    const npmOnTrigger = asNpmTriggerReference(flow.onTrigger);
     if (isComponentReference(flow.onTrigger)) {
       const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
       triggerStep.inputs = inputs;
+    } else if (npmOnTrigger) {
+      triggerStep.inputs = convertNpmTriggerReferenceInputs(npmOnTrigger);
     }
 
     triggerStep.action = {
@@ -1349,6 +1378,16 @@ const wrapperTriggerInputsFromReference = (
   onTrigger: unknown,
   componentRegistry: ComponentRegistry,
 ): ServerTriggerInput[] => {
+  // The npm trigger's own already-converted `Input[]` describes the wrapper trigger's declared
+  // inputs directly — no manifest lookup needed, and no reshaping: `Trigger["inputs"]` is
+  // already in the `ServerTriggerInput` wire shape this function returns.
+  //
+  // TODO: Re-address this once data sources are converted over.
+  const npmTriggerReference = asNpmTriggerReference(onTrigger);
+  if (npmTriggerReference) {
+    return npmTriggerReference.trigger.inputs;
+  }
+
   if (!isComponentReference(onTrigger)) {
     return [];
   }
@@ -1606,6 +1645,7 @@ const generateTriggerEventWrapperFn = <
   componentRef: ServerComponentReference | undefined,
   onTrigger:
     | TriggerReference
+    | NpmTriggerReference
     | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
     | PollingTriggerPerformFunction<
         TInputs,
@@ -1621,6 +1661,7 @@ const generateTriggerEventWrapperFn = <
   customFn?: TriggerEventFunction,
 ): TriggerEventFunction | undefined => {
   const usesComponentRef = componentRef && typeof onTrigger !== "function";
+  const npmTriggerReference = asNpmTriggerReference(onTrigger);
 
   if (usesComponentRef) {
     return async (context, params) => {
@@ -1635,7 +1676,11 @@ const generateTriggerEventWrapperFn = <
       return await runWithContext(cniContext, async () => {
         const invokeResponse =
           (await invokeTrigger(
-            invokeTriggerComponentInput(componentRef, onTrigger, eventName),
+            invokeTriggerComponentInput(
+              componentRef,
+              onTrigger as TriggerReference | undefined,
+              eventName,
+            ),
             cniContext,
             null,
             params,
@@ -1647,6 +1692,21 @@ const generateTriggerEventWrapperFn = <
         }
 
         return merge(invokeResponse, customResponse);
+      });
+    };
+  } else if (npmTriggerReference) {
+    const npmFn = npmTriggerReference.trigger[eventName];
+    if (!npmFn && !customFn) {
+      return;
+    }
+    return async (context, params) => {
+      const cniContext = createCNIContext(context, componentRegistry);
+      return await runWithContext(cniContext, async () => {
+        const npmResponse = npmFn ? (await npmFn(cniContext, params)) || {} : {};
+        const customResponse: TriggerEventFunctionReturn = customFn
+          ? (await customFn(cniContext, params)) || {}
+          : {};
+        return merge(npmResponse, customResponse);
       });
     };
   } else if (customFn) {
@@ -1661,6 +1721,196 @@ const generateTriggerEventWrapperFn = <
     return;
   }
 };
+
+const createNpmTriggerPerform = (
+  npmTrigger: AnyTrigger,
+  componentRegistry: ComponentRegistry,
+): TriggerPerformFunction<Inputs, ConfigVarResultCollection, boolean, TriggerResult> => {
+  return async (context, payload, params) => {
+    const cniContext = createCNIContext(context, componentRegistry);
+    return await runWithContext(cniContext, async () =>
+      (
+        npmTrigger.perform as unknown as TriggerPerformFunction<
+          Inputs,
+          ConfigVarResultCollection,
+          boolean,
+          TriggerResult
+        >
+      )(cniContext, payload, params),
+    );
+  };
+};
+
+const createNpmOnDeployPerform = (
+  npmTrigger: AnyTrigger,
+  componentRegistry: ComponentRegistry,
+): TriggerPerformFunction<Inputs, ConfigVarResultCollection, boolean, TriggerResult> => {
+  return async (context, payload, params) => {
+    const cniContext = createCNIContext(context, componentRegistry);
+    return await runWithContext(cniContext, async () =>
+      (
+        npmTrigger.onDeployPerform as unknown as TriggerPerformFunction<
+          Inputs,
+          ConfigVarResultCollection,
+          boolean,
+          TriggerResult
+        >
+      )(cniContext, payload, params),
+    );
+  };
+};
+
+/**
+ * The subset of a synthesized wrapper trigger's fields both `npmTriggerWireFields` and
+ * `authoredTriggerWireFields` produce. Declared explicitly (rather than reused from `AnyTrigger`)
+ * so each field keeps its narrow literal type (e.g. `TriggerOptionChoice`, not `string`) once
+ * pulled out of the surrounding object literal's contextual typing — and so it never pulls in
+ * `perform`, whose type is parameterized over the enclosing function's own `TInputs`/
+ * `TActionInputs`, not `AnyTrigger`'s erased ones.
+ */
+interface TriggerWireFields {
+  scheduleSupport: TriggerOptionChoice;
+  synchronousResponseSupport: TriggerOptionChoice;
+  isPollingTrigger: boolean;
+  triggerResolverSupport: TriggerOptionChoice;
+  triggerResolverDefaultBatchSize?: number;
+  triggerResolverDefaultConcurrentBatchLimit?: number;
+  resolveTriggerItems?: AnyTrigger["resolveTriggerItems"];
+  hasResolveTriggerItems?: boolean;
+  getNextPaginationState?: AnyTrigger["getNextPaginationState"];
+  hasGetNextDiscoveryState?: boolean;
+  onDeployPerform?: TriggerPerformFunction<
+    Inputs,
+    ConfigVarResultCollection,
+    boolean,
+    TriggerResult
+  >;
+  hasOnDeployPerform?: boolean;
+  resolveOnDeployItems?: AnyTrigger["resolveOnDeployItems"];
+  hasResolveOnDeployItems?: boolean;
+  getOnDeployNextPaginationState?: AnyTrigger["getOnDeployNextPaginationState"];
+  hasGetOnDeployNextDiscoveryState?: boolean;
+}
+
+/** The synthesized wrapper trigger's schedule/polling/resolver/on-deploy wire fields when the
+ * flow references an already-built npm trigger — all sourced from that trigger's own
+ * conversion (`trigger`/`batchTrigger`/`pollingTrigger`, see `convertTrigger`). */
+const npmTriggerWireFields = (
+  npmTrigger: AnyTrigger,
+  componentRegistry: ComponentRegistry,
+): TriggerWireFields => ({
+  scheduleSupport: npmTrigger.scheduleSupport,
+  synchronousResponseSupport: npmTrigger.synchronousResponseSupport,
+  isPollingTrigger: Boolean(npmTrigger.isPollingTrigger),
+  triggerResolverSupport: npmTrigger.triggerResolverSupport ?? "invalid",
+  ...(npmTrigger.triggerResolverDefaultBatchSize !== undefined
+    ? { triggerResolverDefaultBatchSize: npmTrigger.triggerResolverDefaultBatchSize }
+    : {}),
+  ...(npmTrigger.triggerResolverDefaultConcurrentBatchLimit !== undefined
+    ? {
+        triggerResolverDefaultConcurrentBatchLimit:
+          npmTrigger.triggerResolverDefaultConcurrentBatchLimit,
+      }
+    : {}),
+  ...(npmTrigger.resolveTriggerItems
+    ? { resolveTriggerItems: npmTrigger.resolveTriggerItems, hasResolveTriggerItems: true }
+    : {}),
+  ...(npmTrigger.getNextPaginationState
+    ? {
+        getNextPaginationState: npmTrigger.getNextPaginationState,
+        hasGetNextDiscoveryState: true,
+      }
+    : {}),
+  ...(npmTrigger.onDeployPerform
+    ? {
+        onDeployPerform: createNpmOnDeployPerform(npmTrigger, componentRegistry),
+        hasOnDeployPerform: true,
+      }
+    : {}),
+  ...(npmTrigger.resolveOnDeployItems
+    ? { resolveOnDeployItems: npmTrigger.resolveOnDeployItems, hasResolveOnDeployItems: true }
+    : {}),
+  ...(npmTrigger.getOnDeployNextPaginationState
+    ? {
+        getOnDeployNextPaginationState: npmTrigger.getOnDeployNextPaginationState,
+        hasGetOnDeployNextDiscoveryState: true,
+      }
+    : {}),
+});
+
+/** The synthesized wrapper trigger's schedule/polling/resolver/on-deploy wire fields when the
+ * flow instead authors its own trigger behavior directly (a literal `onTrigger` function,
+ * `batchFlowTrigger`, or `onDeployTrigger`) — all sourced from the flow's own fields,
+ * synthesized by `normalizeBatchedFlow`. */
+const authoredTriggerWireFields = ({
+  triggerType,
+  triggerResolver,
+  onDeployResolver,
+  batchConfig,
+  onDeployTrigger,
+  componentRegistry,
+}: {
+  triggerType: FlowTriggerType | undefined;
+  triggerResolver: WireResolver | undefined;
+  onDeployResolver: WireResolver | undefined;
+  batchConfig: { batchSize: number; concurrentBatchLimit?: number } | undefined;
+  onDeployTrigger: TriggerPerformFunction<any, any, any, any> | undefined;
+  componentRegistry: ComponentRegistry;
+}): TriggerWireFields => ({
+  scheduleSupport: triggerType === "polling" ? "required" : "valid",
+  synchronousResponseSupport: "valid",
+  isPollingTrigger: triggerType === "polling",
+  triggerResolverSupport: triggerResolver ? "valid" : "invalid",
+  // The authoritative batch size is stored on the flow (see convertFlow). We also emit the
+  // single shared default on the synthesized trigger because component publish validation
+  // requires `triggerResolverDefaultBatchSize` whenever resolver support is active; both derive
+  // from the one `flow.batchConfig`.
+  ...(triggerResolver || onDeployResolver
+    ? {
+        triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
+        ...(batchConfig?.concurrentBatchLimit !== undefined
+          ? { triggerResolverDefaultConcurrentBatchLimit: batchConfig.concurrentBatchLimit }
+          : {}),
+      }
+    : {}),
+  ...(triggerResolver
+    ? {
+        ...(triggerResolver.resolveItems
+          ? { resolveTriggerItems: triggerResolver.resolveItems, hasResolveTriggerItems: true }
+          : {}),
+        ...(triggerResolver.getNextPaginationState
+          ? {
+              getNextPaginationState: triggerResolver.getNextPaginationState,
+              hasGetNextDiscoveryState: true,
+            }
+          : {}),
+      }
+    : {}),
+  // On-deploy is presence-driven (no support flag): the behavior flags below
+  // (hasOnDeployPerform / hasResolveOnDeployItems) tell the platform what runs.
+  ...(onDeployTrigger
+    ? {
+        onDeployPerform: createCNIPerform({ componentRegistry, onTrigger: onDeployTrigger }),
+        hasOnDeployPerform: true,
+      }
+    : {}),
+  ...(onDeployResolver
+    ? {
+        ...(onDeployResolver.resolveItems
+          ? {
+              resolveOnDeployItems: onDeployResolver.resolveItems,
+              hasResolveOnDeployItems: true,
+            }
+          : {}),
+        ...(onDeployResolver.getNextPaginationState
+          ? {
+              getOnDeployNextPaginationState: onDeployResolver.getNextPaginationState,
+              hasGetOnDeployNextDiscoveryState: true,
+            }
+          : {}),
+      }
+    : {}),
+});
 
 const convertOnExecution =
   (
@@ -1803,17 +2053,22 @@ const codeNativeIntegrationComponent = <
       key: defaultComponentKey,
     };
 
-    // The component ref here is undefined if onTrigger is a function.
+    // The component ref here is undefined if onTrigger is a function or an npm trigger reference.
     const { ref } = isComponentReference(onTrigger)
       ? convertComponentReference(onTrigger, componentRegistry, "triggers")
       : { ref: onTrigger ? undefined : defaultComponentRef };
 
-    const performFn = generateTriggerPerformFn({
-      componentRef: ref,
-      onTrigger,
-      componentRegistry,
-      triggerType,
-    });
+    // An npm trigger reference carries its own already-converted `Trigger`
+    const npmTrigger = asNpmTriggerReference(onTrigger)?.trigger;
+
+    const performFn = npmTrigger
+      ? createNpmTriggerPerform(npmTrigger, componentRegistry)
+      : generateTriggerPerformFn({
+          componentRef: ref,
+          onTrigger: onTrigger as Exclude<typeof onTrigger, NpmTriggerReference>,
+          componentRegistry,
+          triggerType,
+        });
     const deleteFn = generateTriggerEventWrapperFn(
       ref,
       onTrigger,
@@ -1861,67 +2116,19 @@ const codeNativeIntegrationComponent = <
         webhookDelete: webhookDeleteFn,
         hasWebhookDeleteFunction: !!webhookDeleteFn,
         inputs: wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
-        scheduleSupport: triggerType === "polling" ? "required" : "valid",
-        synchronousResponseSupport: "valid",
-        isPollingTrigger: triggerType === "polling",
-        triggerResolverSupport: triggerResolver ? "valid" : "invalid",
-        // The authoritative batch size is stored on the flow (see convertFlow). We also
-        // emit the single shared default on the synthesized trigger because component
-        // publish validation requires `triggerResolverDefaultBatchSize` whenever resolver
-        // support is active; both derive from the one `flow.batchConfig`.
-        ...(triggerResolver || onDeployResolver
-          ? {
-              triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
-              ...(batchConfig?.concurrentBatchLimit !== undefined
-                ? {
-                    triggerResolverDefaultConcurrentBatchLimit: batchConfig.concurrentBatchLimit,
-                  }
-                : {}),
-            }
-          : {}),
-        ...(triggerResolver
-          ? {
-              ...(triggerResolver.resolveItems
-                ? {
-                    resolveTriggerItems: triggerResolver.resolveItems,
-                    hasResolveTriggerItems: true,
-                  }
-                : {}),
-              ...(triggerResolver.getNextPaginationState
-                ? {
-                    getNextPaginationState: triggerResolver.getNextPaginationState,
-                    hasGetNextDiscoveryState: true,
-                  }
-                : {}),
-            }
-          : {}),
-        // On-deploy is presence-driven (no support flag): the behavior flags below
-        // (hasOnDeployPerform / hasResolveOnDeployItems) tell the platform what runs.
-        ...(onDeployTrigger
-          ? {
-              onDeployPerform: createCNIPerform({
-                componentRegistry,
-                onTrigger: onDeployTrigger,
-              }),
-              hasOnDeployPerform: true,
-            }
-          : {}),
-        ...(onDeployResolver
-          ? {
-              ...(onDeployResolver.resolveItems
-                ? {
-                    resolveOnDeployItems: onDeployResolver.resolveItems,
-                    hasResolveOnDeployItems: true,
-                  }
-                : {}),
-              ...(onDeployResolver.getNextPaginationState
-                ? {
-                    getOnDeployNextPaginationState: onDeployResolver.getNextPaginationState,
-                    hasGetOnDeployNextDiscoveryState: true,
-                  }
-                : {}),
-            }
-          : {}),
+        // The two sources below are mutually exclusive: a flow either references an
+        // already-built (possibly batched/polling) npm trigger, or authors its own via
+        // `batchFlowTrigger`/a literal `onTrigger` function — never both, so no merge is needed.
+        ...(npmTrigger
+          ? npmTriggerWireFields(npmTrigger, componentRegistry)
+          : authoredTriggerWireFields({
+              triggerType,
+              triggerResolver,
+              onDeployResolver,
+              batchConfig,
+              onDeployTrigger,
+              componentRegistry,
+            })),
       },
     };
   }, {});

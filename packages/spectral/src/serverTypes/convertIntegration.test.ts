@@ -1,16 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
   batchFlowTrigger,
+  batchTrigger,
+  component,
   configPage,
   configVar,
   customerActivatedConnection,
   flow,
+  input,
   integration,
   organizationActivatedConnection,
+  pollingTrigger,
+  trigger,
   userActivatedConnection,
   userLevelConfigPage,
 } from "..";
 import type { ConfigVar, TriggerPayload, TriggerReference } from "../types";
+import { isComponentReference, isNpmTriggerReference } from "../types";
 import {
   convertConfigPages,
   convertConfigVar,
@@ -1381,5 +1387,160 @@ describe("custom-trigger reference input values reach the trigger functions", ()
     // It must declare the referenced inputs, matching convertComponent's contract.
     const inputKeys = (wrapperTrigger.inputs as Array<{ key: string }>).map((i) => i.key);
     expect(inputKeys).toEqual(expect.arrayContaining(["inputOne", "inputTwo"]));
+  });
+});
+
+describe("npm trigger references", () => {
+  // Stands in for an npm-imported `@prismatic-io/*` component built with
+  // `component(definition, { callable: true })` — its triggers are directly-callable
+  // reference helpers, not manifest-registry lookups.
+  const npmComponent = component(
+    {
+      key: "acme-npm",
+      public: true,
+      display: { label: "Acme", description: "An npm-published component" },
+      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+      triggers: {
+        webhook: trigger({
+          display: { label: "Webhook", description: "Fires on an inbound webhook" },
+          inputs: { greeting: input({ type: "string", label: "Greeting", default: "hi" }) },
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          perform: async (_context, payload) => ({ payload }),
+          onInstanceDeploy: async () => ({ instanceState: { deployed: true } }),
+          webhookLifecycleHandlers: {
+            create: async () => ({ instanceState: { created: true } }),
+            delete: async () => ({}),
+          },
+        }),
+        pollForChanges: pollingTrigger({
+          display: { label: "Poll For Changes", description: "Polls on a schedule" },
+          inputs: {},
+          perform: async (context, payload) => {
+            context.polling.setState({ cursor: "next" });
+            return { payload: { ...payload, body: { data: [] } } };
+          },
+        }),
+        syncOrders: batchTrigger({
+          display: { label: "Sync Orders", description: "Fetches orders in batches" },
+          inputs: {},
+          scheduleSupport: "required",
+          batchConfig: { batchSize: 25 },
+          perform: async () => ({ items: [1, 2, 3], paginationState: null }),
+          onDeploy: {
+            perform: async () => ({ items: [9], paginationState: null }),
+          },
+        }),
+      },
+    },
+    { callable: true },
+  );
+
+  it("produces a tagged reference distinct from a manifest ComponentReference", () => {
+    const ref = npmComponent.triggers.webhook({ greeting: { value: "hey" } });
+
+    expect(isNpmTriggerReference(ref)).toBe(true);
+    expect(isComponentReference(ref)).toBe(false);
+    expect(ref).toMatchObject({
+      __npmTriggerReference: true,
+      values: { greeting: { value: "hey" } },
+    });
+  });
+
+  it("a plain reference (no lifecycle) still routes through the wrapper-trigger path, with no registry lookup", () => {
+    const plainFlow = flow({
+      name: "Plain Flow",
+      stableKey: "plain-flow",
+      description: "Npm trigger reference, no custom lifecycle",
+      onTrigger: npmComponent.triggers.webhook({ greeting: { value: "hey" } }),
+      onExecution: async () => ({ data: "test" }),
+    });
+
+    // An empty component registry: a manifest-registry lookup would throw here.
+    const result = convertFlow(plainFlow, {}, "test-ref");
+    const [triggerStep] = result.steps as Array<Record<string, unknown>>;
+
+    expect(triggerStep.inputs).toMatchObject({ greeting: { type: "value", value: "hey" } });
+    expect((triggerStep.action as { component: { key: string } }).component.key).toBe("test-ref");
+  });
+
+  it("calls the referenced trigger's perform directly, with no remote invokeTrigger involved", async () => {
+    const result = integration({
+      name: "npm-ref-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Webhook Flow",
+          stableKey: "webhook-flow",
+          description: "Npm webhook trigger reference",
+          onTrigger: npmComponent.triggers.webhook({ greeting: { value: "hey" } }),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.webhookFlow_onTrigger;
+    expect(wrapperTrigger.scheduleSupport).toBe("invalid");
+    expect(wrapperTrigger.hasOnInstanceDeploy).toBe(true);
+    expect(wrapperTrigger.hasWebhookCreateFunction).toBe(true);
+    expect(wrapperTrigger.hasWebhookDeleteFunction).toBe(true);
+
+    const performResult = await (
+      wrapperTrigger.perform as (
+        context: unknown,
+        payload: unknown,
+        params: unknown,
+      ) => Promise<unknown>
+    )({} as never, { headers: {} } as never, { greeting: "hey" });
+    expect(performResult).toMatchObject({ payload: { headers: {} } });
+
+    const deployResult = await (
+      wrapperTrigger.onInstanceDeploy as (context: unknown, params: unknown) => Promise<unknown>
+    )({} as never, {});
+    expect(deployResult).toMatchObject({ instanceState: { deployed: true } });
+  });
+
+  it("carries a batch trigger's resolver/on-deploy shape onto the synthesized wrapper trigger", () => {
+    const result = integration({
+      name: "npm-batch-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Sync Orders Flow",
+          stableKey: "sync-orders-flow",
+          description: "Npm batch trigger reference",
+          onTrigger: npmComponent.triggers.syncOrders({}),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.syncOrdersFlow_onTrigger;
+    expect(wrapperTrigger.triggerResolverSupport).toBe("required");
+    expect(wrapperTrigger.hasResolveTriggerItems).toBe(true);
+    expect(wrapperTrigger.hasGetNextDiscoveryState).toBe(true);
+    expect(wrapperTrigger.triggerResolverDefaultBatchSize).toBe(25);
+    expect(wrapperTrigger.hasOnDeployPerform).toBe(true);
+    expect(wrapperTrigger.hasResolveOnDeployItems).toBe(true);
+  });
+
+  it("marks a polling trigger reference as polling on the synthesized wrapper trigger", () => {
+    const result = integration({
+      name: "npm-polling-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Poll Flow",
+          stableKey: "poll-flow",
+          description: "Npm polling trigger reference",
+          onTrigger: npmComponent.triggers.pollForChanges({}),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.pollFlow_onTrigger;
+    expect(wrapperTrigger.isPollingTrigger).toBe(true);
+    expect(wrapperTrigger.scheduleSupport).toBe("required");
   });
 });

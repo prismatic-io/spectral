@@ -368,6 +368,11 @@ export interface Trigger<
   isPollingTrigger?: boolean;
 }
 
+/** Any converted trigger, with its type parameters left open — `Trigger`'s first two
+ * parameters have no default, so this is the loose bound consumers reach for instead of
+ * writing out `Trigger<Inputs, Inputs>` themselves (mirrors {@link AnyConvertedAction}). */
+export type AnyTrigger = Trigger<Inputs, Inputs>;
+
 export interface DataSourceContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
 > {
@@ -504,3 +509,4 @@ export interface Input {
 
 export * from "./asyncContext";
 export * from "./callableAction";
+export * from "./callableTrigger";

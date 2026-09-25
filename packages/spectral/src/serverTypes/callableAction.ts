@@ -1,7 +1,8 @@
 import type { CollectionType } from "../types/ConfigVars";
-import type { Action, AnyConvertedAction, Component, Input } from ".";
+import type { Action, AnyConvertedAction, AnyTrigger, Component, Input } from ".";
 import { performActionFunctionExecutor } from "./actionExecutor";
 import { requireContext } from "./asyncContext";
+import { createCallableTrigger, type NpmTriggerReference } from "./callableTrigger";
 import { convertInputValue } from "./convertIntegration";
 
 /** A converted {@link Action}, directly callable with just its input values
@@ -57,12 +58,21 @@ export type MakeCallable<TAction> = TAction extends {
  * form (the legacy self-contained bundle `prism components:publish` uses,
  * manifest generation, low-code).
  */
+/** A trigger reference helper, directly callable with its `values` (e.g.
+ * `slack.triggers.webhook({ ... })`), produced by {@link createCallableTrigger}. */
+export type CallableTriggerHelper<TTrigger> = (
+  values?: Record<string, unknown>,
+) => NpmTriggerReference<TTrigger>;
+
 export const createCallableComponent = <
   TComponent extends Component<any, any, any, any, any, any, Record<string, AnyConvertedAction>>,
 >(
   component: TComponent,
-): Omit<TComponent, "actions"> & {
+): Omit<TComponent, "actions" | "triggers"> & {
   actions: { [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]> };
+  triggers: {
+    [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
+  };
 } => {
   const actions = Object.entries(component.actions).reduce<Record<string, CallableAction>>(
     (result, [key, action]) => {
@@ -72,7 +82,20 @@ export const createCallableComponent = <
     {},
   );
 
-  return { ...component, actions } as unknown as Omit<TComponent, "actions"> & {
+  const triggers = Object.entries(component.triggers ?? {}).reduce<
+    Record<string, CallableTriggerHelper<unknown>>
+  >((result, [key, trigger]) => {
+    result[key] = createCallableTrigger(trigger as AnyTrigger);
+    return result;
+  }, {});
+
+  return { ...component, actions, triggers } as unknown as Omit<
+    TComponent,
+    "actions" | "triggers"
+  > & {
     actions: { [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]> };
+    triggers: {
+      [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
+    };
   };
 };
