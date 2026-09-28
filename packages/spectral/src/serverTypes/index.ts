@@ -72,9 +72,10 @@ export interface Component<
    * An integration configuration's `init`, which the platform invokes by a
    * bespoke system call rather than as a data source.
    */
-  configuration?: { init: (context: unknown) => Promise<unknown> };
-  /** The platform's only means of discovering `init`; when false, it no-ops. */
-  hasConfigurationInit?: boolean;
+  configuration?: {
+    init: { perform: (context: unknown) => Promise<unknown>; connections?: string[] };
+  };
+  configurationInit?: { connections?: string[] };
   /** Invoked by key through a bespoke system call, as `configuration.init` is. */
   serverFunctions?: Record<string, (context: unknown, inputs: unknown) => Promise<unknown>>;
   /** Published as their own mutation variable; the definition itself has no place for them. */

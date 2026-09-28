@@ -8,6 +8,7 @@ import {
   integration,
   organizationActivatedConnection,
   serverFunction,
+  userActivatedConnection,
 } from ".";
 
 /**
@@ -18,6 +19,7 @@ import {
 export const ORG_CONNECTION_STABLE_KEY = "integration-config-org-slack";
 export const CUSTOMER_CONNECTION_STABLE_KEY = "integration-config-customer-salesforce";
 export const INLINE_CONNECTION_STABLE_KEY = "integration-config-inline-acme";
+export const USER_CONNECTION_STABLE_KEY = "integration-config-user-slack";
 
 /** The configuration schema, authored in zod — the recommended path. */
 export const configurationSchema = z.object({
@@ -47,8 +49,12 @@ export const literalSchema = {
   additionalProperties: false,
 } as const;
 
-export const CONFIGURATION_E_TAG = "config-v2";
-export const PREVIOUS_CONFIGURATION_E_TAG = "config-v1";
+export const CONFIGURATION_VERSION = "config-v2";
+export const PREVIOUS_CONFIGURATION_VERSION = "config-v1";
+export const USER_CONFIGURATION_VERSION = "user-v2";
+export const PREVIOUS_USER_CONFIGURATION_VERSION = "user-v1";
+export const userConfigurationSchema = z.object({ channel: z.string() });
+export const previousUserConfigurationSchema = z.object({ channelId: z.string() });
 
 /** A v1 value stored its rows under `pairs`; v2 calls them `mappings`. */
 export const previousConfigurationSchema = z.object({
@@ -60,8 +66,8 @@ export const configPagesSchema = z.object({
   pairs: z.array(z.object({ source: z.string(), destination: z.string() })).optional(),
 });
 
-export const eTagSchemas = {
-  [PREVIOUS_CONFIGURATION_E_TAG]: previousConfigurationSchema,
+export const versionSchemas = {
+  [PREVIOUS_CONFIGURATION_VERSION]: previousConfigurationSchema,
 };
 
 const syncFlow = flow({
@@ -72,15 +78,22 @@ const syncFlow = flow({
     // `configuration` and `connections` reach a flow only once an integration
     // augments `Experimental`, which is global to a compilation and so cannot
     // happen here without reaching the rest of the suite.
-    const { configuration, connections } = context as typeof context & {
+    const { configuration, userConfiguration, connections } = context as typeof context & {
       configuration?: { mappings?: Array<{ source: string }> };
-      connections?: Record<string, unknown>;
+      userConfiguration?: { channel?: string };
+      connections?: {
+        instance?: Record<string, unknown>;
+        userLevel?: Record<string, unknown>;
+      };
     };
 
     return {
       data: {
         count: configuration?.mappings?.length ?? 0,
-        connectionNames: Object.keys(connections ?? {}),
+        channel: userConfiguration?.channel,
+        connectionNames: Object.entries(connections ?? {}).flatMap(([scope, values]) =>
+          Object.keys(values).map((name) => `${scope}.${name}`),
+        ),
       },
     };
   },
@@ -89,11 +102,11 @@ const syncFlow = flow({
 export const searchChannels = serverFunction({
   inputSchema: z.object({ search: z.string() }),
   outputSchema: z.array(z.object({ id: z.string(), name: z.string() })),
-  connections: ["orgConnection"],
+  connections: ["instance.orgConnection"],
   label: "Search Channels",
   description: "Lists channels matching a search string",
   perform: async ({ connections }, { search }) => {
-    const names = Object.keys(connections);
+    const names = Object.keys(connections.instance);
     return names.filter((name) => name.includes(search)).map((name) => ({ id: name, name }));
   },
 });
@@ -110,62 +123,72 @@ export const integrationConfigurationDefinition = {
   description: "Fixture for integration configuration",
   flows: [syncFlow],
   configuration: configuration({
-    schema: configurationSchema,
-    uiSchema: configurationUiSchema,
-    eTag: CONFIGURATION_E_TAG,
-    eTagSchemas,
-    configPagesSchema,
-    /**
-     * Seeds on a first run and migrates a stale one, branching on the etag the
-     * instance has deployed. Returns the author's own shape, not the
-     * configuration value.
-     *
-     * Every branch reads `configuration` without a cast: the etag narrows it to
-     * the schema it was written under.
-     */
-    init: async ({ configuration: previousValues, configurationEtag }) => {
-      if (configurationEtag === null) {
-        // Nothing deployed: either a new instance, or config vars to migrate.
-        return {
-          previousValues,
-          migratedValues: { mappings: previousValues?.pairs ?? [] },
-          configurationEtag,
-        };
-      }
-
-      if (configurationEtag === PREVIOUS_CONFIGURATION_E_TAG) {
-        return {
-          previousValues,
-          migratedValues: { mappings: previousValues.pairs },
-          configurationEtag,
-        };
-      }
-
-      if (configurationEtag === CONFIGURATION_E_TAG) {
-        // Already the current shape.
-        return { previousValues, migratedValues: previousValues, configurationEtag };
-      }
-
-      // An etag nobody declared.
-      return { previousValues, migratedValues: { mappings: [] }, configurationEtag };
+    instance: {
+      schema: configurationSchema,
+      uiSchema: configurationUiSchema,
+      version: CONFIGURATION_VERSION,
+      versionSchemas,
+      configPagesSchema,
+      connections: {
+        orgConnection: organizationActivatedConnection({
+          stableKey: ORG_CONNECTION_STABLE_KEY,
+        }),
+        customerConnection: customerActivatedConnection({
+          stableKey: CUSTOMER_CONNECTION_STABLE_KEY,
+        }),
+        // Integration-specific: carries its own inputs, so the platform collects
+        // them and the generated component owns the connection.
+        inlineConnection: connectionConfigVar({
+          stableKey: INLINE_CONNECTION_STABLE_KEY,
+          dataType: "connection",
+          inputs: {
+            apiKey: { label: "API Key", type: "password", required: true },
+            endpoint: { label: "Endpoint", type: "string", default: "https://api.acme.test" },
+          },
+        }),
+      },
     },
-    connections: {
-      orgConnection: organizationActivatedConnection({
-        stableKey: ORG_CONNECTION_STABLE_KEY,
-      }),
-      customerConnection: customerActivatedConnection({
-        stableKey: CUSTOMER_CONNECTION_STABLE_KEY,
-      }),
-      // Integration-specific: carries its own inputs, so the platform collects
-      // them and the generated component owns the connection.
-      inlineConnection: connectionConfigVar({
-        stableKey: INLINE_CONNECTION_STABLE_KEY,
-        dataType: "connection",
-        inputs: {
-          apiKey: { label: "API Key", type: "password", required: true },
-          endpoint: { label: "Endpoint", type: "string", default: "https://api.acme.test" },
-        },
-      }),
+    userLevel: {
+      schema: userConfigurationSchema,
+      version: USER_CONFIGURATION_VERSION,
+      versionSchemas: {
+        [PREVIOUS_USER_CONFIGURATION_VERSION]: previousUserConfigurationSchema,
+      },
+      configPagesSchema: z.object({ channelId: z.string().optional() }),
+      connections: {
+        orgConnection: userActivatedConnection({ stableKey: USER_CONNECTION_STABLE_KEY }),
+      },
+    },
+    init: {
+      connections: ["instance.orgConnection", "userLevel.orgConnection"],
+      perform: async (context) => {
+        if (context.configurationVersion === null) {
+          return {
+            previousValues: context.configuration,
+            migratedValues: { mappings: context.configuration?.pairs ?? [] },
+            configurationVersion: context.configurationVersion,
+          };
+        }
+        if (context.configurationVersion === PREVIOUS_CONFIGURATION_VERSION) {
+          return {
+            previousValues: context.configuration,
+            migratedValues: { mappings: context.configuration.pairs },
+            configurationVersion: context.configurationVersion,
+          };
+        }
+        if (context.configurationVersion === CONFIGURATION_VERSION) {
+          return {
+            previousValues: context.configuration,
+            migratedValues: context.configuration,
+            configurationVersion: context.configurationVersion,
+          };
+        }
+        return {
+          previousValues: context.configuration,
+          migratedValues: { mappings: [] },
+          configurationVersion: context.configurationVersion,
+        };
+      },
     },
     serverFunctions: { searchChannels, listRegions },
   }),
@@ -179,8 +202,10 @@ export const noInitDefinition = {
   description: "Fixture for the no-init path",
   flows: [syncFlow],
   configuration: configuration({
-    schema: literalSchema,
-    eTag: CONFIGURATION_E_TAG,
+    instance: {
+      schema: literalSchema,
+      version: CONFIGURATION_VERSION,
+    },
   }),
 } as const;
 

@@ -22,8 +22,8 @@ import type {
   ComponentDefinition,
   ComponentManifest,
   ConfigPage,
-  ConfigurationConnection,
   ConfigurationInitContext,
+  ConfigurationScope,
   ConfigurationValue,
   ConfigVarResultCollection,
   ConnectionConfigVar,
@@ -34,17 +34,16 @@ import type {
   DeclaredConnectionKeys,
   DefaultConnectionDefinition,
   DynamicObjectInputField,
-  ETagSchemas,
   Flow,
   InputFieldDefinition,
   Inputs,
-  IntegrationConfiguration,
   IntegrationDefinition,
   OAuth2Config,
   OAuth2ConnectionDefinition,
   OnPremConnectionDefinition,
   OrganizationActivatedConnectionConfigVar,
   OutputSchema,
+  QualifiedConnectionKeys,
   SchemaInput,
   ServerFunction,
   StandardConfigVar,
@@ -52,8 +51,8 @@ import type {
   TriggerDefinition,
   TriggerPayload,
   TriggerResult,
-  UiSchema,
   UserActivatedConnectionConfigVar,
+  UserConfigurationConnection,
   UserLevelConfigPage,
 } from "./types";
 import type { PollingTriggerDefinition } from "./types/PollingTriggerDefinition";
@@ -305,93 +304,63 @@ export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T 
 /**
  * Defines the configuration of an integration.
  *
- * One schema describes the whole configuration. There are no config pages and
- * no config variables: the host renders what it likes, writes back a value
- * matching `schema`, and a flow reads it as `context.configuration`.
+ * Instance configuration is required; user-level configuration is optional.
+ * Each scope declares a schema, version and historical versionSchemas.
+ * Init initializes or migrates instance configuration, narrowed by configurationVersion.
+ * Saved userConfiguration remains unknown and is never narrowed by the instance version.
  *
- * `schema` takes a zod schema or a JSON Schema literal. `init` receives
- * `logger`, `customer`, `instance`, `connections` keyed by the names in
- * `connections`, and `configuration`.
- *
- * A connection may point at a reusable connection, define its own inputs, or
- * reference one on a published component. Each is read under the name it is
- * given here.
- *
- * `eTagSchemas` records the shapes a stored value may still be in, so testing
- * `configurationEtag` inside `init` narrows `configuration` to the schema that
- * etag was written under. `configPagesSchema` does the same for the `null` etag,
- * where an instance's `configPages` values are folded onto `configuration`.
- *
- * @param definition The schema and eTag, plus optional `eTagSchemas`,
- *   `configPagesSchema`, `uiSchema`, `init`, and `connections`.
+ * Qualified connection prerequisites such as "instance.airtable" are exposed as
+ * context.connections.instance.airtable. Init and server functions receive only
+ * their declared dependencies.
  * @returns The definition, for use as an integration's `configuration`.
  * @example
  * import { z } from "zod";
  * import { configuration } from "@prismatic-io/spectral";
  *
  * const config = configuration({
- *   schema: z.object({ objectName: z.string() }),
- *   eTag: "config-v2",
- *   eTagSchemas: { "config-v1": z.object({ objectKey: z.string() }) },
- *   configPagesSchema: z.object({ objectKey: z.string().optional() }),
- *   init: async (context) => {
- *     if (context.configurationEtag === null) {
- *       return { migratedValues: { objectName: context.configuration?.objectKey ?? "" } };
- *     }
- *     if (context.configurationEtag === "config-v1") {
- *       return { migratedValues: { objectName: context.configuration.objectKey } };
- *     }
- *     if (context.configurationEtag === "config-v2") {
- *       return { migratedValues: context.configuration };
- *     }
- *     return { migratedValues: { objectName: "" } };
+ *   instance: {
+ *     schema: z.object({ objectName: z.string() }),
+ *     version: "config-v2",
+ *     versionSchemas: { "config-v1": z.object({ objectKey: z.string() }) },
+ *   },
+ *   init: {
+ *     perform: async (context) => {
+ *       if (context.configurationVersion === "config-v1") {
+ *         return { proposedValues: { objectName: context.configuration.objectKey } };
+ *       }
+ *       return { proposedValues: { objectName: "" } };
+ *     },
  *   },
  * });
  */
 export const configuration = <
-  const TSchema extends SchemaInput,
-  const TETag extends string,
-  const TConnections extends Record<string, ConfigurationConnection>,
-  const TServerFunctions extends Record<string, AnyServerFunction>,
-  // biome-ignore lint/complexity/noBannedTypes: necessary for the fallback case
-  TETagsSchema extends ETagSchemas = {},
-  TConfigPagesSchema extends SchemaInput = never,
+  const I extends ConfigurationScope,
+  const U extends ConfigurationScope<UserConfigurationConnection> | undefined = undefined,
+  const F extends Record<string, AnyServerFunction> = Record<never, never>,
+  const K extends QualifiedConnectionKeys<I, U> = never,
   TInitResult = unknown,
 >(
   definition: {
-    schema: TSchema;
-    eTag: TETag;
-    eTagSchemas?: TETagsSchema;
-    configPagesSchema?: TConfigPagesSchema;
-    uiSchema?: UiSchema;
-    connections?: TConnections;
-    serverFunctions?: TServerFunctions;
-    init?: (
-      context: NoInfer<ConfigurationInitContext<TSchema, TETag, TETagsSchema, TConfigPagesSchema>>,
-    ) => Promise<TInitResult>;
-  } & (DeclaredConnectionKeys<TServerFunctions> extends Extract<keyof TConnections, string>
+    instance: I;
+    userLevel?: U;
+    serverFunctions?: F;
+    init?: {
+      connections?: readonly K[];
+      perform: (context: NoInfer<ConfigurationInitContext<I, K>>) => Promise<TInitResult>;
+    };
+  } & (DeclaredConnectionKeys<F> extends QualifiedConnectionKeys<I, U>
     ? unknown
-    : {
-        /** A server function names a connection `configuration.connections` does not declare. */
-        connections: TConnections & Record<DeclaredConnectionKeys<TServerFunctions>, unknown>;
-      }),
-): IntegrationConfiguration<TSchema, TInitResult, TETag, TETagsSchema, TConfigPagesSchema> =>
-  definition as unknown as IntegrationConfiguration<
-    TSchema,
-    TInitResult,
-    TETag,
-    TETagsSchema,
-    TConfigPagesSchema
-  >;
+    : { invalidConnectionDependencies: never }),
+) =>
+  definition as Omit<typeof definition, "userLevel"> &
+    (U extends undefined ? Record<never, never> : { userLevel: U });
 
 /**
  * Defines a function a host may invoke against a deployed instance while
  * configuring it, to fetch the choices a person picks from.
  *
- * `perform` receives `logger`, `customer`, `instance`, and `connections` keyed
- * by the names in `configuration.connections`. The configuration itself is not
- * in scope: a host calls this with values a person is still editing, so those
- * arrive as `params`.
+ * `perform` receives saved instance and user configuration, component methods,
+ * and only its declared nested connections. Unsaved form values arrive as params.
  *
  * The platform validates `params` against `inputSchema` before invoking.
  * `outputSchema` is published for hosts to read and is never enforced.
@@ -407,15 +376,16 @@ export const configuration = <
  * const searchChannels = serverFunction({
  *   inputSchema: z.object({ search: z.string() }),
  *   outputSchema: z.array(z.object({ id: z.string(), name: z.string() })),
+ *   connections: ["instance.slack"],
  *   perform: async ({ connections }, { search }) =>
- *     listChannels(connections.slack, search),
+ *     listChannels(connections.instance.slack, search),
  * });
  */
 export const serverFunction = <
   const TInputSchema extends SchemaInput,
   const TOutputSchema extends SchemaInput,
-  const TConnectionKey extends string,
-  TResult extends ConfigurationValue<TOutputSchema>,
+  const TConnectionKey extends string = never,
+  TResult extends ConfigurationValue<TOutputSchema> = ConfigurationValue<TOutputSchema>,
 >(
   definition: ServerFunction<TInputSchema, TOutputSchema, TConnectionKey, TResult>,
 ): ServerFunction<TInputSchema, TOutputSchema, TConnectionKey, TResult> => definition;

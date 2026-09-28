@@ -1,11 +1,16 @@
 import { describe, expectTypeOf, it } from "vitest";
 import { z } from "zod";
 
-import { configuration } from ".";
+import {
+  type ConfiguredConnections,
+  type ConfiguredUserValue,
+  type Connection,
+  configuration,
+  type UserAttributes,
+} from ".";
 
 /**
- * The etag map is type-level only, and every way it can fail still compiles: a
- * broken arm degrades to `unknown` rather than erroring, and the whole surface
+ * A broken version arm can degrade to `unknown` rather than erroring, and the whole surface
  * sits close enough to TypeScript's instantiation budget that a structural
  * change can silently stop narrowing. These assert the narrowing directly.
  */
@@ -17,121 +22,252 @@ const currentSchema = z.object({
 
 const v1Schema = z.object({ objectKey: z.string() });
 
-// Plain, not `.optional()`: the SDK adds `| undefined` to the null arm itself.
+// First setup can arrive as {}, so legacy fields become optional on the null arm.
 const configPagesSchema = z.object({
   objectKey: z.string().optional(),
   region: z.string().optional(),
 });
 
 // No `: string` annotation: the literal type is what makes the current arm work.
-const CURRENT_E_TAG = "config-v2";
+const CURRENT_VERSION = "config-v2";
 
 type Mappings = readonly { readonly source: string; readonly destination: string }[];
 
-describe("etag narrowing", () => {
-  it("narrows to the schema an etag was written under", () => {
+describe("configuration version narrowing", () => {
+  it("narrows to the schema a version was written under", () => {
     configuration({
-      schema: currentSchema,
-      eTag: CURRENT_E_TAG,
-      eTagSchemas: { "config-v1": v1Schema },
-      configPagesSchema,
-      init: async (context) => {
-        if (context.configurationEtag === "config-v1") {
-          expectTypeOf(context.configuration).toEqualTypeOf<{ readonly objectKey: string }>();
+      instance: {
+        schema: currentSchema,
+        version: CURRENT_VERSION,
+        versionSchemas: { "config-v1": v1Schema },
+        configPagesSchema,
+      },
+      init: {
+        perform: async (context) => {
+          if (context.configurationVersion === "config-v1") {
+            expectTypeOf(context.configuration).toEqualTypeOf<{ readonly objectKey: string }>();
+            return {};
+          }
+
+          if (context.configurationVersion === CURRENT_VERSION) {
+            expectTypeOf(context.configuration).toEqualTypeOf<{
+              readonly objectName: string;
+              readonly mappings: Mappings;
+            }>();
+            return {};
+          }
+
           return {};
-        }
+        },
+      },
+    });
+  });
 
-        if (context.configurationEtag === CURRENT_E_TAG) {
-          expectTypeOf(context.configuration).toEqualTypeOf<{
-            readonly objectName: string;
-            readonly mappings: Mappings;
-          }>();
+  it("narrows a null version to the configPages shape", () => {
+    configuration({
+      instance: {
+        schema: currentSchema,
+        version: CURRENT_VERSION,
+        configPagesSchema,
+      },
+      init: {
+        perform: async (context) => {
+          if (context.configurationVersion === null) {
+            expectTypeOf(context.configuration).toEqualTypeOf<{
+              readonly objectKey?: string;
+              readonly region?: string;
+            }>();
+          }
           return {};
-        }
-
-        return {};
+        },
       },
     });
   });
 
-  it("narrows a null etag to the configPages shape", () => {
+  it("leaves an undeclared version unknown", () => {
     configuration({
-      schema: currentSchema,
-      eTag: CURRENT_E_TAG,
-      configPagesSchema,
-      init: async (context) => {
-        if (context.configurationEtag === null) {
-          expectTypeOf(context.configuration).toEqualTypeOf<
-            { readonly objectKey?: string; readonly region?: string } | undefined
-          >();
-        }
-        return {};
+      instance: {
+        schema: currentSchema,
+        version: CURRENT_VERSION,
+        versionSchemas: { "config-v1": v1Schema },
+      },
+      init: {
+        perform: async (context) => {
+          if (
+            context.configurationVersion !== null &&
+            context.configurationVersion !== "config-v1" &&
+            context.configurationVersion !== CURRENT_VERSION
+          ) {
+            expectTypeOf(context.configuration).toEqualTypeOf<unknown>();
+          }
+          return {};
+        },
       },
     });
   });
 
-  it("leaves an undeclared etag unknown", () => {
-    configuration({
-      schema: currentSchema,
-      eTag: CURRENT_E_TAG,
-      eTagSchemas: { "config-v1": v1Schema },
-      init: async (context) => {
-        if (
-          context.configurationEtag !== null &&
-          context.configurationEtag !== "config-v1" &&
-          context.configurationEtag !== CURRENT_E_TAG
-        ) {
-          expectTypeOf(context.configuration).toEqualTypeOf<unknown>();
-        }
-        return {};
-      },
-    });
-  });
-
-  it("keeps the live schema when an author leaves the current etag in the map", () => {
-    // `Omit` first, so the current `eTag` resolves to `schema` rather than
+  it("keeps the live schema when an author leaves the current version in the map", () => {
+    // `Omit` first, so the current `version` resolves to `schema` rather than
     // pairing the two into a value that satisfies both at once.
     configuration({
-      schema: currentSchema,
-      eTag: CURRENT_E_TAG,
-      eTagSchemas: { [CURRENT_E_TAG]: v1Schema },
-      init: async (context) => {
-        if (context.configurationEtag === CURRENT_E_TAG) {
-          expectTypeOf(context.configuration).toEqualTypeOf<{
-            readonly objectName: string;
-            readonly mappings: Mappings;
-          }>();
-        }
-        return {};
+      instance: {
+        schema: currentSchema,
+        version: CURRENT_VERSION,
+        versionSchemas: { [CURRENT_VERSION]: v1Schema },
+      },
+      init: {
+        perform: async (context) => {
+          if (context.configurationVersion === CURRENT_VERSION) {
+            expectTypeOf(context.configuration).toEqualTypeOf<{
+              readonly objectName: string;
+              readonly mappings: Mappings;
+            }>();
+          }
+          return {};
+        },
       },
     });
   });
 
   it("reports the stored value as deeply readonly", () => {
     configuration({
-      schema: currentSchema,
-      eTag: CURRENT_E_TAG,
-      init: async (context) => {
-        if (context.configurationEtag === CURRENT_E_TAG) {
-          expectTypeOf(context.configuration.mappings).toEqualTypeOf<Mappings>();
-        }
-        return {};
+      instance: {
+        schema: currentSchema,
+        version: CURRENT_VERSION,
+      },
+      init: {
+        perform: async (context) => {
+          if (context.configurationVersion === CURRENT_VERSION) {
+            expectTypeOf(context.configuration.mappings).toEqualTypeOf<Mappings>();
+          }
+          return {};
+        },
       },
     });
   });
 
   it("still infers the schema and the init result alongside the map", () => {
     const definition = configuration({
-      schema: currentSchema,
-      eTag: CURRENT_E_TAG,
-      eTagSchemas: { "config-v1": v1Schema },
-      init: async () => ({ migrated: true }),
+      instance: {
+        schema: currentSchema,
+        version: CURRENT_VERSION,
+        versionSchemas: { "config-v1": v1Schema },
+      },
+      init: { perform: async () => ({ migrated: true }) },
     });
 
-    expectTypeOf(definition.schema).toEqualTypeOf<typeof currentSchema>();
-    expectTypeOf(definition.eTag).toEqualTypeOf<typeof CURRENT_E_TAG>();
+    expectTypeOf(definition.instance.schema).toEqualTypeOf<typeof currentSchema>();
+    expectTypeOf(definition.instance.version).toEqualTypeOf<typeof CURRENT_VERSION>();
 
-    type InitResult = Awaited<ReturnType<NonNullable<typeof definition.init>>>;
+    type InitResult = Awaited<ReturnType<NonNullable<typeof definition.init>["perform"]>>;
     expectTypeOf<InitResult>().toEqualTypeOf<{ migrated: boolean }>();
+  });
+
+  it("narrows only instance values even when user versions have identical names", () => {
+    const userSchema = z.object({ locale: z.string() });
+    const previousUserSchema = z.object({ language: z.string() });
+
+    configuration({
+      instance: {
+        schema: currentSchema,
+        version: CURRENT_VERSION,
+        versionSchemas: { "config-v1": v1Schema },
+      },
+      userLevel: {
+        schema: userSchema,
+        version: CURRENT_VERSION,
+        versionSchemas: { "config-v1": previousUserSchema },
+      },
+      init: {
+        perform: async (context) => {
+          // @ts-expect-error init has no scope discriminator
+          context.scope;
+          expectTypeOf(context.user).toEqualTypeOf<UserAttributes | undefined>();
+          if (context.configurationVersion === "config-v1") {
+            expectTypeOf(context.userConfiguration).toEqualTypeOf<unknown>();
+            expectTypeOf(context.configuration).toEqualTypeOf<{
+              readonly objectKey: string;
+            }>();
+          }
+          if (context.configurationVersion === CURRENT_VERSION) {
+            expectTypeOf(context.userConfiguration).toEqualTypeOf<unknown>();
+            expectTypeOf(context.configuration).toEqualTypeOf<{
+              readonly objectName: string;
+              readonly mappings: Mappings;
+            }>();
+          }
+          return {};
+        },
+      },
+    });
+  });
+
+  it("keeps saved user data unknown for null and undeclared instance versions", () => {
+    configuration({
+      instance: { schema: currentSchema, version: CURRENT_VERSION },
+      userLevel: {
+        schema: z.object({ locale: z.string() }),
+        version: "user-v2",
+        versionSchemas: { "user-v1": z.object({ language: z.string() }) },
+        configPagesSchema: z.object({ locale: z.string() }),
+      },
+      init: {
+        perform: async (context) => {
+          if (context.configurationVersion === null) {
+            expectTypeOf(context.configuration).toEqualTypeOf<unknown>();
+            expectTypeOf(context.userConfiguration).toEqualTypeOf<unknown>();
+          }
+          if (
+            context.configurationVersion !== null &&
+            context.configurationVersion !== CURRENT_VERSION
+          ) {
+            expectTypeOf(context.configuration).toEqualTypeOf<unknown>();
+            expectTypeOf(context.userConfiguration).toEqualTypeOf<unknown>();
+          }
+          return {};
+        },
+      },
+    });
+  });
+
+  it("infers user JSON Schema histories in the returned definition", () => {
+    const userSchema = {
+      type: "object",
+      properties: { locale: { type: "string" } },
+      required: ["locale"],
+      additionalProperties: false,
+    } as const;
+    const definition = configuration({
+      instance: { schema: currentSchema, version: CURRENT_VERSION },
+      userLevel: {
+        schema: userSchema,
+        version: "user-v2",
+        versionSchemas: {
+          "user-v1": {
+            type: "object",
+            properties: { language: { type: "string" } },
+            required: ["language"],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+
+    expectTypeOf(definition.userLevel.schema).toEqualTypeOf<typeof userSchema>();
+    expectTypeOf(definition.userLevel.version).toEqualTypeOf<"user-v2">();
+    expectTypeOf(definition.userLevel.versionSchemas["user-v1"]).toEqualTypeOf<{
+      readonly type: "object";
+      readonly properties: { readonly language: { readonly type: "string" } };
+      readonly required: readonly ["language"];
+      readonly additionalProperties: false;
+    }>();
+  });
+
+  it("keeps open connection and unknown user-value types without module augmentation", () => {
+    expectTypeOf<ConfiguredUserValue>().toEqualTypeOf<unknown>();
+    expectTypeOf<ConfiguredConnections>().toEqualTypeOf<{
+      instance: Record<string, Connection>;
+      userLevel: Record<string, Connection>;
+    }>();
   });
 });
