@@ -4,6 +4,7 @@ import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type {
   ComponentRegistry,
   ConfigVarExpression,
+  NpmTriggerReference,
   TriggerReference,
   ValueExpression,
 } from "./ComponentRegistry";
@@ -346,6 +347,7 @@ interface StandardFlow<
   /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
   onTrigger?:
     | TriggerReference
+    | NpmTriggerReference
     | TriggerPerformFunction<TInputs, ConfigVars, TAllowsBranching, TResult, TPaginationState>;
   /**
    * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.

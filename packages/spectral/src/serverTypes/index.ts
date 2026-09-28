@@ -368,6 +368,9 @@ export interface Trigger<
   isPollingTrigger?: boolean;
 }
 
+/** Any converted trigger, with its type parameters left open. */
+export type AnyTrigger = Trigger<Inputs, Inputs>;
+
 export interface DataSourceContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
 > {
@@ -504,3 +507,4 @@ export interface Input {
 
 export * from "./asyncContext";
 export * from "./callableAction";
+export * from "./callableTrigger";
