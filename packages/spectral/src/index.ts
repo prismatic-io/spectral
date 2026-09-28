@@ -4,18 +4,23 @@
  * that can run on the Prismatic platform.
  */
 
-import { runWithIntegrationContext } from "./serverTypes";
+import type { ConvertedAction, MakeCallable, Component as ServerComponent } from "./serverTypes";
+import { createCallableComponent, runWithIntegrationContext } from "./serverTypes";
 import {
   defaultBatchResolver,
   withPolledResultType,
   withPollingState,
   wrapBatchedFire,
 } from "./serverTypes/batching";
+
+export { createCallableComponent } from "./serverTypes";
+
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
 import type {
   ActionDefinition,
   ActionPerformReturn,
+  AnyActionDefinition,
   BatchTrigger,
   BatchTriggerDefinition,
   ComponentDefinition,
@@ -590,9 +595,51 @@ export const componentManifest = <T extends ComponentManifest>(definition: T): T
  *   connections,
  * });
  */
-export const component = <TPublic extends boolean, TKey extends string>(
-  definition: ComponentDefinition<TPublic, TKey>,
-): ReturnType<typeof convertComponent> => convertComponent(definition);
+export const component = <
+  TPublic extends boolean,
+  TKey extends string,
+  TActions extends Record<string, AnyActionDefinition> = Record<string, AnyActionDefinition>,
+  TCallable extends boolean = false,
+>(
+  definition: ComponentDefinition<TPublic, TKey, TActions>,
+  options?: { callable?: TCallable },
+): ServerComponent<
+  Inputs,
+  Inputs,
+  ConfigVarResultCollection,
+  TriggerPayload,
+  boolean,
+  TriggerResult<boolean, TriggerPayload>,
+  {
+    [K in keyof TActions]: TCallable extends true
+      ? MakeCallable<ConvertedAction<TActions[K]>>
+      : ConvertedAction<TActions[K]>;
+  }
+> => {
+  const converted = convertComponent(definition) as ServerComponent<
+    Inputs,
+    Inputs,
+    ConfigVarResultCollection,
+    TriggerPayload,
+    boolean,
+    TriggerResult<boolean, TriggerPayload>,
+    { [K in keyof TActions]: ConvertedAction<TActions[K]> }
+  >;
+
+  return (options?.callable ? createCallableComponent(converted) : converted) as ServerComponent<
+    Inputs,
+    Inputs,
+    ConfigVarResultCollection,
+    TriggerPayload,
+    boolean,
+    TriggerResult<boolean, TriggerPayload>,
+    {
+      [K in keyof TActions]: TCallable extends true
+        ? MakeCallable<ConvertedAction<TActions[K]>>
+        : ConvertedAction<TActions[K]>;
+    }
+  >;
+};
 
 /**
  * This function creates an action object that can be referenced
