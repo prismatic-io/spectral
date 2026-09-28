@@ -85,9 +85,9 @@ export type IntegrationDefinition<
   /** Scoped ConfigVars for this integration. */
   scopedConfigVars?: ScopedConfigVarMap;
   /**
-   * Integration configuration: one schema describing the whole
-   * configuration, plus optional `init`, connection pointers, and callable data
-   * sources. Mutually exclusive with `configPages`.
+   * Instance and optional user-level configuration schemas, connections, a shared
+   * initializer and server functions. Mutually exclusive with legacy config pages
+   * and root scoped config vars.
    */
   configuration?: IntegrationConfiguration;
   /** Instance Profile used for this integration.

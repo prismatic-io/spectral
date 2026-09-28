@@ -183,11 +183,15 @@ export type ActionContext<
   {
     /** The value of an integration configuration, supplied already parsed. */
     configuration?: ConfiguredValue;
+    /** User data may be empty or independently versioned; validate before reading. */
+    userConfiguration?: unknown;
     /**
      * The resolved connections of an integration configuration, keyed by the
      * author's names. The same values are in `configVars`, but under keys the
      * convert layer chose.
      */
-    connections?: Partial<ConfiguredConnections>;
+    connections?: {
+      [TScope in keyof ConfiguredConnections]?: Partial<ConfiguredConnections[TScope]>;
+    };
   }
 >;

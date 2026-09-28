@@ -171,7 +171,10 @@ export const convertIntegration = <
   // inline as part of the integration definition.
   const referenceKey = randomUUID();
 
-  if (definition.configuration && definition.configPages) {
+  if (
+    definition.configuration &&
+    (definition.configPages || definition.userLevelConfigPages || definition.scopedConfigVars)
+  ) {
     throw new Error(
       "An integration must not define both `configuration` (function-backed) and `configPages` (declared).",
     );
@@ -234,6 +237,19 @@ export const convertIntegration = <
 
   let metadata: Record<string, unknown> = {};
 
+  const generatedConnectionKeys = new Map<string, string>();
+  for (const [key, configVar] of Object.entries(configVars)) {
+    if (!isConnectionDefinitionConfigVar(configVar)) continue;
+    const generatedKey = camelCase(key);
+    const collision = generatedConnectionKeys.get(generatedKey);
+    if (!generatedKey || collision) {
+      throw new Error(
+        `Generated connection key collision: "${key}" and "${collision ?? ""}" normalize to "${generatedKey}".`,
+      );
+    }
+    generatedConnectionKeys.set(generatedKey, key);
+  }
+
   try {
     const metaDataPath = path.join("..", ".spectral", "metadata.json");
     const file = readFileSync(metaDataPath, { encoding: "utf-8" });
@@ -254,18 +270,18 @@ export const convertIntegration = <
     configVars,
     metadata,
     integrationConfiguration?.configuration,
+    integrationConfiguration?.userLevelConnectionNames,
   );
   const publishingMetadata = codeNativeIntegrationPublishingMetadata(definition);
 
   return {
     ...cniComponent,
-    // `init` rides the `configuration` export, not `dataSources`; the platform
-    // discovers it only through `hasConfigurationInit`.
+    // Init prerequisites are published independently, like server function definitions.
     ...(integrationConfiguration?.componentConfiguration
       ? { configuration: integrationConfiguration.componentConfiguration }
       : {}),
-    ...(integrationConfiguration
-      ? { hasConfigurationInit: integrationConfiguration.hasConfigurationInit }
+    ...(integrationConfiguration?.configurationInit
+      ? { configurationInit: integrationConfiguration.configurationInit }
       : {}),
     ...(integrationConfiguration?.serverFunctions
       ? {
@@ -404,6 +420,7 @@ const codeNativeIntegrationYaml = <
   configVars: Record<string, ConfigVar>,
   metadata?: Record<string, unknown>,
   integrationConfiguration?: IntegrationConfigurationYaml,
+  userLevelConnectionNames: string[] = [],
 ): string => {
   // Expand any batched `trigger` (built with `batchFlowTrigger`) into the flat
   // onTrigger/onDeployTrigger/triggerResolver/onDeployResolver shape the rest of this
@@ -453,7 +470,10 @@ const codeNativeIntegrationYaml = <
 
   Object.entries(configVarMap).forEach(([key, configVar]) => {
     if (!isHtmlElementConfigVar(configVar)) {
-      requiredConfigVars.push(convertConfigVar(key, configVar, referenceKey, componentRegistry));
+      requiredConfigVars.push({
+        ...convertConfigVar(key, configVar, referenceKey, componentRegistry),
+        ...(userLevelConnectionNames.includes(key) ? { userLevelConfigured: true } : {}),
+      });
     }
   });
 
@@ -487,11 +507,14 @@ const codeNativeIntegrationYaml = <
     flows: flows.map((flow) => convertFlow(flow, componentRegistry, referenceKey)),
     ...(instanceProfile && { defaultInstanceProfile: instanceProfile }),
     // A peer of `requiredConfigVars`, not an entry in it.
-    ...(integrationConfiguration && { configuration: integrationConfiguration }),
-    configPages: [
-      ...convertConfigPages(configPages, false),
-      ...convertConfigPages(userLevelConfigPages, true),
-    ],
+    ...(integrationConfiguration
+      ? { configuration: integrationConfiguration }
+      : {
+          configPages: [
+            ...convertConfigPages(configPages, false),
+            ...convertConfigPages(userLevelConfigPages, true),
+          ],
+        }),
     importMetadata: metadata,
   };
 
@@ -1691,6 +1714,8 @@ const convertOnExecution =
       ? Object.assign(baseContext, {
           configuration:
             (baseContext as unknown as { configuration?: unknown }).configuration ?? {},
+          userConfiguration:
+            (baseContext as unknown as { userConfiguration?: unknown }).userConfiguration ?? {},
           connections: createConfigurationConnections(connectionNames, configVars),
         })
       : baseContext;

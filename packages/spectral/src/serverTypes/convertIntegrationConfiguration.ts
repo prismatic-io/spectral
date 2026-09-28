@@ -1,14 +1,23 @@
 import type { ComponentRegistry } from "../types/ComponentRegistry";
-import type { ConfigVar } from "../types/ConfigVars";
+import {
+  type ConfigVar,
+  isConnectionDefinitionConfigVar,
+  isConnectionReferenceConfigVar,
+} from "../types/ConfigVars";
 import type {
   AnyConfigurationInit,
   AnyIntegrationConfiguration,
   AnyServerFunction,
-  ConfigurationConnection,
+  ConfigurationScope,
   JsonSchema,
   UiSchema,
 } from "../types/IntegrationConfiguration";
-import { isConnectionScopedConfigVar, type ScopedConfigVarMap } from "../types/ScopedConfigVars";
+import {
+  isConnectionScopedConfigVar,
+  isOrgOrCustomerActivatedConnection,
+  isUserScopedConnectionConfigVar,
+  type ScopedConfigVarMap,
+} from "../types/ScopedConfigVars";
 import { type ConnectionNameMap, createConfigurationContext } from "./configurationContext";
 import { serializeSchema, toJsonSchema } from "./configurationSchema";
 import { createComponentMethods } from "./context";
@@ -23,16 +32,22 @@ import { createComponentMethods } from "./context";
  * `schema` and `uiSchema` are objects, not JSON strings: the platform declares
  * them `map(any(), key=str())`, so a serialized one fails at import.
  */
-export interface IntegrationConfigurationYaml {
+export interface ConfigurationDescriptorYaml {
   schema: JsonSchema;
   /** Omitted when the author wrote none, which the platform stores as null. */
   uiSchema?: UiSchema;
-  eTag: string;
+  version: string;
+  versionSchemas?: Record<string, JsonSchema>;
+}
+
+export interface IntegrationConfigurationYaml {
+  instance: ConfigurationDescriptorYaml;
+  userLevel?: ConfigurationDescriptorYaml;
 }
 
 /** The component's `configuration` export. */
 export interface ServerComponentConfiguration {
-  init: (context: unknown) => Promise<unknown>;
+  init: { perform: (context: unknown) => Promise<unknown>; connections?: string[] };
 }
 
 /** The component's `serverFunctions` export, which the runner calls by key. */
@@ -44,14 +59,14 @@ export type ServerComponentFunctions = Record<
 /**
  * A server function's publish metadata. Rides its own mutation variable rather
  * than the component definition, so the schemas are JSON strings here while
- * `configuration.schema` stays an object.
+ * `configuration.instance.schema` stays an object.
  */
 export interface ServerFunctionDefinition {
   key: string;
   display: { label: string; description: string };
   inputSchema: string;
   outputSchema: string;
-  /** Names the caller must supply values for; absent when the function declared none. */
+  /** Required config-var keys, including managed connections the platform supplies. */
   connections?: string[];
 }
 
@@ -59,8 +74,8 @@ export interface ConvertedIntegrationConfiguration {
   configuration: IntegrationConfigurationYaml;
   /** Absent when the author wrote no `init`. */
   componentConfiguration?: ServerComponentConfiguration;
-  /** The platform's only means of discovering `init`; when false, initialization no-ops. */
-  hasConfigurationInit: boolean;
+  /** Init publish metadata; absence means the integration has no initializer. */
+  configurationInit?: { connections?: string[] };
   /** Pointers at reusable connections, lifted to the definition's root. */
   scopedConfigVars: ScopedConfigVarMap;
   /**
@@ -71,6 +86,7 @@ export interface ConvertedIntegrationConfiguration {
    */
   componentConnections: Record<string, ConfigVar>;
   connectionNames: ConnectionNameMap;
+  userLevelConnectionNames: string[];
   /** Absent when the author declared none, so the export stays off the component. */
   serverFunctions?: ServerComponentFunctions;
   serverFunctionDefinitions: ServerFunctionDefinition[];
@@ -80,18 +96,45 @@ export const convertIntegrationConfiguration = (
   configuration: AnyIntegrationConfiguration,
   componentRegistry: ComponentRegistry = {},
 ): ConvertedIntegrationConfiguration => {
-  const { schema, uiSchema, eTag, init, connections = {}, serverFunctions = {} } = configuration;
-
-  if (!schema) {
-    throw new Error("configuration.schema is required.");
-  }
-
-  // The platform's import-time schema violation does not name the cause.
-  if (!eTag) {
-    throw new Error("configuration.eTag is required.");
-  }
-
-  const connectionEntries = Object.entries(connections as Record<string, ConfigurationConnection>);
+  const { instance, userLevel, init, serverFunctions = {} } = configuration;
+  const descriptor = (
+    scope: ConfigurationScope<unknown> | undefined,
+    name: string,
+  ): ConfigurationDescriptorYaml => {
+    if (!scope || scope.schema === undefined)
+      throw new Error(`configuration.${name}.schema is required.`);
+    if (!scope.version) throw new Error(`configuration.${name}.version is required.`);
+    return {
+      schema: toJsonSchema(scope.schema),
+      version: scope.version,
+      ...(scope.uiSchema ? { uiSchema: scope.uiSchema } : {}),
+      ...(scope.versionSchemas
+        ? {
+            versionSchemas: Object.fromEntries(
+              Object.entries(scope.versionSchemas)
+                .filter(([version]) => version !== scope.version)
+                .map(([version, schema]) => [version, toJsonSchema(schema)]),
+            ),
+          }
+        : {}),
+    };
+  };
+  const instanceDescriptor = descriptor(instance, "instance");
+  const userDescriptor = userLevel ? descriptor(userLevel, "userLevel") : undefined;
+  const connectionEntries = [
+    ...Object.entries(instance.connections ?? {}).map(([key, value]) => {
+      if (isUserScopedConnectionConfigVar(value))
+        throw new Error(`Instance connection "${key}" cannot be user activated.`);
+      return [`instance.${key}`, value] as const;
+    }),
+    ...Object.entries(userLevel?.connections ?? {}).map(([key, value]) => {
+      if (isOrgOrCustomerActivatedConnection(value))
+        throw new Error(
+          `User-level connection "${key}" must be user activated or integration-defined.`,
+        );
+      return [`userLevel.${key}`, value] as const;
+    }),
+  ];
 
   // A scoped connection points at something the platform already holds, so it
   // only needs a config var. The other two carry inputs the platform collects,
@@ -103,20 +146,28 @@ export const convertIntegrationConfiguration = (
     (acc, [name, connection]) => {
       if (isConnectionScopedConfigVar(connection as ConfigVar)) {
         acc.scopedConfigVars[name] = connection;
-      } else {
+      } else if (
+        isConnectionDefinitionConfigVar(connection as ConfigVar) ||
+        isConnectionReferenceConfigVar(connection as ConfigVar)
+      ) {
         acc.componentConnections[name] = connection as ConfigVar;
+      } else {
+        throw new Error(`Invalid configuration connection: "${name}"`);
       }
       return acc;
     },
-    { scopedConfigVars: {}, componentConnections: {} },
+    { scopedConfigVars: Object.create(null), componentConnections: Object.create(null) },
   );
 
   // Identical to the runtime key today, but this is what tells the perform
   // wrappers which entries are connections at all.
   const connectionNames = connectionEntries.reduce<ConnectionNameMap>((acc, [name]) => {
+    if (!name.slice(name.indexOf(".") + 1)) {
+      throw new Error(`Configuration connection name must not be empty: "${name}"`);
+    }
     acc[name] = name;
     return acc;
-  }, {});
+  }, Object.create(null));
 
   const serverFunctionEntries = Object.entries(serverFunctions);
   const convertedServerFunctions = serverFunctionEntries.reduce<ServerComponentFunctions>(
@@ -124,22 +175,34 @@ export const convertIntegrationConfiguration = (
       acc[key] = convertServerFunction(serverFunction, connectionNames, componentRegistry);
       return acc;
     },
-    {},
+    Object.create(null),
   );
 
   return {
     configuration: {
-      schema: toJsonSchema(schema),
-      ...(uiSchema ? { uiSchema } : {}),
-      eTag,
+      instance: instanceDescriptor,
+      ...(userDescriptor ? { userLevel: userDescriptor } : {}),
     },
     ...(init
-      ? { componentConfiguration: { init: convertConfigurationInit(init, connectionNames) } }
+      ? {
+          componentConfiguration: {
+            init: {
+              perform: convertConfigurationInit(
+                init.perform,
+                selectConnections(init.connections, connectionNames),
+              ),
+              ...(init.connections?.length ? { connections: [...init.connections] } : {}),
+            },
+          },
+          configurationInit: init.connections?.length ? { connections: [...init.connections] } : {},
+        }
       : {}),
-    hasConfigurationInit: Boolean(init),
     scopedConfigVars: scopedConfigVars as ScopedConfigVarMap,
     componentConnections,
     connectionNames,
+    userLevelConnectionNames: connectionEntries
+      .map(([name]) => name)
+      .filter((name) => name.startsWith("userLevel.")),
     ...(serverFunctionEntries.length ? { serverFunctions: convertedServerFunctions } : {}),
     serverFunctionDefinitions: serverFunctionEntries.map(([key, serverFunction]) =>
       convertServerFunctionDefinition(key, serverFunction),
@@ -150,42 +213,23 @@ export const convertIntegrationConfiguration = (
 /** A wrapper built without an integration, as the unit tests do. */
 const noConnections: ConnectionNameMap = {};
 
-const readConfiguration = (context: unknown): unknown =>
-  (context as { configuration?: unknown } | undefined)?.configuration;
+export const selectConnections = (
+  dependencies: readonly string[] | undefined,
+  available: ConnectionNameMap,
+): ConnectionNameMap =>
+  Object.fromEntries(
+    (dependencies ?? []).map((key) => {
+      if (!Object.hasOwn(available, key))
+        throw new Error(`Undeclared configuration connection: "${key}"`);
+      return [key, available[key]];
+    }),
+  );
 
-const readConfigurationEtag = (context: unknown): string | null | undefined =>
-  (context as { configurationEtag?: string | null } | undefined)?.configurationEtag;
+const readConfigurationVersion = (context: unknown): string | null | undefined =>
+  (context as { configurationVersion?: string | null } | undefined)?.configurationVersion;
 
 const readConfigVars = (context: unknown): Record<string, unknown> =>
   (context as { configVars?: Record<string, unknown> } | undefined)?.configVars ?? {};
-
-const isEmpty = (value: unknown): boolean =>
-  value === undefined ||
-  value === null ||
-  (typeof value === "object" && Object.keys(value as object).length === 0);
-
-/**
- * What `init` reads as `configuration` before a first deploy: the instance's
- * config vars folded in, with any stored value over them.
- *
- * The runner sends `request.configuration || {}`, so a never-configured instance
- * arrives as `{}`; it is reported as `undefined`, which is the only thing
- * separating it from one migrating off `configPages` under the same null etag.
- */
-const readInitialConfiguration = (
-  configuration: unknown,
-  configVars: Record<string, unknown>,
-): unknown => {
-  const storedIsEmpty = isEmpty(configuration);
-
-  if (Object.keys(configVars).length === 0) {
-    return storedIsEmpty ? undefined : configuration;
-  }
-
-  return storedIsEmpty
-    ? { ...configVars }
-    : { ...configVars, ...(configuration as Record<string, unknown>) };
-};
 
 /**
  * Wraps `init` for the component's `configuration` export, mapping the platform
@@ -195,38 +239,26 @@ const readInitialConfiguration = (
 export const convertConfigurationInit =
   (init: AnyConfigurationInit, connectionNames: ConnectionNameMap = noConnections) =>
   async (context: unknown): Promise<unknown> => {
-    const configurationEtag = readConfigurationEtag(context) ?? null;
+    const configurationVersion = readConfigurationVersion(context) ?? null;
     const configVars = readConfigVars(context);
-    const configuration =
-      configurationEtag === null
-        ? readInitialConfiguration(readConfiguration(context), configVars)
-        : readConfiguration(context);
-
-    const authorContext = createConfigurationContext(context, connectionNames, configuration);
-
-    return init(Object.assign(authorContext, { configurationEtag, configVars }) as never);
+    const authorContext = createConfigurationContext(context, connectionNames);
+    return init(Object.assign(authorContext, { configurationVersion, configVars }) as never);
   };
 
 /**
  * Wraps a `perform` for the component's `serverFunctions` export, mapping the
  * platform context onto the author's and its `inputs` onto `params`.
  *
- * The platform supplies a `configuration` on every invocation; it is withheld
- * here because a host calls this mid-configuration, when the saved value is
- * stale.
+ * Saved values remain on context; unsaved form values arrive independently as inputs.
  */
-export const convertServerFunction =
-  (
-    serverFunction: AnyServerFunction,
-    connectionNames: ConnectionNameMap = noConnections,
-    componentRegistry: ComponentRegistry = {},
-  ) =>
-  async (context: unknown, inputs: unknown): Promise<unknown> => {
-    const { configuration: _withheld, ...authorContext } = createConfigurationContext(
-      context,
-      connectionNames,
-      undefined,
-    );
+export const convertServerFunction = (
+  serverFunction: AnyServerFunction,
+  connectionNames: ConnectionNameMap = noConnections,
+  componentRegistry: ComponentRegistry = {},
+) => {
+  const dependencies = selectConnections(serverFunction.connections, connectionNames);
+  return async (context: unknown, inputs: unknown): Promise<unknown> => {
+    const authorContext = createConfigurationContext(context, dependencies);
 
     return serverFunction.perform(
       Object.assign(authorContext, {
@@ -235,6 +267,7 @@ export const convertServerFunction =
       inputs as never,
     );
   };
+};
 
 /** The platform requires both schemas and a label, so a key stands in for an absent label. */
 export const convertServerFunctionDefinition = (

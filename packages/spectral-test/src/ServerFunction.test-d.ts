@@ -1,6 +1,6 @@
 import type { AnyServerFunction, Connection, ServerFunctionContext } from "@prismatic-io/spectral";
 import { serverFunction } from "@prismatic-io/spectral";
-import { expectAssignable, expectNotAssignable, expectType } from "tsd";
+import { expectAssignable, expectType } from "tsd";
 
 const searchChannels = serverFunction({
   inputSchema: {
@@ -10,15 +10,19 @@ const searchChannels = serverFunction({
     additionalProperties: false,
   },
   outputSchema: { type: "array", items: { type: "string" } },
-  perform: async (_context, params) => {
+  perform: async (context, params) => {
     expectType<string>(params.search);
+    expectType<unknown>(context.configuration);
+    expectType<unknown>(context.userConfiguration);
     return [params.search];
   },
 });
 
 expectAssignable<AnyServerFunction>(searchChannels);
 
-expectNotAssignable<keyof ServerFunctionContext>("configuration");
+expectAssignable<keyof ServerFunctionContext>("configuration");
+expectAssignable<keyof ServerFunctionContext>("userConfiguration");
+expectAssignable<keyof ServerFunctionContext>("user");
 expectAssignable<keyof ServerFunctionContext>("components");
 expectAssignable<keyof ServerFunctionContext>("connections");
 
@@ -30,11 +34,14 @@ const listRegions = serverFunction({
     additionalProperties: false,
   },
   outputSchema: { type: "array", items: { type: "string" } },
-  connections: ["cloudConnection"],
+  connections: ["instance.cloudConnection", "userLevel.cloudConnection"],
   perform: async ({ connections }, params) => {
-    expectType<Connection>(connections.cloudConnection);
+    expectType<Connection>(connections.instance.cloudConnection);
+    expectType<Connection>(connections.userLevel.cloudConnection);
     // @ts-expect-error only a declared connection is in scope
-    connections.undeclared;
+    connections.instance.undeclared;
+    // @ts-expect-error qualified dependencies are reconstructed as nested connections
+    connections.cloudConnection;
     return [params.cloud];
   },
 });

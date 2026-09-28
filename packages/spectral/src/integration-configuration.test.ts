@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 
+import { integration } from ".";
 import {
-  CONFIGURATION_E_TAG,
+  CONFIGURATION_VERSION,
   CUSTOMER_CONNECTION_STABLE_KEY,
   type configurationSchema,
   configurationUiSchema,
@@ -10,8 +12,11 @@ import {
   integrationConfigurationDefinition,
   noInitIntegration,
   ORG_CONNECTION_STABLE_KEY,
-  PREVIOUS_CONFIGURATION_E_TAG,
+  PREVIOUS_CONFIGURATION_VERSION,
+  PREVIOUS_USER_CONFIGURATION_VERSION,
   searchChannels,
+  USER_CONFIGURATION_VERSION,
+  USER_CONNECTION_STABLE_KEY,
 } from "./integration-configuration.fixture";
 import type { ConnectionNameMap } from "./serverTypes/configurationContext";
 import { toJsonSchema } from "./serverTypes/configurationSchema";
@@ -42,8 +47,13 @@ const yaml = () => {
 
 /** The component's `configuration` export, which carries `init`. */
 const emittedConfiguration = () =>
-  (convert() as unknown as { configuration?: { init?: (context: unknown) => Promise<unknown> } })
-    .configuration;
+  (
+    convert() as unknown as {
+      configuration?: {
+        init?: { perform: (context: unknown) => Promise<unknown>; connections: string[] };
+      };
+    }
+  ).configuration;
 
 /** The component's `serverFunctions` export, which the runner calls by key. */
 const emittedServerFunctions = () =>
@@ -66,13 +76,15 @@ const connectionValue = (configVarKey: string) => ({
 
 /** Connections only: the configuration reaches an author on its own context key. */
 const runtimeConfigVars = () => ({
-  orgConnection: connectionValue("orgConnection"),
-  customerConnection: connectionValue("customerConnection"),
+  "instance.orgConnection": connectionValue("instance.orgConnection"),
+  "instance.customerConnection": connectionValue("instance.customerConnection"),
+  "userLevel.orgConnection": connectionValue("userLevel.orgConnection"),
 });
 
 const fixtureConnectionNames: ConnectionNameMap = {
-  orgConnection: "orgConnection",
-  customerConnection: "customerConnection",
+  "instance.orgConnection": "instance.orgConnection",
+  "instance.customerConnection": "instance.customerConnection",
+  "userLevel.orgConnection": "userLevel.orgConnection",
 };
 
 /**
@@ -80,8 +92,11 @@ const fixtureConnectionNames: ConnectionNameMap = {
  * augmentation, which is global to a compilation. Asserting the resolution
  * directly keeps that out of the rest of the suite.
  */
-type Augmented = { schema: typeof configurationSchema; connections: { crm: never } };
-type Value = Augmented extends { schema: infer TSchema extends SchemaInput }
+type Augmented = {
+  instance: { schema: typeof configurationSchema; connections: { crm: never } };
+  userLevel: { connections: { crm: never } };
+};
+type Value = Augmented["instance"] extends { schema: infer TSchema extends SchemaInput }
   ? ConfigurationValue<TSchema>
   : never;
 
@@ -94,22 +109,26 @@ describe("a flow reads the configuration typed by its schema", () => {
   });
 
   it("keys connections by the names the integration declared", () => {
-    const connections: { [Key in keyof Augmented["connections"]]: string } = { crm: "resolved" };
+    const connections: {
+      [Scope in keyof Augmented]: {
+        [Key in keyof Augmented[Scope]["connections"]]: string;
+      };
+    } = { instance: { crm: "organization" }, userLevel: { crm: "personal" } };
 
-    expect(Object.keys(connections)).toEqual(["crm"]);
+    expect(Object.keys(connections.instance)).toEqual(["crm"]);
+    expect(Object.keys(connections.userLevel)).toEqual(["crm"]);
   });
 });
 
 describe("the integration configuration authoring surface", () => {
-  it("accepts configuration.schema / eTag / init / connections", () => {
-    const { configuration } = integrationConfigurationDefinition as unknown as {
-      configuration: Record<string, unknown>;
-    };
+  it("accepts scoped schemas, versions, connections and an instance init", () => {
+    const { configuration } = integrationConfigurationDefinition;
 
-    expect(configuration.schema).toBeDefined();
-    expect(configuration.eTag).toBe(CONFIGURATION_E_TAG);
-    expect(typeof configuration.init).toBe("function");
-    expect(Object.keys(configuration.connections as object)).toEqual([
+    expect(configuration.instance.schema).toBeDefined();
+    expect(configuration.instance.version).toBe(CONFIGURATION_VERSION);
+    expect(configuration.userLevel.version).toBe(USER_CONFIGURATION_VERSION);
+    expect(typeof configuration.init.perform).toBe("function");
+    expect(Object.keys(configuration.instance.connections)).toEqual([
       "orgConnection",
       "customerConnection",
       "inlineConnection",
@@ -128,12 +147,61 @@ describe("the integration configuration authoring surface", () => {
 });
 
 describe("configuration is a platform model, not a config variable", () => {
+  it("publishes nested scoped descriptors including historical schemas, but no author typing", () => {
+    const emitted = parse(yaml());
+
+    expect(
+      emitted.configuration.instance.versionSchemas[PREVIOUS_CONFIGURATION_VERSION],
+    ).toMatchObject({
+      type: "object",
+      properties: { pairs: { type: "array" } },
+    });
+    expect(
+      emitted.configuration.userLevel.versionSchemas[PREVIOUS_USER_CONFIGURATION_VERSION],
+    ).toMatchObject({
+      type: "object",
+      properties: { channelId: { type: "string" } },
+    });
+    expect(emitted).not.toHaveProperty("userLevelConfiguration");
+    expect(emitted.configuration.instance).not.toHaveProperty("configPagesSchema");
+    expect(emitted.configuration.userLevel).not.toHaveProperty("configPagesSchema");
+    expect(emitted.configuration.instance).not.toHaveProperty("eTag");
+    expect(emitted).not.toHaveProperty("configPages");
+  });
+
+  it("omits the optional user descriptor for an instance-only configuration", () => {
+    const emitted = parse(
+      (noInitIntegration as unknown as { codeNativeIntegrationYAML: string })
+        .codeNativeIntegrationYAML,
+    );
+
+    expect(Object.keys(emitted.configuration)).toEqual(["instance"]);
+    expect(emitted.configuration.instance.version).toBeDefined();
+    expect(emitted).not.toHaveProperty("userLevelConfiguration");
+    expect(emitted).not.toHaveProperty("configPages");
+  });
+
+  it("retains the legacy configPages list without configuration", () => {
+    const component = integration({
+      name: "Legacy config pages",
+      flows: [],
+      configPages: {},
+    });
+    const emitted = parse(
+      (component as unknown as { codeNativeIntegrationYAML: string }).codeNativeIntegrationYAML,
+    );
+
+    expect(emitted.configPages).toEqual([]);
+    expect(emitted).not.toHaveProperty("configuration");
+  });
+
   it("emits a `configuration:` block in the integration YAML", () => {
     // A peer of requiredConfigVars, not an entry in it.
     const emitted = yaml();
 
     expect(emitted).toContain("configuration:");
-    expect(emitted).toContain(`eTag: ${CONFIGURATION_E_TAG}`);
+    expect(emitted).toContain(`version: ${CONFIGURATION_VERSION}`);
+    expect(parse(emitted).configuration.userLevel.version).toBe(USER_CONFIGURATION_VERSION);
   });
 
   it("emits schema and uiSchema as objects, not JSON strings", () => {
@@ -161,27 +229,29 @@ describe("configuration is a platform model, not a config variable", () => {
 describe("init rides the component's configuration export, not a data source", () => {
   it("emits the author's init on `configuration`, beside actions and dataSources", () => {
     // Invoked by a bespoke system call, so it has no key or data source ID.
-    expect(typeof emittedConfiguration()?.init).toBe("function");
+    expect(typeof emittedConfiguration()?.init?.perform).toBe("function");
     expect(dataSourceKeys()).not.toContain("configuration");
   });
 
-  it("sets hasConfigurationInit so the platform can discover it", () => {
-    // The only discovery mechanism: when false, initialization silently no-ops.
-    const { hasConfigurationInit } = convert() as unknown as { hasConfigurationInit?: boolean };
+  it("publishes concrete init dependency metadata", () => {
+    const connections = ["instance.orgConnection", "userLevel.orgConnection"];
 
-    expect(hasConfigurationInit).toBe(true);
+    expect(convert()).toHaveProperty("configurationInit", { connections });
+    expect(convert()).not.toHaveProperty("hasConfigurationInit");
+    expect(emittedConfiguration()?.init?.connections).toEqual(connections);
   });
 
   it("emits no init at all when the author wrote none", () => {
     // Nothing to publish: schema and uiSchema live on the model, so no data
     // source has to exist just to carry them.
-    const { configuration, hasConfigurationInit } = noInitIntegration as unknown as {
+    const { configuration, configurationInit } = noInitIntegration as unknown as {
       configuration?: unknown;
-      hasConfigurationInit?: boolean;
+      configurationInit?: unknown;
     };
 
     expect(configuration).toBeUndefined();
-    expect(hasConfigurationInit).toBe(false);
+    expect(configurationInit).toBeUndefined();
+    expect(noInitIntegration).not.toHaveProperty("hasConfigurationInit");
     expect(Object.keys(noInitIntegration.dataSources ?? {})).toEqual([]);
   });
 
@@ -192,7 +262,9 @@ describe("init rides the component's configuration export, not a data source", (
 
     // The schema's defaults with the instance's persisted value over them.
     const assembled = { mappings: [{ source: "a" }] };
-    const result = (await wrapped({ configuration: assembled }, {})) as { seen: unknown };
+    const result = (await wrapped({ configuration: assembled })) as {
+      seen: unknown;
+    };
 
     expect(result.seen).toEqual(assembled);
   });
@@ -208,40 +280,39 @@ describe("init rides the component's configuration export, not a data source", (
     };
     const wrapped = convertConfigurationInit(async () => authorShape);
 
-    await expect(wrapped({ configuration: {} }, {})).resolves.toEqual(authorShape);
+    await expect(wrapped({ configuration: {} })).resolves.toEqual(authorShape);
   });
 
-  it("reports an empty stored configuration as undefined before a first deploy", async () => {
-    // The runner sends `request.configuration || {}`, so a never-configured
-    // instance arrives as `{}`. Only `undefined` distinguishes it from one
-    // migrating off `configPages`, which reaches `init` under the same etag.
-    const wrapped = convertConfigurationInit(async ({ configuration }) => ({
-      wasUndefined: configuration === undefined,
-    }));
-
-    const result = (await wrapped({ configuration: {}, configurationEtag: null })) as {
-      wasUndefined: boolean;
-    };
-
-    expect(result.wasUndefined).toBe(true);
-  });
-
-  it("folds config vars onto the configuration before a first deploy", async () => {
-    // An author migrating off a headed configuration reads one place, not two.
+  it("preserves the runner's empty configuration before a first deploy", async () => {
     const wrapped = convertConfigurationInit(async ({ configuration }) => ({
       seen: configuration,
     }));
 
     const result = (await wrapped({
       configuration: {},
-      configurationEtag: null,
+      configurationVersion: null,
+    })) as {
+      seen: unknown;
+    };
+
+    expect(result.seen).toEqual({});
+  });
+
+  it("never folds config vars into configuration before a first deploy", async () => {
+    const wrapped = convertConfigurationInit(async ({ configuration }) => ({
+      seen: configuration,
+    }));
+
+    const result = (await wrapped({
+      configuration: {},
+      configurationVersion: null,
       configVars: { objectKey: "Contact", region: "us-east" },
     })) as { seen: Record<string, unknown> };
 
-    expect(result.seen).toEqual({ objectKey: "Contact", region: "us-east" });
+    expect(result.seen).toEqual({});
   });
 
-  it("keeps a stored value over a config var of the same name", async () => {
+  it("keeps stored values without merging any config vars", async () => {
     // Only a value the platform kept is authoritative.
     const wrapped = convertConfigurationInit(async ({ configuration }) => ({
       seen: configuration,
@@ -249,50 +320,49 @@ describe("init rides the component's configuration export, not a data source", (
 
     const result = (await wrapped({
       configuration: { objectKey: "Stored" },
-      configurationEtag: null,
+      configurationVersion: null,
       configVars: { objectKey: "FromConfigVars", region: "us-east" },
     })) as { seen: Record<string, unknown> };
 
-    expect(result.seen).toEqual({ objectKey: "Stored", region: "us-east" });
+    expect(result.seen).toEqual({ objectKey: "Stored" });
   });
 
-  it("leaves the configuration alone once an etag is deployed", async () => {
-    // Config vars are folded in only before a first deploy.
+  it("leaves the configuration alone once a version is deployed", async () => {
     const wrapped = convertConfigurationInit(async ({ configuration }) => ({
       seen: configuration,
     }));
 
     const result = (await wrapped({
       configuration: { mappings: [] },
-      configurationEtag: PREVIOUS_CONFIGURATION_E_TAG,
+      configurationVersion: PREVIOUS_CONFIGURATION_VERSION,
       configVars: { objectKey: "Contact" },
     })) as { seen: Record<string, unknown> };
 
     expect(result.seen).toEqual({ mappings: [] });
   });
 
-  it("passes undefined before a first save so an author can distinguish seeding", async () => {
+  it("normalizes a missing configuration to the runner's empty object", async () => {
     const wrapped = convertConfigurationInit(async ({ configuration }) => ({
-      wasUndefined: configuration === undefined,
+      seen: configuration,
     }));
 
-    const absent = (await wrapped({}, {})) as { wasUndefined: boolean };
+    const absent = (await wrapped({})) as { seen: unknown };
 
-    expect(absent.wasUndefined).toBe(true);
+    expect(absent.seen).toEqual({});
   });
 
-  it("hands init the deployed configuration's etag", async () => {
+  it("hands init the deployed configuration's version", async () => {
     // Tells the author which shape the stored value was written under.
-    const wrapped = convertConfigurationInit(async ({ configurationEtag }) => ({
-      seen: configurationEtag,
+    const wrapped = convertConfigurationInit(async ({ configurationVersion }) => ({
+      seen: configurationVersion,
     }));
 
     const result = (await wrapped({
       configuration: {},
-      configurationEtag: PREVIOUS_CONFIGURATION_E_TAG,
+      configurationVersion: PREVIOUS_CONFIGURATION_VERSION,
     })) as { seen: unknown };
 
-    expect(result.seen).toBe(PREVIOUS_CONFIGURATION_E_TAG);
+    expect(result.seen).toBe(PREVIOUS_CONFIGURATION_VERSION);
   });
 
   it("hands init the config vars an instance was configured under", async () => {
@@ -316,8 +386,8 @@ describe("init rides the component's configuration export, not a data source", (
   });
 
   it("passes null rather than undefined before a first deploy", async () => {
-    const wrapped = convertConfigurationInit(async ({ configurationEtag }) => ({
-      seen: configurationEtag,
+    const wrapped = convertConfigurationInit(async ({ configurationVersion }) => ({
+      seen: configurationVersion,
     }));
 
     const result = (await wrapped({ configuration: {} })) as { seen: unknown };
@@ -333,13 +403,101 @@ describe("init rides the component's configuration export, not a data source", (
       return {};
     });
 
-    await wrapped({ configuration: {} }, {});
+    await wrapped({ configuration: {} });
 
     expect(seen).toHaveLength(1);
   });
 });
 
 describe("one context for init and flows", () => {
+  it.each([
+    {
+      configurationVersion: PREVIOUS_CONFIGURATION_VERSION,
+      configuration: { pairs: [{ source: "a", destination: "b" }] },
+      userConfiguration: {},
+      migratedValues: { mappings: [{ source: "a", destination: "b" }] },
+    },
+    {
+      configurationVersion: CONFIGURATION_VERSION,
+      configuration: { mappings: [] },
+      userConfiguration: {},
+      migratedValues: { mappings: [] },
+    },
+    {
+      configurationVersion: null,
+      configuration: {},
+      userConfiguration: {},
+      migratedValues: { mappings: [] },
+    },
+    {
+      configurationVersion: "unknown",
+      configuration: { opaque: true },
+      userConfiguration: {},
+      migratedValues: { mappings: [] },
+    },
+  ])("roundtrips instance configuration at version $configurationVersion through the bundle", async ({
+    migratedValues,
+    ...context
+  }) => {
+    await expect(
+      emittedConfiguration()?.init?.perform({
+        ...context,
+        configVars: runtimeConfigVars(),
+      }),
+    ).resolves.toMatchObject({ migratedValues });
+  });
+
+  it("preserves both raw saved fields during instance init without a scope", async () => {
+    const configuration = { opaqueInstance: true };
+    const userConfiguration = { opaqueUser: true };
+    const wrapped = convertConfigurationInit(async (context) => context);
+    const context = (await wrapped({
+      configurationVersion: null,
+      configuration,
+      userConfiguration,
+      configVars: { credential: connectionValue("credential") },
+    })) as Record<string, unknown>;
+
+    expect(context.configuration).toBe(configuration);
+    expect(context.userConfiguration).toBe(userConfiguration);
+    expect(context).not.toHaveProperty("scope");
+  });
+
+  it("does not accept the removed etag alias", async () => {
+    const wrapped = convertConfigurationInit(async (context) => context.configurationVersion);
+
+    await expect(
+      wrapped({
+        configurationEtag: PREVIOUS_CONFIGURATION_VERSION,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it.each([
+    "instance",
+    "user",
+    undefined,
+    "userLevel",
+    "organization",
+  ])("does not expose the obsolete scope field %s", async (scope) => {
+    const wrapped = convertConfigurationInit(async (context) => context);
+    const configuration = { mappings: [] };
+    const userConfiguration = { opaque: true };
+
+    const context = await wrapped({
+      scope,
+      configuration,
+      userConfiguration,
+      configurationVersion: CONFIGURATION_VERSION,
+    });
+    expect(context).not.toHaveProperty("scope");
+    expect(context).toMatchObject({
+      configuration,
+      userConfiguration,
+      configurationVersion: CONFIGURATION_VERSION,
+    });
+  });
+
   it("hands init the connections under the author's names", async () => {
     const wrapped = convertConfigurationInit(
       async (context) => ({
@@ -349,24 +507,32 @@ describe("one context for init and flows", () => {
       fixtureConnectionNames,
     );
 
-    const result = (await wrapped({ logger: console, configVars: runtimeConfigVars() }, {})) as {
+    const result = (await wrapped({ logger: console, configVars: runtimeConfigVars() })) as {
       keys: string[];
       connections: Record<string, unknown>;
     };
 
     expect(result.connections).toEqual({
-      orgConnection: connectionValue("orgConnection"),
-      customerConnection: connectionValue("customerConnection"),
+      instance: {
+        orgConnection: connectionValue("instance.orgConnection"),
+        customerConnection: connectionValue("instance.customerConnection"),
+      },
+      userLevel: { orgConnection: connectionValue("userLevel.orgConnection") },
     });
-    expect(result.keys).toEqual([
-      "configVars",
-      "configuration",
-      "configurationEtag",
-      "connections",
-      "customer",
-      "instance",
-      "logger",
-    ]);
+    expect(result.keys).toEqual(
+      expect.arrayContaining([
+        "configVars",
+        "configuration",
+        "userConfiguration",
+        "configurationVersion",
+        "connections",
+        "customer",
+        "instance",
+        "logger",
+      ]),
+    );
+    expect(result.keys).not.toContain("configurationEtag");
+    expect(result.keys).not.toContain("scope");
   });
 
   it("gives a flow the configuration and the same connections under the same names", async () => {
@@ -383,7 +549,11 @@ describe("one context for init and flows", () => {
       {},
     );
 
-    expect(data).toEqual({ count: 1, connectionNames: ["orgConnection", "customerConnection"] });
+    expect(data).toEqual({
+      count: 1,
+      channel: undefined,
+      connectionNames: Object.keys(runtimeConfigVars()),
+    });
   });
 
   it("gives a flow an empty object rather than throwing on an unconfigured instance", async () => {
@@ -394,7 +564,11 @@ describe("one context for init and flows", () => {
 
     const { data } = await action.perform({ logger: console, configVars: runtimeConfigVars() }, {});
 
-    expect(data).toEqual({ count: 0, connectionNames: ["orgConnection", "customerConnection"] });
+    expect(data).toEqual({
+      count: 0,
+      channel: undefined,
+      connectionNames: Object.keys(runtimeConfigVars()),
+    });
   });
 });
 
@@ -403,7 +577,7 @@ describe("schema and uiSchema are published on the model, not as inputs", () => 
     const emitted = yaml();
 
     expect(emitted).toMatch(/mappings:/);
-    expect(emitted).toContain(`eTag: ${CONFIGURATION_E_TAG}`);
+    expect(emitted).toContain(`version: ${CONFIGURATION_VERSION}`);
   });
 
   it("carries the author's uiSchema verbatim", () => {
@@ -426,7 +600,7 @@ describe("schema and uiSchema are published on the model, not as inputs", () => 
     expect(codeNativeIntegrationYAML).not.toContain("uiSchema");
   });
 
-  it("emits no schema, uiSchema or eTag input on any data source", () => {
+  it("emits no schema, uiSchema or version input on any data source", () => {
     // As input defaults these were editable by anyone opening the generated
     // component in the Designer.
     for (const source of Object.values(convert().dataSources ?? {})) {
@@ -484,10 +658,10 @@ describe("schema and uiSchema are published on the model, not as inputs", () => 
 describe("schemas may be authored in zod or as JSON Schema literals", () => {
   it("converts a zod schema to JSON Schema on the wire", () => {
     const { configuration } = integrationConfigurationDefinition as unknown as {
-      configuration: { schema: never };
+      configuration: { instance: { schema: never } };
     };
 
-    expect(toJsonSchema(configuration.schema)).toMatchObject({
+    expect(toJsonSchema(configuration.instance.schema)).toMatchObject({
       type: "object",
       properties: {
         mappings: {
@@ -539,6 +713,72 @@ describe("no implicit cascade", () => {
 });
 
 describe("connections", () => {
+  it("limits bundled init to its qualified cross-scope prerequisites", async () => {
+    const component = integration({
+      ...integrationConfigurationDefinition,
+      configuration: {
+        ...integrationConfigurationDefinition.configuration,
+        init: {
+          ...integrationConfigurationDefinition.configuration.init,
+          perform: async (context: { connections: unknown }) => context.connections,
+        },
+      },
+    } as never) as unknown as {
+      configuration: { init: { perform: (context: unknown) => Promise<unknown> } };
+    };
+
+    expect(
+      await component.configuration.init.perform({
+        configVars: runtimeConfigVars(),
+      }),
+    ).toEqual({
+      instance: { orgConnection: connectionValue("instance.orgConnection") },
+      userLevel: { orgConnection: connectionValue("userLevel.orgConnection") },
+    });
+  });
+
+  it("emits exact qualified config variable keys and marks user connections user-level", () => {
+    const emitted = parse(yaml());
+    const required = emitted.requiredConfigVars;
+
+    expect(required.map(({ key }: { key: string }) => key).sort()).toEqual(
+      [
+        "instance.orgConnection",
+        "instance.customerConnection",
+        "instance.inlineConnection",
+        "userLevel.orgConnection",
+      ].sort(),
+    );
+    expect(
+      required.find(({ key }: { key: string }) => key === "userLevel.orgConnection"),
+    ).toMatchObject({
+      userLevelConfigured: true,
+      useScopedConfigVar: USER_CONNECTION_STABLE_KEY,
+    });
+  });
+
+  it("reconstructs only declared connections and never guesses scope from arbitrary dotted keys", async () => {
+    const wrapped = convertConfigurationInit(
+      async ({ connections }) => connections,
+      fixtureConnectionNames,
+    );
+    const result = await wrapped({
+      connections: {
+        ...runtimeConfigVars(),
+        "instance.undeclared": connectionValue("instance.undeclared"),
+        "unrecognized.extra": connectionValue("unrecognized.extra"),
+      },
+    });
+
+    expect(result).toEqual({
+      instance: {
+        orgConnection: connectionValue("instance.orgConnection"),
+        customerConnection: connectionValue("instance.customerConnection"),
+      },
+      userLevel: { orgConnection: connectionValue("userLevel.orgConnection") },
+    });
+  });
+
   it("emits a reusable connection as a useScopedConfigVar pointer", () => {
     const emitted = yaml();
 
@@ -563,7 +803,7 @@ describe("connections", () => {
     const emitted = yaml();
 
     expect(emitted).toContain(INLINE_CONNECTION_STABLE_KEY);
-    expect(emitted).toMatch(/key: inlineConnection/);
+    expect(emitted).toMatch(/key: instanceInlineConnection/);
     expect(emitted).toContain("apiKey");
   });
 
@@ -571,12 +811,12 @@ describe("connections", () => {
     // Both halves are required, and their keys have to agree: the config var's
     // `connection.key` names the component connection the platform collects.
     const connection = (convert().connections ?? []).find(
-      (candidate) => candidate.key === "inlineConnection",
+      (candidate) => candidate.key === "instanceInlineConnection",
     );
 
     expect(connection).toBeDefined();
     expect((connection?.inputs ?? []).map((input) => input.key)).toEqual(["apiKey", "endpoint"]);
-    expect(yaml()).toMatch(/connection:\n\s+key: inlineConnection/);
+    expect(yaml()).toMatch(/connection:\n\s+key: instanceInlineConnection/);
   });
 
   it("hands every kind to a flow under the author's own name", async () => {
@@ -588,23 +828,53 @@ describe("connections", () => {
       {
         logger: console,
         configuration: { mappings: [] },
+        userConfiguration: { channel: "general" },
         configVars: {
           ...runtimeConfigVars(),
-          inlineConnection: connectionValue("inlineConnection"),
+          "instance.inlineConnection": connectionValue("instance.inlineConnection"),
         },
       },
       {},
     );
 
     expect((data as { connectionNames: string[] }).connectionNames).toEqual([
-      "orgConnection",
-      "customerConnection",
-      "inlineConnection",
+      "instance.orgConnection",
+      "instance.customerConnection",
+      "instance.inlineConnection",
+      "userLevel.orgConnection",
     ]);
+    expect(data).toMatchObject({ count: 0, channel: "general" });
   });
 });
 
 describe("server functions", () => {
+  it("withholds undeclared dependencies even when the runner supplies them", async () => {
+    const wrapped = convertServerFunction(
+      {
+        ...searchChannels,
+        perform: async ({ connections }) => connections,
+      } as never,
+      fixtureConnectionNames,
+    );
+
+    expect(await wrapped({ configVars: runtimeConfigVars() }, {})).toEqual({
+      instance: { orgConnection: connectionValue("instance.orgConnection") },
+    });
+  });
+
+  it("exposes no connections for a function without dependencies", async () => {
+    const wrapped = convertServerFunction(
+      {
+        ...searchChannels,
+        connections: undefined,
+        perform: async ({ connections }) => connections,
+      } as never,
+      fixtureConnectionNames,
+    );
+
+    expect(await wrapped({ configVars: runtimeConfigVars() }, {})).toEqual({});
+  });
+
   it("emits each one on the component, keyed as the author named it", () => {
     expect(Object.keys(emittedServerFunctions() ?? {})).toEqual(["searchChannels", "listRegions"]);
   });
@@ -732,7 +1002,7 @@ describe("server functions", () => {
   it("publishes the connections a function declared", () => {
     const definition = serverFunctionDefinitions().find(({ key }) => key === "searchChannels");
 
-    expect(definition?.connections).toEqual(["orgConnection"]);
+    expect(definition?.connections).toEqual(["instance.orgConnection"]);
   });
 
   it("omits connections when a function declared none", () => {
@@ -743,26 +1013,26 @@ describe("server functions", () => {
     expect(definition).not.toHaveProperty("connections");
   });
 
-  it("withholds the configuration from the context", async () => {
-    // A host invokes these mid-configuration, so the saved value is stale;
-    // in-progress values arrive as params instead.
+  it("preserves both saved configurations while accepting unsaved inputs separately", async () => {
     const wrapped = convertServerFunction(
-      { ...searchChannels, perform: async (context) => context } as never,
+      { ...searchChannels, perform: async (context, inputs) => ({ ...context, inputs }) } as never,
       fixtureConnectionNames,
     );
 
     const context = (await wrapped(
-      { configVars: runtimeConfigVars(), configuration: { mappings: [] } },
-      { search: "" },
+      {
+        configVars: runtimeConfigVars(),
+        configuration: { mappings: [] },
+        userConfiguration: { channel: "saved" },
+      },
+      { channel: "unsaved" },
     )) as Record<string, unknown>;
 
-    expect(context).not.toHaveProperty("configuration");
-    expect(Object.keys(context).sort()).toEqual([
-      "components",
-      "connections",
-      "customer",
-      "instance",
-      "logger",
-    ]);
+    expect(context.configuration).toEqual({ mappings: [] });
+    expect(context.userConfiguration).toEqual({ channel: "saved" });
+    expect(context.inputs).toEqual({ channel: "unsaved" });
+    expect(Object.keys(context).sort()).toEqual(
+      expect.arrayContaining(["components", "connections", "customer", "instance", "logger"]),
+    );
   });
 });
