@@ -1,8 +1,10 @@
 import type { ComponentReference } from "../types";
+import type { NpmDataSourceReferenceConfigVar } from "../types";
 import type { CollectionType } from "../types/ConfigVars";
-import type { Action, AnyConvertedAction, AnyTrigger, Component, Input } from ".";
+import type { Action, AnyConvertedAction, AnyDataSource, AnyTrigger, Component, Input } from ".";
 import { performActionFunctionExecutor } from "./actionExecutor";
 import { requireContext } from "./asyncContext";
+import { type CallableDataSourceConfigVar, createCallableDataSource } from "./callableDataSource";
 import { createCallableTrigger, type NpmTriggerReference } from "./callableTrigger";
 import { convertInputValue } from "./convertIntegration";
 
@@ -65,15 +67,23 @@ export type CallableTriggerHelper<TTrigger> = (
   values?: ComponentReference["values"],
 ) => NpmTriggerReference<TTrigger>;
 
+/** A data source reference helper, directly callable with the config var it should back (e.g.
+ * `foo.dataSources.selectChannels({ stableKey: "...", values: { ... } })`), produced by
+ * {@link createCallableDataSource}. */
+export type CallableDataSourceHelper = (
+  configVar: CallableDataSourceConfigVar,
+) => NpmDataSourceReferenceConfigVar;
+
 export const createCallableComponent = <
   TComponent extends Component<any, any, any, any, any, any, Record<string, AnyConvertedAction>>,
 >(
   component: TComponent,
-): Omit<TComponent, "actions" | "triggers"> & {
+): Omit<TComponent, "actions" | "triggers" | "dataSources"> & {
   actions: { [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]> };
   triggers: {
     [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
   };
+  dataSources: { [K in keyof TComponent["dataSources"]]: CallableDataSourceHelper };
 } => {
   const actions = Object.entries(component.actions).reduce<Record<string, CallableAction>>(
     (result, [key, action]) => {
@@ -86,17 +96,25 @@ export const createCallableComponent = <
   const triggers = Object.entries(component.triggers ?? {}).reduce<
     Record<string, CallableTriggerHelper<unknown>>
   >((result, [key, trigger]) => {
-    result[key] = createCallableTrigger(trigger as AnyTrigger);
+    result[key] = createCallableTrigger(trigger as AnyTrigger, component.dataSources ?? {});
     return result;
   }, {});
 
-  return { ...component, actions, triggers } as unknown as Omit<
+  const dataSources = Object.entries(component.dataSources ?? {}).reduce<
+    Record<string, CallableDataSourceHelper>
+  >((result, [key, dataSource]) => {
+    result[key] = createCallableDataSource(dataSource as AnyDataSource);
+    return result;
+  }, {});
+
+  return { ...component, actions, triggers, dataSources } as unknown as Omit<
     TComponent,
-    "actions" | "triggers"
+    "actions" | "triggers" | "dataSources"
   > & {
     actions: { [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]> };
     triggers: {
       [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
     };
+    dataSources: { [K in keyof TComponent["dataSources"]]: CallableDataSourceHelper };
   };
 };

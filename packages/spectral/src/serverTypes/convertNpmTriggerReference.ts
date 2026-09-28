@@ -5,11 +5,18 @@ import type {
   Inputs,
   TriggerPerformFunction,
 } from "../types";
-import type { AnyTrigger, TriggerResult } from ".";
+import type {
+  AnyDataSource,
+  AnyTrigger,
+  DataSource as ServerDataSource,
+  Input as ServerTriggerInput,
+  TriggerResult,
+} from ".";
 import { runWithContext } from "./asyncContext";
 import { isNpmTriggerReference, type NpmTriggerReference } from "./callableTrigger";
 import { createCNIContext } from "./context";
 import { convertReferenceValues } from "./convertIntegration";
+import { createNpmDataSourcePerform } from "./convertNpmDataSourceReference";
 import type { Input as ServerInput } from "./integration";
 
 export type ConvertedNpmTriggerReference = NpmTriggerReference<AnyTrigger>;
@@ -27,6 +34,43 @@ export const convertNpmTriggerReferenceInputs = (
     inputsByKey,
     npmTriggerReference.values as ComponentReference["values"],
   );
+};
+
+/**
+ * An npm trigger's own `Input[]` may carry a `dataSource` field naming a *sibling* data source on
+ * the same source component (e.g. foo's `channelId` input has `dataSource: "selectChannels"`).
+ * That sibling can't resolve once the trigger is hoisted onto the CNI's own wrapper component —
+ * there's no external manifest component to resolve it against — so this synthesizes a CNI-owned
+ * copy of the sibling data source (keyed uniquely per wrapper trigger, to avoid collisions across
+ * flows) and rewrites the input to point at it, mirroring how a config var's own npm data source
+ * reference gets hoisted (see `createNpmDataSourcePerform`/`convertedDataSources`).
+ */
+export const resolveNpmTriggerSiblingDataSources = (
+  npmTriggerReference: ConvertedNpmTriggerReference,
+  wrapperTriggerKey: string,
+  componentRegistry: ComponentRegistry,
+): { inputs: ServerTriggerInput[]; dataSources: Record<string, ServerDataSource> } => {
+  const siblingDataSources = npmTriggerReference.dataSources as Record<string, AnyDataSource>;
+  const dataSources: Record<string, ServerDataSource> = {};
+
+  const inputs = npmTriggerReference.trigger.inputs.map((input) => {
+    const siblingKey = input.dataSource;
+    const npmDataSource = siblingKey ? siblingDataSources[siblingKey] : undefined;
+    if (!npmDataSource) {
+      return input;
+    }
+
+    const wrapperDataSourceKey = `${wrapperTriggerKey}_${siblingKey}`;
+    dataSources[wrapperDataSourceKey] = {
+      ...npmDataSource,
+      key: wrapperDataSourceKey,
+      perform: createNpmDataSourcePerform(npmDataSource, componentRegistry),
+    };
+
+    return { ...input, dataSource: wrapperDataSourceKey };
+  });
+
+  return { inputs, dataSources };
 };
 
 export const createNpmTriggerPerform = (

@@ -6,6 +6,7 @@ import {
   configPage,
   configVar,
   customerActivatedConnection,
+  dataSource,
   flow,
   input,
   integration,
@@ -16,7 +17,7 @@ import {
   userLevelConfigPage,
 } from "..";
 import type { ConfigVar, TriggerPayload, TriggerReference } from "../types";
-import { isComponentReference, isNpmTriggerReference } from "../types";
+import { isComponentReference, isNpmDataSourceReference, isNpmTriggerReference } from "../types";
 import {
   convertConfigPages,
   convertConfigVar,
@@ -1442,6 +1443,23 @@ describe("npm trigger references", () => {
             perform: async () => ({ items: [9], paginationState: null }),
           },
         }),
+        pickItem: trigger({
+          display: { label: "Pick Item", description: "Fires when an item is picked" },
+          inputs: {
+            itemId: input({ type: "string", label: "Item", dataSource: "items" }),
+          },
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          perform: async (_context, payload) => ({ payload }),
+        }),
+      },
+      dataSources: {
+        items: dataSource({
+          display: { label: "Items", description: "Pick an item" },
+          dataSourceType: "picklist",
+          inputs: {},
+          perform: async () => ({ result: ["item-1", "item-2"] }),
+        }),
       },
     },
     { callable: true },
@@ -1595,5 +1613,128 @@ describe("npm trigger references", () => {
       allowsBranching: true,
       staticBranchNames: ["Yes", "No"],
     });
+  });
+
+  it("resolves a trigger input's sibling data source onto the CNI's own wrapper component", async () => {
+    const result = integration({
+      name: "npm-sibling-datasource-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Pick Item Flow",
+          stableKey: "pick-item-flow",
+          description: "Npm trigger reference with a sibling data source input",
+          onTrigger: npmComponent.triggers.pickItem({}),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.pickItemFlow_onTrigger;
+    const itemIdInput = wrapperTrigger.inputs.find((i) => i.key === "itemId");
+    expect(itemIdInput?.dataSource).toBe("pickItemFlow_onTrigger_items");
+
+    const wrapperDataSource = result.dataSources.pickItemFlow_onTrigger_items;
+    expect(wrapperDataSource).toBeDefined();
+    expect(wrapperDataSource.dataSourceType).toBe("picklist");
+
+    const performResult = await (
+      wrapperDataSource.perform as (context: unknown, params: unknown) => Promise<unknown>
+    )({} as never, {});
+    expect(performResult).toMatchObject({ result: ["item-1", "item-2"] });
+  });
+});
+
+describe("npm data source references", () => {
+  // Stands in for an npm-imported `@prismatic-io/*` component built with
+  // `component(definition, { callable: true })` — its data sources are directly-callable
+  // reference helpers, not manifest-registry lookups.
+  const npmComponent = component(
+    {
+      key: "acme-npm",
+      public: true,
+      display: { label: "Acme", description: "An npm-published component" },
+      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+      dataSources: {
+        selectChannel: dataSource({
+          display: { label: "Select Channel", description: "Pick a channel" },
+          dataSourceType: "picklist",
+          inputs: { workspace: input({ type: "string", label: "Workspace", default: "" }) },
+          perform: async (_context, params) => ({
+            result: [`${params.workspace}-general`, `${params.workspace}-random`],
+          }),
+        }),
+      },
+    },
+    { callable: true },
+  );
+
+  it("produces a config var whose dataSource is a tagged reference, distinct from a manifest ComponentReference", () => {
+    const configVarDef = npmComponent.dataSources.selectChannel({
+      stableKey: "select-channel",
+      values: { workspace: { value: "acme" } },
+    }) as ConfigVar & { dataSource: unknown };
+
+    expect(configVarDef.stableKey).toBe("select-channel");
+    expect(isNpmDataSourceReference(configVarDef.dataSource)).toBe(true);
+    expect(isComponentReference(configVarDef.dataSource)).toBe(false);
+    expect(configVarDef.dataSource).toMatchObject({
+      __npmDataSourceReference: true,
+      values: { workspace: { value: "acme" } },
+    });
+  });
+
+  it("routes a config var's npm data source reference to the CNI's own wrapper component, with no registry lookup", () => {
+    const configVarDef = npmComponent.dataSources.selectChannel({
+      stableKey: "select-channel",
+      values: { workspace: { value: "acme" } },
+    }) as ConfigVar;
+
+    // An empty component registry: a manifest-registry lookup would throw here.
+    const result = convertConfigVar("Select Channel", configVarDef, "test-ref", {});
+
+    expect(result.dataType).toBe("picklist");
+    expect(result.dataSource).toEqual({
+      key: "selectChannel",
+      component: { key: "test-ref", version: "LATEST", isPublic: false },
+    });
+    expect(result.inputs).toMatchObject({ workspace: { type: "value", value: "acme" } });
+  });
+
+  it("hoists the npm data source's perform into the CNI's own wrapper component", async () => {
+    const result = integration({
+      name: "npm-datasource-integration",
+      description: "x",
+      configPages: {
+        Setup: configPage({
+          elements: {
+            "Select Channel": npmComponent.dataSources.selectChannel({
+              stableKey: "select-channel",
+              values: { workspace: { value: "acme" } },
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Noop Flow",
+          stableKey: "noop-flow",
+          description: "x",
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperDataSource = result.dataSources.selectChannel;
+    expect(wrapperDataSource.dataSourceType).toBe("picklist");
+    expect(wrapperDataSource.display).toMatchObject({
+      label: "Select Channel",
+      description: "Pick a channel",
+    });
+
+    const performResult = await (
+      wrapperDataSource.perform as (context: unknown, params: unknown) => Promise<unknown>
+    )({} as never, { workspace: "acme" });
+    expect(performResult).toMatchObject({ result: ["acme-general", "acme-random"] });
   });
 });
