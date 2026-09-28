@@ -4,7 +4,12 @@
  * that can run on the Prismatic platform.
  */
 
-import type { ConvertedAction, MakeCallable, Component as ServerComponent } from "./serverTypes";
+import type {
+  CallableTriggerHelper,
+  ConvertedAction,
+  MakeCallable,
+  Component as ServerComponent,
+} from "./serverTypes";
 import { createCallableComponent, runWithIntegrationContext } from "./serverTypes";
 import {
   defaultBatchResolver,
@@ -603,30 +608,8 @@ export const component = <
 >(
   definition: ComponentDefinition<TPublic, TKey, TActions>,
   options?: { callable?: TCallable },
-): ServerComponent<
-  Inputs,
-  Inputs,
-  ConfigVarResultCollection,
-  TriggerPayload,
-  boolean,
-  TriggerResult<boolean, TriggerPayload>,
-  {
-    [K in keyof TActions]: TCallable extends true
-      ? MakeCallable<ConvertedAction<TActions[K]>>
-      : ConvertedAction<TActions[K]>;
-  }
-> => {
-  const converted = convertComponent(definition) as ServerComponent<
-    Inputs,
-    Inputs,
-    ConfigVarResultCollection,
-    TriggerPayload,
-    boolean,
-    TriggerResult<boolean, TriggerPayload>,
-    { [K in keyof TActions]: ConvertedAction<TActions[K]> }
-  >;
-
-  return (options?.callable ? createCallableComponent(converted) : converted) as ServerComponent<
+): Omit<
+  ServerComponent<
     Inputs,
     Inputs,
     ConfigVarResultCollection,
@@ -638,7 +621,35 @@ export const component = <
         ? MakeCallable<ConvertedAction<TActions[K]>>
         : ConvertedAction<TActions[K]>;
     }
+  >,
+  "triggers"
+> & {
+  // `ComponentDefinition["triggers"]` doesn't preserve each trigger's own definition type the
+  // way `TActions` does for actions (no `TTriggers` generic), so — matching triggers' looser,
+  // cosmetic-only call-signature bar (see the npm trigger-reference work) — this stays a loose
+  // `values? => reference` shape rather than a per-key-typed one.
+  triggers: TCallable extends true
+    ? Record<string, CallableTriggerHelper<unknown>>
+    : ServerComponent<
+        Inputs,
+        Inputs,
+        ConfigVarResultCollection,
+        TriggerPayload,
+        boolean,
+        TriggerResult<boolean, TriggerPayload>
+      >["triggers"];
+} => {
+  const converted = convertComponent(definition) as ServerComponent<
+    Inputs,
+    Inputs,
+    ConfigVarResultCollection,
+    TriggerPayload,
+    boolean,
+    TriggerResult<boolean, TriggerPayload>,
+    { [K in keyof TActions]: ConvertedAction<TActions[K]> }
   >;
+
+  return (options?.callable ? createCallableComponent(converted) : converted) as never;
 };
 
 /**
