@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { action, component, input } from "..";
-import { ConnectionError } from "../errors";
+import { ConnectionError, isUserError, UserError } from "../errors";
 import { runWithContext } from "./asyncContext";
 import { createCallableComponent } from "./callableAction";
 
@@ -26,6 +26,13 @@ const rawEcho = component({
       inputs: { connection: input({ type: "connection", label: "Connection" }) },
       perform: async (_context, { connection }) => {
         throw new ConnectionError(connection as any, "bad credentials");
+      },
+    }),
+    blowUpPlain: action({
+      display: { label: "Blow Up Plain", description: "Always throws a plain error." },
+      inputs: {},
+      perform: async () => {
+        throw new Error("boom");
       },
     }),
   },
@@ -108,6 +115,42 @@ describe("createCallableComponent", () => {
     await expect(
       runWithContext({} as any, () => echo.actions.blowUp({ connection })),
     ).rejects.toBeInstanceOf(ConnectionError);
+  });
+
+  it("wraps any other thrown error in a UserError, matching the registry path's boundary", async () => {
+    const error = await runWithContext({} as any, () => echo.actions.blowUpPlain({})).catch(
+      (e) => e,
+    );
+
+    expect(isUserError(error)).toBe(true);
+    expect(error.message).toBe("boom");
+  });
+
+  it("lets an already-wrapped UserError pass through unchanged", async () => {
+    const alreadyWrapped = new UserError(new Error("already wrapped"));
+    const wrapOnce = component(
+      {
+        key: "wrap-once",
+        public: true,
+        display: { label: "Wrap Once", description: "x" },
+        actions: {
+          blowUp: action({
+            display: { label: "Blow Up", description: "x" },
+            inputs: {},
+            perform: async () => {
+              throw alreadyWrapped;
+            },
+          }),
+        },
+      },
+      { callable: true },
+    );
+
+    const error = await runWithContext({} as any, () => wrapOnce.actions.blowUp({})).catch(
+      (e) => e,
+    );
+
+    expect(error).toBe(alreadyWrapped);
   });
 
   it("still exposes .perform for the runner's (context, params) invocation", async () => {
