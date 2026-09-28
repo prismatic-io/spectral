@@ -1,4 +1,5 @@
 import { charset, extension } from "mime-types";
+import { isConnectionError, isUserError, UserError } from "../errors";
 import type { ActionContext } from "../types/ActionPerformFunction";
 import type { ActionPerformReturn } from "../types/ActionPerformReturn";
 import type { PerformFn } from "./perform";
@@ -17,29 +18,37 @@ const isTextBuffer = (data: unknown, contentType: unknown): data is Buffer =>
  * registry/runner in the loop, behave the same as `context.components.x.y()`.
  *
  * `ConnectionError`s and `UserError`s are let through unchanged so the platform's
- * behavior there remains unchanged.
+ * behavior there remains unchanged; anything else is wrapped in a `UserError`,
+ * matching the runner's own error boundary for a registry-invoked action.
  */
 export const performActionFunctionExecutor = async (
   performFn: PerformFn,
   context: ActionContext,
   params: Record<string, unknown>,
 ): Promise<ActionPerformReturn<boolean, unknown>> => {
-  const initialResult = await performFn(context, params);
+  try {
+    const initialResult = await performFn(context, params);
 
-  let result: Record<string, unknown> = { data: null };
-  if (initialResult !== undefined && initialResult !== null) {
-    if ((initialResult as Record<string, unknown>).data === undefined) {
-      result.data = initialResult;
-    } else {
-      result = initialResult as Record<string, unknown>;
+    let result: Record<string, unknown> = { data: null };
+    if (initialResult !== undefined && initialResult !== null) {
+      if ((initialResult as Record<string, unknown>).data === undefined) {
+        result.data = initialResult;
+      } else {
+        result = initialResult as Record<string, unknown>;
+      }
     }
-  }
 
-  if (isTextBuffer(result.data, result.contentType)) {
-    const stringData = (result.data as Buffer).toString("utf-8");
-    result.data =
-      extension(result.contentType as string) === "json" ? JSON.parse(stringData) : stringData;
-  }
+    if (isTextBuffer(result.data, result.contentType)) {
+      const stringData = (result.data as Buffer).toString("utf-8");
+      result.data =
+        extension(result.contentType as string) === "json" ? JSON.parse(stringData) : stringData;
+    }
 
-  return result as unknown as ActionPerformReturn<boolean, unknown>;
+    return result as unknown as ActionPerformReturn<boolean, unknown>;
+  } catch (error) {
+    if (isConnectionError(error) || isUserError(error)) {
+      throw error;
+    }
+    throw new UserError(error);
+  }
 };
