@@ -45,6 +45,42 @@ expectType<{
 expectType<Connection>(result.connection);
 expectType<ConditionalExpression[]>(result.conditional);
 
+const numericInputs = {
+  perPage: input({
+    label: "Per Page",
+    type: "number",
+  }),
+  temperature: input({
+    label: "Temperature",
+    type: "float",
+    default: "0.7",
+  }),
+  pageSizes: input({
+    label: "Page Sizes",
+    type: "number",
+    collection: "valuelist",
+  }),
+  // An explicit clean still wins: its branch sits above the type branches.
+  asText: input({
+    label: "As Text",
+    type: "number",
+    clean: (value) => util.types.toString(value),
+  }),
+};
+
+const numericResult: ActionInputParameters<typeof numericInputs> = {
+  perPage: 30,
+  temperature: 0.7,
+  pageSizes: [10, 20],
+  asText: "30",
+};
+expectType<{
+  perPage: number;
+  temperature: number;
+  pageSizes: number[];
+  asText: string;
+}>(numericResult);
+
 const structuredInputs = {
   name: structuredObjectInput({
     label: "Name",
