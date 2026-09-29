@@ -25,6 +25,8 @@ interface DoThingValues {
   timestamp?: string;
   flow?: string;
   template?: string;
+  perPage?: number;
+  temperature?: number;
   contact?: { firstName: string; active: boolean };
   contacts?: Array<{ email: string }>;
   record?:
@@ -53,6 +55,8 @@ const doThing = {
     timestamp: { inputType: "timestamp" },
     flow: { inputType: "flow" },
     template: { inputType: "template" },
+    perPage: { inputType: "number", default: "30" },
+    temperature: { inputType: "float", default: "0.7" },
     contact: { inputType: "structuredObject" },
     contacts: { inputType: "structuredObject", collection: "valuelist", default: [] },
     record: { inputType: "dynamicObject" },

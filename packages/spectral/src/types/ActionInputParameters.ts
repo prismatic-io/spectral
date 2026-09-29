@@ -37,9 +37,11 @@ type InputValue<T> = T extends StructuredObjectInputField
         ? ExtractValue<Connection, T["collection"]>
         : T extends { type: "conditional"; collection?: InputFieldCollection }
           ? ExtractValue<ConditionalExpression, T["collection"]>
-          : T extends { default?: unknown; collection?: InputFieldCollection }
-            ? ExtractValue<T["default"], T["collection"]>
-            : unknown;
+          : T extends { type: "number" | "float"; collection?: InputFieldCollection }
+            ? ExtractValue<number, T["collection"]>
+            : T extends { default?: unknown; collection?: InputFieldCollection }
+              ? ExtractValue<T["default"], T["collection"]>
+              : unknown;
 
 /**
  * Collection of input parameters.

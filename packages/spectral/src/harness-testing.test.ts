@@ -110,6 +110,25 @@ const defaultedCleanInput = input({
   clean: (value) => (util.types.isInt(value) ? value : DEFAULTED_VALUE),
 });
 
+const numericInput = input({
+  label: "Per Page",
+  type: "number",
+});
+
+const numericListInput = input({
+  label: "Page Sizes",
+  type: "number",
+  collection: "valuelist",
+});
+
+const numericAction = action({
+  display: { label: "Numeric", description: "Numeric" },
+  inputs: { numericInput, numericListInput },
+  perform: async (_context, params) => {
+    return Promise.resolve({ data: params });
+  },
+});
+
 const fooAction = action({
   display: {
     label: "Foo",
@@ -198,7 +217,7 @@ const sample = component({
     iconPath: "icon.png",
   },
   triggers: { fooTrigger, cleanTrigger },
-  actions: { fooAction, cleanAction, cleanDefaultedAction },
+  actions: { fooAction, numericAction, cleanAction, cleanDefaultedAction },
   dataSources: { fooDataSource, cleanDataSource },
   connections: [testConnection],
 });
@@ -248,6 +267,21 @@ describe("clean inputs", () => {
       cleanInput: "200",
     });
     expect(result?.data).toMatchObject({ cleanInput: 200 });
+  });
+
+  it("delivers a declared numeric input to perform as a number", async () => {
+    const result = await harness.action("numericAction", {
+      numericInput: "5",
+      numericListInput: ["10", "20"],
+    });
+
+    expect(result?.data).toMatchObject({ numericInput: 5, numericListInput: [10, 20] });
+  });
+
+  it("resolves an omitted numeric input to zero, not undefined", async () => {
+    const result = await harness.action("numericAction", {});
+
+    expect(result?.data).toMatchObject({ numericInput: 0 });
   });
 
   it("should clean trigger inputs", async () => {

@@ -92,6 +92,18 @@ export interface DoThingValues {
    */
   template?: string;
   /**
+   * perPage
+   *
+   * @default 30
+   */
+  perPage?: number;
+  /**
+   * temperature
+   *
+   * @default 0.7
+   */
+  temperature?: number;
+  /**
    * contact
    *
    */
@@ -178,6 +190,14 @@ export const doThing = {
     },
     template: {
       inputType: "template",
+    },
+    perPage: {
+      inputType: "number",
+      default: \`30\`,
+    },
+    temperature: {
+      inputType: "float",
+      default: \`0.7\`,
     },
     contact: {
       inputType: "structuredObject",

@@ -35,6 +35,8 @@ const manifestInputByType: Record<InputFieldType, ServerTypeInput> = {
   timestamp: field({ key: "timestamp", type: "timestamp" }),
   flow: field({ key: "flow", type: "flow" }),
   template: field({ key: "template", type: "template" }),
+  number: field({ key: "perPage", type: "number", default: "30" }),
+  float: field({ key: "temperature", type: "float", default: "0.7" }),
   structuredObject: field({
     key: "contact",
     type: "structuredObject",

@@ -98,6 +98,8 @@ export const InputFieldDefaultMap: Record<InputFieldType, string | undefined> = 
   template: "",
   structuredObject: undefined,
   dynamicObject: undefined,
+  number: "",
+  float: "",
 };
 
 export type Inputs = Record<string, InputFieldDefinition>;
@@ -147,7 +149,9 @@ export type InputFieldDefinition =
   | DateTimeInputField
   | FlowInputField
   | StructuredObjectInputField
-  | DynamicObjectInputField;
+  | DynamicObjectInputField
+  | NumberInputField
+  | FloatInputField;
 
 export type InputCleanFunction<TValue, TResult = TValue> = (value: TValue) => TResult;
 
@@ -192,6 +196,31 @@ interface KeyValueListCollection<T> {
 export type StringInputField = BaseInputField & {
   /** Data type the input will collect. */
   type: "string";
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function. */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
+
+/** A whole number. A decimal reaching the input is truncated, which is what happens to a reference
+ * or template the builder could not check. The type supplies the coercion, so `clean` is optional;
+ * supplying one replaces it, and on a collection it receives the whole list rather than each
+ * element. A blank or omitted value resolves to `0`, so an input that must distinguish absent from
+ * zero needs a `clean`. `default` is the serialized form, so it is a string. */
+export type NumberInputField = BaseInputField & {
+  /** Data type the input will collect. */
+  type: "number";
+  /** Dictates possible choices for the input. */
+  model?: InputFieldChoice[];
+  /** Clean function. */
+  clean?: InputCleanFunction<unknown>;
+} & CollectionOptions<string>;
+
+/** A decimal, kept as one rather than truncated. See `NumberInputField` for the blank-value and
+ * `clean` behavior. */
+export type FloatInputField = BaseInputField & {
+  /** Data type the input will collect. */
+  type: "float";
   /** Dictates possible choices for the input. */
   model?: InputFieldChoice[];
   /** Clean function. */

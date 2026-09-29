@@ -97,6 +97,8 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
     module: "@prismatic-io/spectral/dist/types",
     type: "DynamicObject",
   },
+  number: "number",
+  float: "number",
 };
 
 const getInputValueType = (input: ServerTypeInput): ValueType => {

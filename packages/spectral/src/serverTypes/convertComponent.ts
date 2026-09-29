@@ -24,6 +24,7 @@ import {
   type PollingTriggerDefinition,
 } from "../types/PollingTriggerDefinition";
 import type { BatchConfig, TriggerResolverBehavior } from "../types/TriggerDefinition";
+import util from "../util";
 import type {
   InputScope,
   Action as ServerAction,
@@ -111,6 +112,35 @@ export const cleanerFor = (input: InputFieldDefinition): CleanFn | undefined => 
         values: isPlainObject(values) ? cleanParams(values, cleaners) : values,
       };
     };
+  }
+
+  if (input.type === "number" || input.type === "float") {
+    if ("clean" in input && input.clean) {
+      return input.clean as CleanFn;
+    }
+
+    // `number` is whole, so it truncates a decimal that only resolves at run time. The
+    // wrapper matters: both take an optional second argument that `map` would otherwise
+    // fill with the element index.
+    const coerce = (value: unknown) =>
+      input.type === "number" ? util.types.toInt(value) : util.types.toNumber(value);
+
+    if (input.collection === "valuelist") {
+      return (value: unknown) => (Array.isArray(value) ? value.map(coerce) : value);
+    }
+
+    if (input.collection === "keyvaluelist") {
+      return (value: unknown) =>
+        Array.isArray(value)
+          ? value.map((entry) =>
+              isPlainObject(entry) && "value" in entry
+                ? { ...entry, value: coerce(entry.value) }
+                : entry,
+            )
+          : value;
+    }
+
+    return coerce;
   }
 
   return "clean" in input ? (input.clean as CleanFn) : undefined;

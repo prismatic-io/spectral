@@ -372,6 +372,43 @@ describe("cleanerFor", () => {
     expect(cleanerFor(input({ type: "string", label: "Name" }))).toBeUndefined();
   });
 
+  describe("numeric types", () => {
+    it.each(["number", "float"] as const)("coerces a %s with no clean function", (type) => {
+      expect(cleanerFor(input({ type, label: "Per Page" }))?.("5")).toBe(5);
+    });
+
+    it.each([
+      { coerced: 3, declared: "number" as const },
+      { coerced: 3.7, declared: "float" as const },
+    ])("reads a decimal on a $declared input as $coerced", ({ coerced, declared }) => {
+      expect(cleanerFor(input({ type: declared, label: "Per Page" }))?.("3.7")).toBe(coerced);
+    });
+
+    it("prefers a declared clean function over the implicit one", () => {
+      const cleaner = cleanerFor(
+        input({ type: "number", label: "Per Page", clean: (v) => `${v}!` }),
+      );
+
+      expect(cleaner?.("5")).toBe("5!");
+    });
+
+    it("coerces each element of a valuelist", () => {
+      const cleaner = cleanerFor(
+        input({ type: "number", label: "Page Sizes", collection: "valuelist" }),
+      );
+
+      expect(cleaner?.(["10", "20"])).toEqual([10, 20]);
+    });
+
+    it("coerces the value of each keyvaluelist entry, leaving the key alone", () => {
+      const cleaner = cleanerFor(
+        input({ type: "number", label: "Limits", collection: "keyvaluelist" }),
+      );
+
+      expect(cleaner?.([{ key: "max", value: "10" }])).toEqual([{ key: "max", value: 10 }]);
+    });
+  });
+
   describe("structuredObject", () => {
     it("invokes each child's clean function", () => {
       const firstClean = vi.fn((v: unknown) => `first:${v}`);
