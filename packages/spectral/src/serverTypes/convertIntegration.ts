@@ -34,6 +34,7 @@ import {
   isHtmlElementConfigVar,
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
+  isNpmConnectionReferenceConfigVar,
   isNpmDataSourceReferenceConfigVar,
   isOrgOrCustomerActivatedConnection,
   isScheduleConfigVar,
@@ -83,6 +84,11 @@ import {
   convertIntegrationConfiguration,
   type IntegrationConfigurationYaml,
 } from "./convertIntegrationConfiguration";
+import {
+  asNpmConnectionReference,
+  type ConvertedNpmConnectionReference,
+  convertNpmConnectionReferenceInputs,
+} from "./convertNpmConnectionReference";
 import {
   asNpmDataSourceReference,
   type ConvertedNpmDataSourceReference,
@@ -1207,6 +1213,34 @@ export const convertConfigVar = (
     };
   }
 
+  if (isNpmConnectionReferenceConfigVar(configVar)) {
+    const npmConnectionReference = asNpmConnectionReference(
+      configVar.connection,
+    ) as ConvertedNpmConnectionReference;
+
+    const {
+      stableKey = "",
+      description,
+      connection: { template, onPremiseConnectionConfig },
+    } = pick(configVar, ["stableKey", "description", "connection"]);
+
+    return {
+      stableKey,
+      description,
+      key,
+      dataType: "connection",
+      onPremiseConnectionConfig,
+      connection: {
+        key: npmConnectionReference.connection.key,
+        component: codeNativeIntegrationComponentReference(referenceKey),
+        template,
+      },
+      inputs: convertNpmConnectionReferenceInputs(npmConnectionReference),
+      orgOnly,
+      meta,
+    };
+  }
+
   const rawDefaultValue =
     "defaultValue" in configVar
       ? convertInputValue(configVar.defaultValue, configVar.collectionType)
@@ -2090,33 +2124,49 @@ const codeNativeIntegrationComponent = <
 
   const convertedConnections = Object.entries(configVars).reduce<ServerConnection[]>(
     (result, [key, configVar]) => {
-      if (!isConnectionDefinitionConfigVar(configVar)) {
-        return result;
+      if (isConnectionDefinitionConfigVar(configVar)) {
+        const convertedInputs = Object.entries(configVar.inputs).map(([key, value]) => {
+          if ("templateValue" in value) {
+            return convertTemplateInput(
+              key,
+              value as ConnectionTemplateInputField,
+              configVar.inputs,
+            );
+          }
+
+          return convertInput(key, value);
+        });
+
+        const connection = pick(configVar, ["oauth2Type", "oauth2PkceMethod"]);
+        const { avatarPath: avatarIconPath, oauth2ConnectionIconPath: iconPath } =
+          configVar.icons ?? {};
+
+        return [
+          ...result,
+          {
+            ...connection,
+            iconPath,
+            avatarIconPath,
+            inputs: convertedInputs,
+            key: camelCase(key),
+            label: key,
+          },
+        ];
       }
 
-      const convertedInputs = Object.entries(configVar.inputs).map(([key, value]) => {
-        if ("templateValue" in value) {
-          return convertTemplateInput(key, value as ConnectionTemplateInputField, configVar.inputs);
+      if (isNpmConnectionReferenceConfigVar(configVar)) {
+        const { connection: npmConnection } = asNpmConnectionReference(
+          configVar.connection,
+        ) as ConvertedNpmConnectionReference;
+
+        if (result.some((existing) => existing.key === npmConnection.key)) {
+          return result;
         }
 
-        return convertInput(key, value);
-      });
+        return [...result, npmConnection];
+      }
 
-      const connection = pick(configVar, ["oauth2Type", "oauth2PkceMethod"]);
-      const { avatarPath: avatarIconPath, oauth2ConnectionIconPath: iconPath } =
-        configVar.icons ?? {};
-
-      return [
-        ...result,
-        {
-          ...connection,
-          iconPath,
-          avatarIconPath,
-          inputs: convertedInputs,
-          key: camelCase(key),
-          label: key,
-        },
-      ];
+      return result;
     },
     [],
   );
