@@ -198,12 +198,7 @@ export default defineCodemod({
       ...elements.flatMap((element) => element.literal ?? []),
       ...planned.map(({ file, name }) => file.getVariableStatementOrThrow(name)),
     ];
-    const flowFiles = migrateFlowReads(
-      project,
-      elements,
-      excluded,
-      scopes.some(({ scope }) => scope === "userLevel"),
-    );
+    const flowFiles = migrateFlowReads(project, elements, excluded);
     const referenceFiles = migrateConfigVarReferences(project, elements);
     ensureNamedImport(file, SPECTRAL, "configuration");
     ensureNamedImport(file, "zod", "z");

@@ -222,6 +222,6 @@ const replacePattern = (pattern: ObjectBindingPattern, elements: string[]): void
 export const prependComments = (body: Node, comments: string): void => {
   const statements = Node.isBlock(body)
     ? body.getText().slice(1, -1).trim()
-    : `return ${body.getText()};`;
+    : `return ${(Node.isParenthesizedExpression(body) ? body.getExpression() : body).getText()};`;
   body.replaceWithText(`{\n${comments}\n${statements}\n}`).formatText({ indentSize: 2 });
 };

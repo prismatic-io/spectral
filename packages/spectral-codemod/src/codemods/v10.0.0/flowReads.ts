@@ -10,39 +10,30 @@ import {
 } from "./configVarsReads";
 import type { ClassifiedElement } from "./element";
 
-const todo = (userLevel: boolean): string =>
-  [
-    "// TODO: Fix the configVars reads the codemod could not convert. Read saved values",
-    "// from context.configuration and connections from context.connections.",
-    ...(userLevel
-      ? [
-          "// context.userConfiguration is not validated: parse it with",
-          "// userConfigurationSchema before you read a user-level value.",
-        ]
-      : []),
-  ].join("\n");
+const TODO = [
+  "// TODO: Fix the configVars reads the codemod could not convert. Read saved values",
+  "// from context.configuration and context.userConfiguration, and connections from",
+  "// context.connections.",
+].join("\n");
 
-/** `?.key` or `?.["key"]`: a flow's configuration and connections can be absent. */
+/** `?.key` or `?.["key"]`: a flow's configurations and connections can be absent. */
 const optionalAccessor = (key: string): string =>
   IDENTIFIER.test(key) ? `?.${key}` : `?.[${JSON.stringify(key)}]`;
 
 /**
  * Where a flow now reads a migrated config var: a connection from
- * `context.connections.<scope>`, an instance value from `context.configuration`. A
- * user-level value is left for the author: `context.userConfiguration` is unknown
- * until it is validated.
+ * `context.connections.<scope>`, a value from the configuration of its scope.
  */
-const flowReplacement = (element: ClassifiedElement): Replacement | undefined => {
-  if (element.kind === "connection") {
-    return {
-      contextProperty: "connections",
-      access: `?.${element.scope}${optionalAccessor(element.key)}`,
-    };
-  }
-  return element.scope === "instance"
-    ? { contextProperty: "configuration", access: optionalAccessor(element.key) }
-    : undefined;
-};
+const flowReplacement = (element: ClassifiedElement): Replacement =>
+  element.kind === "connection"
+    ? {
+        contextProperty: "connections",
+        access: `?.${element.scope}${optionalAccessor(element.key)}`,
+      }
+    : {
+        contextProperty: element.scope === "instance" ? "configuration" : "userConfiguration",
+        access: optionalAccessor(element.key),
+      };
 
 /**
  * Rewrites the `configVars` reads of every function in the project, other than those
@@ -56,7 +47,6 @@ export const migrateFlowReads = (
   project: Project,
   elements: ClassifiedElement[],
   excluded: Node[],
-  userLevel: boolean,
 ): SourceFile[] => {
   const isExcluded = (node: Node): boolean =>
     excluded.some(
@@ -85,7 +75,7 @@ export const migrateFlowReads = (
       );
       const body = fn().getBody();
       if (unresolved && body) {
-        prependComments(body, todo(userLevel));
+        prependComments(body, TODO);
       }
       changed ||= converted.length > 0 || unresolved;
     }
