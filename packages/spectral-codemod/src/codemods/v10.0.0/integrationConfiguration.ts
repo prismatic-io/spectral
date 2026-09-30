@@ -32,6 +32,7 @@ import {
   type ConfigVarShape,
   ELEMENT_SCHEMA_NAME,
   ELEMENT_SCHEMA_SOURCE,
+  storedAsString,
   zodSchemaFor,
 } from "./zodSchema";
 
@@ -308,14 +309,7 @@ const configurationSource = (
   return [
     "configuration({",
     ...scopes.flatMap(scopeSource),
-    "  init: {",
-    "    perform: async (context) => {",
-    "      if (context.configurationVersion === null) {",
-    "        // context.configuration holds the values the config wizard collected.",
-    "      }",
-    "      // Return the proposed configuration for context.configurationVersion.",
-    "    },",
-    "  },",
+    ...initSource(elements),
     ...(serverFunctions.length
       ? [
           "  serverFunctions: {",
@@ -332,6 +326,36 @@ const configurationSource = (
       : []),
     "})",
   ].join("\n");
+};
+
+/**
+ * An `init` that proposes the saved configuration as it is. The config wizard's values
+ * arrive while `configurationVersion` is null, and the instance schema starts as their
+ * shape. A collection whose items the wizard stored as strings gets a TODO to parse them.
+ */
+const initSource = (elements: ClassifiedElement[]): string[] => {
+  const unparsed = elements.filter(
+    (element) =>
+      element.scope === "instance" &&
+      element.kind !== "connection" &&
+      storedAsString(element.shape),
+  );
+  return [
+    "  init: {",
+    "    perform: async (context) => {",
+    "      // The config wizard's values arrive while context.configurationVersion is null,",
+    "      // and configurationSchema starts as their shape. Branch on the version when the",
+    "      // schema changes.",
+    ...(unparsed.length
+      ? [
+          "      // TODO: The config wizard stored each item of these collections as a string.",
+          `      // Parse them before you return the configuration: ${unparsed.map((element) => element.key).join(", ")}.`,
+        ]
+      : []),
+    "      return context.configuration;",
+    "    },",
+    "  },",
+  ];
 };
 
 /**

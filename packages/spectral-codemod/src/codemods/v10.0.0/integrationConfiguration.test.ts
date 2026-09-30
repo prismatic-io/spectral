@@ -254,10 +254,10 @@ describe("v10.0.0/integration-configuration", () => {
         },
         init: {
           perform: async (context) => {
-            if (context.configurationVersion === null) {
-              // context.configuration holds the values the config wizard collected.
-            }
-            // Return the proposed configuration for context.configurationVersion.
+            // The config wizard's values arrive while context.configurationVersion is null,
+            // and configurationSchema starts as their shape. Branch on the version when the
+            // schema changes.
+            return context.configuration;
           },
         },
         serverFunctions: {
@@ -431,10 +431,10 @@ export default integration({
         },
         init: {
           perform: async (context) => {
-            if (context.configurationVersion === null) {
-              // context.configuration holds the values the config wizard collected.
-            }
-            // Return the proposed configuration for context.configurationVersion.
+            // The config wizard's values arrive while context.configurationVersion is null,
+            // and configurationSchema starts as their shape. Branch on the version when the
+            // schema changes.
+            return context.configuration;
           },
         },
       });
@@ -621,6 +621,37 @@ export default integration({ name: "Shared", ...shared });
 `,
       }),
     ).toThrow("move configPages, userLevelConfigPages, and scopedConfigVars out of ...shared");
+  });
+
+  it("proposes the saved configuration from init, flagging collections stored as strings", () => {
+    const { files } = run({
+      "src/index.ts": `
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+
+export default integration({
+  name: "Init",
+  configPages: {
+    Page: configPage({
+      elements: {
+        ports: configVar({ stableKey: "ports", dataType: "number", collectionType: "valuelist" }),
+        names: configVar({ stableKey: "names", dataType: "string", collectionType: "valuelist" }),
+      },
+    }),
+  },
+});
+`,
+    });
+
+    expect(files["src/index.ts"]).toContain(`  init: {
+    perform: async (context) => {
+      // The config wizard's values arrive while context.configurationVersion is null,
+      // and configurationSchema starts as their shape. Branch on the version when the
+      // schema changes.
+      // TODO: The config wizard stored each item of these collections as a string.
+      // Parse them before you return the configuration: ports.
+      return context.configuration;
+    },
+  },`);
   });
 
   it("fails when the project has no integration() call", () => {

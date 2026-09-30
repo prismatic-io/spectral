@@ -45,6 +45,14 @@ const scalarSchemaFor = (shape: ConfigVarShape): string => {
 };
 
 /**
+ * True when the config wizard stored each item of this collection as a string, although
+ * the schema describes it as a boolean, a number, or a parsed document.
+ */
+export const storedAsString = (shape: ConfigVarShape): boolean =>
+  shape.collectionType !== undefined &&
+  !/^z\.(string|iso\.|enum|unknown)/.test(scalarSchemaFor(shape));
+
+/**
  * Zod source for one config variable. The schema describes the unpacked value: a JSON
  * code variable is the parsed document, and collection scalars are typed even though
  * the wizard stored them as strings. An unknown value type, such as a component data

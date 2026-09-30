@@ -45,7 +45,7 @@ finds the project's single `integration()` call and:
   scope: user-activated connections into `userLevel`, organization- and
   customer-activated connections into `instance`, and a connection with its own inputs
   into the scope of its page,
-- adds an `init` for you to fill in, and no `uiSchema`,
+- adds an `init` that proposes the saved configuration as it is, and no `uiSchema`,
 - keeps data source config variables as schema fields, and converts each data source
   with an inline `perform` to a server function in `configuration.serverFunctions`
   (see below),
