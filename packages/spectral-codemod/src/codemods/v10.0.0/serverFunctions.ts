@@ -36,6 +36,12 @@ const UNRESOLVED_TODO = [
   "// them in connections.",
 ].join("\n");
 
+const savedValueTodo = (reads: ClassifiedElement[]): string =>
+  [
+    "// TODO: Validate the saved configuration before you read it. It can be empty or",
+    `// written under an earlier version: ${reads.map((read) => `${read.scope === "instance" ? "context.configuration" : "context.userConfiguration"}${accessor(read.key)}`).join(", ")}.`,
+  ].join("\n");
+
 const SUPPLEMENTAL_DATA_TODO =
   "// TODO: A server function has no supplementalData. Return only the result.";
 
@@ -119,7 +125,7 @@ export const emitServerFunction = (
     .asKindOrThrow(SyntaxKind.PropertyAssignment)
     .setInitializer(
       inputs.length
-        ? `z.object({\n${inputs.map((input) => `${objectKey(input.key)}: ${zodSchemaFor(input.shape)},`).join("\n")}\n})`
+        ? `z.object({\n${inputs.map((input) => `${objectKey(input.key)}: ${zodSchemaFor(input.shape)}.optional(),`).join("\n")}\n})`
         : "z.object({})",
     );
   if (connections.length) {
@@ -142,8 +148,12 @@ export const emitServerFunction = (
  *
  * - a `configVars` read of a connection becomes `context.connections.<scope>.<key>`,
  *   and the connection is declared;
- * - a `configVars` read of any other config var becomes `params.<key>`, and the value
- *   is declared in `inputSchema`, because a host passes unsaved form values as params;
+ * - a `configVars` read of a value in the data source's scope becomes `params.<key>`,
+ *   declared as an optional `inputSchema` field: a host passes unsaved form values as
+ *   params, and the data source ran while they were still empty;
+ * - a read of a value in the other scope becomes the saved one,
+ *   `context.configuration.<key>` or `context.userConfiguration.<key>`, under a TODO:
+ *   the form in this scope does not send it, and the saved value is not validated;
  * - `{ result }` is unwrapped, since a server function returns the value itself.
  *
  * A read the codemod cannot follow, such as a computed key or `configVars` passed on
@@ -175,12 +185,24 @@ const rewritePerform = (
           access: `.${element.scope}${accessor(element.key)}`,
         };
       }
+      // A value from the other scope is not on this scope's form, so it is the saved one.
+      if (element.scope !== dataSource.scope) {
+        return {
+          contextProperty: element.scope === "instance" ? "configuration" : "userConfiguration",
+          access: accessor(element.key),
+        };
+      }
       const params = paramsName();
       return params ? { text: `${params}${accessor(element.key)}` } : undefined;
     },
   );
-  const inputs = converted.filter((element) => element.kind !== "connection");
   const connections = converted.filter((element) => element.kind === "connection");
+  const savedValues = converted.filter(
+    (element) => element.kind !== "connection" && element.scope !== dataSource.scope,
+  );
+  const inputs = converted.filter(
+    (element) => element.kind !== "connection" && element.scope === dataSource.scope,
+  );
   if (inputs.length && perform().getParameters().length < 2) {
     perform().addParameter({ name: "params" });
   }
@@ -188,6 +210,7 @@ const rewritePerform = (
   const supplementalData = unwrapResults(perform);
   const todos = [
     ...(unresolved ? [UNRESOLVED_TODO] : []),
+    ...(savedValues.length ? [savedValueTodo(savedValues)] : []),
     ...(supplementalData ? [SUPPLEMENTAL_DATA_TODO] : []),
   ];
   const body = perform().getBody();
