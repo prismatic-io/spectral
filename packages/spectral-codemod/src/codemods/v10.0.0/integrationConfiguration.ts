@@ -12,6 +12,7 @@ import {
   accessor,
   capitalize,
   ensureNamedImport,
+  ensureZod,
   literalString,
   literalStrings,
   location,
@@ -202,7 +203,7 @@ export default defineCodemod({
     const flowFiles = migrateFlowReads(project, elements, excluded);
     const referenceFiles = migrateConfigVarReferences(project, elements);
     ensureNamedImport(file, SPECTRAL, "configuration");
-    ensureNamedImport(file, "zod", "z");
+    ensureZod(file);
     file.formatText({ indentSize: 2 });
     file.replaceWithText(file.getFullText().replace(/\n{3,}/g, "\n\n"));
     return [
