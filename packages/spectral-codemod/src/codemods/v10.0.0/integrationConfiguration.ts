@@ -22,6 +22,7 @@ import {
   wrapperName,
 } from "./ast";
 import type { ClassifiedElement, Scope } from "./element";
+import { migrateConfigVarReferences, migrateFlowReads } from "./flowReads";
 import {
   emitServerFunction,
   type PlannedServerFunction,
@@ -149,6 +150,7 @@ export default defineCodemod({
         elements.some((element) => element.scope === scope),
     );
     const { planned, unconverted } = planServerFunctions(elements);
+    const augmentationFiles = removePageAugmentations(project);
     const statement = topLevelStatement(call);
     file.insertStatements(
       statement.getChildIndex(),
@@ -189,11 +191,27 @@ export default defineCodemod({
       ensureElementSchema(pageFile);
     }
     ensureElementSchema(file);
+
+    // The page declarations stay for review, and each server function already reads
+    // the new context, so neither is a flow to migrate.
+    const excluded = [
+      ...elements.flatMap((element) => element.literal ?? []),
+      ...planned.map(({ file, name }) => file.getVariableStatementOrThrow(name)),
+    ];
+    const flowFiles = migrateFlowReads(
+      project,
+      elements,
+      excluded,
+      scopes.some(({ scope }) => scope === "userLevel"),
+    );
+    const referenceFiles = migrateConfigVarReferences(project, elements);
     ensureNamedImport(file, SPECTRAL, "configuration");
     ensureNamedImport(file, "zod", "z");
     file.formatText({ indentSize: 2 });
     file.replaceWithText(file.getFullText().replace(/\n{3,}/g, "\n\n"));
-    return [file, ...pageFiles];
+    return [
+      ...new Set([file, ...pageFiles, ...augmentationFiles, ...flowFiles, ...referenceFiles]),
+    ];
   },
 });
 
@@ -221,6 +239,36 @@ const schemaSource = (
     `export const ${names.schema} = ${names.configPagesSchema};`,
   ].join("\n");
 };
+
+const PAGE_AUGMENTATIONS = new Set([
+  "IntegrationDefinitionConfigPages",
+  "IntegrationDefinitionUserLevelConfigPages",
+  "IntegrationDefinitionScopedConfigVars",
+]);
+
+/**
+ * Removes the project's augmentations that type `configVars` from its config pages.
+ * They would keep a flow's stale `configVars` reads compiling. Returns the files it
+ * changed.
+ */
+const removePageAugmentations = (project: Project): SourceFile[] =>
+  project.getSourceFiles().filter((file) => {
+    let changed = false;
+    for (const module of file.getDescendantsOfKind(SyntaxKind.ModuleDeclaration)) {
+      if (module.getName().replace(/^["']|["']$/g, "") !== SPECTRAL) continue;
+      const stale = module
+        .getInterfaces()
+        .filter((declaration) => PAGE_AUGMENTATIONS.has(declaration.getName()));
+      for (const declaration of stale) {
+        declaration.remove();
+      }
+      if (stale.length && module.getStatements().length === 0) {
+        module.remove();
+      }
+      changed ||= stale.length > 0;
+    }
+    return changed;
+  });
 
 /** Declares `elementSchema` before its first use when a statement refers to it. */
 const ensureElementSchema = (file: SourceFile): void => {
@@ -322,6 +370,14 @@ const augmentationSource = (scopes: ScopeNames[], elements: ClassifiedElement[])
     "  }",
     "  interface IntegrationDefinitionConfiguration {",
     ...scopes.flatMap(scopeSource),
+    "  }",
+    "  // No config page declares config vars any more, so a configVars read that was",
+    "  // not migrated fails to compile.",
+    "  interface IntegrationDefinitionConfigPages {",
+    "    [page: string]: { elements: Record<never, never> };",
+    "  }",
+    "  interface IntegrationDefinitionUserLevelConfigPages {",
+    "    [page: string]: { elements: Record<never, never> };",
     "  }",
     "}",
   ].join("\n");

@@ -284,6 +284,14 @@ describe("v10.0.0/integration-configuration", () => {
             connections: Record<"Personal Slack" | "Personal Acme" | "userConnection", unknown>;
           };
         }
+        // No config page declares config vars any more, so a configVars read that was
+        // not migrated fails to compile.
+        interface IntegrationDefinitionConfigPages {
+          [page: string]: { elements: Record<never, never> };
+        }
+        interface IntegrationDefinitionUserLevelConfigPages {
+          [page: string]: { elements: Record<never, never> };
+        }
       }
 
       export default integration({
@@ -292,6 +300,75 @@ describe("v10.0.0/integration-configuration", () => {
         flows,
         configuration: integrationConfiguration
       });
+      "
+    `);
+  });
+
+  it("migrates flow reads and connection references, and drops the page augmentation", () => {
+    const { files, changed } = run({
+      "src/index.ts": INDEX,
+      "src/configPages.ts": `${CONFIG_PAGES}
+declare module "@prismatic-io/spectral" {
+  interface IntegrationDefinitionConfigPages extends ConfigPages {}
+  interface IntegrationDefinitionUserLevelConfigPages extends UserLevelConfigPages {}
+}
+type ConfigPages = typeof configPages;
+type UserLevelConfigPages = typeof userLevelConfigPages;
+`,
+      "src/flows.ts": `
+import { flow } from "@prismatic-io/spectral";
+
+export default [
+  flow({
+    name: "Sync",
+    stableKey: "sync",
+    trigger: { component: "acme", key: "poll", values: { connection: { configVar: "Acme Connection" } } },
+    onExecution: async (context) => {
+      const client = context.configVars["Acme Connection"];
+      const keys = [1, 2].map((n) => \`\${context.configVars["Object Key"]}-\${n}\`);
+      return { data: { client, keys, org: context.configVars.orgConnection } };
+    },
+  }),
+  flow({
+    name: "Greet",
+    stableKey: "greet",
+    onInstanceDeploy: async ({ configVars, logger }) => { logger.info(configVars.nickname); },
+    onExecution: async ({ configVars }) => ({ data: configVars.limit }),
+  }),
+];
+`,
+    });
+
+    expect(changed).toEqual(["src/index.ts", "src/configPages.ts", "src/flows.ts"]);
+    expect(files["src/configPages.ts"]).not.toContain("interface IntegrationDefinitionConfigPages");
+    expect(files["src/flows.ts"]).toMatchInlineSnapshot(`
+      "
+      import { flow } from "@prismatic-io/spectral";
+
+      export default [
+        flow({
+          name: "Sync",
+          stableKey: "sync",
+          trigger: { component: "acme", key: "poll", values: { connection: { configVar: "instance.Acme Connection" } } },
+          onExecution: async (context) => {
+            const client = context.connections?.instance?.["Acme Connection"];
+            const keys = [1, 2].map((n) => \`\${context.configuration?.["Object Key"]}-\${n}\`);
+            return { data: { client, keys, org: context.connections?.instance?.orgConnection } };
+          },
+        }),
+        flow({
+          name: "Greet",
+          stableKey: "greet",
+          onInstanceDeploy: async ({ configVars, logger }) => {
+            // TODO: Fix the configVars reads the codemod could not convert. Read saved values
+            // from context.configuration and connections from context.connections.
+            // context.userConfiguration is not validated: parse it with
+            // userConfigurationSchema before you read a user-level value.
+            logger.info(configVars.nickname);
+          },
+          onExecution: async ({ configuration }) => ({ data: configuration?.limit }),
+        }),
+      ];
       "
     `);
   });
@@ -362,6 +439,14 @@ export default integration({
             schema: typeof configurationSchema;
             connections: Record<"conn", unknown>;
           };
+        }
+        // No config page declares config vars any more, so a configVars read that was
+        // not migrated fails to compile.
+        interface IntegrationDefinitionConfigPages {
+          [page: string]: { elements: Record<never, never> };
+        }
+        interface IntegrationDefinitionUserLevelConfigPages {
+          [page: string]: { elements: Record<never, never> };
         }
       }
 
