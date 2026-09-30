@@ -64,15 +64,17 @@ describe("runCodemod", () => {
     expect(readFileSync(join(dir, "node_modules/dep/index.ts"), "utf8")).toContain('"hello"');
   });
 
-  it("targets a single file", async () => {
+  it("targets a single file and the files it imports", async () => {
     const dir = scratch();
-    write(dir, "a.ts", 'export const a = "hello";\n');
+    write(dir, "a.ts", 'import { b } from "./b";\nexport const a = "hello";\n');
     write(dir, "b.ts", 'export const b = "hello";\n');
+    write(dir, "c.ts", 'export const c = "hello";\n');
 
     const result = await runCodemod(shout, { path: join(dir, "a.ts") });
 
-    expect(result.scanned).toBe(1);
-    expect(readFileSync(join(dir, "b.ts"), "utf8")).toContain('"hello"');
+    expect(result.scanned).toBe(2);
+    expect(result.changed.sort()).toEqual([join(dir, "a.ts"), join(dir, "b.ts")]);
+    expect(readFileSync(join(dir, "c.ts"), "utf8")).toContain('"hello"');
   });
 
   it("does not write in dry-run mode", async () => {

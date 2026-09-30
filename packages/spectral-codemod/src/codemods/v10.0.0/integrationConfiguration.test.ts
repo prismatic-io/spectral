@@ -821,6 +821,41 @@ export default integration({
     expect(output).toContain("  configuration: integrationConfiguration2");
   });
 
+  it("ignores an integration() call in a test file", () => {
+    const { changed } = run({
+      "src/index.ts": `
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+
+export default integration({
+  name: "Real",
+  configPages: {
+    Page: configPage({ elements: { name: configVar({ stableKey: "n", dataType: "string" }) } }),
+  },
+});
+`,
+      "src/index.test.ts": `
+import { integration } from "@prismatic-io/spectral";
+
+export const fixture = integration({ name: "Fixture", flows: [] });
+`,
+    });
+
+    expect(changed).toEqual(["src/index.ts"]);
+  });
+
+  it("names each integration() call and the path to pass when there are several", () => {
+    const source = (name: string) => `import { integration } from "@prismatic-io/spectral";
+export default integration({ name: "${name}", flows: [] });
+`;
+    expect(() => run({ "src/a.ts": source("A"), "src/b.ts": source("B") })).toThrow(
+      [
+        "Found 2 integration() calls: /src/a.ts:2, /src/b.ts:2.",
+        "Pass the file of the integration to migrate as the path, for example:",
+        "  spectral-codemod v10.0.0/integration-configuration /src/a.ts",
+      ].join("\n"),
+    );
+  });
+
   it("fails when the project has no integration() call", () => {
     expect(() => run({ "src/index.ts": "export const x = 1;" })).toThrow(
       "No integration() call imported from @prismatic-io/spectral was found.",

@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "fs";
-import { join, resolve } from "path";
+import { dirname, join, resolve } from "path";
 import { Project } from "ts-morph";
 import type { Codemod } from "./codemod";
 
@@ -24,7 +24,8 @@ const SOURCE_GLOBS = ["**/*.ts", "**/*.tsx", "!**/node_modules/**", "!**/dist/**
  *
  * A directory holding a `tsconfig.json` contributes the files that config includes.
  * Any other directory contributes every TypeScript file beneath it except
- * `node_modules` and `dist`. A file path contributes that file alone.
+ * `node_modules` and `dist`. A file path contributes that file and the files it imports,
+ * compiled with the nearest `tsconfig.json`'s options.
  */
 export const runCodemod = async (
   codemod: Codemod,
@@ -42,7 +43,10 @@ export const runCodemod = async (
     await project.save();
   }
 
-  return { changed, scanned: project.getSourceFiles().length };
+  const scanned = project
+    .getSourceFiles()
+    .filter((file) => !file.isInNodeModules() && !file.isDeclarationFile()).length;
+  return { changed, scanned };
 };
 
 const createProject = (target: string): Project => {
@@ -50,8 +54,12 @@ const createProject = (target: string): Project => {
     if (target.endsWith("tsconfig.json")) {
       return new Project({ tsConfigFilePath: target });
     }
-    const project = new Project();
+    const tsConfigFilePath = findUp(dirname(target), "tsconfig.json");
+    const project = tsConfigFilePath
+      ? new Project({ tsConfigFilePath, skipAddingFilesFromTsConfig: true })
+      : new Project();
     project.addSourceFileAtPath(target);
+    project.resolveSourceFileDependencies();
     return project;
   }
 
@@ -67,4 +75,12 @@ const createProject = (target: string): Project => {
     ),
   );
   return project;
+};
+
+/** The nearest `name` in `dir` or one of its ancestors. */
+const findUp = (dir: string, name: string): string | undefined => {
+  const candidate = join(dir, name);
+  if (existsSync(candidate)) return candidate;
+  const parent = dirname(dir);
+  return parent === dir ? undefined : findUp(parent, name);
 };

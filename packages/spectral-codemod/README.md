@@ -18,21 +18,23 @@ npx @prismatic-io/spectral-codemod@latest <codemod> [path]
 `path` is a project directory, a `tsconfig.json`, or a single source file. It defaults
 to the current directory. A directory with a `tsconfig.json` contributes the files that
 config includes; any other directory contributes every `.ts` and `.tsx` file beneath it
-except `node_modules` and `dist`.
+except `node_modules` and `dist`. A source file contributes itself and the files it
+imports, compiled with the options of the nearest `tsconfig.json`.
 
 ```sh
 npx @prismatic-io/spectral-codemod@latest --list                          # available codemods
 npx @prismatic-io/spectral-codemod@latest v10.0.0/integration-configuration --dry-run   # report without writing
 ```
 
-Commit or stash your work first, then review the diff the codemod leaves behind.
+Commit or stash your work first, then review the diff the codemod leaves behind. When a
+project holds more than one integration, pass the file of the one to migrate as the path.
 
 ## Codemods
 
 ### `v10.0.0/integration-configuration`
 
 Replaces an integration's config wizard with an integration `configuration`. The codemod
-finds the project's single `integration()` call and:
+finds the project's single `integration()` call, ignoring calls in test files, and:
 
 - turns `configPages` into the `instance` scope and `userLevelConfigPages` into the
   `userLevel` scope,
