@@ -14,9 +14,9 @@ import {
   ensureNamedImport,
   literalString,
   literalStrings,
+  location,
   objectKey,
-  propertyKey,
-  propertyValue,
+  ownProperties,
   resolveObjectLiteral,
   SPECTRAL,
   wrapperName,
@@ -98,35 +98,46 @@ export default defineCodemod({
       throw new Error(`${file.getFilePath()}: integration() must be given an object literal.`);
     }
 
+    const pageProperties = [...SCOPES.map(({ pages }) => pages), SCOPED_PROPERTY];
+    for (const spread of definition.getProperties().filter(Node.isSpreadAssignment)) {
+      const literal = resolveObjectLiteral(spread.getExpression());
+      if (!literal) {
+        throw new Error(
+          `${location(spread)}: could not resolve ${spread.getText()} to tell whether it holds config pages.`,
+        );
+      }
+      const properties = ownProperties(literal);
+      if (pageProperties.some((name) => properties.has(name))) {
+        throw new Error(
+          `${location(spread)}: move configPages, userLevelConfigPages, and scopedConfigVars out of ${spread.getText()} and into the integration() call.`,
+        );
+      }
+    }
+
     const elements: ClassifiedElement[] = [];
     const hoisted: Node[] = [];
     const pageScopes = new Set<Scope>();
     for (const { scope, pages: propertyName } of SCOPES) {
-      const pages = hoistedProperty(definition, propertyName, call);
+      const pages = hoistedProperty(definition, propertyName, call, (name, literal) => {
+        elements.push(...classifyPages(name, literal, scope));
+      });
       if (pages) {
         pageScopes.add(scope);
-        elements.push(...classifyPages(pages.name, pages.literal, scope));
         if (pages.hoisted) hoisted.push(pages.hoisted);
       }
     }
-    const scoped = hoistedProperty(definition, SCOPED_PROPERTY, call);
-    if (scoped) {
-      if (scoped.hoisted) hoisted.push(scoped.hoisted);
-      for (const property of scoped.literal.getProperties()) {
-        const key = propertyKey(property);
-        const value = propertyValue(property);
-        if (key !== undefined && value) {
-          elements.push({
-            key,
-            path: `${scoped.name}${accessor(key)}`,
-            scope: connectionScope(value, "instance"),
-            kind: "connection",
-            shape: {},
-          });
-        }
+    const scoped = hoistedProperty(definition, SCOPED_PROPERTY, call, (name, literal) => {
+      for (const [key, value] of ownProperties(literal)) {
+        elements.push({
+          key,
+          path: `${name}${accessor(key)}`,
+          scope: connectionScope(value, "instance"),
+          kind: "connection",
+          shape: {},
+        });
       }
-    }
-    const pageProperties = [...SCOPES.map(({ pages }) => pages), SCOPED_PROPERTY];
+    });
+    if (scoped?.hoisted) hoisted.push(scoped.hoisted);
     if (elements.length === 0 && !hasAnyProperty(definition, pageProperties)) {
       throw new Error(`${file.getFilePath()}: integration() declares no configPages to migrate.`);
     }
@@ -354,15 +365,17 @@ const isSpectralImport = (expression: Expression, exportName: string): boolean =
 };
 
 /**
- * A page-holding property of the integration definition, as an identifier the new
- * `configuration` can reach it by. An inline object literal is hoisted into a
- * `const` before the integration so it can be referenced too.
+ * A page-holding property of the integration definition, handed to `classify` with an
+ * identifier the new `configuration` can reach it by. An inline object literal is then
+ * hoisted into a `const` before the integration so it can be referenced too. It is
+ * classified first, so an error names the author's line rather than the copy's.
  */
 const hoistedProperty = (
   definition: ObjectLiteralExpression,
   propertyName: string,
   call: CallExpression,
-): { name: string; literal: ObjectLiteralExpression; hoisted?: Node } | undefined => {
+  classify: (name: string, literal: ObjectLiteralExpression) => void,
+): { hoisted?: Node } | undefined => {
   const property = definition.getProperty(propertyName);
   if (!property) {
     return undefined;
@@ -373,34 +386,29 @@ const hoistedProperty = (
       ? property.getInitializerOrThrow()
       : undefined;
   if (!initializer) {
-    throw new Error(`${propertyName} must be a property assignment.`);
+    throw new Error(`${location(property)}: ${propertyName} must be a property assignment.`);
+  }
+  const literal = resolveObjectLiteral(initializer);
+  if (!literal) {
+    throw new Error(
+      `${location(initializer)}: could not resolve ${propertyName} (${initializer.getText()}) to an object literal.`,
+    );
   }
 
   if (Node.isIdentifier(initializer)) {
-    const literal = resolveObjectLiteral(initializer);
-    if (!literal) {
-      throw new Error(
-        `Could not resolve ${propertyName} (${initializer.getText()}) to an object literal.`,
-      );
-    }
-    return { name: initializer.getText(), literal };
+    classify(initializer.getText(), literal);
+    return {};
   }
 
   const file = call.getSourceFile();
-  const statement = topLevelStatement(call);
   const name = file.getVariableDeclaration(propertyName)
     ? `integration${capitalize(propertyName)}`
     : propertyName;
-  const [hoisted] = file.insertStatements(statement.getChildIndex(), [
+  classify(name, literal);
+  const [hoisted] = file.insertStatements(topLevelStatement(call).getChildIndex(), [
     `const ${name} = ${initializer.getText()};`,
   ]);
-  const literal = resolveObjectLiteral(
-    hoisted.asKindOrThrow(SyntaxKind.VariableStatement).getDeclarations()[0].getInitializer(),
-  );
-  if (!literal) {
-    throw new Error(`Could not resolve ${propertyName} to an object literal.`);
-  }
-  return { name, literal, hoisted };
+  return { hoisted };
 };
 
 const classifyPages = (
@@ -409,35 +417,27 @@ const classifyPages = (
   scope: Scope,
 ): ClassifiedElement[] => {
   const elements: ClassifiedElement[] = [];
-  for (const pageProperty of pages.getProperties()) {
-    const pageKey = propertyKey(pageProperty);
-    const page = resolveObjectLiteral(propertyValue(pageProperty));
-    if (pageKey === undefined || !page) {
-      continue;
-    }
-    const pageElements = resolveObjectLiteral(propertyValue(page.getProperty("elements")));
+  for (const [pageKey, pageValue] of ownProperties(pages)) {
+    const page = resolveObjectLiteral(pageValue);
+    const pageElements = page && resolveObjectLiteral(ownProperties(page).get("elements"));
     if (!pageElements) {
-      continue;
+      throw new Error(
+        `${location(pageValue)}: could not resolve page "${pageKey}" to its elements.`,
+      );
     }
-    for (const elementProperty of pageElements.getProperties()) {
-      const key = propertyKey(elementProperty);
-      const value = propertyValue(elementProperty);
-      if (
-        key === undefined ||
-        !value ||
-        Node.isStringLiteral(value) ||
-        Node.isNoSubstitutionTemplateLiteral(value)
-      ) {
+    for (const [key, value] of ownProperties(pageElements)) {
+      if (Node.isStringLiteral(value) || Node.isNoSubstitutionTemplateLiteral(value)) {
         continue;
       }
       const classified = classifyElement(value, scope);
-      if (classified) {
-        elements.push({
-          key,
-          path: `${pagesName}${accessor(pageKey)}.elements${accessor(key)}`,
-          ...classified,
-        });
+      if (!classified) {
+        throw new Error(`${location(value)}: could not resolve element "${key}" to a config var.`);
       }
+      elements.push({
+        key,
+        path: `${pagesName}${accessor(pageKey)}.elements${accessor(key)}`,
+        ...classified,
+      });
     }
   }
   return elements;

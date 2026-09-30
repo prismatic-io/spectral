@@ -54,6 +54,11 @@ finds the project's single `integration()` call and:
   `context.connections`, typed,
 - removes `configPages`, `userLevelConfigPages`, and `scopedConfigVars` from the call.
 
+The codemod follows spreads in pages, `elements`, and `scopedConfigVars`, and a later key
+replaces an earlier one, as at runtime. A spread, page, or element that it cannot resolve to
+an object literal stops the run with its location, rather than lose what it holds. So does
+an `integration()` definition that spreads in its config pages.
+
 Connections are referenced where they already live, for example
 `configPages.Connections.elements["Acme Connection"]`, so the original page declarations
 stay in place. Delete them once you have reviewed the result. Install `zod` if the project

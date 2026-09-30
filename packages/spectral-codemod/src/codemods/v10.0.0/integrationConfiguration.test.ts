@@ -457,6 +457,78 @@ export default integration({
   },`);
   });
 
+  it("follows spread pages and elements", () => {
+    const { files } = run({
+      "src/connectionPages.ts": `
+import { configPage, connectionConfigVar } from "@prismatic-io/spectral";
+
+export const connectionPages = {
+  Connections: configPage({
+    elements: {
+      conn: connectionConfigVar({ stableKey: "c", dataType: "connection", inputs: {} }),
+    },
+  }),
+};
+`,
+      "src/index.ts": `
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+import { connectionPages } from "./connectionPages";
+
+const baseElements = {
+  region: configVar({ stableKey: "r", dataType: "string" }),
+  limit: configVar({ stableKey: "old-limit", dataType: "string" }),
+};
+
+export default integration({
+  name: "Spread",
+  configPages: {
+    ...connectionPages,
+    Settings: configPage({
+      elements: { ...baseElements, limit: configVar({ stableKey: "l", dataType: "number" }) },
+    }),
+  },
+});
+`,
+    });
+
+    expect(files["src/index.ts"]).toContain(`export const configPagesSchema = z.object({
+  region: z.string(),
+  limit: z.number(),
+});`);
+    expect(files["src/index.ts"]).toContain(`    connections: {
+      conn: configPages.Connections.elements.conn,
+    },`);
+  });
+
+  it("fails on a spread it cannot resolve rather than drop what it holds", () => {
+    expect(() =>
+      run({
+        "src/index.ts": `
+import { integration } from "@prismatic-io/spectral";
+import { makePages } from "./pages";
+
+export default integration({ name: "Opaque", configPages: { ...makePages() } });
+`,
+      }),
+    ).toThrow("index.ts:5: could not resolve ...makePages() to an object literal.");
+  });
+
+  it("fails when the definition spreads in its config pages", () => {
+    expect(() =>
+      run({
+        "src/index.ts": `
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+
+const shared = {
+  configPages: { Page: configPage({ elements: { a: configVar({ stableKey: "a", dataType: "string" }) } }) },
+};
+
+export default integration({ name: "Shared", ...shared });
+`,
+      }),
+    ).toThrow("move configPages, userLevelConfigPages, and scopedConfigVars out of ...shared");
+  });
+
   it("fails when the project has no integration() call", () => {
     expect(() => run({ "src/index.ts": "export const x = 1;" })).toThrow(
       "No integration() call imported from @prismatic-io/spectral was found.",
