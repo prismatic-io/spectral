@@ -13,7 +13,15 @@ export interface ConfigVarShape {
   pickList?: string[];
   /** `codeLanguage` of a `code` standard config var. */
   codeLanguage?: string;
+  /** The type property the config var sets to something other than a string constant. */
+  unreadType?: "dataType" | "dataSourceType";
 }
+
+/** A comment for a field whose type the codemod could not read, or nothing. */
+export const unreadTypeComment = (shape: ConfigVarShape): string =>
+  shape.unreadType
+    ? ` // TODO: The codemod could not read this config var's ${shape.unreadType}.`
+    : "";
 
 /** Zod source for `Element`, shared by object selection and object field map values. */
 export const ELEMENT_SCHEMA_NAME = "elementSchema";

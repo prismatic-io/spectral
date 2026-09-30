@@ -11,7 +11,7 @@ import { accessor, capitalize, literalString, objectKey } from "./ast";
 import { findElement, prependComments, rewriteConfigVarsReads } from "./configVarsReads";
 import type { ClassifiedElement } from "./element";
 import { type Namer, withNames } from "./names";
-import { dataSourceResultSchemaFor, zodSchemaFor } from "./zodSchema";
+import { dataSourceResultSchemaFor, unreadTypeComment, zodSchemaFor } from "./zodSchema";
 
 /** A data source with an inline `perform`, to be declared as a server function. */
 export interface PlannedServerFunction {
@@ -126,7 +126,7 @@ export const emitServerFunction = (
     .setInitializer(
       withNames(
         inputs.length
-          ? `z.object({\n${inputs.map((input) => `${objectKey(input.key)}: ${zodSchemaFor(input.shape)}.optional(),`).join("\n")}\n})`
+          ? `z.object({\n${inputs.map((input) => `${objectKey(input.key)}: ${zodSchemaFor(input.shape)}.optional(),${unreadTypeComment(input.shape)}`).join("\n")}\n})`
           : "z.object({})",
         names,
       ),
