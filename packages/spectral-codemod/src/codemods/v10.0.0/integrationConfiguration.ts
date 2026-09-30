@@ -17,6 +17,7 @@ import {
   location,
   objectKey,
   ownProperties,
+  propertyValue,
   resolveObjectLiteral,
   SPECTRAL,
   wrapperName,
@@ -495,6 +496,9 @@ const hoistedProperty = (
   if (!initializer) {
     throw new Error(`${location(property)}: ${propertyName} must be a property assignment.`);
   }
+  if (isNothing(initializer)) {
+    return undefined;
+  }
   const literal = resolveObjectLiteral(initializer);
   if (!literal) {
     throw new Error(
@@ -623,8 +627,17 @@ const connectionScope = (value: Expression, declaredScope: Scope): Scope => {
     : "instance";
 };
 
+/** True for `undefined`, `null`, or `void 0`: a page property that declares nothing. */
+const isNothing = (expression: Node): boolean =>
+  (Node.isIdentifier(expression) && expression.getText() === "undefined") ||
+  Node.isNullLiteral(expression) ||
+  Node.isVoidExpression(expression);
+
 const hasAnyProperty = (literal: ObjectLiteralExpression, names: readonly string[]): boolean =>
-  names.some((name) => literal.getProperty(name) !== undefined);
+  names.some((name) => {
+    const value = propertyValue(literal.getProperty(name));
+    return value !== undefined && !isNothing(value);
+  });
 
 /** The source file statement that contains `node`. */
 const topLevelStatement = (node: Node): Node => {
