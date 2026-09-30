@@ -81,8 +81,13 @@ The codemod rewrites the copy to the server function contract:
 
 - a `configVars` read of a connection becomes `context.connections.<scope>.<key>`, and
   the connection is added to the function's `connections`,
-- a `configVars` read of any other config variable becomes `params.<key>`, and the value
-  is added to `inputSchema`, because a host passes unsaved form values as params,
+- a `configVars` read of a value in the data source's own scope becomes `params.<key>`,
+  and the value is added to `inputSchema` as optional: a host passes unsaved form values
+  as params, and the data source ran while they were still empty,
+- a read of a value in the other scope, such as a user-level data source that reads an
+  instance value, becomes `context.configuration.<key>` or `context.userConfiguration.<key>`
+  under a TODO. That form does not send the value, and the saved configuration can be
+  empty or from an earlier version, so validate it before you read it,
 - `{ result }` is unwrapped, because a server function returns the value itself,
 - `outputSchema` comes from the `dataSourceType`: the choices the data source returns,
   not the value a person saves.
