@@ -196,6 +196,44 @@ export default integration({
     );
   }, 60_000);
 
+  it("compiles when the author already uses every name it declares and imports", () => {
+    expect(
+      typecheck({
+        "settings.ts": "export const configuration = { zone: 1 };",
+        "rpc.ts": "export const serverFunction = { schema: 2 };",
+        "index.ts": `
+import { configPage, configVar, dataSourceConfigVar, integration } from "@prismatic-io/spectral";
+import { configuration } from "./settings";
+import { serverFunction } from "./rpc";
+
+const z = configuration.zone;
+const configPagesSchema = serverFunction.schema;
+const configurationSchema = { z };
+const integrationConfiguration = { configPagesSchema, configurationSchema };
+const elementSchema = { integrationConfiguration };
+
+export default integration({
+  name: "Clash",
+  flows: [],
+  configPages: {
+    Page: configPage({
+      elements: {
+        selection: configVar({ stableKey: "s", dataType: "objectSelection" }),
+        configuration: configVar({ stableKey: "c", dataType: "string" }),
+        choices: dataSourceConfigVar({
+          stableKey: "choices",
+          dataSourceType: "picklist",
+          perform: async () => ({ result: [String(elementSchema)] }),
+        }),
+      },
+    }),
+  },
+});
+`,
+      }),
+    ).toEqual([]);
+  }, 60_000);
+
   it("leaves each configVars read it cannot convert for the compiler to flag", () => {
     const diagnostics = typecheck({
       "index.ts": `

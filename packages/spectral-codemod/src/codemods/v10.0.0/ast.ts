@@ -216,15 +216,18 @@ export const literalStrings = (
 };
 
 /**
- * Adds `name` to the file's value import from `moduleSpecifier`. A type-only or
- * namespace import cannot take it, so a new declaration is added beside one. An import
- * already written one name per line stays that way, which ts-morph alone does not keep.
+ * Adds `name`, imported as `alias` when given, to the file's value import from
+ * `moduleSpecifier`. A type-only or namespace import cannot take it, so a new
+ * declaration is added beside one. An import already written one name per line stays
+ * that way, which ts-morph alone does not keep.
  */
 export const ensureNamedImport = (
   file: SourceFile,
   moduleSpecifier: string,
   name: string,
+  alias?: string,
 ): void => {
+  const local = alias ?? name;
   const declarations = file
     .getImportDeclarations()
     .filter((declaration) => declaration.getModuleSpecifierValue() === moduleSpecifier);
@@ -234,59 +237,34 @@ export const ensureNamedImport = (
         !declaration.isTypeOnly() &&
         declaration
           .getNamedImports()
-          .some((specifier) => specifier.getName() === name && !specifier.isTypeOnly()),
+          .some(
+            (specifier) =>
+              !specifier.isTypeOnly() &&
+              specifier.getName() === name &&
+              (specifier.getAliasNode() ?? specifier.getNameNode()).getText() === local,
+          ),
     )
   ) {
     return;
   }
+  const specifierText = alias ? `${name} as ${alias}` : name;
   const existing = declarations.find(
     (declaration) => !declaration.isTypeOnly() && !declaration.getNamespaceImport(),
   );
   if (!existing) {
-    file.addImportDeclaration({ moduleSpecifier, namedImports: [name] });
+    file.addImportDeclaration({ moduleSpecifier, namedImports: [{ name, alias }] });
     return;
   }
   const specifiers = existing.getNamedImports();
   const multiline = specifiers.length > 0 && existing.getText().includes("\n");
   if (!multiline || existing.getDefaultImport()) {
-    existing.addNamedImport(name);
+    existing.addNamedImport({ name, alias });
     return;
   }
-  const names = [...specifiers.map((specifier) => specifier.getText()), name];
+  const names = [...specifiers.map((specifier) => specifier.getText()), specifierText];
   existing.replaceWithText(
     `import {\n${names.map((text) => `  ${text},`).join("\n")}\n} from ${existing.getModuleSpecifier().getText()};`,
   );
-};
-
-const isZodModule = (moduleSpecifier: string): boolean =>
-  moduleSpecifier === "zod" || moduleSpecifier.startsWith("zod/");
-
-/**
- * Makes `z` refer to zod in the file. A binding of `z` from `zod` or a subpath such as
- * `zod/v4`, whether named, default, or namespace, is used as it is.
- */
-export const ensureZod = (file: SourceFile): void => {
-  const bound = file
-    .getImportDeclarations()
-    .filter(
-      (declaration) =>
-        !declaration.isTypeOnly() && isZodModule(declaration.getModuleSpecifierValue()),
-    )
-    .some(
-      (declaration) =>
-        declaration.getNamespaceImport()?.getText() === "z" ||
-        declaration.getDefaultImport()?.getText() === "z" ||
-        declaration
-          .getNamedImports()
-          .some(
-            (specifier) =>
-              !specifier.isTypeOnly() &&
-              (specifier.getAliasNode() ?? specifier.getNameNode()).getText() === "z",
-          ),
-    );
-  if (!bound) {
-    ensureNamedImport(file, "zod", "z");
-  }
 };
 
 export const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
