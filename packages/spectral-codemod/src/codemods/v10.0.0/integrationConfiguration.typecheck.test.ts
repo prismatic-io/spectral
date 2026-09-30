@@ -162,7 +162,7 @@ describe("v10.0.0/integration-configuration output", () => {
     ).toEqual([]);
   }, 60_000);
 
-  it("leaves a flow's user-level value read for the compiler to flag", () => {
+  it("types a flow's user-level value read by the user-level schema", () => {
     const diagnostics = typecheck({
       "index.ts": `
 import { configVar, flow, integration, userLevelConfigPage } from "@prismatic-io/spectral";
@@ -173,7 +173,10 @@ export default integration({
     flow({
       name: "Greet",
       stableKey: "greet",
-      onExecution: async (context) => ({ data: context.configVars.nickname }),
+      onExecution: async (context) => {
+        const nickname: string = context.configVars.nickname;
+        return { data: nickname };
+      },
     }),
   ],
   userLevelConfigPages: {
@@ -185,8 +188,12 @@ export default integration({
 `,
     });
 
+    // The read is now \`context.userConfiguration?.nickname\`: typed by the schema, and
+    // absent until the user configures the instance.
     expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]).toContain("Property 'nickname' does not exist");
+    expect(diagnostics[0]).toContain(
+      "Type 'string | undefined' is not assignable to type 'string'",
+    );
   }, 60_000);
 
   it("leaves each configVars read it cannot convert for the compiler to flag", () => {
