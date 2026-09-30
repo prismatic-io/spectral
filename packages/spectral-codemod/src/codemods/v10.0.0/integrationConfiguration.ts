@@ -6,6 +6,7 @@ import {
   type Project,
   type SourceFile,
   SyntaxKind,
+  ts,
 } from "ts-morph";
 import { defineCodemod } from "../../codemod";
 import {
@@ -17,6 +18,7 @@ import {
   location,
   objectKey,
   ownProperties,
+  propertyKey,
   propertyValue,
   resolveObjectLiteral,
   SPECTRAL,
@@ -181,10 +183,7 @@ export default defineCodemod({
       declaration.appendWhitespace("\n");
     }
 
-    for (const name of pageProperties) {
-      definition.getProperty(name)?.remove();
-    }
-    definition.addPropertyAssignment({ name: "configuration", initializer: configurationName });
+    rewriteDefinition(definition, pageProperties, configurationName);
 
     // A server function stays beside its data source so the copied perform keeps the
     // helpers it uses. In the integration file it precedes the configuration that
@@ -639,6 +638,68 @@ const connectionScope = (value: Expression, declaredScope: Scope): Scope => {
   return literal.getProperty("inputs") || literal.getProperty("connection")
     ? declaredScope
     : "instance";
+};
+
+/**
+ * Rewrites the integration definition without its page properties and with
+ * `configuration`, one property per line. Each property keeps its comments: one on a
+ * line of its own before it, and one after it on its line. A removed property's
+ * comments go with it. Removing properties in place instead leaves them behind, and
+ * merges the neighbors of a definition written on one line.
+ */
+const rewriteDefinition = (
+  definition: ObjectLiteralExpression,
+  removed: readonly string[],
+  configurationName: string,
+): void => {
+  const text = definition.getSourceFile().getFullText();
+  const properties = definition.getProperties();
+  const closeBrace = definition.getLastChildByKindOrThrow(SyntaxKind.CloseBraceToken);
+  // A comment in the trivia before a node belongs to the property before it when it
+  // is still on that property's line, and to the node when it starts a line.
+  const split = (node: Node) => {
+    const comments = (ranges: ts.CommentRange[] | undefined) =>
+      (ranges ?? []).map((range) => text.slice(range.pos, range.end));
+    return {
+      previous: comments(ts.getTrailingCommentRanges(text, node.getPos())),
+      own: comments(ts.getLeadingCommentRanges(text, node.getPos())),
+    };
+  };
+  const entries = properties.map((property) => ({
+    property,
+    before: split(property).own,
+    after: [] as string[],
+  }));
+  for (const [index, entry] of entries.entries()) {
+    const next = entries[index + 1]?.property ?? closeBrace;
+    entry.after = split(next).previous;
+  }
+  const trailing = split(closeBrace).own;
+  // A comment on the opening brace's line stays there.
+  const opening = split(properties[0] ?? closeBrace).previous;
+
+  const lines = entries
+    .filter(({ property }) => {
+      // Only a plain name can be a page property; anything else is kept as written.
+      const nameNode =
+        Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)
+          ? property.getNameNode()
+          : undefined;
+      const key =
+        Node.isIdentifier(nameNode) || Node.isStringLiteral(nameNode)
+          ? propertyKey(property)
+          : undefined;
+      return key === undefined || !removed.includes(key);
+    })
+    .flatMap(({ property, before, after }) => [
+      ...before,
+      `${property.getText()},${after.length ? ` ${after.join(" ")}` : ""}`,
+    ]);
+  definition
+    .replaceWithText(
+      `{${opening.length ? ` ${opening.join(" ")}` : ""}\n${[...lines, `configuration: ${configurationName},`, ...trailing].join("\n")}\n}`,
+    )
+    .formatText({ indentSize: 2 });
 };
 
 /** True for `undefined`, `null`, or `void 0`: a page property that declares nothing. */
