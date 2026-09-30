@@ -191,14 +191,13 @@ export const propertyValue = (property: Node | undefined): Expression | undefine
   return undefined;
 };
 
+/** The string constant a property of `literal` holds, followed through constants. */
 export const literalString = (
   literal: ObjectLiteralExpression,
   name: string,
 ): string | undefined => {
   const value = propertyValue(literal.getProperty(name));
-  return value && (Node.isStringLiteral(value) || Node.isNoSubstitutionTemplateLiteral(value))
-    ? value.getLiteralText()
-    : undefined;
+  return value && constantString(value);
 };
 
 export const literalStrings = (

@@ -877,6 +877,34 @@ export default integration({
     expect(files["src/index.ts"]).toContain("  configuration: integrationConfiguration");
   });
 
+  it("follows a constant dataType and flags one it cannot read", () => {
+    const { files } = run({
+      "src/index.ts": `
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+import { pickType } from "./types";
+
+const TYPES = { number: "number" } as const;
+
+export default integration({
+  name: "Types",
+  configPages: {
+    Page: configPage({
+      elements: {
+        limit: configVar({ stableKey: "l", dataType: TYPES.number }),
+        mystery: configVar({ stableKey: "m", dataType: pickType() }),
+      },
+    }),
+  },
+});
+`,
+    });
+
+    expect(files["src/index.ts"]).toContain(`export const configPagesSchema = z.object({
+  limit: z.number(),
+  mystery: z.unknown(), // TODO: The codemod could not read this config var's dataType.
+});`);
+  });
+
   it("fails when the project has no integration() call", () => {
     expect(() => run({ "src/index.ts": "export const x = 1;" })).toThrow(
       "No integration() call imported from @prismatic-io/spectral was found.",

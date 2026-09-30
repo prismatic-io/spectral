@@ -34,6 +34,7 @@ import {
   type ConfigVarShape,
   ELEMENT_SCHEMA_SOURCE,
   storedAsString,
+  unreadTypeComment,
   zodSchemaFor,
 } from "./zodSchema";
 
@@ -247,7 +248,10 @@ const schemaSource = (
     (element) => element.scope === names.scope && element.kind !== "connection",
   );
   const body = fields
-    .map((element) => `  ${objectKey(element.key)}: ${zodSchemaFor(element.shape)},`)
+    .map(
+      (element) =>
+        `  ${objectKey(element.key)}: ${zodSchemaFor(element.shape)},${unreadTypeComment(element.shape)}`,
+    )
     .join("\n");
   return [
     `export const ${names.configPagesSchema} = z.object(${body ? `{\n${body}\n}` : "{}"});`,
@@ -576,6 +580,7 @@ const classifyElement = (
     literal,
     "collectionType",
   ) as ConfigVarShape["collectionType"];
+  const dataSourceType = literalString(literal, "dataSourceType");
   if (
     wrapper === "dataSourceConfigVar" ||
     literal.getProperty("dataSource") ||
@@ -584,7 +589,13 @@ const classifyElement = (
     return {
       scope: pageScope,
       kind: "dataSource",
-      shape: { valueType: literalString(literal, "dataSourceType"), collectionType },
+      shape: {
+        valueType: dataSourceType,
+        collectionType,
+        ...(dataSourceType === undefined && literal.getProperty("dataSourceType")
+          ? { unreadType: "dataSourceType" as const }
+          : {}),
+      },
       literal,
     };
   }
@@ -597,6 +608,9 @@ const classifyElement = (
       collectionType,
       pickList: literalStrings(literal, "pickList"),
       codeLanguage: literalString(literal, "codeLanguage"),
+      ...(dataType === undefined && literal.getProperty("dataType")
+        ? { unreadType: "dataType" as const }
+        : {}),
     },
   };
 };
