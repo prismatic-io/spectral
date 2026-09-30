@@ -168,27 +168,39 @@ export const literalStrings = (
 };
 
 /**
- * Adds `name` to the file's import from `moduleSpecifier`. An import already written
- * one name per line stays that way, which ts-morph alone does not keep.
+ * Adds `name` to the file's value import from `moduleSpecifier`. A type-only or
+ * namespace import cannot take it, so a new declaration is added beside one. An import
+ * already written one name per line stays that way, which ts-morph alone does not keep.
  */
 export const ensureNamedImport = (
   file: SourceFile,
   moduleSpecifier: string,
   name: string,
 ): void => {
-  const existing = file.getImportDeclaration(
-    (declaration) => declaration.getModuleSpecifierValue() === moduleSpecifier,
+  const declarations = file
+    .getImportDeclarations()
+    .filter((declaration) => declaration.getModuleSpecifierValue() === moduleSpecifier);
+  if (
+    declarations.some(
+      (declaration) =>
+        !declaration.isTypeOnly() &&
+        declaration
+          .getNamedImports()
+          .some((specifier) => specifier.getName() === name && !specifier.isTypeOnly()),
+    )
+  ) {
+    return;
+  }
+  const existing = declarations.find(
+    (declaration) => !declaration.isTypeOnly() && !declaration.getNamespaceImport(),
   );
   if (!existing) {
     file.addImportDeclaration({ moduleSpecifier, namedImports: [name] });
     return;
   }
   const specifiers = existing.getNamedImports();
-  if (specifiers.some((specifier) => specifier.getName() === name)) {
-    return;
-  }
   const multiline = specifiers.length > 0 && existing.getText().includes("\n");
-  if (!multiline || existing.getDefaultImport() || existing.isTypeOnly()) {
+  if (!multiline || existing.getDefaultImport()) {
     existing.addNamedImport(name);
     return;
   }
@@ -196,6 +208,37 @@ export const ensureNamedImport = (
   existing.replaceWithText(
     `import {\n${names.map((text) => `  ${text},`).join("\n")}\n} from ${existing.getModuleSpecifier().getText()};`,
   );
+};
+
+const isZodModule = (moduleSpecifier: string): boolean =>
+  moduleSpecifier === "zod" || moduleSpecifier.startsWith("zod/");
+
+/**
+ * Makes `z` refer to zod in the file. A binding of `z` from `zod` or a subpath such as
+ * `zod/v4`, whether named, default, or namespace, is used as it is.
+ */
+export const ensureZod = (file: SourceFile): void => {
+  const bound = file
+    .getImportDeclarations()
+    .filter(
+      (declaration) =>
+        !declaration.isTypeOnly() && isZodModule(declaration.getModuleSpecifierValue()),
+    )
+    .some(
+      (declaration) =>
+        declaration.getNamespaceImport()?.getText() === "z" ||
+        declaration.getDefaultImport()?.getText() === "z" ||
+        declaration
+          .getNamedImports()
+          .some(
+            (specifier) =>
+              !specifier.isTypeOnly() &&
+              (specifier.getAliasNode() ?? specifier.getNameNode()).getText() === "z",
+          ),
+    );
+  if (!bound) {
+    ensureNamedImport(file, "zod", "z");
+  }
 };
 
 export const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
