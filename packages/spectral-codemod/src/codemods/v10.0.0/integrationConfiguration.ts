@@ -12,7 +12,6 @@ import {
   accessor,
   capitalize,
   ensureNamedImport,
-  ensureZod,
   literalString,
   literalStrings,
   location,
@@ -24,6 +23,7 @@ import {
 } from "./ast";
 import type { ClassifiedElement, Scope } from "./element";
 import { migrateConfigVarReferences, migrateFlowReads } from "./flowReads";
+import { createNamer, type FileNames, withNames } from "./names";
 import {
   emitServerFunction,
   type PlannedServerFunction,
@@ -31,7 +31,6 @@ import {
 } from "./serverFunctions";
 import {
   type ConfigVarShape,
-  ELEMENT_SCHEMA_NAME,
   ELEMENT_SCHEMA_SOURCE,
   storedAsString,
   zodSchemaFor,
@@ -55,14 +54,14 @@ const SCOPES = [
     configPagesSchema: "userLevelConfigPagesSchema",
     schema: "userConfigurationSchema",
   },
-] as const satisfies readonly {
+] as const satisfies readonly ScopeNames[];
+
+interface ScopeNames {
   scope: Scope;
   pages: string;
   configPagesSchema: string;
   schema: string;
-}[];
-
-type ScopeNames = (typeof SCOPES)[number];
+}
 
 const CONNECTION_WRAPPERS = new Set([
   "connectionConfigVar",
@@ -145,22 +144,35 @@ export default defineCodemod({
       throw new Error(`${file.getFilePath()}: integration() declares no configPages to migrate.`);
     }
 
+    // Names are resolved before any edit, against what the author's files already bind.
+    const namer = createNamer();
+    const names = namer.namesFor(file);
     const scopes = SCOPES.filter(
       ({ scope }) =>
         scope === "instance" ||
         pageScopes.has(scope) ||
         elements.some((element) => element.scope === scope),
+    ).map(
+      (scope): ScopeNames => ({
+        ...scope,
+        configPagesSchema: namer.declare(file, scope.configPagesSchema),
+        schema: namer.declare(file, scope.schema),
+      }),
     );
-    const { planned, unconverted } = planServerFunctions(elements);
+    const configurationName = namer.declare(file, CONFIGURATION_NAME);
+    const { planned, unconverted } = planServerFunctions(elements, namer);
     const augmentationFiles = removePageAugmentations(project);
     const statement = topLevelStatement(call);
     file.insertStatements(
       statement.getChildIndex(),
-      `${[
-        ...scopes.map((names) => schemaSource(names, elements, pageScopes.has(names.scope))),
-        `const ${CONFIGURATION_NAME} = ${configurationSource(scopes, elements, pageScopes, planned, unconverted)};`,
-        augmentationSource(scopes, elements),
-      ].join("\n\n")}\n`,
+      `${withNames(
+        [
+          ...scopes.map((scope) => schemaSource(scope, elements, pageScopes.has(scope.scope))),
+          `const ${configurationName} = ${configurationSource(scopes, elements, pageScopes, planned, unconverted)};`,
+          augmentationSource(scopes, elements),
+        ].join("\n\n"),
+        names,
+      )}\n`,
     );
     for (const declaration of hoisted) {
       declaration.appendWhitespace("\n");
@@ -169,7 +181,7 @@ export default defineCodemod({
     for (const name of pageProperties) {
       definition.getProperty(name)?.remove();
     }
-    definition.addPropertyAssignment({ name: "configuration", initializer: CONFIGURATION_NAME });
+    definition.addPropertyAssignment({ name: "configuration", initializer: configurationName });
 
     // A server function stays beside its data source so the copied perform keeps the
     // helpers it uses. In the integration file it precedes the configuration that
@@ -177,10 +189,15 @@ export default defineCodemod({
     const pageFiles = new Set<SourceFile>();
     for (const serverFunction of planned) {
       if (serverFunction.file === file) {
-        const index = file.getVariableStatementOrThrow(CONFIGURATION_NAME).getChildIndex();
-        emitServerFunction(serverFunction, elements, index);
+        const index = file.getVariableStatementOrThrow(configurationName).getChildIndex();
+        emitServerFunction(serverFunction, elements, index, namer);
       } else {
-        emitServerFunction(serverFunction, elements, serverFunction.file.getStatements().length);
+        emitServerFunction(
+          serverFunction,
+          elements,
+          serverFunction.file.getStatements().length,
+          namer,
+        );
         ensureNamedImport(
           file,
           file.getRelativePathAsModuleSpecifierTo(serverFunction.file),
@@ -190,9 +207,9 @@ export default defineCodemod({
       }
     }
     for (const pageFile of pageFiles) {
-      ensureElementSchema(pageFile);
+      ensureElementSchema(pageFile, namer.namesFor(pageFile));
     }
-    ensureElementSchema(file);
+    ensureElementSchema(file, names);
 
     // The page declarations stay for review, and each server function already reads
     // the new context, so neither is a flow to migrate.
@@ -202,8 +219,7 @@ export default defineCodemod({
     ];
     const flowFiles = migrateFlowReads(project, elements, excluded);
     const referenceFiles = migrateConfigVarReferences(project, elements);
-    ensureNamedImport(file, SPECTRAL, "configuration");
-    ensureZod(file);
+    namer.addImports(file, ["configuration", "z"]);
     file.formatText({ indentSize: 2 });
     file.replaceWithText(file.getFullText().replace(/\n{3,}/g, "\n\n"));
     return [
@@ -267,15 +283,17 @@ const removePageAugmentations = (project: Project): SourceFile[] =>
     return changed;
   });
 
-/** Declares `elementSchema` before its first use when a statement refers to it. */
-const ensureElementSchema = (file: SourceFile): void => {
-  if (file.getVariableDeclaration(ELEMENT_SCHEMA_NAME)) {
+/** Declares the element schema before its first use when a statement refers to it. */
+const ensureElementSchema = (file: SourceFile, names: FileNames): void => {
+  if (file.getVariableDeclaration(names.elementSchema)) {
     return;
   }
-  const usage = new RegExp(`\\b${ELEMENT_SCHEMA_NAME}\\b`);
+  const usage = new RegExp(`(?<![\\w$.])${names.elementSchema.replace(/\$/g, "\\$")}(?![\\w$])`);
   const first = file.getStatements().find((statement) => usage.test(statement.getText()));
   if (first) {
-    file.insertStatements(first.getChildIndex(), ELEMENT_SCHEMA_SOURCE)[0].prependWhitespace("\n");
+    file
+      .insertStatements(first.getChildIndex(), withNames(ELEMENT_SCHEMA_SOURCE, names))[0]
+      .prependWhitespace("\n");
   }
 };
 
@@ -310,7 +328,7 @@ const configurationSource = (
   return [
     "configuration({",
     ...scopes.flatMap(scopeSource),
-    ...initSource(elements),
+    ...initSource(elements, scopes[0].schema),
     ...(serverFunctions.length
       ? [
           "  serverFunctions: {",
@@ -334,7 +352,7 @@ const configurationSource = (
  * arrive while `configurationVersion` is null, and the instance schema starts as their
  * shape. A collection whose items the wizard stored as strings gets a TODO to parse them.
  */
-const initSource = (elements: ClassifiedElement[]): string[] => {
+const initSource = (elements: ClassifiedElement[], schemaName: string): string[] => {
   const unparsed = elements.filter(
     (element) =>
       element.scope === "instance" &&
@@ -345,7 +363,7 @@ const initSource = (elements: ClassifiedElement[]): string[] => {
     "  init: {",
     "    perform: async (context) => {",
     "      // The config wizard's values arrive while context.configurationVersion is null,",
-    "      // and configurationSchema starts as their shape. Branch on the version when the",
+    `      // and ${schemaName} starts as their shape. Branch on the version when the`,
     "      // schema changes.",
     ...(unparsed.length
       ? [

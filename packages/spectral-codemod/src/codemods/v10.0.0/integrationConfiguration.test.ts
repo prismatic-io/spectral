@@ -770,6 +770,57 @@ export default integration({
     ).toThrow('could not resolve the computed key [keyFor("region")] to a string.');
   });
 
+  it("renames what it declares and imports when the author already uses the name", () => {
+    const { files } = run({
+      "src/settings.ts": "export const configuration = { zone: 1 };",
+      "src/rpc.ts": "export const serverFunction = { schema: 2 };",
+      "src/index.ts": `
+import { configPage, configVar, dataSourceConfigVar, integration } from "@prismatic-io/spectral";
+import { configuration } from "./settings";
+import { serverFunction } from "./rpc";
+
+const z = configuration.zone;
+const configPagesSchema = serverFunction.schema;
+const configurationSchema = { z };
+const integrationConfiguration = { configPagesSchema, configurationSchema };
+const elementSchema = { integrationConfiguration };
+
+export default integration({
+  name: "Clash",
+  flows: [],
+  configPages: {
+    Page: configPage({
+      elements: {
+        selection: configVar({ stableKey: "s", dataType: "objectSelection" }),
+        configuration: configVar({ stableKey: "c", dataType: "string" }),
+        choices: dataSourceConfigVar({
+          stableKey: "choices",
+          dataSourceType: "picklist",
+          perform: async () => ({ result: [String(elementSchema)] }),
+        }),
+      },
+    }),
+  },
+});
+`,
+    });
+    const output = files["src/index.ts"];
+
+    expect(output).toContain(
+      'import { configPage, configVar, dataSourceConfigVar, integration, serverFunction as spectralServerFunction, configuration as spectralConfiguration } from "@prismatic-io/spectral";',
+    );
+    expect(output).toContain('import { z as zod } from "zod";');
+    expect(output).toContain("const elementSchema2 = zod.object({ key: zod.string(),");
+    expect(output).toContain(`export const configPagesSchema2 = zod.object({
+  selection: zod.array(zod.object({ object: elementSchema2,`);
+    expect(output).toContain("  configuration: zod.string(),");
+    expect(output).toContain("export const configurationSchema2 = configPagesSchema2;");
+    expect(output).toContain("export const choicesServerFunction = spectralServerFunction({");
+    expect(output).toContain("  perform: async () => [String(elementSchema)],");
+    expect(output).toContain("const integrationConfiguration2 = spectralConfiguration({");
+    expect(output).toContain("  configuration: integrationConfiguration2");
+  });
+
   it("fails when the project has no integration() call", () => {
     expect(() => run({ "src/index.ts": "export const x = 1;" })).toThrow(
       "No integration() call imported from @prismatic-io/spectral was found.",
