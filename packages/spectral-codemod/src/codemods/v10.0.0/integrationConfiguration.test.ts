@@ -84,6 +84,13 @@ export const userLevelConfigPages = {
   Personal: userLevelConfigPage({
     elements: {
       nickname: configVar({ stableKey: "nickname", dataType: "string" }),
+      "Personal Region": dataSourceConfigVar({
+        stableKey: "personal-region",
+        dataSourceType: "string",
+        perform: async (context) => ({
+          result: \`\${context.configVars.region}-\${context.configVars.nickname}\`,
+        }),
+      }),
       "Personal Slack": userActivatedConnection({ stableKey: "personal-slack" }),
       "Personal Acme": connectionConfigVar({
         stableKey: "personal-acme",
@@ -142,7 +149,7 @@ describe("v10.0.0/integration-configuration", () => {
       export const fieldsServerFunction = serverFunction({
         label: "fields",
         inputSchema: z.object({
-          "Object Key": z.string(),
+          "Object Key": z.string().optional(),
         }),
         outputSchema: z.union([z.array(z.string()), z.array(elementSchema)]),
         connections: ["instance.Acme Connection"],
@@ -157,7 +164,7 @@ describe("v10.0.0/integration-configuration", () => {
         label: "Mapped Regions",
         description: "Regions for the chosen limit",
         inputSchema: z.object({
-          limit: z.number(),
+          limit: z.number().optional(),
         }),
         outputSchema: z.union([z.array(z.string()), z.array(elementSchema)]),
         async perform({ configVars, logger }, params) {
@@ -180,6 +187,19 @@ describe("v10.0.0/integration-configuration", () => {
         outputSchema: z.string(),
         perform: async () => "a",
       });
+
+      export const personalRegionServerFunction = serverFunction({
+        label: "Personal Region",
+        inputSchema: z.object({
+          nickname: z.string().optional(),
+        }),
+        outputSchema: z.string(),
+        perform: async (context, params) => {
+          // TODO: Validate the saved configuration before you read it. It can be empty or
+          // written under an earlier version: context.configuration.region.
+          return \`\${context.configuration.region}-\${params.nickname}\`;
+        },
+      });
       "
     `);
     expect(files["src/index.ts"]).toMatchInlineSnapshot(`
@@ -191,7 +211,7 @@ describe("v10.0.0/integration-configuration", () => {
         userActivatedConnection,
         configuration,
       } from "@prismatic-io/spectral";
-      import { configPages, userLevelConfigPages, fieldsServerFunction, mappedRegionsServerFunction, quickServerFunction } from "./configPages";
+      import { configPages, userLevelConfigPages, fieldsServerFunction, mappedRegionsServerFunction, quickServerFunction, personalRegionServerFunction } from "./configPages";
       import flows from "./flows";
       import { z } from "zod";
 
@@ -228,6 +248,7 @@ describe("v10.0.0/integration-configuration", () => {
 
       export const userLevelConfigPagesSchema = z.object({
         nickname: z.string(),
+        "Personal Region": z.string(),
       });
       export const userConfigurationSchema = userLevelConfigPagesSchema;
 
@@ -264,6 +285,7 @@ describe("v10.0.0/integration-configuration", () => {
           fields: fieldsServerFunction,
           mappedRegions: mappedRegionsServerFunction,
           quick: quickServerFunction,
+          personalRegion: personalRegionServerFunction,
         },
         // These data sources have no inline perform to convert. Replace them with
         // serverFunctions:
