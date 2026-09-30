@@ -198,7 +198,7 @@ export const ensureNamedImport = (
   );
 };
 
-const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+export const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 export const objectKey = (key: string): string =>
   IDENTIFIER.test(key) ? key : JSON.stringify(key);
 export const accessor = (key: string): string =>

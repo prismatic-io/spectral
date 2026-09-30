@@ -16,6 +16,13 @@ import {
   userLevelConfigPage,
 } from "@prismatic-io/spectral";
 
+declare module "@prismatic-io/spectral" {
+  interface IntegrationDefinitionConfigPages extends ConfigPages {}
+  interface IntegrationDefinitionUserLevelConfigPages extends UserLevelConfigPages {}
+}
+type ConfigPages = typeof configPages;
+type UserLevelConfigPages = typeof userLevelConfigPages;
+
 export const configPages = {
   Connections: configPage({
     elements: {
@@ -66,7 +73,7 @@ export const userLevelConfigPages = {
 };
 `;
 
-/** Reads the migrated configuration the way a flow now does. */
+/** Reads config vars the way a flow did before the migration. */
 const FLOWS = `
 import { flow } from "@prismatic-io/spectral";
 
@@ -75,11 +82,19 @@ export default [
     name: "Sync",
     stableKey: "sync",
     onExecution: async (context) => {
-      const key: string | undefined = context.configuration?.["Object Key"];
-      const connection = context.connections?.instance?.["Acme Connection"];
-      const personal = context.connections?.userLevel?.["Personal Slack"];
+      const key: string | undefined = context.configVars["Object Key"];
+      const connection = context.configVars["Acme Connection"];
+      const personal = context.configVars["Personal Slack"];
       return { data: { key, connection, personal } };
     },
+  }),
+  flow({
+    name: "Deploy",
+    stableKey: "deploy",
+    onInstanceDeploy: async ({ configVars, logger }) => {
+      logger.info(String(configVars.limit));
+    },
+    onExecution: async () => ({ data: null }),
   }),
 ];
 `;
@@ -145,6 +160,33 @@ describe("v10.0.0/integration-configuration output", () => {
     expect(
       typecheck({ "configPages.ts": CONFIG_PAGES, "flows.ts": FLOWS, "index.ts": INDEX }),
     ).toEqual([]);
+  }, 60_000);
+
+  it("leaves a flow's user-level value read for the compiler to flag", () => {
+    const diagnostics = typecheck({
+      "index.ts": `
+import { configVar, flow, integration, userLevelConfigPage } from "@prismatic-io/spectral";
+
+export default integration({
+  name: "User Level",
+  flows: [
+    flow({
+      name: "Greet",
+      stableKey: "greet",
+      onExecution: async (context) => ({ data: context.configVars.nickname }),
+    }),
+  ],
+  userLevelConfigPages: {
+    Personal: userLevelConfigPage({
+      elements: { nickname: configVar({ stableKey: "nickname", dataType: "string" }) },
+    }),
+  },
+});
+`,
+    });
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toContain("Property 'nickname' does not exist");
   }, 60_000);
 
   it("leaves each configVars read it cannot convert for the compiler to flag", () => {

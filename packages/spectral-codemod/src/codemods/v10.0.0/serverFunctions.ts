@@ -3,12 +3,12 @@ import {
   type FunctionExpression,
   type MethodDeclaration,
   Node,
-  type ObjectBindingPattern,
   type ObjectLiteralExpression,
   type SourceFile,
   SyntaxKind,
 } from "ts-morph";
 import { accessor, capitalize, ensureNamedImport, literalString, objectKey, SPECTRAL } from "./ast";
+import { findElement, prependComments, rewriteConfigVarsReads } from "./configVarsReads";
 import type { ClassifiedElement } from "./element";
 import { dataSourceResultSchemaFor, zodSchemaFor } from "./zodSchema";
 
@@ -160,55 +160,32 @@ const rewritePerform = (
   }
   perform().removeReturnType();
 
-  const context = contextName(perform());
-  const inputs: ClassifiedElement[] = [];
-  const connections: ClassifiedElement[] = [];
   const paramsName = (): string | undefined => {
     const nameNode = perform().getParameters()[1]?.getNameNode();
     if (!nameNode) return "params";
     return Node.isIdentifier(nameNode) ? nameNode.getText() : undefined;
   };
-
-  const rewriteNext = (): boolean => {
-    for (const source of configVarsReads(perform())) {
-      const access = keyedAccess(source);
-      const element = access && findElement(elements, access.key, dataSource.scope);
-      if (!access || !element) continue;
+  const { converted, unresolved } = rewriteConfigVarsReads(
+    perform,
+    (key) => findElement(elements, key, dataSource.scope),
+    (element) => {
       if (element.kind === "connection") {
-        access.node.replaceWithText(
-          `${context ? `${context}.connections` : "connections"}.${element.scope}${accessor(element.key)}`,
-        );
-        if (!connections.includes(element)) connections.push(element);
-        return true;
+        return {
+          contextProperty: "connections",
+          access: `.${element.scope}${accessor(element.key)}`,
+        };
       }
       const params = paramsName();
-      if (!params) continue;
-      access.node.replaceWithText(`${params}${accessor(element.key)}`);
-      if (!inputs.includes(element)) inputs.push(element);
-      return true;
-    }
-    return false;
-  };
-  while (rewriteNext());
-
+      return params ? { text: `${params}${accessor(element.key)}` } : undefined;
+    },
+  );
+  const inputs = converted.filter((element) => element.kind !== "connection");
+  const connections = converted.filter((element) => element.kind === "connection");
   if (inputs.length && perform().getParameters().length < 2) {
     perform().addParameter({ name: "params" });
   }
-  if (connections.length && !context) {
-    const pattern = perform().getParameters()[0]?.getNameNode();
-    if (Node.isObjectBindingPattern(pattern) && !bindingElement(pattern, "connections")) {
-      replacePattern(pattern, [
-        ...pattern.getElements().map((element) => element.getText()),
-        "connections",
-      ]);
-    }
-  }
-  while (pruneConfigVarsBinding(perform()));
 
   const supplementalData = unwrapResults(perform);
-  const unresolved =
-    configVarsReads(perform()).length > 0 ||
-    configVarsPatterns(perform()).some((pattern) => bindingElement(pattern, "configVars"));
   const todos = [
     ...(unresolved ? [UNRESOLVED_TODO] : []),
     ...(supplementalData ? [SUPPLEMENTAL_DATA_TODO] : []),
@@ -218,18 +195,6 @@ const rewritePerform = (
     prependComments(body, todos.join("\n"));
   }
   return { inputs, connections };
-};
-
-/**
- * Rewrites a function body so it starts with `comments`. The body is rebuilt as text:
- * inserted as statements, comments in a block written on one line would comment out
- * the code after them. An expression body becomes a block that returns it.
- */
-const prependComments = (body: Node, comments: string): void => {
-  const statements = Node.isBlock(body)
-    ? body.getText().slice(1, -1).trim()
-    : `return ${body.getText()};`;
-  body.replaceWithText(`{\n${comments}\n${statements}\n}`);
 };
 
 const performOf = (literal: ObjectLiteralExpression): PerformFunction => {
@@ -255,134 +220,6 @@ const inlinePerformSource = (literal: ObjectLiteralExpression): string | undefin
     }
   }
   return undefined;
-};
-
-const contextName = (perform: PerformFunction): string | undefined => {
-  const nameNode = perform.getParameters()[0]?.getNameNode();
-  return Node.isIdentifier(nameNode) ? nameNode.getText() : undefined;
-};
-
-/**
- * Destructurings that take `configVars` off the context: the context parameter itself,
- * or `const { configVars } = context` in the body.
- */
-const configVarsPatterns = (perform: PerformFunction): ObjectBindingPattern[] => {
-  const patterns: ObjectBindingPattern[] = [];
-  const parameter = perform.getParameters()[0]?.getNameNode();
-  if (Node.isObjectBindingPattern(parameter)) {
-    patterns.push(parameter);
-  }
-  const context = contextName(perform);
-  if (context) {
-    for (const declaration of perform.getDescendantsOfKind(SyntaxKind.VariableDeclaration)) {
-      const nameNode = declaration.getNameNode();
-      const initializer = declaration.getInitializer();
-      if (
-        Node.isObjectBindingPattern(nameNode) &&
-        Node.isIdentifier(initializer) &&
-        initializer.getText() === context
-      ) {
-        patterns.push(nameNode);
-      }
-    }
-  }
-  return patterns;
-};
-
-const bindingElement = (pattern: ObjectBindingPattern, property: string) =>
-  pattern
-    .getElements()
-    .find(
-      (element) =>
-        !element.getDotDotDotToken() &&
-        (element.getPropertyNameNode()?.getText() ?? element.getName()) === property,
-    );
-
-/** Every expression in the body that evaluates to the context's `configVars`. */
-const configVarsReads = (perform: PerformFunction): Node[] => {
-  const body = perform.getBody();
-  if (!body) return [];
-  const context = contextName(perform);
-  const aliases = configVarsPatterns(perform).flatMap((pattern) => {
-    const nameNode = bindingElement(pattern, "configVars")?.getNameNode();
-    return Node.isIdentifier(nameNode) ? [nameNode.getText()] : [];
-  });
-  return body
-    .getDescendants()
-    .filter(
-      (node) =>
-        (context !== undefined &&
-          Node.isPropertyAccessExpression(node) &&
-          node.getName() === "configVars" &&
-          node.getExpression().getText() === context) ||
-        (Node.isIdentifier(node) && aliases.includes(node.getText()) && isReference(node)),
-    );
-};
-
-/** False for an identifier that names a property or a binding rather than reading one. */
-const isReference = (identifier: Node): boolean => {
-  const parent = identifier.getParent();
-  return !(
-    (Node.isPropertyAccessExpression(parent) && parent.getNameNode() === identifier) ||
-    Node.isBindingElement(parent) ||
-    (Node.isPropertyAssignment(parent) && parent.getNameNode() === identifier)
-  );
-};
-
-/** `configVars.key` or `configVars["key"]`, with its static key. */
-const keyedAccess = (source: Node): { node: Node; key: string } | undefined => {
-  const parent = source.getParent();
-  if (Node.isPropertyAccessExpression(parent) && parent.getExpression() === source) {
-    return { node: parent, key: parent.getName() };
-  }
-  if (Node.isElementAccessExpression(parent) && parent.getExpression() === source) {
-    const argument = parent.getArgumentExpression();
-    if (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument)) {
-      return { node: parent, key: argument.getLiteralText() };
-    }
-  }
-  return undefined;
-};
-
-/** The config var a read refers to, preferring the data source's own scope. */
-const findElement = (
-  elements: ClassifiedElement[],
-  key: string,
-  scope: ClassifiedElement["scope"],
-): ClassifiedElement | undefined =>
-  elements.find((element) => element.key === key && element.scope === scope) ??
-  elements.find((element) => element.key === key);
-
-/** Removes one `configVars` binding that nothing reads any more; false when there is none. */
-const pruneConfigVarsBinding = (perform: PerformFunction): boolean => {
-  const reads = configVarsReads(perform).map((read) => read.getText());
-  for (const pattern of configVarsPatterns(perform)) {
-    const element = bindingElement(pattern, "configVars");
-    const nameNode = element?.getNameNode();
-    if (!element || !Node.isIdentifier(nameNode) || reads.includes(nameNode.getText())) {
-      continue;
-    }
-    const remaining = pattern
-      .getElements()
-      .filter((other) => other !== element)
-      .map((other) => other.getText());
-    const parent = pattern.getParent();
-    if (remaining.length) {
-      replacePattern(pattern, remaining);
-    } else if (Node.isVariableDeclaration(parent)) {
-      parent.remove();
-    } else if (perform.getParameters().length > 1) {
-      pattern.replaceWithText("_context");
-    } else {
-      perform.getParameters()[0].remove();
-    }
-    return true;
-  }
-  return false;
-};
-
-const replacePattern = (pattern: ObjectBindingPattern, elements: string[]): void => {
-  pattern.replaceWithText(`{ ${elements.join(", ")} }`);
 };
 
 /**
