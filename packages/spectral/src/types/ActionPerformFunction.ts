@@ -194,11 +194,7 @@ export interface IntegrationConfigurationContext {
   configuration?: ConfiguredValue;
   /** The value of the user-level configuration, supplied already parsed. */
   userConfiguration?: ConfiguredUserValue;
-  /**
-   * The resolved connections of an integration configuration, keyed by the
-   * author's names. The same values are in `configVars`, but under keys the
-   * convert layer chose.
-   */
+  /** The resolved connections indexed by their scope. */
   connections?: {
     [TScope in keyof ConfiguredConnections]?: Partial<ConfiguredConnections[TScope]>;
   };
