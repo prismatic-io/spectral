@@ -105,17 +105,18 @@ each connection is keyed as `<scope>.<key>`. The codemod rewrites every function
 the page declarations and the new server functions:
 
 - a read of a connection becomes `context.connections?.<scope>?.[key]`,
-- a read of an instance value becomes `context.configuration?.[key]`,
+- a read of an instance value becomes `context.configuration?.[key]`, and a read of a
+  user-level value becomes `context.userConfiguration?.[key]`, both typed by the
+  configuration's schemas,
 - a `{ configVar: "<connection>" }` reference, such as a component trigger's connection
   input, becomes `{ configVar: "<scope>.<key>" }`.
 
-A user-level value read is left as it is under a TODO: `context.userConfiguration` is not
-validated, so parse it with `userConfigurationSchema` before you read it. The same applies to
-a computed key and to `configVars` passed whole. The compiler flags each read that remains.
+When the codemod cannot follow a read, for example a computed key or `configVars` passed
+whole, it leaves the read as it is under a TODO. The compiler flags each read that remains.
 A `{ configVar }` reference to a value, such as a schedule's, is left as it is: the
 configuration has no equivalent yet.
 
-The reads are optional, because a flow's `configuration` and `connections` can be absent.
+The reads are optional, because a flow's configurations and connections can be absent.
 Code that relied on a value being present now needs to handle `undefined`.
 
 #### Schemas

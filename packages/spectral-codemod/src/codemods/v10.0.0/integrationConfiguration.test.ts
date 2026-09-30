@@ -335,6 +335,11 @@ export default [
     onInstanceDeploy: async ({ configVars, logger }) => { logger.info(configVars.nickname); },
     onExecution: async ({ configVars }) => ({ data: configVars.limit }),
   }),
+  flow({
+    name: "Audit",
+    stableKey: "audit",
+    onExecution: async (context) => ({ data: Object.keys(context.configVars) }),
+  }),
 ];
 `,
     });
@@ -359,14 +364,18 @@ export default [
         flow({
           name: "Greet",
           stableKey: "greet",
-          onInstanceDeploy: async ({ configVars, logger }) => {
-            // TODO: Fix the configVars reads the codemod could not convert. Read saved values
-            // from context.configuration and connections from context.connections.
-            // context.userConfiguration is not validated: parse it with
-            // userConfigurationSchema before you read a user-level value.
-            logger.info(configVars.nickname);
-          },
+          onInstanceDeploy: async ({ logger, userConfiguration }) => { logger.info(userConfiguration?.nickname); },
           onExecution: async ({ configuration }) => ({ data: configuration?.limit }),
+        }),
+        flow({
+          name: "Audit",
+          stableKey: "audit",
+          onExecution: async (context) => {
+            // TODO: Fix the configVars reads the codemod could not convert. Read saved values
+            // from context.configuration and context.userConfiguration, and connections from
+            // context.connections.
+            return { data: Object.keys(context.configVars) };
+          },
         }),
       ];
       "
