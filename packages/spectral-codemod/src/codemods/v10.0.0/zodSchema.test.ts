@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dataSourceResultSchemaFor, zodSchemaFor } from "./zodSchema";
+import { dataSourceResultSchemaFor, storedAsString, zodSchemaFor } from "./zodSchema";
 
 describe("zodSchemaFor", () => {
   it.each([
@@ -58,5 +58,18 @@ describe("dataSourceResultSchemaFor", () => {
 
   it("falls back to unknown for a data source type it cannot see", () => {
     expect(dataSourceResultSchemaFor(undefined)).toBe("z.unknown()");
+  });
+});
+
+describe("storedAsString", () => {
+  it.each([
+    [{ valueType: "number", collectionType: "valuelist" }, true],
+    [{ valueType: "boolean", collectionType: "keyvaluelist" }, true],
+    [{ valueType: "code", codeLanguage: "json", collectionType: "valuelist" }, true],
+    [{ valueType: "string", collectionType: "valuelist" }, false],
+    [{ valueType: "date", collectionType: "valuelist" }, false],
+    [{ valueType: "number" }, false],
+  ] as const)("reports %o as %s", (shape, expected) => {
+    expect(storedAsString(shape)).toBe(expected);
   });
 });
