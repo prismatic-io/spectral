@@ -125,12 +125,60 @@ export const ownProperties = (literal: ObjectLiteralExpression): Map<string, Exp
 export const location = (node: Node): string =>
   `${node.getSourceFile().getFilePath()}:${node.getStartLineNumber()}`;
 
+/**
+ * The key a property is written under. A computed key resolves to the string constant
+ * it names, or throws, rather than becoming the text of the expression.
+ */
 export const propertyKey = (property: Node): string | undefined => {
   if (!Node.isPropertyAssignment(property) && !Node.isShorthandPropertyAssignment(property)) {
     return undefined;
   }
   const nameNode = property.getNameNode();
+  if (Node.isComputedPropertyName(nameNode)) {
+    const key = constantString(nameNode.getExpression());
+    if (key === undefined) {
+      throw new Error(
+        `${location(nameNode)}: could not resolve the computed key ${nameNode.getText()} to a string.`,
+      );
+    }
+    return key;
+  }
   return Node.isStringLiteral(nameNode) ? nameNode.getLiteralText() : nameNode.getText();
+};
+
+/**
+ * The string an expression always evaluates to: a string literal, or a `const` or a
+ * property of a `const` object that holds one, followed through imports.
+ */
+const constantString = (expression: Node): string | undefined => {
+  if (Node.isStringLiteral(expression) || Node.isNoSubstitutionTemplateLiteral(expression)) {
+    return expression.getLiteralText();
+  }
+  if (
+    Node.isAsExpression(expression) ||
+    Node.isSatisfiesExpression(expression) ||
+    Node.isParenthesizedExpression(expression)
+  ) {
+    return constantString(expression.getExpression());
+  }
+  if (Node.isIdentifier(expression)) {
+    for (const declaration of declarationsOf(expression)) {
+      const initializer = Node.isVariableDeclaration(declaration)
+        ? declaration.getInitializer()
+        : undefined;
+      const value = initializer && constantString(initializer);
+      if (value !== undefined) {
+        return value;
+      }
+    }
+    return undefined;
+  }
+  if (Node.isPropertyAccessExpression(expression)) {
+    const holder = resolveObjectLiteral(expression.getExpression());
+    const value = holder && ownProperties(holder).get(expression.getName());
+    return value && constantString(value);
+  }
+  return undefined;
 };
 
 export const propertyValue = (property: Node | undefined): Expression | undefined => {
