@@ -11,7 +11,11 @@ import type { FlowSchemas } from "./FlowSchemas";
 import type { ConfigVarResultCollection, Inputs } from "./Inputs";
 import type { InstanceAttributes } from "./InstanceAttributes";
 import type { IntegrationAttributes } from "./IntegrationAttributes";
-import type { ConfiguredConnections, ConfiguredValue } from "./IntegrationConfiguration";
+import type {
+  ConfiguredConnections,
+  ConfiguredUserValue,
+  ConfiguredValue,
+} from "./IntegrationConfiguration";
 import type { UserAttributes } from "./UserAttributes";
 
 interface StandardLineage {
@@ -178,20 +182,24 @@ export type ActionContext<
    * the size of the batches for each run of the flow.
    */
   batch?: BatchInfo;
-} & WithExperimentalFlag<
-  "integrationConfiguration",
-  {
-    /** The value of an integration configuration, supplied already parsed. */
-    configuration?: ConfiguredValue;
-    /** User data may be empty or independently versioned; validate before reading. */
-    userConfiguration?: unknown;
-    /**
-     * The resolved connections of an integration configuration, keyed by the
-     * author's names. The same values are in `configVars`, but under keys the
-     * convert layer chose.
-     */
-    connections?: {
-      [TScope in keyof ConfiguredConnections]?: Partial<ConfiguredConnections[TScope]>;
-    };
-  }
->;
+} & WithExperimentalFlag<"integrationConfiguration", IntegrationConfigurationContext>;
+
+/**
+ * What an execution context carries once an integration opts into the
+ * `integrationConfiguration` flag, typed by its `IntegrationDefinitionConfiguration`
+ * augmentation.
+ */
+export interface IntegrationConfigurationContext {
+  /** The value of the instance configuration, supplied already parsed. */
+  configuration?: ConfiguredValue;
+  /** The value of the user-level configuration, supplied already parsed. */
+  userConfiguration?: ConfiguredUserValue;
+  /**
+   * The resolved connections of an integration configuration, keyed by the
+   * author's names. The same values are in `configVars`, but under keys the
+   * convert layer chose.
+   */
+  connections?: {
+    [TScope in keyof ConfiguredConnections]?: Partial<ConfiguredConnections[TScope]>;
+  };
+}
