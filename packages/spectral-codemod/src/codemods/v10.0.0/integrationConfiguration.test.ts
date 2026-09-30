@@ -722,6 +722,54 @@ export default integration({ name: "Types", configPages: { Page: page } });
     );
   });
 
+  it("resolves a computed element key to the constant it names", () => {
+    const { files } = run({
+      "src/index.ts": `
+import { configPage, configVar, connectionConfigVar, integration } from "@prismatic-io/spectral";
+
+const REGION = "Region";
+const KEYS = { connection: "Acme Connection" } as const;
+
+export default integration({
+  name: "Computed",
+  configPages: {
+    Page: configPage({
+      elements: {
+        [REGION]: configVar({ stableKey: "r", dataType: "string" }),
+        [KEYS.connection]: connectionConfigVar({ stableKey: "c", dataType: "connection", inputs: {} }),
+      },
+    }),
+  },
+});
+`,
+    });
+
+    expect(files["src/index.ts"]).toContain(`export const configPagesSchema = z.object({
+  Region: z.string(),
+});`);
+    expect(files["src/index.ts"]).toContain(
+      `"Acme Connection": configPages.Page.elements["Acme Connection"],`,
+    );
+  });
+
+  it("fails on a computed element key that is not a constant", () => {
+    expect(() =>
+      run({
+        "src/index.ts": `
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+import { keyFor } from "./keys";
+
+export default integration({
+  name: "Dynamic",
+  configPages: {
+    Page: configPage({ elements: { [keyFor("region")]: configVar({ stableKey: "r", dataType: "string" }) } }),
+  },
+});
+`,
+      }),
+    ).toThrow('could not resolve the computed key [keyFor("region")] to a string.');
+  });
+
   it("fails when the project has no integration() call", () => {
     expect(() => run({ "src/index.ts": "export const x = 1;" })).toThrow(
       "No integration() call imported from @prismatic-io/spectral was found.",
