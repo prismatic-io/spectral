@@ -320,7 +320,7 @@ describe("v10.0.0/integration-configuration", () => {
         name: "Acme",
         description: "Sync Acme",
         flows,
-        configuration: integrationConfiguration
+        configuration: integrationConfiguration,
       });
       "
     `);
@@ -483,7 +483,7 @@ export default integration({
 
       export default integration({
         name: "Inline",
-        configuration: integrationConfiguration
+        configuration: integrationConfiguration,
       });
       "
     `);
@@ -903,6 +903,63 @@ export default integration({
   limit: z.number(),
   mystery: z.unknown(), // TODO: The codemod could not read this config var's dataType.
 });`);
+  });
+
+  it.each([
+    ['name: "x", configPages, flows'],
+    ['name: "x",\n  // The config wizard.\n  configPages,\n  flows,'],
+    ['name: "x",\n  configPages, // The config wizard.\n  flows,'],
+  ])("writes one property per line and drops a removed property's comments: %j", (body) => {
+    const { files } = run({
+      "src/index.ts": `
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+
+const configPages = { Page: configPage({ elements: { a: configVar({ stableKey: "a", dataType: "string" }) } }) };
+const flows = [];
+
+export default integration({
+  ${body}
+});
+`,
+    });
+
+    const output = files["src/index.ts"];
+    expect(output.slice(output.indexOf("export default"))).toBe(`export default integration({
+  name: "x",
+  flows,
+  configuration: integrationConfiguration,
+});
+`);
+  });
+
+  it("keeps the comments of the properties it keeps", () => {
+    const { files } = run({
+      "src/index.ts": `
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+
+const configPages = { Page: configPage({ elements: { a: configVar({ stableKey: "a", dataType: "string" }) } }) };
+
+export default integration({ // The only integration.
+  // Shown in the marketplace.
+  name: "x", // Keep it short.
+  configPages,
+  flows: [], // Added later.
+  // Nothing else yet.
+});
+`,
+    });
+
+    const output = files["src/index.ts"];
+    expect(
+      output.slice(output.indexOf("export default")),
+    ).toBe(`export default integration({ // The only integration.
+  // Shown in the marketplace.
+  name: "x", // Keep it short.
+  flows: [], // Added later.
+  configuration: integrationConfiguration,
+  // Nothing else yet.
+});
+`);
   });
 
   it("fails when the project has no integration() call", () => {
