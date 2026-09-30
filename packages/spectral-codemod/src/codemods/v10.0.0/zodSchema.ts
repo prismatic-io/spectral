@@ -33,7 +33,8 @@ const SCALAR: Record<string, string> = {
   code: "z.string()",
   htmlElement: "z.string()",
   date: "z.iso.date()",
-  timestamp: "z.iso.datetime()",
+  // The config wizard stores a local time to the minute, such as 2026-09-30T14:05.
+  timestamp: "z.iso.datetime({ local: true, offset: true })",
   boolean: "z.boolean()",
   number: "z.number()",
   schedule: "z.object({ value: z.string(), schedule_type: z.string(), time_zone: z.string() })",
