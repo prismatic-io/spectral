@@ -429,6 +429,34 @@ export const userConfigurationSchema = z.object({});`);
   },`);
   });
 
+  it("adds a TODO to a perform whose body is written on one line", () => {
+    const { files } = run({
+      "src/index.ts": `
+import { configPage, dataSourceConfigVar, integration } from "@prismatic-io/spectral";
+
+export default integration({
+  name: "One Line",
+  configPages: {
+    Page: configPage({
+      elements: {
+        choices: dataSourceConfigVar({
+          stableKey: "choices",
+          dataSourceType: "picklist",
+          perform: async (context) => { return { result: ["a"], supplementalData: { data: {}, contentType: "text/plain" } }; },
+        }),
+      },
+    }),
+  },
+});
+`,
+    });
+
+    expect(files["src/index.ts"]).toContain(`  perform: async (context) => {
+    // TODO: A server function has no supplementalData. Return only the result.
+    return ({ result: ["a"], supplementalData: { data: {}, contentType: "text/plain" } }).result;
+  },`);
+  });
+
   it("fails when the project has no integration() call", () => {
     expect(() => run({ "src/index.ts": "export const x = 1;" })).toThrow(
       "No integration() call imported from @prismatic-io/spectral was found.",

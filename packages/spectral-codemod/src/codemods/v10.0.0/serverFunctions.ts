@@ -213,14 +213,23 @@ const rewritePerform = (
     ...(unresolved ? [UNRESOLVED_TODO] : []),
     ...(supplementalData ? [SUPPLEMENTAL_DATA_TODO] : []),
   ];
-  if (todos.length) {
-    const body = perform().getBody();
-    if (body && !Node.isBlock(body)) {
-      body.replaceWithText(`{\nreturn ${body.getText()};\n}`);
-    }
-    perform().getBody()?.asKindOrThrow(SyntaxKind.Block).insertStatements(0, todos.join("\n"));
+  const body = perform().getBody();
+  if (todos.length && body) {
+    prependComments(body, todos.join("\n"));
   }
   return { inputs, connections };
+};
+
+/**
+ * Rewrites a function body so it starts with `comments`. The body is rebuilt as text:
+ * inserted as statements, comments in a block written on one line would comment out
+ * the code after them. An expression body becomes a block that returns it.
+ */
+const prependComments = (body: Node, comments: string): void => {
+  const statements = Node.isBlock(body)
+    ? body.getText().slice(1, -1).trim()
+    : `return ${body.getText()};`;
+  body.replaceWithText(`{\n${comments}\n${statements}\n}`);
 };
 
 const performOf = (literal: ObjectLiteralExpression): PerformFunction => {
