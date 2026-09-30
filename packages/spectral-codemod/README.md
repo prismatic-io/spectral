@@ -63,6 +63,12 @@ replaces an earlier one, as at runtime. A spread, page, or element that it canno
 an object literal stops the run with its location, rather than lose what it holds. So does
 an `integration()` definition that spreads in its config pages.
 
+When a file already uses a name the codemod declares, such as `configurationSchema` or
+`elementSchema`, the codemod adds a suffix, for example `configurationSchema2`. When a file
+already binds `z`, `configuration`, or `serverFunction` to something else, the codemod imports
+the export under an alias, such as `z as zod`. When the file already imports that export, it
+uses the existing import.
+
 Connections are referenced where they already live, for example
 `configPages.Connections.elements["Acme Connection"]`, so the original page declarations
 stay in place. Delete them once you have reviewed the result. Install `zod` if the project

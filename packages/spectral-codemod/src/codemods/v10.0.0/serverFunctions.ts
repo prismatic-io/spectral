@@ -7,17 +7,10 @@ import {
   type SourceFile,
   SyntaxKind,
 } from "ts-morph";
-import {
-  accessor,
-  capitalize,
-  ensureNamedImport,
-  ensureZod,
-  literalString,
-  objectKey,
-  SPECTRAL,
-} from "./ast";
+import { accessor, capitalize, literalString, objectKey } from "./ast";
 import { findElement, prependComments, rewriteConfigVarsReads } from "./configVarsReads";
 import type { ClassifiedElement } from "./element";
+import { type Namer, withNames } from "./names";
 import { dataSourceResultSchemaFor, zodSchemaFor } from "./zodSchema";
 
 /** A data source with an inline `perform`, to be declared as a server function. */
@@ -60,11 +53,11 @@ const SUPPLEMENTAL_DATA_TODO =
  */
 export const planServerFunctions = (
   elements: ClassifiedElement[],
+  namer: Namer,
 ): { planned: PlannedServerFunction[]; unconverted: ClassifiedElement[] } => {
   const planned: PlannedServerFunction[] = [];
   const unconverted: ClassifiedElement[] = [];
   const keys = new Set<string>();
-  const names = new Map<SourceFile, Set<string>>();
   for (const dataSource of elements.filter((element) => element.kind === "dataSource")) {
     const literal = dataSource.literal;
     const performSource = literal && inlinePerformSource(literal);
@@ -73,15 +66,11 @@ export const planServerFunctions = (
       continue;
     }
     const file = literal.getSourceFile();
-    const taken = names.get(file) ?? new Set<string>();
-    names.set(file, taken);
+    // Resolve the file's names before the codemod edits it.
+    namer.namesFor(file);
     const key = uniqueName(camelCase(dataSource.key), (name) => keys.has(name));
     keys.add(key);
-    const name = uniqueName(
-      `${key}ServerFunction`,
-      (candidate) => taken.has(candidate) || isDeclared(file, candidate),
-    );
-    taken.add(name);
+    const name = namer.declare(file, `${key}ServerFunction`);
     planned.push({
       key,
       name,
@@ -103,18 +92,21 @@ export const emitServerFunction = (
   planned: PlannedServerFunction,
   elements: ClassifiedElement[],
   index: number,
+  namer: Namer,
 ): void => {
   const { file, name } = planned;
+  const names = namer.namesFor(file);
+  // The copied perform is the author's code, so only the generated parts are renamed.
   const properties = [
     `label: ${JSON.stringify(planned.dataSource.key)},`,
     ...(planned.description ? [`description: ${JSON.stringify(planned.description)},`] : []),
-    "inputSchema: z.object({}),",
-    `outputSchema: ${dataSourceResultSchemaFor(planned.dataSourceType)},`,
+    withNames("inputSchema: z.object({}),", names),
+    withNames(`outputSchema: ${dataSourceResultSchemaFor(planned.dataSourceType)},`, names),
     `${planned.performSource},`,
   ];
   file.insertStatements(
     index,
-    `export const ${name} = serverFunction({\n${properties.join("\n")}\n});`,
+    `export const ${name} = ${names.serverFunction}({\n${properties.join("\n")}\n});`,
   );
   const literal = (): ObjectLiteralExpression =>
     file
@@ -132,9 +124,12 @@ export const emitServerFunction = (
     .getPropertyOrThrow("inputSchema")
     .asKindOrThrow(SyntaxKind.PropertyAssignment)
     .setInitializer(
-      inputs.length
-        ? `z.object({\n${inputs.map((input) => `${objectKey(input.key)}: ${zodSchemaFor(input.shape)}.optional(),`).join("\n")}\n})`
-        : "z.object({})",
+      withNames(
+        inputs.length
+          ? `z.object({\n${inputs.map((input) => `${objectKey(input.key)}: ${zodSchemaFor(input.shape)}.optional(),`).join("\n")}\n})`
+          : "z.object({})",
+        names,
+      ),
     );
   if (connections.length) {
     const properties = literal().getProperties();
@@ -147,8 +142,7 @@ export const emitServerFunction = (
   const statement = file.getVariableStatementOrThrow(name);
   statement.formatText({ indentSize: 2 });
   statement.prependWhitespace("\n");
-  ensureNamedImport(file, SPECTRAL, "serverFunction");
-  ensureZod(file);
+  namer.addImports(file, ["serverFunction", "z"]);
 };
 
 /**
@@ -306,15 +300,6 @@ const enclosingFunction = (node: Node): Node | undefined =>
       Node.isFunctionDeclaration(ancestor) ||
       Node.isMethodDeclaration(ancestor),
   );
-
-const isDeclared = (file: SourceFile, name: string): boolean =>
-  file.getVariableDeclaration(name) !== undefined ||
-  file.getFunction(name) !== undefined ||
-  file
-    .getImportDeclarations()
-    .some((declaration) =>
-      declaration.getNamedImports().some((specifier) => specifier.getName() === name),
-    );
 
 const uniqueName = (base: string, isTaken: (name: string) => boolean): string => {
   let name = base;
