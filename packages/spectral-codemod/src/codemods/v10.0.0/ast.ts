@@ -88,6 +88,43 @@ export const wrapperName = (call: CallExpression): string | undefined => {
   return Node.isIdentifier(callee) && WRAPPERS.has(callee.getText()) ? callee.getText() : undefined;
 };
 
+/**
+ * The properties an object literal ends up with, in order. A spread is resolved to its
+ * object literal and flattened, and a later key replaces an earlier one, as at runtime.
+ * A spread that does not resolve throws, rather than lose what it holds.
+ */
+export const ownProperties = (literal: ObjectLiteralExpression): Map<string, Expression> => {
+  const properties = new Map<string, Expression>();
+  const set = (key: string, value: Expression) => {
+    properties.delete(key);
+    properties.set(key, value);
+  };
+  for (const property of literal.getProperties()) {
+    if (Node.isSpreadAssignment(property)) {
+      const spread = resolveObjectLiteral(property.getExpression());
+      if (!spread) {
+        throw new Error(
+          `${location(property)}: could not resolve ${property.getText()} to an object literal.`,
+        );
+      }
+      for (const [key, value] of ownProperties(spread)) {
+        set(key, value);
+      }
+      continue;
+    }
+    const key = propertyKey(property);
+    const value = propertyValue(property);
+    if (key !== undefined && value) {
+      set(key, value);
+    }
+  }
+  return properties;
+};
+
+/** `path:line` of a node, for errors that name the source to change. */
+export const location = (node: Node): string =>
+  `${node.getSourceFile().getFilePath()}:${node.getStartLineNumber()}`;
+
 export const propertyKey = (property: Node): string | undefined => {
   if (!Node.isPropertyAssignment(property) && !Node.isShorthandPropertyAssignment(property)) {
     return undefined;
