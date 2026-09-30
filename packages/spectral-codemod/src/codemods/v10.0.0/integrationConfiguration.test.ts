@@ -856,6 +856,27 @@ export default integration({ name: "${name}", flows: [] });
     );
   });
 
+  it("skips a page property that declares nothing", () => {
+    const { files } = run({
+      "src/index.ts": `
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+
+export default integration({
+  name: "Nothing",
+  configPages: {
+    Page: configPage({ elements: { name: configVar({ stableKey: "n", dataType: "string" }) } }),
+  },
+  userLevelConfigPages: undefined,
+  scopedConfigVars: null,
+});
+`,
+    });
+
+    expect(files["src/index.ts"]).not.toContain("userLevel");
+    expect(files["src/index.ts"]).not.toContain("scopedConfigVars");
+    expect(files["src/index.ts"]).toContain("  configuration: integrationConfiguration");
+  });
+
   it("fails when the project has no integration() call", () => {
     expect(() => run({ "src/index.ts": "export const x = 1;" })).toThrow(
       "No integration() call imported from @prismatic-io/spectral was found.",
@@ -867,6 +888,12 @@ export default integration({ name: "${name}", flows: [] });
       run({
         "src/index.ts": `import { integration } from "@prismatic-io/spectral";
 export default integration({ name: "Bare", flows: [] });`,
+      }),
+    ).toThrow("declares no configPages to migrate");
+    expect(() =>
+      run({
+        "src/index.ts": `import { integration } from "@prismatic-io/spectral";
+export default integration({ name: "Undefined", flows: [], configPages: undefined });`,
       }),
     ).toThrow("declares no configPages to migrate");
   });
