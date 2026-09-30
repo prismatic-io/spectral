@@ -36,6 +36,7 @@ import {
   zodSchemaFor,
 } from "./zodSchema";
 
+const CODEMOD_NAME = "v10.0.0/integration-configuration";
 const VERSION = "INITIAL";
 const CONFIGURATION_NAME = "integrationConfiguration";
 const SCOPED_PROPERTY = "scopedConfigVars";
@@ -89,7 +90,7 @@ const CONNECTION_WRAPPERS = new Set([
  * `integrationConfiguration` experimental flag. It does not emit a `uiSchema`.
  */
 export default defineCodemod({
-  name: "v10.0.0/integration-configuration",
+  name: CODEMOD_NAME,
   description:
     "Migrate configPages, userLevelConfigPages, and scopedConfigVars to an integration configuration",
   transform(project) {
@@ -424,20 +425,32 @@ const augmentationSource = (scopes: ScopeNames[], elements: ClassifiedElement[])
 const propertySource = (name: string, value: string): string =>
   name === value ? `    ${name},` : `    ${name}: ${value},`;
 
-/** The single `integration()` call in the project, located through its spectral import. */
+const TEST_FILE = /(\.(test|spec)\.[cm]?tsx?$)|(\/__tests__\/)/;
+
+/**
+ * The single `integration()` call in the project, located through its spectral import.
+ * A call in a test file is ignored when the project has one elsewhere.
+ */
 const findIntegrationCall = (project: Project): CallExpression => {
-  const calls = project
+  const all = project
     .getSourceFiles()
     .flatMap((file) =>
       file
         .getDescendantsOfKind(SyntaxKind.CallExpression)
         .filter((call) => isSpectralImport(call.getExpression(), "integration")),
     );
-  if (calls.length !== 1) {
+  const outsideTests = all.filter((call) => !TEST_FILE.test(call.getSourceFile().getFilePath()));
+  const calls = outsideTests.length ? outsideTests : all;
+  if (calls.length === 0) {
+    throw new Error(`No integration() call imported from ${SPECTRAL} was found.`);
+  }
+  if (calls.length > 1) {
     throw new Error(
-      calls.length === 0
-        ? `No integration() call imported from ${SPECTRAL} was found.`
-        : `Found ${calls.length} integration() calls; run the codemod against one integration at a time.`,
+      [
+        `Found ${calls.length} integration() calls: ${calls.map(location).join(", ")}.`,
+        "Pass the file of the integration to migrate as the path, for example:",
+        `  spectral-codemod ${CODEMOD_NAME} ${calls[0].getSourceFile().getFilePath()}`,
+      ].join("\n"),
     );
   }
   return calls[0];
