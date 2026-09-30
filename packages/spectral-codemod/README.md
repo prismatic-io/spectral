@@ -52,6 +52,10 @@ finds the project's single `integration()` call and:
 - enables the `integrationConfiguration` experimental flag and augments
   `IntegrationDefinitionConfiguration`, so that flows read `context.configuration` and
   `context.connections`, typed,
+- rewrites the flows' `configVars` reads and connection references (see below), removes
+  the project's `IntegrationDefinitionConfigPages`, `IntegrationDefinitionUserLevelConfigPages`,
+  and `IntegrationDefinitionScopedConfigVars` augmentations, and declares page maps with no
+  config vars, so that a read it could not migrate fails to compile,
 - removes `configPages`, `userLevelConfigPages`, and `scopedConfigVars` from the call.
 
 The codemod follows spreads in pages, `elements`, and `scopedConfigVars`, and a later key
@@ -93,6 +97,26 @@ A component data source reference (`dataSource: { component, key }`) and a `perf
 declared elsewhere are not converted. A comment in the configuration lists them.
 `dataSourceReset` and `validationMode` have no equivalent: the host decides when to call
 a server function.
+
+#### Flows
+
+After the migration, a flow's `configVars` no longer holds the config pages' values, and
+each connection is keyed as `<scope>.<key>`. The codemod rewrites every function outside
+the page declarations and the new server functions:
+
+- a read of a connection becomes `context.connections?.<scope>?.[key]`,
+- a read of an instance value becomes `context.configuration?.[key]`,
+- a `{ configVar: "<connection>" }` reference, such as a component trigger's connection
+  input, becomes `{ configVar: "<scope>.<key>" }`.
+
+A user-level value read is left as it is under a TODO: `context.userConfiguration` is not
+validated, so parse it with `userConfigurationSchema` before you read it. The same applies to
+a computed key and to `configVars` passed whole. The compiler flags each read that remains.
+A `{ configVar }` reference to a value, such as a schedule's, is left as it is: the
+configuration has no equivalent yet.
+
+The reads are optional, because a flow's `configuration` and `connections` can be absent.
+Code that relied on a value being present now needs to handle `undefined`.
 
 #### Schemas
 
