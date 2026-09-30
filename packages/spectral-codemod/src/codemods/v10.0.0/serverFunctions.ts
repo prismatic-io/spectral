@@ -7,7 +7,15 @@ import {
   type SourceFile,
   SyntaxKind,
 } from "ts-morph";
-import { accessor, capitalize, ensureNamedImport, literalString, objectKey, SPECTRAL } from "./ast";
+import {
+  accessor,
+  capitalize,
+  ensureNamedImport,
+  ensureZod,
+  literalString,
+  objectKey,
+  SPECTRAL,
+} from "./ast";
 import { findElement, prependComments, rewriteConfigVarsReads } from "./configVarsReads";
 import type { ClassifiedElement } from "./element";
 import { dataSourceResultSchemaFor, zodSchemaFor } from "./zodSchema";
@@ -140,7 +148,7 @@ export const emitServerFunction = (
   statement.formatText({ indentSize: 2 });
   statement.prependWhitespace("\n");
   ensureNamedImport(file, SPECTRAL, "serverFunction");
-  ensureNamedImport(file, "zod", "z");
+  ensureZod(file);
 };
 
 /**

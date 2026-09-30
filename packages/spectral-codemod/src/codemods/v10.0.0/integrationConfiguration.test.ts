@@ -676,6 +676,52 @@ export default integration({
   },`);
   });
 
+  it.each([
+    ['import * as z from "zod";'],
+    ['import { z } from "zod/v4";'],
+  ])("uses zod as the file already imports it: %s", (zodImport) => {
+    const { files } = run({
+      "src/index.ts": `
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+${zodImport}
+
+export const extra = z.string();
+
+export default integration({
+  name: "Zod",
+  configPages: {
+    Page: configPage({ elements: { name: configVar({ stableKey: "n", dataType: "string" }) } }),
+  },
+});
+`,
+    });
+
+    const imports = files["src/index.ts"].split("\n").filter((line) => line.includes('from "zod'));
+    expect(imports).toEqual([zodImport]);
+  });
+
+  it("adds a value import beside a type-only one", () => {
+    const { files } = run({
+      "src/index.ts": `
+import type { ConfigPage } from "@prismatic-io/spectral";
+import { configPage, configVar, integration } from "@prismatic-io/spectral";
+
+const page: ConfigPage = configPage({
+  elements: { name: configVar({ stableKey: "n", dataType: "string" }) },
+});
+
+export default integration({ name: "Types", configPages: { Page: page } });
+`,
+    });
+
+    expect(files["src/index.ts"]).toContain(
+      'import type { ConfigPage } from "@prismatic-io/spectral";',
+    );
+    expect(files["src/index.ts"]).toContain(
+      'import { configPage, configVar, integration, configuration } from "@prismatic-io/spectral";',
+    );
+  });
+
   it("fails when the project has no integration() call", () => {
     expect(() => run({ "src/index.ts": "export const x = 1;" })).toThrow(
       "No integration() call imported from @prismatic-io/spectral was found.",
