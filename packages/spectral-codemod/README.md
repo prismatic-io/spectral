@@ -140,7 +140,7 @@ Code that relied on a value being present now needs to handle `undefined`.
 | `code` with `codeLanguage: "json"` | `z.json()`, the parsed document |
 | `code` with any other language | `z.string()` |
 | `picklist` with a literal `pickList` | `z.enum([...])`, otherwise `z.string()` |
-| `date` / `timestamp` | `z.iso.date()` / `z.iso.datetime()` |
+| `date` / `timestamp` | `z.iso.date()` / `z.iso.datetime({ local: true, offset: true })`, which accepts the wizard's local time to the minute |
 | `boolean` / `number` | `z.boolean()` / `z.number()` |
 | `schedule` | `z.object({ value, schedule_type, time_zone })` |
 | `objectSelection` / `objectFieldMap` | zod objects built from a shared `elementSchema` |

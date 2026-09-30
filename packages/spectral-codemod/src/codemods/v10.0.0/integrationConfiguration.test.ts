@@ -231,7 +231,7 @@ describe("v10.0.0/integration-configuration", () => {
         enabled: z.boolean(),
         limit: z.number(),
         start: z.iso.date(),
-        at: z.iso.datetime(),
+        at: z.iso.datetime({ local: true, offset: true }),
         body: z.json(),
         markup: z.string(),
         schedule: z.object({ value: z.string(), schedule_type: z.string(), time_zone: z.string() }),

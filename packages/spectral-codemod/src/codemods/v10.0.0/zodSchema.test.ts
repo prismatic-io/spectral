@@ -7,7 +7,7 @@ describe("zodSchemaFor", () => {
     ["code", "z.string()"],
     ["htmlElement", "z.string()"],
     ["date", "z.iso.date()"],
-    ["timestamp", "z.iso.datetime()"],
+    ["timestamp", "z.iso.datetime({ local: true, offset: true })"],
     ["boolean", "z.boolean()"],
     ["number", "z.number()"],
     ["jsonForm", "z.unknown()"],
