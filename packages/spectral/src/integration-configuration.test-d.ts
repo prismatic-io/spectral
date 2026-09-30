@@ -6,6 +6,7 @@ import {
   type ConfiguredUserValue,
   type Connection,
   configuration,
+  type IntegrationConfigurationContext,
   type UserAttributes,
 } from ".";
 
@@ -265,6 +266,7 @@ describe("configuration version narrowing", () => {
 
   it("keeps open connection and unknown user-value types without module augmentation", () => {
     expectTypeOf<ConfiguredUserValue>().toEqualTypeOf<unknown>();
+    expectTypeOf<IntegrationConfigurationContext["userConfiguration"]>().toEqualTypeOf<unknown>();
     expectTypeOf<ConfiguredConnections>().toEqualTypeOf<{
       instance: Record<string, Connection>;
       userLevel: Record<string, Connection>;
