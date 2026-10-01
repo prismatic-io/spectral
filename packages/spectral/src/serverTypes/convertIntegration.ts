@@ -906,7 +906,10 @@ export const convertFlow = <
     hasSchedule = true;
   }
 
-  if (flow.triggerType === "polling" && !hasSchedule) {
+  const isPollingFlow =
+    flow.triggerType === "polling" ||
+    Boolean(asNpmTriggerReference(flow.onTrigger)?.trigger.isPollingTrigger);
+  if (isPollingFlow && !hasSchedule) {
     throw new Error(
       `${flow.name} is marked as a polling trigger but has no schedule. Polling triggers require a schedule.`,
     );

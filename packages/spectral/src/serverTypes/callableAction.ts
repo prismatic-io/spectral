@@ -1,3 +1,4 @@
+import type { ComponentReference } from "../types";
 import type { CollectionType } from "../types/ConfigVars";
 import type { Action, AnyConvertedAction, AnyTrigger, Component, Input } from ".";
 import { performActionFunctionExecutor } from "./actionExecutor";
@@ -61,7 +62,7 @@ export type MakeCallable<TAction> = TAction extends {
 /** A trigger reference helper, directly callable with its `values` (e.g.
  * `slack.triggers.webhook({ ... })`), produced by {@link createCallableTrigger}. */
 export type CallableTriggerHelper<TTrigger> = (
-  values?: Record<string, unknown>,
+  values?: ComponentReference["values"],
 ) => NpmTriggerReference<TTrigger>;
 
 export const createCallableComponent = <

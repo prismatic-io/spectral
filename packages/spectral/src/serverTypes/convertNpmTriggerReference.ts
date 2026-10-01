@@ -3,7 +3,6 @@ import type {
   ComponentRegistry,
   ConfigVarResultCollection,
   Inputs,
-  TriggerOptionChoice,
   TriggerPerformFunction,
 } from "../types";
 import type { AnyTrigger, TriggerResult } from ".";
@@ -68,34 +67,56 @@ export const createNpmOnDeployPerform = (
   };
 };
 
-export interface TriggerWireFields {
-  scheduleSupport: TriggerOptionChoice;
-  synchronousResponseSupport: TriggerOptionChoice;
-  isPollingTrigger: boolean;
-  triggerResolverSupport: TriggerOptionChoice;
-  triggerResolverDefaultBatchSize?: number;
-  triggerResolverDefaultConcurrentBatchLimit?: number;
-  resolveTriggerItems?: AnyTrigger["resolveTriggerItems"];
-  hasResolveTriggerItems?: boolean;
-  getNextPaginationState?: AnyTrigger["getNextPaginationState"];
-  hasGetNextDiscoveryState?: boolean;
+export type TriggerWireFields = Pick<
+  AnyTrigger,
+  | "scheduleSupport"
+  | "synchronousResponseSupport"
+  | "isPollingTrigger"
+  | "triggerResolverSupport"
+  | "triggerResolverDefaultBatchSize"
+  | "triggerResolverDefaultConcurrentBatchLimit"
+  | "resolveTriggerItems"
+  | "hasResolveTriggerItems"
+  | "getNextPaginationState"
+  | "hasGetNextDiscoveryState"
+  | "hasOnDeployPerform"
+  | "resolveOnDeployItems"
+  | "hasResolveOnDeployItems"
+  | "getOnDeployNextPaginationState"
+  | "hasGetOnDeployNextDiscoveryState"
+> & {
+  // Narrower than AnyTrigger's: the wrapper always runs it as a plain trigger perform.
   onDeployPerform?: TriggerPerformFunction<
     Inputs,
     ConfigVarResultCollection,
     boolean,
     TriggerResult
   >;
-  hasOnDeployPerform?: boolean;
-  resolveOnDeployItems?: AnyTrigger["resolveOnDeployItems"];
-  hasResolveOnDeployItems?: boolean;
-  getOnDeployNextPaginationState?: AnyTrigger["getOnDeployNextPaginationState"];
-  hasGetOnDeployNextDiscoveryState?: boolean;
-}
+};
+
+type CopiedTriggerFields =
+  | "terminateExecution"
+  | "breakLoop"
+  | "allowsBranching"
+  | "staticBranchNames"
+  | "dynamicBranchInput";
+
+/** Wire fields for a wrapper around an npm trigger. The copied behavior settings are required keys
+ * (their values may still be undefined) so a field can't be silently left out of the wrapper.
+ * Not `Required<Pick<...>>`, which would also strip `undefined` from the values. */
+export type NpmTriggerWireFields = {
+  [K in CopiedTriggerFields]-?: AnyTrigger[K];
+} & TriggerWireFields;
 
 export const npmTriggerWireFields = (
   npmTrigger: AnyTrigger,
   componentRegistry: ComponentRegistry,
-): TriggerWireFields => ({
+): NpmTriggerWireFields => ({
+  terminateExecution: npmTrigger.terminateExecution,
+  breakLoop: npmTrigger.breakLoop,
+  allowsBranching: npmTrigger.allowsBranching,
+  staticBranchNames: npmTrigger.staticBranchNames,
+  dynamicBranchInput: npmTrigger.dynamicBranchInput,
   scheduleSupport: npmTrigger.scheduleSupport,
   synchronousResponseSupport: npmTrigger.synchronousResponseSupport,
   isPollingTrigger: Boolean(npmTrigger.isPollingTrigger),

@@ -1421,6 +1421,17 @@ describe("npm trigger references", () => {
             return { payload: { ...payload, body: { data: [] } } };
           },
         }),
+        branching: trigger({
+          display: { label: "Branching", description: "Returns a branch" },
+          inputs: {},
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          terminateExecution: true,
+          breakLoop: true,
+          allowsBranching: true,
+          staticBranchNames: ["Yes", "No"],
+          perform: async (_context, payload) => ({ payload, branch: "Yes" }),
+        }),
         syncOrders: batchTrigger({
           display: { label: "Sync Orders", description: "Fetches orders in batches" },
           inputs: {},
@@ -1534,6 +1545,7 @@ describe("npm trigger references", () => {
           stableKey: "poll-flow",
           description: "Npm polling trigger reference",
           onTrigger: npmComponent.triggers.pollForChanges({}),
+          schedule: { value: "*/5 * * * *" },
           onExecution: async () => ({ data: "test" }),
         }),
       ],
@@ -1542,5 +1554,46 @@ describe("npm trigger references", () => {
     const wrapperTrigger = result.triggers.pollFlow_onTrigger;
     expect(wrapperTrigger.isPollingTrigger).toBe(true);
     expect(wrapperTrigger.scheduleSupport).toBe("required");
+  });
+
+  it("requires a schedule for a polling trigger reference", () => {
+    expect(() =>
+      integration({
+        name: "npm-polling-integration",
+        description: "x",
+        flows: [
+          flow({
+            name: "Poll Flow",
+            stableKey: "poll-flow",
+            description: "Npm polling trigger reference",
+            onTrigger: npmComponent.triggers.pollForChanges({}),
+            onExecution: async () => ({ data: "test" }),
+          }),
+        ],
+      }),
+    ).toThrow(/no schedule/);
+  });
+
+  it("carries the npm trigger's branching and termination settings onto the wrapper trigger", () => {
+    const result = integration({
+      name: "npm-branching-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Branch Flow",
+          stableKey: "branch-flow",
+          description: "Npm branching trigger reference",
+          onTrigger: npmComponent.triggers.branching({}),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    expect(result.triggers.branchFlow_onTrigger).toMatchObject({
+      terminateExecution: true,
+      breakLoop: true,
+      allowsBranching: true,
+      staticBranchNames: ["Yes", "No"],
+    });
   });
 });
