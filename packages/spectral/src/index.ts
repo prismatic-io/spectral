@@ -164,6 +164,22 @@ export const integration = <
  *     return Promise.resolve({ data: null });
  *   },
  * });
+ *
+ * @example
+ * // A flow of a headless integration (one that defines `configuration`) that runs on
+ * // the schedule the deploying user supplies. A headless integration has no config
+ * // variables, so its flows use `{ fromDeployer: true }` or a fixed `{ value }`.
+ * import { flow } from "@prismatic-io/spectral";
+ *
+ * export const deployerScheduledSync = flow({
+ *   name: "Scheduled Sync",
+ *   stableKey: "scheduled-sync",
+ *   description: "Syncs data on the schedule chosen at deploy time",
+ *   schedule: { fromDeployer: true },
+ *   onExecution: async (context, params) => {
+ *     return Promise.resolve({ data: null });
+ *   },
+ * });
  */
 export const flow = <
   TInputs extends Inputs,
