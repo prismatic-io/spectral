@@ -1,4 +1,9 @@
-import type { BaseConfigVar, DataSourceReset, NpmDataSourceReferenceConfigVar } from "../types";
+import type {
+  BaseConfigVar,
+  ComponentReference,
+  DataSourceReset,
+  NpmDataSourceReferenceConfigVar,
+} from "../types";
 import type { CollectionType } from "../types/ConfigVars";
 import type { ValidationMode } from "../types/jsonforms/ValidationMode";
 import type { AnyDataSource } from ".";
@@ -15,7 +20,7 @@ export { isNpmDataSourceReference } from "../types";
  */
 export type CallableDataSourceConfigVar = BaseConfigVar & {
   collectionType?: CollectionType;
-  values?: Record<string, unknown>;
+  values?: NonNullable<ComponentReference["values"]>;
   validationMode?: ValidationMode;
   dataSourceReset?: Omit<DataSourceReset, "dependencies">;
 };
@@ -37,7 +42,7 @@ export type CallableDataSourceConfigVar = BaseConfigVar & {
  * `component(definition, { callable: true })`.
  */
 export const createCallableDataSource =
-  (dataSource: AnyDataSource) =>
+  (dataSource: AnyDataSource, dataSources: Record<string, AnyDataSource>) =>
   ({
     values = {},
     ...configVar
@@ -47,5 +52,6 @@ export const createCallableDataSource =
       __npmDataSourceReference: true,
       dataSource,
       values,
+      dataSources,
     },
   });

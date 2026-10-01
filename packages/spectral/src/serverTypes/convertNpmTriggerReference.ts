@@ -16,7 +16,7 @@ import { runWithContext } from "./asyncContext";
 import { isNpmTriggerReference, type NpmTriggerReference } from "./callableTrigger";
 import { createCNIContext } from "./context";
 import { convertReferenceValues } from "./convertIntegration";
-import { createNpmDataSourcePerform } from "./convertNpmDataSourceReference";
+import { hoistNpmDataSource } from "./convertNpmDataSourceReference";
 import type { Input as ServerInput } from "./integration";
 
 export type ConvertedNpmTriggerReference = NpmTriggerReference<AnyTrigger>;
@@ -56,16 +56,21 @@ export const resolveNpmTriggerSiblingDataSources = (
   const inputs = npmTriggerReference.trigger.inputs.map((input) => {
     const siblingKey = input.dataSource;
     const npmDataSource = siblingKey ? siblingDataSources[siblingKey] : undefined;
-    if (!npmDataSource) {
+    if (!siblingKey || !npmDataSource) {
       return input;
     }
 
     const wrapperDataSourceKey = `${wrapperTriggerKey}_${siblingKey}`;
-    dataSources[wrapperDataSourceKey] = {
-      ...npmDataSource,
-      key: wrapperDataSourceKey,
-      perform: createNpmDataSourcePerform(npmDataSource, componentRegistry),
-    };
+    if (!(wrapperDataSourceKey in dataSources)) {
+      hoistNpmDataSource({
+        dataSource: npmDataSource,
+        hoistedKey: wrapperDataSourceKey,
+        keyPrefix: wrapperTriggerKey,
+        siblings: siblingDataSources,
+        componentRegistry,
+        hoisted: dataSources,
+      });
+    }
 
     return { ...input, dataSource: wrapperDataSourceKey };
   });

@@ -55,6 +55,7 @@ import {
 import type {
   ActionContext,
   ActionPerformFunction,
+  AnyDataSource,
   PublishingMetadata,
   Action as ServerAction,
   ActionPerformFunction as ServerActionPerformFunction,
@@ -86,7 +87,7 @@ import {
   asNpmDataSourceReference,
   type ConvertedNpmDataSourceReference,
   convertNpmDataSourceReferenceInputs,
-  createNpmDataSourcePerform,
+  hoistNpmDataSource,
 } from "./convertNpmDataSourceReference";
 import {
   asNpmTriggerReference,
@@ -2064,18 +2065,22 @@ const codeNativeIntegrationComponent = <
       }
 
       if (isNpmDataSourceReferenceConfigVar(configVar)) {
-        const { dataSource: npmDataSource } = asNpmDataSourceReference(
-          configVar.dataSource,
-        ) as ConvertedNpmDataSourceReference;
+        const { dataSource: npmDataSource, dataSources: siblingDataSources } =
+          asNpmDataSourceReference(configVar.dataSource) as ConvertedNpmDataSourceReference;
 
-        return {
-          ...result,
-          [camelKey]: {
-            ...npmDataSource,
-            key: camelKey,
-            perform: createNpmDataSourcePerform(npmDataSource, componentRegistry),
-          },
-        };
+        // Hoists the data source under its own key, along with any sibling data sources it
+        // depends on (e.g. its `detailDataSource`), keyed under it.
+        const hoisted: Record<string, ServerDataSource> = {};
+        hoistNpmDataSource({
+          dataSource: npmDataSource,
+          hoistedKey: camelKey,
+          keyPrefix: camelKey,
+          siblings: siblingDataSources as Record<string, AnyDataSource>,
+          componentRegistry,
+          hoisted,
+        });
+
+        return { ...result, ...hoisted };
       }
 
       return result;

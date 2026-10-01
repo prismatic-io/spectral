@@ -1,5 +1,4 @@
-import type { ComponentReference } from "../types";
-import type { NpmDataSourceReferenceConfigVar } from "../types";
+import type { ComponentReference, NpmDataSourceReferenceConfigVar } from "../types";
 import type { CollectionType } from "../types/ConfigVars";
 import type { Action, AnyConvertedAction, AnyDataSource, AnyTrigger, Component, Input } from ".";
 import { performActionFunctionExecutor } from "./actionExecutor";
@@ -103,7 +102,10 @@ export const createCallableComponent = <
   const dataSources = Object.entries(component.dataSources ?? {}).reduce<
     Record<string, CallableDataSourceHelper>
   >((result, [key, dataSource]) => {
-    result[key] = createCallableDataSource(dataSource as AnyDataSource);
+    result[key] = createCallableDataSource(
+      dataSource as AnyDataSource,
+      component.dataSources ?? {},
+    );
     return result;
   }, {});
 

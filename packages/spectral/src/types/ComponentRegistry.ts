@@ -107,6 +107,9 @@ export interface NpmDataSourceReference<TDataSource = unknown> {
   __npmDataSourceReference: true;
   dataSource: TDataSource;
   values: Record<string, unknown>;
+  /** The source component's data sources, so this one's sibling dependencies (its
+   * `detailDataSource`, its inputs' `dataSource`) can be hoisted along with it. */
+  dataSources: Record<string, unknown>;
 }
 
 export const isNpmDataSourceReference = (ref: unknown): ref is NpmDataSourceReference =>

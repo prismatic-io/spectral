@@ -1660,9 +1660,26 @@ describe("npm data source references", () => {
           display: { label: "Select Channel", description: "Pick a channel" },
           dataSourceType: "picklist",
           inputs: { workspace: input({ type: "string", label: "Workspace", default: "" }) },
+          detailDataSource: "channelDetails",
           perform: async (_context, params) => ({
             result: [`${params.workspace}-general`, `${params.workspace}-random`],
           }),
+        }),
+        channelDetails: dataSource({
+          display: { label: "Channel Details", description: "Details for a channel" },
+          dataSourceType: "picklist",
+          inputs: {
+            owner: input({ type: "string", label: "Owner", dataSource: "selectOwner" }),
+          },
+          perform: async () => ({ result: ["details"] }),
+        }),
+        selectOwner: dataSource({
+          display: { label: "Select Owner", description: "Pick an owner" },
+          dataSourceType: "picklist",
+          inputs: {},
+          // Cycles back to the data source that depends on it.
+          detailDataSource: "channelDetails",
+          perform: async () => ({ result: ["owner-1"] }),
         }),
       },
     },
@@ -1736,5 +1753,38 @@ describe("npm data source references", () => {
       wrapperDataSource.perform as (context: unknown, params: unknown) => Promise<unknown>
     )({} as never, { workspace: "acme" });
     expect(performResult).toMatchObject({ result: ["acme-general", "acme-random"] });
+  });
+
+  it("hoists the data source's sibling dependencies and rewrites their keys to wrapper-owned ones", () => {
+    const result = integration({
+      name: "npm-datasource-deps-integration",
+      description: "x",
+      configPages: {
+        Setup: configPage({
+          elements: {
+            "Select Channel": npmComponent.dataSources.selectChannel({
+              stableKey: "select-channel",
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Noop Flow",
+          stableKey: "noop-flow",
+          description: "x",
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    expect(result.dataSources.selectChannel.detailDataSource).toBe("selectChannel_channelDetails");
+    expect(result.dataSources.selectChannel_channelDetails.inputs[0].dataSource).toBe(
+      "selectChannel_selectOwner",
+    );
+    // The cycle back to channelDetails resolves to the already-hoisted copy.
+    expect(result.dataSources.selectChannel_selectOwner.detailDataSource).toBe(
+      "selectChannel_channelDetails",
+    );
   });
 });
