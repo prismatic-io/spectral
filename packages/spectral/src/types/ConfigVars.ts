@@ -2,9 +2,14 @@ import type {
   ComponentRegistryConnection,
   ComponentRegistryDataSource,
   DataSourceReference,
+  NpmConnectionReference,
   NpmDataSourceReference,
 } from "./ComponentRegistry";
-import { isComponentReference, isNpmDataSourceReference } from "./ComponentRegistry";
+import {
+  isComponentReference,
+  isNpmConnectionReference,
+  isNpmDataSourceReference,
+} from "./ComponentRegistry";
 import type {
   ConfigPage,
   ConfigPages,
@@ -390,8 +395,21 @@ type ConnectionReferenceConfigVar = ComponentRegistryConnection extends infer TC
     : never
   : never;
 
+/** A connection config var referencing a connection imported directly from an npm-published
+ * component (e.g. `connection: slack.connections.oauth2({ ... })`), rather than through the
+ * manifest-era component registry. */
+export type NpmConnectionReferenceConfigVar = BaseConnectionConfigVar & {
+  connection: NpmConnectionReference & {
+    template?: string;
+    onPremiseConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
+  };
+};
+
 /** Defines attributes of a config variable that represents a connection. */
-export type ConnectionConfigVar = ConnectionDefinitionConfigVar | ConnectionReferenceConfigVar;
+export type ConnectionConfigVar =
+  | ConnectionDefinitionConfigVar
+  | ConnectionReferenceConfigVar
+  | NpmConnectionReferenceConfigVar;
 
 export type ConfigVar =
   | StandardConfigVar
@@ -561,3 +579,11 @@ export const isConnectionReferenceConfigVar = (
   cv !== null &&
   "connection" in cv &&
   isComponentReference((cv as ConnectionReferenceConfigVar).connection);
+
+export const isNpmConnectionReferenceConfigVar = (
+  cv: unknown,
+): cv is NpmConnectionReferenceConfigVar =>
+  typeof cv === "object" &&
+  cv !== null &&
+  "connection" in cv &&
+  isNpmConnectionReference((cv as NpmConnectionReferenceConfigVar).connection);

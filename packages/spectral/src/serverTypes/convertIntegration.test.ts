@@ -5,6 +5,7 @@ import {
   component,
   configPage,
   configVar,
+  connection,
   customerActivatedConnection,
   dataSource,
   flow,
@@ -17,7 +18,12 @@ import {
   userLevelConfigPage,
 } from "..";
 import type { ConfigVar, TriggerPayload, TriggerReference } from "../types";
-import { isComponentReference, isNpmDataSourceReference, isNpmTriggerReference } from "../types";
+import {
+  isComponentReference,
+  isNpmConnectionReference,
+  isNpmDataSourceReference,
+  isNpmTriggerReference,
+} from "../types";
 import {
   convertConfigPages,
   convertConfigVar,
@@ -1786,5 +1792,168 @@ describe("npm data source references", () => {
     expect(result.dataSources.selectChannel_selectOwner.detailDataSource).toBe(
       "selectChannel_channelDetails",
     );
+  });
+});
+
+describe("npm connection references", () => {
+  // Stands in for an npm-imported `@prismatic-io/*` component built with
+  // `component(definition, { callable: true })` — its connections are directly-callable
+  // reference helpers, not manifest-registry lookups.
+  const npmComponent = component(
+    {
+      key: "acme-npm",
+      public: true,
+      display: { label: "Acme", description: "An npm-published component" },
+      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+      connections: [
+        connection({
+          key: "apiKey",
+          display: { label: "API Key", description: "Authenticate with an API key" },
+          inputs: {
+            apiKey: input({ type: "string", label: "API Key" }),
+          },
+        }),
+      ],
+    },
+    { callable: true },
+  );
+
+  it("produces a config var whose connection is a tagged reference, distinct from a manifest ComponentReference", () => {
+    const configVarDef = npmComponent.connections.apiKey({
+      stableKey: "acme-api-key",
+      values: { apiKey: { value: "shh" } },
+    }) as ConfigVar & { connection: unknown };
+
+    expect(configVarDef.stableKey).toBe("acme-api-key");
+    expect(isNpmConnectionReference(configVarDef.connection)).toBe(true);
+    expect(isComponentReference(configVarDef.connection)).toBe(false);
+    expect(configVarDef.connection).toMatchObject({
+      __npmConnectionReference: true,
+      values: { apiKey: { value: "shh" } },
+    });
+  });
+
+  it("routes a config var's npm connection reference to the CNI's own wrapper component, with no registry lookup", () => {
+    const configVarDef = npmComponent.connections.apiKey({
+      stableKey: "acme-api-key",
+      values: { apiKey: { value: "shh" } },
+    }) as ConfigVar;
+
+    // An empty component registry: a manifest-registry lookup would throw here.
+    const result = convertConfigVar("Acme API Key", configVarDef, "test-ref", {});
+
+    expect(result.dataType).toBe("connection");
+    // The connection's own declared key ("apiKey"), not derived from the config var's own label
+    // ("Acme API Key") — a component's own runtime code may dispatch on this key to decide how
+    // to authenticate, so it can't be renamed the way a data source's key safely can be.
+    expect(result.connection).toEqual({
+      key: "apiKey",
+      component: { key: "test-ref", version: "LATEST", isPublic: false },
+    });
+    expect(result.inputs).toMatchObject({ apiKey: { type: "value", value: "shh" } });
+  });
+
+  it("hoists the npm connection's already-converted fields into the CNI's own wrapper component", () => {
+    const result = integration({
+      name: "npm-connection-integration",
+      description: "x",
+      configPages: {
+        Setup: configPage({
+          elements: {
+            "Acme API Key": npmComponent.connections.apiKey({
+              stableKey: "acme-api-key",
+              values: { apiKey: { value: "shh" } },
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Noop Flow",
+          stableKey: "noop-flow",
+          description: "x",
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperConnection = result.connections.find((c) => c.key === "apiKey");
+    expect(wrapperConnection).toMatchObject({
+      key: "apiKey",
+      label: "API Key",
+    });
+  });
+
+  it("shares one wrapper connection entry across two config vars referencing the same npm connection type", () => {
+    const result = integration({
+      name: "npm-connection-dedup-integration",
+      description: "x",
+      configPages: {
+        Setup: configPage({
+          elements: {
+            "Acme API Key 1": npmComponent.connections.apiKey({
+              stableKey: "acme-api-key-1",
+              values: { apiKey: { value: "shh-1" } },
+            }),
+            "Acme API Key 2": npmComponent.connections.apiKey({
+              stableKey: "acme-api-key-2",
+              values: { apiKey: { value: "shh-2" } },
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Noop Flow",
+          stableKey: "noop-flow",
+          description: "x",
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    expect(result.connections.filter((c) => c.key === "apiKey")).toHaveLength(1);
+  });
+
+  it("throws when two different npm connections share a key instead of silently collapsing them", () => {
+    const otherComponent = component(
+      {
+        key: "other-npm",
+        public: true,
+        display: { label: "Other", description: "Another npm-published component" },
+        documentationUrl: "https://prismatic.io/docs/components/other-npm/",
+        connections: [
+          connection({
+            key: "apiKey",
+            display: { label: "Other API Key", description: "A different apiKey connection" },
+            inputs: { token: input({ type: "string", label: "Token" }) },
+          }),
+        ],
+      },
+      { callable: true },
+    );
+
+    expect(() =>
+      integration({
+        name: "npm-connection-conflict-integration",
+        description: "x",
+        configPages: {
+          Setup: configPage({
+            elements: {
+              "Acme API Key": npmComponent.connections.apiKey({ stableKey: "acme-api-key" }),
+              "Other API Key": otherComponent.connections.apiKey({ stableKey: "other-api-key" }),
+            },
+          }),
+        },
+        flows: [
+          flow({
+            name: "Noop Flow",
+            stableKey: "noop-flow",
+            description: "x",
+            onExecution: async () => ({ data: "test" }),
+          }),
+        ],
+      }),
+    ).toThrow(/conflicts with a different connection/);
   });
 });

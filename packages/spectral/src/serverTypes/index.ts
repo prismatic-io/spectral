@@ -419,6 +419,9 @@ export interface Connection {
   inputs: (Input & { shown?: boolean; onPremControlled?: boolean })[];
 }
 
+/** Any converted connection, with its type parameters left open. */
+export type AnyConnection = Connection;
+
 export interface ConnectionValue {
   key: string;
   configVarKey: string;
@@ -511,5 +514,6 @@ export interface Input {
 
 export * from "./asyncContext";
 export * from "./callableAction";
+export * from "./callableConnection";
 export * from "./callableDataSource";
 export * from "./callableTrigger";
