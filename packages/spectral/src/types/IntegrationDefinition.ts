@@ -21,20 +21,8 @@ import type { TriggerPayload } from "./TriggerPayload";
 import type { TriggerPerformFunction } from "./TriggerPerformFunction";
 import type { TriggerResult } from "./TriggerResult";
 
-/**
- * Defines attributes of a code-native integration. See
- * https://prismatic.io/docs/integrations/code-native/
- */
-export type IntegrationDefinition<
-  TInputs extends Inputs = Inputs,
-  TActionInputs extends Inputs = Inputs,
-  TPayload extends TriggerPayload = TriggerPayload,
-  TAllowsBranching extends boolean = boolean,
-  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
-    TAllowsBranching,
-    TPayload
-  >,
-> = {
+/** Attributes shared by every code-native integration. */
+type IntegrationDefinitionBase = {
   /** The unique name for this integration. */
   name: string;
   /** Description for this integration. */
@@ -62,16 +50,55 @@ export type IntegrationDefinition<
    * https://prismatic.io/docs/integrations/code-native/endpoint-config/#endpoint-configuration-in-code-native-with-preprocess-flow
    */
   triggerPreprocessFlowConfig?: PreprocessFlowConfig;
-  /**
-   * Flows for this integration. See
-   * https://prismatic.io/docs/integrations/code-native/flows/
-   *
-   * The trailing `any`s for `TItem`/`TPaginationState`/`TTriggerPayload` let flows with
-   * different resolver item and cursor types live in one array. `integration` only holds
-   * and serializes these flows (it never invokes `onExecution`), so the precise — and
-   * per-flow distinct — `onExecution` param type does not need to be preserved here.
+  /** Instance Profile used for this integration.
+   * If not specified, the tenant's default Instance Profile will be used.
    */
-  flows: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult, any, any, any>[];
+  instanceProfile?: string;
+  /**
+   * A list of components this code-native integration uses. See
+   * https://prismatic.io/docs/integrations/code-native/existing-components/
+   */
+  componentRegistry?: ComponentRegistry;
+};
+
+/**
+ * Flows for an integration whose schedules are `TSchedule`. See
+ * https://prismatic.io/docs/integrations/code-native/flows/
+ *
+ * The trailing `any`s for `TItem`/`TPaginationState`/`TTriggerPayload` let flows with
+ * different resolver item and cursor types live in one array. `integration` only holds
+ * and serializes these flows (it never invokes `onExecution`), so the precise — and
+ * per-flow distinct — `onExecution` param type does not need to be preserved here.
+ */
+type IntegrationFlows<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TPayload extends TriggerPayload,
+  TAllowsBranching extends boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload>,
+  TSchedule extends FlowSchedule,
+> = Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult, any, any, any, TSchedule>[];
+
+/** A code-native integration that collects its configuration with config wizard pages. */
+export type ConfigPagesIntegrationDefinition<
+  TInputs extends Inputs = Inputs,
+  TActionInputs extends Inputs = Inputs,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> = IntegrationDefinitionBase & {
+  /** Flows for this integration. A flow's schedule can read a config variable. */
+  flows: IntegrationFlows<
+    TInputs,
+    TActionInputs,
+    TPayload,
+    TAllowsBranching,
+    TResult,
+    ConfigPagesFlowSchedule
+  >;
   /**
    * Config wizard pages for this integration. See
    * https://prismatic.io/docs/integrations/code-native/config-wizard/
@@ -84,22 +111,65 @@ export type IntegrationDefinition<
   userLevelConfigPages?: UserLevelConfigPages;
   /** Scoped ConfigVars for this integration. */
   scopedConfigVars?: ScopedConfigVarMap;
+  /** An integration with config pages has no `configuration`. */
+  configuration?: never;
+};
+
+/**
+ * A headless code-native integration. It collects its configuration with
+ * `configuration` and has no config wizard pages.
+ */
+export type ConfigurationIntegrationDefinition<
+  TInputs extends Inputs = Inputs,
+  TActionInputs extends Inputs = Inputs,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> = IntegrationDefinitionBase & {
+  /**
+   * Flows for this integration. A flow's schedule is a fixed value or is supplied
+   * by the deploying user; there are no config variables for it to read.
+   */
+  flows: IntegrationFlows<
+    TInputs,
+    TActionInputs,
+    TPayload,
+    TAllowsBranching,
+    TResult,
+    ConfigurationFlowSchedule
+  >;
   /**
    * Instance and optional user-level configuration schemas, connections, a shared
-   * initializer and server functions. Mutually exclusive with legacy config pages
-   * and root scoped config vars.
+   * initializer and server functions.
    */
-  configuration?: IntegrationConfiguration;
-  /** Instance Profile used for this integration.
-   * If not specified, the tenant's default Instance Profile will be used.
-   */
-  instanceProfile?: string;
-  /**
-   * A list of components this code-native integration uses. See
-   * https://prismatic.io/docs/integrations/code-native/existing-components/
-   */
-  componentRegistry?: ComponentRegistry;
+  configuration: IntegrationConfiguration;
+  /** A headless integration has no config pages. */
+  configPages?: never;
+  /** A headless integration has no user level config pages. */
+  userLevelConfigPages?: never;
+  /** A headless integration has no root scoped config vars. */
+  scopedConfigVars?: never;
 };
+
+/**
+ * Defines attributes of a code-native integration. See
+ * https://prismatic.io/docs/integrations/code-native/
+ */
+export type IntegrationDefinition<
+  TInputs extends Inputs = Inputs,
+  TActionInputs extends Inputs = Inputs,
+  TPayload extends TriggerPayload = TriggerPayload,
+  TAllowsBranching extends boolean = boolean,
+  TResult extends TriggerResult<TAllowsBranching, TPayload> = TriggerResult<
+    TAllowsBranching,
+    TPayload
+  >,
+> =
+  | ConfigPagesIntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>
+  | ConfigurationIntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>;
 
 /**
  * The trigger payload as `onExecution` sees it. In a batched flow, `body.data` holds this
@@ -323,6 +393,43 @@ interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload, TIte
   onExecution: FlowOnExecution<TTriggerPayload, TItem>;
 }
 
+/** A fixed schedule for a flow. */
+export type ValueFlowSchedule = ValueExpression<string> & {
+  /** Timezone for the schedule. */
+  timezone?: string;
+  configVar?: never;
+  fromDeployer?: never;
+};
+
+/** A flow schedule read from a config variable. Only an integration with config pages has one. */
+export type ConfigVarFlowSchedule = ConfigVarExpression & {
+  /** Timezone for the schedule. */
+  timezone?: string;
+  value?: never;
+  fromDeployer?: never;
+};
+
+/**
+ * A flow schedule that the deploying user supplies when they deploy an instance.
+ * Only an integration that defines `configuration` can use it.
+ */
+export type DeployerFlowSchedule = {
+  fromDeployer: true;
+  value?: never;
+  configVar?: never;
+  /** The deploying user supplies the timezone with the schedule. */
+  timezone?: never;
+};
+
+/** The schedules a flow of an integration with config pages can use. */
+export type ConfigPagesFlowSchedule = ValueFlowSchedule | ConfigVarFlowSchedule;
+
+/** The schedules a flow of an integration that defines `configuration` can use. */
+export type ConfigurationFlowSchedule = ValueFlowSchedule | DeployerFlowSchedule;
+
+/** Schedule configuration that defines the frequency with which a flow is automatically executed. */
+export type FlowSchedule = ConfigPagesFlowSchedule | ConfigurationFlowSchedule;
+
 export type StandardTriggerType = "standard";
 
 /** A standard flow with a webhook or scheduled trigger (non-polling). */
@@ -337,12 +444,14 @@ interface StandardFlow<
   TTriggerPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
   TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+  TSchedule extends FlowSchedule = FlowSchedule,
 > extends FlowBase<TTriggerPayload, TItem> {
   triggerType?: StandardTriggerType;
-  /** Schedule configuration that defines the frequency with which this flow will be automatically executed. */
-  schedule?: (ValueExpression<string> | ConfigVarExpression) & {
-    timezone?: string;
-  };
+  /**
+   * Schedule configuration that defines the frequency with which this flow will be automatically executed.
+   * A flow of a headless integration uses a fixed `{ value }` or `{ fromDeployer: true }`.
+   */
+  schedule?: TSchedule;
   /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
   onTrigger?:
     | TriggerReference
@@ -374,16 +483,19 @@ interface PollingFlowBase<
   TTriggerPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
   TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+  TSchedule extends FlowSchedule = FlowSchedule,
 > extends FlowBase<TTriggerPayload, TItem> {
   /**
    * Type of trigger for this flow. A "polling" trigger runs on a schedule
    * and can use context.polling.* functions. Requires schedule to be set.
    */
   triggerType: PollingTriggerType;
-  /** Schedule configuration that defines the frequency with which this flow will be automatically executed. Required for polling triggers. */
-  schedule: (ValueExpression<string> | ConfigVarExpression) & {
-    timezone?: string;
-  };
+  /**
+   * Schedule configuration that defines the frequency with which this flow will be automatically executed.
+   * Required for polling triggers. A flow of a headless integration uses a fixed `{ value }` or
+   * `{ fromDeployer: true }`.
+   */
+  schedule: TSchedule;
   /**
    * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.
    * Typically used to backfill baseline records for systems whose webhooks only emit future events.
@@ -414,6 +526,7 @@ interface PollingFlow<
   TTriggerPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
   TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+  TSchedule extends FlowSchedule = FlowSchedule,
 > extends PollingFlowBase<
     TInputs,
     TPayload,
@@ -421,7 +534,8 @@ interface PollingFlow<
     TResult,
     TTriggerPayload,
     TItem,
-    TPaginationState
+    TPaginationState,
+    TSchedule
   > {
   /**
    * Specifies the trigger function for this flow.
@@ -449,6 +563,7 @@ export type Flow<
   TTriggerPayload extends TriggerPayload = TriggerPayload,
   TItem = unknown,
   TPaginationState extends Record<string, unknown> = Record<string, unknown>,
+  TSchedule extends FlowSchedule = FlowSchedule,
 > =
   | (StandardFlow<
       TInputs,
@@ -457,7 +572,8 @@ export type Flow<
       TResult,
       TTriggerPayload,
       TItem,
-      TPaginationState
+      TPaginationState,
+      TSchedule
     > &
       BatchDiscriminant<TItem, TPaginationState>)
   | (PollingFlow<
@@ -468,7 +584,8 @@ export type Flow<
       TResult,
       TTriggerPayload,
       TItem,
-      TPaginationState
+      TPaginationState,
+      TSchedule
     > &
       NonBatchFields)
   | (PollingFlowBase<
@@ -478,7 +595,8 @@ export type Flow<
       TResult,
       TTriggerPayload,
       TItem,
-      TPaginationState
+      TPaginationState,
+      TSchedule
     > &
       BatchFields<TItem, TPaginationState>);
 

@@ -14,6 +14,7 @@ import {
   type ComponentReference,
   type ComponentRegistry,
   type ConfigPages,
+  type ConfigPagesIntegrationDefinition,
   type ConfigVar,
   type ConfigVarResultCollection,
   type ConnectionTemplateInputField,
@@ -21,6 +22,7 @@ import {
   type EndpointType,
   type Flow,
   type FlowDefinitionFlowSchema,
+  type FlowSchedule,
   type FlowSchema,
   type FlowTriggerType,
   type Inputs,
@@ -52,7 +54,10 @@ import {
   type TriggerReference,
   type UserLevelConfigPages,
 } from "../types";
-import type { AnyIntegrationConfiguration } from "../types/IntegrationConfiguration";
+import type {
+  AnyIntegrationConfiguration,
+  IntegrationConfiguration,
+} from "../types/IntegrationConfiguration";
 import type {
   ActionContext,
   ActionPerformFunction,
@@ -147,6 +152,25 @@ const normalizeBatchedFlow = <
   } as unknown as Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>;
 };
 
+/**
+ * An integration definition as the convert layer reads it. Either kind of
+ * `IntegrationDefinition` is one; after conversion begins, a headless integration also
+ * carries its configuration's connections in `scopedConfigVars`.
+ */
+type ConvertibleIntegrationDefinition<
+  TInputs extends Inputs,
+  TActionInputs extends Inputs,
+  TPayload extends TriggerPayload,
+  TAllowsBranching extends boolean,
+  TResult extends TriggerPerformResult<TAllowsBranching, TPayload>,
+> = Omit<
+  ConfigPagesIntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
+  "flows" | "configuration"
+> & {
+  flows: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult, any, any, any>[];
+  configuration?: IntegrationConfiguration;
+};
+
 export const convertIntegration = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
@@ -157,7 +181,13 @@ export const convertIntegration = <
     TPayload
   >,
 >(
-  definition: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
+  authoredDefinition: IntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
 ): ServerComponent<
   TInputs,
   TActionInputs,
@@ -166,6 +196,14 @@ export const convertIntegration = <
   TAllowsBranching,
   TResult
 > => {
+  let definition: ConvertibleIntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  > = authoredDefinition;
+
   // Generate a unique reference key that will be used to reference the
   // actions, triggers, data sources, and connections that are created
   // inline as part of the integration definition.
@@ -178,6 +216,20 @@ export const convertIntegration = <
     throw new Error(
       "An integration must not define both `configuration` (function-backed) and `configPages` (declared).",
     );
+  }
+
+  for (const { name, schedule } of definition.flows) {
+    if (!schedule) continue;
+    if (definition.configuration && "configVar" in schedule) {
+      throw new Error(
+        `${name} uses a config variable schedule, but an integration with \`configuration\` has no config variables. Use \`{ value }\` or \`{ fromDeployer: true }\`.`,
+      );
+    }
+    if (!definition.configuration && schedule.fromDeployer) {
+      throw new Error(
+        `${name} has a schedule from the deployer, which only an integration with \`configuration\` supports.`,
+      );
+    }
   }
 
   // Adds no config pages: only the author's connections join the declared
@@ -415,7 +467,7 @@ const codeNativeIntegrationYaml = <
     scopedConfigVars,
     instanceProfile,
     componentRegistry = {},
-  }: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
+  }: ConvertibleIntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
   metadata?: Record<string, unknown>,
@@ -777,6 +829,22 @@ const flowUsesWrapperTrigger = <
   );
 };
 
+/** Converts a flow's schedule to the trigger step's `schedule`. */
+const convertFlowSchedule = (schedule: FlowSchedule): Record<string, unknown> => {
+  if (schedule.fromDeployer) {
+    return { fromDeployer: true };
+  }
+  const isConfigVar = "configVar" in schedule;
+  return {
+    type: isConfigVar ? "configVar" : "value",
+    value: isConfigVar ? schedule.configVar : schedule.value,
+    meta: {
+      scheduleType: "custom",
+      timeZone: schedule.timezone ?? "",
+    },
+  };
+};
+
 /** Converts typed QueueConfig to legacy format with usesFifoQueue and concurrencyLimit. */
 export const convertQueueConfig = (queueConfig: QueueConfig): StandardQueueConfig => {
   if (!("type" in queueConfig)) {
@@ -916,15 +984,7 @@ export const convertFlow = <
   let hasSchedule = false;
 
   if ("schedule" in flow && typeof flow.schedule === "object") {
-    const { schedule } = flow;
-    triggerStep.schedule = {
-      type: "configVar" in schedule ? "configVar" : "value",
-      value: "configVar" in schedule ? schedule.configVar : schedule.value,
-      meta: {
-        scheduleType: "custom",
-        timeZone: schedule.timezone ?? "",
-      },
-    };
+    triggerStep.schedule = convertFlowSchedule(flow.schedule);
     result.schedule = undefined;
     hasSchedule = true;
   }
@@ -1748,7 +1808,7 @@ const codeNativeIntegrationComponent = <
     description,
     flows: rawFlows = [],
     componentRegistry = {},
-  }: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
+  }: ConvertibleIntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   referenceKey: string,
   configVars: Record<string, ConfigVar>,
   connectionNames?: ConnectionNameMap,
@@ -2054,7 +2114,13 @@ const codeNativeIntegrationPublishingMetadata = <
     TPayload
   >,
 >(
-  definition: IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
+  definition: ConvertibleIntegrationDefinition<
+    TInputs,
+    TActionInputs,
+    TPayload,
+    TAllowsBranching,
+    TResult
+  >,
 ): PublishingMetadata => {
   const customerRequiredSecurityEndpoints = definition.flows
     .filter((flow) => flow.endpointSecurityType === "customer_required")
