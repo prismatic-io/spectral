@@ -2,8 +2,9 @@ import type {
   ComponentRegistryConnection,
   ComponentRegistryDataSource,
   DataSourceReference,
+  NpmDataSourceReference,
 } from "./ComponentRegistry";
-import { isComponentReference } from "./ComponentRegistry";
+import { isComponentReference, isNpmDataSourceReference } from "./ComponentRegistry";
 import type {
   ConfigPage,
   ConfigPages,
@@ -129,7 +130,7 @@ interface ConfigVarInputVisibility {
 }
 
 /** Common attribute shared by all types of config variables. */
-type BaseConfigVar = {
+export type BaseConfigVar = {
   /** A unique, unchanging value that is used to maintain identity for the config variable even if the key changes. */
   stableKey: string;
   /** Description for this config variable. */
@@ -222,7 +223,7 @@ type ObjectSelectionConfigVar = CreateStandardConfigVar<"objectSelection">;
 
 type ObjectFieldMapConfigVar = CreateStandardConfigVar<"objectFieldMap">;
 
-type DataSourceReset = {
+export type DataSourceReset = {
   /** Either always prompt a user to reset the data source when a dependent config variable changes, or always reset the data source */
   mode: "prompt" | "always";
   /** List of config variable names that, if changed, should trigger a reset of the JSON Form */
@@ -304,8 +305,22 @@ type DataSourceReferenceConfigVar =
       }
     : never;
 
+/** A data source config var referencing a data source imported directly from an npm-published
+ * component, rather than through the component registry. */
+export type NpmDataSourceReferenceConfigVar = Omit<
+  BaseDataSourceConfigVar<DataSourceType>,
+  "dataSourceType"
+> & {
+  dataSource: NpmDataSourceReference;
+  validationMode?: ValidationMode;
+  dataSourceReset?: Omit<DataSourceReset, "dependencies">;
+};
+
 /** Defines attributes of a data source config variable. */
-export type DataSourceConfigVar = DataSourceDefinitionConfigVar | DataSourceReferenceConfigVar;
+export type DataSourceConfigVar =
+  | DataSourceDefinitionConfigVar
+  | DataSourceReferenceConfigVar
+  | NpmDataSourceReferenceConfigVar;
 
 // Connection Config Vars
 type BaseConnectionConfigVar = BaseConfigVar & {
@@ -522,6 +537,14 @@ export const isDataSourceReferenceConfigVar = (
   cv !== null &&
   "dataSource" in cv &&
   isComponentReference((cv as DataSourceReferenceConfigVar).dataSource);
+
+export const isNpmDataSourceReferenceConfigVar = (
+  cv: unknown,
+): cv is NpmDataSourceReferenceConfigVar =>
+  typeof cv === "object" &&
+  cv !== null &&
+  "dataSource" in cv &&
+  isNpmDataSourceReference((cv as NpmDataSourceReferenceConfigVar).dataSource);
 
 export const isConnectionDefinitionConfigVar = (
   cv: ConfigVar,

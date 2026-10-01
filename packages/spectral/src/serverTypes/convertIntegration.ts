@@ -34,6 +34,7 @@ import {
   isHtmlElementConfigVar,
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
+  isNpmDataSourceReferenceConfigVar,
   isOrgOrCustomerActivatedConnection,
   isScheduleConfigVar,
   isUserScopedConnectionConfigVar,
@@ -54,6 +55,7 @@ import {
 import type {
   ActionContext,
   ActionPerformFunction,
+  AnyDataSource,
   PublishingMetadata,
   Action as ServerAction,
   ActionPerformFunction as ServerActionPerformFunction,
@@ -82,10 +84,17 @@ import {
   type IntegrationConfigurationYaml,
 } from "./convertIntegrationConfiguration";
 import {
+  asNpmDataSourceReference,
+  type ConvertedNpmDataSourceReference,
+  convertNpmDataSourceReferenceInputs,
+  hoistNpmDataSource,
+} from "./convertNpmDataSourceReference";
+import {
   asNpmTriggerReference,
   convertNpmTriggerReferenceInputs,
   createNpmTriggerPerform,
   npmTriggerWireFields,
+  resolveNpmTriggerSiblingDataSources,
   type TriggerWireFields,
 } from "./convertNpmTriggerReference";
 import {
@@ -1297,6 +1306,32 @@ export const convertConfigVar = (
     }
   }
 
+  if (isNpmDataSourceReferenceConfigVar(configVar)) {
+    const npmDataSourceReference = asNpmDataSourceReference(
+      configVar.dataSource,
+    ) as ConvertedNpmDataSourceReference;
+    result.dataType = npmDataSourceReference.dataSource.dataSourceType;
+    result.dataSource = {
+      key: camelCase(key),
+      component: codeNativeIntegrationComponentReference(referenceKey),
+    };
+    result.inputs = convertNpmDataSourceReferenceInputs(npmDataSourceReference);
+
+    if (configVar.validationMode) {
+      result.meta = {
+        ...result.meta,
+        validationMode: configVar.validationMode,
+      };
+    }
+
+    if (configVar.dataSourceReset) {
+      result.meta = {
+        ...result.meta,
+        dataSourceReset: configVar.dataSourceReset.mode,
+      };
+    }
+  }
+
   return result;
 };
 
@@ -1362,35 +1397,38 @@ export const invokeTriggerComponentInput = (
  * forwards to the referenced trigger via invokeTrigger). */
 const wrapperTriggerInputsFromReference = (
   onTrigger: unknown,
+  wrapperTriggerKey: string,
   componentRegistry: ComponentRegistry,
-): ServerTriggerInput[] => {
-  // The npm trigger's own already-converted `Input[]` describes the wrapper trigger's declared
-  // inputs directly — no manifest lookup needed, and no reshaping: `Trigger["inputs"]` is
-  // already in the `ServerTriggerInput` wire shape this function returns.
-  //
-  // TODO: Re-address this once data sources are converted over.
+): { inputs: ServerTriggerInput[]; dataSources: Record<string, ServerDataSource> } => {
   const npmTriggerReference = asNpmTriggerReference(onTrigger);
   if (npmTriggerReference) {
-    return npmTriggerReference.trigger.inputs;
+    return resolveNpmTriggerSiblingDataSources(
+      npmTriggerReference,
+      wrapperTriggerKey,
+      componentRegistry,
+    );
   }
 
   if (!isComponentReference(onTrigger)) {
-    return [];
+    return { inputs: [], dataSources: {} };
   }
 
   const manifestInputs = componentRegistry[onTrigger.component]?.triggers?.[onTrigger.key]?.inputs;
   if (!manifestInputs) {
-    return [];
+    return { inputs: [], dataSources: {} };
   }
 
-  return Object.entries(manifestInputs).map(([key, input]) => ({
-    key,
-    label: key,
-    type: input.inputType,
-    ...(input.collection ? { collection: input.collection } : {}),
-    ...(input.default !== undefined ? { default: input.default } : {}),
-    ...(input.required !== undefined ? { required: input.required } : {}),
-  }));
+  return {
+    inputs: Object.entries(manifestInputs).map(([key, input]) => ({
+      key,
+      label: key,
+      type: input.inputType,
+      ...(input.collection ? { collection: input.collection } : {}),
+      ...(input.default !== undefined ? { default: input.default } : {}),
+      ...(input.required !== undefined ? { required: input.required } : {}),
+    })),
+    dataSources: {},
+  };
 };
 
 type ComponentRefTrigger = "component-ref";
@@ -1856,6 +1894,11 @@ const codeNativeIntegrationComponent = <
     {},
   );
 
+  // Populated as a side effect of building `convertedTriggers` below (an npm trigger reference's
+  // sibling data source, once resolved, needs to land in the wrapper component's own
+  // `dataSources` map — see `wrapperTriggerInputsFromReference`).
+  const npmTriggerSiblingDataSources: Record<string, ServerDataSource> = {};
+
   const convertedTriggers = flows.reduce<
     Record<
       string,
@@ -1955,6 +1998,10 @@ const codeNativeIntegrationComponent = <
       webhookLifecycleHandlers?.delete,
     );
 
+    const { inputs: wrapperInputs, dataSources: wrapperSiblingDataSources } =
+      wrapperTriggerInputsFromReference(onTrigger, key, componentRegistry);
+    Object.assign(npmTriggerSiblingDataSources, wrapperSiblingDataSources);
+
     return {
       ...result,
       [key]: {
@@ -1972,7 +2019,7 @@ const codeNativeIntegrationComponent = <
         hasWebhookCreateFunction: !!webhookCreateFn,
         webhookDelete: webhookDeleteFn,
         hasWebhookDeleteFunction: !!webhookDeleteFn,
-        inputs: wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
+        inputs: wrapperInputs,
         ...(npmTrigger
           ? npmTriggerWireFields(npmTrigger, componentRegistry)
           : authoredTriggerWireFields({
@@ -1989,36 +2036,56 @@ const codeNativeIntegrationComponent = <
 
   const convertedDataSources = Object.entries(configVars).reduce<Record<string, ServerDataSource>>(
     (result, [key, configVar]) => {
-      if (!isDataSourceDefinitionConfigVar(configVar)) {
-        return result;
+      const camelKey = camelCase(key);
+
+      if (isDataSourceDefinitionConfigVar(configVar)) {
+        const dataSource = pick(configVar, ["perform", "dataSourceType"]);
+
+        return {
+          ...result,
+          [camelKey]: {
+            ...dataSource,
+            key: camelKey,
+            display: {
+              label: key,
+              description: key,
+            },
+            inputs:
+              // Create placeholder inputs for each config variable dependency,so that
+              // the config wizard can detect if any changed and reset the data source.
+              isJsonFormDataSourceConfigVar(configVar) && configVar.dataSourceReset
+                ? (configVar.dataSourceReset.dependencies || []).map((dep, idx) => ({
+                    key: `input${idx}`,
+                    label: dep,
+                    type: "string",
+                  }))
+                : [],
+          },
+        };
       }
 
-      const camelKey = camelCase(key);
-      const dataSource = pick(configVar, ["perform", "dataSourceType"]);
+      if (isNpmDataSourceReferenceConfigVar(configVar)) {
+        const { dataSource: npmDataSource, dataSources: siblingDataSources } =
+          asNpmDataSourceReference(configVar.dataSource) as ConvertedNpmDataSourceReference;
 
-      return {
-        ...result,
-        [camelKey]: {
-          ...dataSource,
-          key: camelKey,
-          display: {
-            label: key,
-            description: key,
-          },
-          inputs:
-            // Create placeholder inputs for each config variable dependency,so that
-            // the config wizard can detect if any changed and reset the data source.
-            isJsonFormDataSourceConfigVar(configVar) && configVar.dataSourceReset
-              ? (configVar.dataSourceReset.dependencies || []).map((dep, idx) => ({
-                  key: `input${idx}`,
-                  label: dep,
-                  type: "string",
-                }))
-              : [],
-        },
-      };
+        // Hoists the data source under its own key, along with any sibling data sources it
+        // depends on (e.g. its `detailDataSource`), keyed under it.
+        const hoisted: Record<string, ServerDataSource> = {};
+        hoistNpmDataSource({
+          dataSource: npmDataSource,
+          hoistedKey: camelKey,
+          keyPrefix: camelKey,
+          siblings: siblingDataSources as Record<string, AnyDataSource>,
+          componentRegistry,
+          hoisted,
+        });
+
+        return { ...result, ...hoisted };
+      }
+
+      return result;
     },
-    {},
+    { ...npmTriggerSiblingDataSources },
   );
 
   const convertedConnections = Object.entries(configVars).reduce<ServerConnection[]>(
