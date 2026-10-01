@@ -2159,7 +2159,16 @@ const codeNativeIntegrationComponent = <
           configVar.connection,
         ) as ConvertedNpmConnectionReference;
 
-        if (result.some((existing) => existing.key === npmConnection.key)) {
+        // Keyed by the npm connection's own key, since the component's runtime code may dispatch
+        // on it. That key isn't unique across components, so the same key must always mean the
+        // same connection — otherwise a config var would silently bind to the wrong definition.
+        const existing = result.find((c) => c.key === npmConnection.key);
+        if (existing) {
+          if (existing !== npmConnection) {
+            throw new Error(
+              `Config var "${key}" references a connection with key "${npmConnection.key}", which conflicts with a different connection already using that key. Connections from different components must have distinct keys.`,
+            );
+          }
           return result;
         }
 

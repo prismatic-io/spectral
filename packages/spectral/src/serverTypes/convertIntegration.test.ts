@@ -1914,4 +1914,46 @@ describe("npm connection references", () => {
 
     expect(result.connections.filter((c) => c.key === "apiKey")).toHaveLength(1);
   });
+
+  it("throws when two different npm connections share a key instead of silently collapsing them", () => {
+    const otherComponent = component(
+      {
+        key: "other-npm",
+        public: true,
+        display: { label: "Other", description: "Another npm-published component" },
+        documentationUrl: "https://prismatic.io/docs/components/other-npm/",
+        connections: [
+          connection({
+            key: "apiKey",
+            display: { label: "Other API Key", description: "A different apiKey connection" },
+            inputs: { token: input({ type: "string", label: "Token" }) },
+          }),
+        ],
+      },
+      { callable: true },
+    );
+
+    expect(() =>
+      integration({
+        name: "npm-connection-conflict-integration",
+        description: "x",
+        configPages: {
+          Setup: configPage({
+            elements: {
+              "Acme API Key": npmComponent.connections.apiKey({ stableKey: "acme-api-key" }),
+              "Other API Key": otherComponent.connections.apiKey({ stableKey: "other-api-key" }),
+            },
+          }),
+        },
+        flows: [
+          flow({
+            name: "Noop Flow",
+            stableKey: "noop-flow",
+            description: "x",
+            onExecution: async () => ({ data: "test" }),
+          }),
+        ],
+      }),
+    ).toThrow(/conflicts with a different connection/);
+  });
 });
