@@ -25,6 +25,9 @@ import type {
   ActionInputParameters,
   CodeNativeActionLogger,
   ComponentManifest,
+  ConfiguredConnections,
+  ConfiguredUserValue,
+  ConfiguredValue,
   ConfigVarResultCollection,
   ConnectionDefinition,
   DataSourceDefinition,
@@ -37,6 +40,7 @@ import type {
   PollingContext,
   TriggerDefinition,
   TriggerEventFunctionReturn,
+  WithExperimentalFlag,
 } from "./types";
 
 /**
@@ -560,14 +564,75 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
   }, {});
 };
 
+/** A flow's connections by scope, as test values. */
+type TestScopedConnections = {
+  [TScope in keyof ConfiguredConnections]?: {
+    [TName in keyof ConfiguredConnections[TScope]]?: TestConnectionValue;
+  };
+};
+
+/**
+ * The configuration a flow of an integration with a `configuration` reads. Present once
+ * the integration enables the `integrationConfiguration` experimental flag.
+ */
+export interface InvokeFlowConfiguration {
+  /** The fields of the instance configuration value that the flow reads. */
+  configuration?: Partial<ConfiguredValue>;
+  /** The fields of the user-level configuration value that the flow reads. */
+  userConfiguration?: Partial<ConfiguredUserValue>;
+  /** The flow's connections by scope. */
+  connections?: TestScopedConnections;
+  /** A flow of an integration with a `configuration` reads no config vars. */
+  configVars?: never;
+}
+
+/** The options of {@link invokeFlow}. */
+export type InvokeFlowOptions<
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TConfigVarValues extends TestConfigVarValues = ToTestValues<TConfigVars>,
+> = {
+  /** Overrides of the flow's context. */
+  context?: Partial<CodeNativeTestContext<TConfigVars>>;
+  /** The trigger payload, merged over a default one. */
+  payload?: Partial<TriggerPayload>;
+} & WithExperimentalFlag<
+  "integrationConfiguration",
+  InvokeFlowConfiguration,
+  { configVars?: TConfigVarValues }
+>;
+
+/**
+ * The connections a flow reads off `context.connections`. Each gets the `configVarKey`
+ * the runner gives it, `<scope>.<name>`.
+ */
+const createScopedConnections = (
+  connections: Record<string, Record<string, TestConnectionValue | undefined> | undefined>,
+): Record<string, Record<string, ConnectionValue>> =>
+  Object.fromEntries(
+    Object.entries(connections).map(([scope, named]) => [
+      scope,
+      Object.fromEntries(
+        Object.entries(named ?? {}).flatMap(([name, value]) =>
+          value ? [[name, { ...value, configVarKey: `${scope}.${name}` }]] : [],
+        ),
+      ),
+    ]),
+  );
+
 /**
  * Invokes a code-native integration flow within a test harness. Runs the
  * flow's `onTrigger` (if defined) followed by `onExecution`, and returns
  * the execution result. Accepts optional config variables, context overrides,
  * and a custom trigger payload.
  *
+ * A flow of an integration with a `configuration` reads its values and
+ * connections from the context, not from config variables. Once the
+ * integration enables the `integrationConfiguration` experimental flag, pass
+ * them as `configuration`, `userConfiguration`, and `connections` in place of
+ * `configVars`.
+ *
  * @param flow The flow definition to test.
- * @param options Optional config variables, context overrides, and trigger payload.
+ * @param options Optional config variables or configuration, context overrides, and trigger payload.
  * @returns An object with `result` (the flow execution return value) and `loggerMock`.
  * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/ | Unit Testing}
  * @example
@@ -590,6 +655,19 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
  *
  *   expect(result.data).toBeDefined();
  * });
+ *
+ * @example
+ * // A flow of an integration with a configuration
+ * it("should sync the configured region", async () => {
+ *   const { result } = await invokeFlow(syncFlow, {
+ *     configuration: { region: "us-east-1" },
+ *     connections: {
+ *       instance: { acme: { key: "apiKey", fields: { apiKey: "test-key" } } },
+ *     },
+ *   });
+ *
+ *   expect(result.data).toBeDefined();
+ * });
  */
 export const invokeFlow = async <
   TInputs extends Inputs,
@@ -607,18 +685,18 @@ export const invokeFlow = async <
   // resolver item and cursor typing; it drives the flow dynamically and does not rely on
   // the precise `onExecution` param type.
   flow: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult, any, any, any>,
-  {
-    configVars,
-    context,
-    payload,
-  }: {
-    configVars?: TConfigVarValues;
-    context?: Partial<CodeNativeTestContext<TConfigVars>>;
-    payload?: Partial<TriggerPayload>;
-  } = {},
+  options: InvokeFlowOptions<TConfigVars, TConfigVarValues> = {},
 ): Promise<InvokeReturn<InvokeActionPerformReturn<false, unknown>, CodeNativeActionLogger>> => {
+  // Either branch of the flag: this module is compiled without it.
+  const { configVars, configuration, userConfiguration, connections, context, payload } =
+    options as InvokeFlowOptions<TConfigVars, TConfigVarValues> & {
+      configVars?: TConfigVarValues;
+    } & Omit<InvokeFlowConfiguration, "configVars">;
   const realizedConfigVars = createConfigVars(configVars);
   const realizedContext = createCodeNativeActionContext({
+    ...(configuration !== undefined ? { configuration } : {}),
+    ...(userConfiguration !== undefined ? { userConfiguration } : {}),
+    ...(connections ? { connections: createScopedConnections(connections) } : {}),
     ...context,
     configVars: realizedConfigVars,
   });
