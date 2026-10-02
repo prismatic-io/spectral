@@ -404,6 +404,81 @@ export default [
     `);
   });
 
+  it("passes a flow test's config vars to invokeFlow as configuration and connections", () => {
+    const { files, changed } = run({
+      "src/index.ts": INDEX,
+      "src/configPages.ts": CONFIG_PAGES,
+      "src/flows.test.ts": `
+import { testing } from "@prismatic-io/spectral";
+import { invokeFlow } from "@prismatic-io/spectral/dist/testing";
+import { sync } from "./flows";
+
+const sharedConfigVars = { "Object Key": "id" };
+
+it("syncs", async () => {
+  await invokeFlow(sync, {
+    configVars: {
+      "Object Key": "id",
+      nickname: "sam",
+      "Acme Connection": { key: "acme", fields: { token: "t" } },
+      "Personal Slack": { key: "slack", fields: {} },
+      orgConnection: { key: "org", fields: {} },
+    },
+    payload: { body: { data: "{}" } },
+  });
+  await testing.invokeFlow(sync, { configVars: { region: "us" } });
+  await invokeFlow(sync, { configVars: sharedConfigVars });
+  await invokeFlow(sync, { configVars: { "Not Declared": "x" } });
+  await invokeFlow(sync, { payload: { body: { data: "{}" } } });
+});
+`,
+    });
+
+    expect(changed).toContain("src/flows.test.ts");
+    expect(files["src/flows.test.ts"]).toMatchInlineSnapshot(`
+      "
+      import { testing } from "@prismatic-io/spectral";
+      import { invokeFlow } from "@prismatic-io/spectral/dist/testing";
+      import { sync } from "./flows";
+
+      const sharedConfigVars = { "Object Key": "id" };
+
+      it("syncs", async () => {
+        await invokeFlow(sync, {
+          configuration: {
+            "Object Key": "id",
+          },
+          userConfiguration: {
+            nickname: "sam",
+          },
+          connections: {
+            instance: {
+              "Acme Connection": { key: "acme", fields: { token: "t" } },
+              orgConnection: { key: "org", fields: {} },
+            },
+            userLevel: {
+              "Personal Slack": { key: "slack", fields: {} },
+            },
+          },
+          payload: { body: { data: "{}" } },
+        });
+        await testing.invokeFlow(sync, {
+          configuration: {
+            region: "us",
+          }
+        });
+        // TODO: A flow of an integration with a configuration reads no config vars. Pass
+        // invokeFlow configuration, userConfiguration, and connections instead.
+        await invokeFlow(sync, { configVars: sharedConfigVars });
+        // TODO: A flow of an integration with a configuration reads no config vars. Pass
+        // invokeFlow configuration, userConfiguration, and connections instead.
+        await invokeFlow(sync, { configVars: { "Not Declared": "x" } });
+        await invokeFlow(sync, { payload: { body: { data: "{}" } } });
+      });
+      "
+    `);
+  });
+
   it("hoists inline pages so the configuration can reference them", () => {
     const { files } = run({
       "src/index.ts": `

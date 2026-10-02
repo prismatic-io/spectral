@@ -71,6 +71,83 @@ describe("test flow using connections", () => {
   });
 });
 
+describe("test a flow of an integration with a configuration", () => {
+  // `configuration`, `userConfiguration`, and `connections` are options once an
+  // integration enables the `integrationConfiguration` flag, which is global to a
+  // compilation; this suite runs without it.
+  type ConfigurationOptions = {
+    configuration?: unknown;
+    userConfiguration?: unknown;
+    connections?: Record<string, Record<string, unknown>>;
+    context?: Record<string, unknown>;
+  };
+  const invokeConfiguredFlow = (options: ConfigurationOptions) =>
+    invokeFlow(configuredFlow, options as Parameters<typeof invokeFlow>[1]);
+
+  const configuredFlow = flow({
+    name: "Configured Flow",
+    stableKey: "configured-flow",
+    description: "Reads its configuration and connections",
+    onExecution: async (context) => {
+      const { configuration, userConfiguration, connections } = context as typeof context &
+        ConfigurationOptions;
+      return Promise.resolve({ data: { configuration, userConfiguration, connections } });
+    },
+  });
+
+  it("hands the flow its configuration and connections", async () => {
+    const { result } = await invokeConfiguredFlow({
+      configuration: { region: "us-east-1" },
+      userConfiguration: { channel: "general" },
+      connections: {
+        instance: { acme: { key: "apiKey", fields: { apiKey: "instance-key" } } },
+        userLevel: { slack: { key: "oauth", fields: {}, token: { access_token: "t" } } },
+      },
+    });
+
+    expect(result).toEqual({
+      data: {
+        configuration: { region: "us-east-1" },
+        userConfiguration: { channel: "general" },
+        connections: {
+          instance: {
+            acme: {
+              key: "apiKey",
+              fields: { apiKey: "instance-key" },
+              configVarKey: "instance.acme",
+            },
+          },
+          userLevel: {
+            slack: {
+              key: "oauth",
+              fields: {},
+              token: { access_token: "t" },
+              configVarKey: "userLevel.slack",
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it("lets a context override take precedence", async () => {
+    const { result } = await invokeConfiguredFlow({
+      configuration: { region: "us-east-1" },
+      context: { configuration: { region: "eu-west-1" } },
+    });
+
+    expect(result).toMatchObject({ data: { configuration: { region: "eu-west-1" } } });
+  });
+
+  it("leaves out what the test does not give", async () => {
+    const { result } = await invokeConfiguredFlow({});
+
+    expect(result).toEqual({
+      data: { configuration: undefined, userConfiguration: undefined, connections: undefined },
+    });
+  });
+});
+
 describe("test input conversion", () => {
   const defaultKeyValuePairs = [
     { key: "defaultKey1", value: "my first default value" },

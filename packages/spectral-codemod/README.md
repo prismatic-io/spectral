@@ -18,8 +18,9 @@ npx @prismatic-io/spectral-codemod@latest <codemod> [path]
 `path` is a project directory, a `tsconfig.json`, or a single source file. It defaults
 to the current directory. A directory with a `tsconfig.json` contributes the files that
 config includes; any other directory contributes every `.ts` and `.tsx` file beneath it
-except `node_modules` and `dist`. A source file contributes itself and the files it
-imports, compiled with the options of the nearest `tsconfig.json`.
+except `node_modules` and `dist`. A source file contributes itself, the files it imports,
+and the test files that import one of those, compiled with the options of the nearest
+`tsconfig.json`.
 
 ```sh
 npx @prismatic-io/spectral-codemod@latest --list                          # available codemods
@@ -54,7 +55,8 @@ finds the project's single `integration()` call, ignoring calls in test files, a
 - enables the `integrationConfiguration` experimental flag and augments
   `IntegrationDefinitionConfiguration`, so that flows read `context.configuration` and
   `context.connections`, typed,
-- rewrites the flows' `configVars` reads and connection references (see below), removes
+- rewrites the flows' `configVars` reads and connection references, and the `configVars`
+  that flow tests pass to `invokeFlow` (see below), removes
   the project's `IntegrationDefinitionConfigPages`, `IntegrationDefinitionUserLevelConfigPages`,
   and `IntegrationDefinitionScopedConfigVars` augmentations, and declares page maps with no
   config vars, so that a read it could not migrate fails to compile,
@@ -131,6 +133,22 @@ configuration has no equivalent yet.
 
 The reads are optional, because a flow's configurations and connections can be absent.
 Code that relied on a value being present now needs to handle `undefined`.
+
+#### Flow tests
+
+A migrated flow reads nothing from `configVars`, so a test must hand it the configuration
+instead. The codemod rewrites the `configVars` of each `invokeFlow` call into the options
+that replace them:
+
+- a value goes to `configuration` or `userConfiguration`, by its scope,
+- a connection goes to `connections.<scope>`, and `invokeFlow` gives it the
+  `configVarKey` the runner does, `<scope>.<key>`.
+
+A call whose `configVars` is not an object literal of declared config vars, for example a
+shared constant, keeps it under a TODO. Once the integration enables the
+`integrationConfiguration` flag, `invokeFlow` takes no `configVars`, so the compiler flags
+each such call. The migrated tests need a spectral release whose `invokeFlow` takes
+`configuration`, `userConfiguration`, and `connections`.
 
 #### Schemas
 

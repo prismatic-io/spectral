@@ -77,6 +77,24 @@ describe("runCodemod", () => {
     expect(readFileSync(join(dir, "c.ts"), "utf8")).toContain('"hello"');
   });
 
+  it("targets a single file with the test files that import what it loads", async () => {
+    const dir = scratch();
+    write(dir, "src/a.ts", 'import { b } from "./b";\nexport const a = "hello";\n');
+    write(dir, "src/b.ts", 'export const b = "hello";\n');
+    write(dir, "src/b.test.ts", 'import { b } from "./b";\nexport const t = "hello";\n');
+    write(dir, "src/other.ts", 'export const o = "hello";\n');
+    write(dir, "src/other.test.ts", 'import { o } from "./other";\nexport const t = "hello";\n');
+
+    const result = await runCodemod(shout, { path: join(dir, "src/a.ts") });
+
+    expect(result.changed.sort()).toEqual([
+      join(dir, "src/a.ts"),
+      join(dir, "src/b.test.ts"),
+      join(dir, "src/b.ts"),
+    ]);
+    expect(readFileSync(join(dir, "src/other.test.ts"), "utf8")).toContain('"hello"');
+  });
+
   it("does not write in dry-run mode", async () => {
     const dir = scratch();
     write(dir, "a.ts", 'export const a = "hello";\n');

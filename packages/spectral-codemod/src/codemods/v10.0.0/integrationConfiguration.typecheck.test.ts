@@ -135,6 +135,7 @@ const typecheck = (files: Record<string, string>): string[] => {
       types: [],
       paths: {
         "@prismatic-io/spectral": [resolve(SPECTRAL_PACKAGE, "src/index.ts")],
+        "@prismatic-io/spectral/dist/testing": [resolve(SPECTRAL_PACKAGE, "src/testing.ts")],
         zod: [resolve(SPECTRAL_PACKAGE, "node_modules/zod")],
       },
     },
@@ -160,6 +161,35 @@ describe("v10.0.0/integration-configuration output", () => {
     expect(
       typecheck({ "configPages.ts": CONFIG_PAGES, "flows.ts": FLOWS, "index.ts": INDEX }),
     ).toEqual([]);
+  }, 60_000);
+
+  it("passes a flow test's config vars to invokeFlow, and flags the ones it cannot", () => {
+    const diagnostics = typecheck({
+      "configPages.ts": CONFIG_PAGES,
+      "flows.ts": FLOWS,
+      "index.ts": INDEX,
+      "flows.test.ts": `
+import { invokeFlow } from "@prismatic-io/spectral/dist/testing";
+import flows from "./flows";
+
+const sharedConfigVars = { "Object Key": "id" };
+
+export const run = async () => {
+  await invokeFlow(flows[0], {
+    configVars: {
+      "Object Key": "id",
+      "Acme Connection": { key: "acme", fields: { token: "t" } },
+      "Personal Slack": { key: "slack", fields: {} },
+    },
+  });
+  await invokeFlow(flows[1], { configVars: sharedConfigVars });
+};
+`,
+    });
+
+    // The call it could not rewrite still passes configVars, which invokeFlow refuses.
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toContain("configVars: sharedConfigVars");
   }, 60_000);
 
   it("types a flow's user-level value read by the user-level schema", () => {
