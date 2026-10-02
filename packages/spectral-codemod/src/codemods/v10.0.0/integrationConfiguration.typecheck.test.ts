@@ -234,6 +234,33 @@ export default integration({
     ).toEqual([]);
   }, 60_000);
 
+  it("leaves the reads of hoisted inline pages for the author to delete with them", () => {
+    expect(
+      typecheck({
+        "index.ts": `
+import { configPage, configVar, dataSourceConfigVar, integration } from "@prismatic-io/spectral";
+
+export default integration({
+  name: "Inline",
+  flows: [],
+  configPages: {
+    Page: configPage({
+      elements: {
+        region: configVar({ stableKey: "region", dataType: "string" }),
+        choices: dataSourceConfigVar({
+          stableKey: "choices",
+          dataSourceType: "picklist",
+          perform: async (context) => ({ result: [String(context.configVars.region)] }),
+        }),
+      },
+    }),
+  },
+});
+`,
+      }),
+    ).toEqual([]);
+  }, 60_000);
+
   it("leaves each configVars read it cannot convert for the compiler to flag", () => {
     const diagnostics = typecheck({
       "index.ts": `
