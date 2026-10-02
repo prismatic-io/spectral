@@ -26,6 +26,7 @@ import {
 } from "./ast";
 import type { ClassifiedElement, Scope } from "./element";
 import { migrateConfigVarReferences, migrateFlowReads } from "./flowReads";
+import { migrateInvokeFlowCalls } from "./invokeFlowCalls";
 import { createNamer, type FileNames, withNames } from "./names";
 import {
   emitServerFunction,
@@ -90,8 +91,8 @@ const CONNECTION_WRAPPERS = new Set([
  * vars become schema fields. Each one with an inline `perform` also becomes a server
  * function declared beside it; a comment lists the rest.
  *
- * The codemod also opts flows into `context.configuration` through the
- * `integrationConfiguration` experimental flag. It does not emit a `uiSchema`.
+ * The codemod types `context.configuration` by the emitted schemas. It does not emit a
+ * `uiSchema`.
  */
 export default defineCodemod({
   name: CODEMOD_NAME,
@@ -223,11 +224,19 @@ export default defineCodemod({
     ];
     const flowFiles = migrateFlowReads(project, elements, excluded);
     const referenceFiles = migrateConfigVarReferences(project, elements);
+    const testFiles = migrateInvokeFlowCalls(project, elements);
     namer.addImports(file, ["configuration", "z"]);
     file.formatText({ indentSize: 2 });
     file.replaceWithText(file.getFullText().replace(/\n{3,}/g, "\n\n"));
     return [
-      ...new Set([file, ...pageFiles, ...augmentationFiles, ...flowFiles, ...referenceFiles]),
+      ...new Set([
+        file,
+        ...pageFiles,
+        ...augmentationFiles,
+        ...flowFiles,
+        ...referenceFiles,
+        ...testFiles,
+      ]),
     ];
   },
 });
@@ -385,10 +394,10 @@ const initSource = (elements: ClassifiedElement[], schemaName: string): string[]
 };
 
 /**
- * Opts flows into `context.configuration` and types it by the emitted schemas and
- * connection names. It is written out rather than taken from `typeof` the
- * configuration: that type reaches the config pages, whose data source performs take
- * the flow context this augmentation defines, and the cycle leaves both untyped.
+ * Types `context.configuration` by the emitted schemas and connection names. It is
+ * written out rather than taken from `typeof` the configuration: that type reaches the
+ * config pages, whose data source performs take the flow context this augmentation
+ * defines, and the cycle leaves both untyped.
  */
 const augmentationSource = (scopes: ScopeNames[], elements: ClassifiedElement[]): string => {
   const scopeSource = (names: ScopeNames): string[] => {
@@ -410,9 +419,6 @@ const augmentationSource = (scopes: ScopeNames[], elements: ClassifiedElement[])
   };
   return [
     `declare module "${SPECTRAL}" {`,
-    "  interface Experimental {",
-    "    integrationConfiguration: true;",
-    "  }",
     "  interface IntegrationDefinitionConfiguration {",
     ...scopes.flatMap(scopeSource),
     "  }",
