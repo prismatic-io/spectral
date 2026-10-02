@@ -213,10 +213,12 @@ export default defineCodemod({
     }
     ensureElementSchema(file, names);
 
-    // The page declarations stay for review, and each server function already reads
-    // the new context, so neither is a flow to migrate.
+    // The page declarations stay for review, including the copies hoisted out of the
+    // definition, and each server function already reads the new context, so none is
+    // a flow to migrate.
     const excluded = [
       ...elements.flatMap((element) => element.literal ?? []),
+      ...hoisted,
       ...planned.map(({ file, name }) => file.getVariableStatementOrThrow(name)),
     ];
     const flowFiles = migrateFlowReads(project, elements, excluded);
