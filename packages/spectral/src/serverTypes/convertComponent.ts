@@ -338,7 +338,7 @@ export const convertInput = (
     ]),
     key,
     type,
-    default: defaultValue ?? InputFieldDefaultMap[type],
+    default: defaultValue ?? (collection ? [] : InputFieldDefaultMap[type]),
     collection,
     label: typeof label === "string" ? label : label.value,
     keyLabel,
