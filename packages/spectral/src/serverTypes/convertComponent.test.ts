@@ -4,6 +4,7 @@ import {
   component,
   connection,
   dynamicObjectInput,
+  InputFieldDefaultMap,
   input,
   PerformSafety,
   structuredObjectInput,
@@ -51,6 +52,25 @@ describe("convertConnection", () => {
     const convertedConnection = convertConnection(basicConnection);
     expect(convertedConnection.label).toBe(label);
     expect(convertedConnection.comments).toBe(description);
+  });
+
+  it.each([
+    "valuelist",
+    "keyvaluelist",
+  ] as const)("defaults a connection's %s input to an empty array", (collection) => {
+    const converted = convertConnection(
+      connection({
+        key: "collection-connection",
+        display: { label, description },
+        inputs: {
+          headers: { type: "string", label: "Headers", collection },
+        },
+      }),
+    );
+
+    expect(converted.inputs).toEqual([
+      expect.objectContaining({ key: "headers", collection, default: [] }),
+    ]);
   });
 });
 
@@ -131,6 +151,75 @@ describe("convertAction", () => {
 });
 
 describe("convertInput", () => {
+  describe.each(["valuelist", "keyvaluelist"] as const)("%s defaults", (collection) => {
+    it.each([
+      "string",
+      "boolean",
+    ] as const)("uses an empty array instead of the %s scalar default", (type) => {
+      const converted = convertInput("items", input({ label: "Items", type, collection }));
+
+      expect(converted.default).toEqual([]);
+    });
+
+    it("preserves an explicit empty array", () => {
+      const converted = convertInput(
+        "items",
+        input({ label: "Items", type: "string", collection, default: [] }),
+      );
+
+      expect(converted.default).toEqual([]);
+    });
+  });
+
+  it("preserves an explicit value-list default", () => {
+    const defaultValue = ["first", "second"];
+    const converted = convertInput(
+      "items",
+      input({ label: "Items", type: "string", collection: "valuelist", default: defaultValue }),
+    );
+
+    expect(converted.default).toEqual(defaultValue);
+  });
+
+  it("preserves an explicit key/value-list default", () => {
+    const defaultValue = [{ key: "Accept", value: "application/json" }];
+    const converted = convertInput(
+      "headers",
+      input({
+        label: "Headers",
+        type: "string",
+        collection: "keyvaluelist",
+        default: defaultValue,
+      }),
+    );
+
+    expect(converted.default).toEqual(defaultValue);
+  });
+
+  it.each([
+    input({ label: "String", type: "string" }),
+    input({ label: "Boolean", type: "boolean" }),
+  ])("retains the mapped default for a $type scalar input", (definition) => {
+    expect(convertInput("scalar", definition).default).toBe(InputFieldDefaultMap[definition.type]);
+  });
+
+  it("defaults nested collections to empty arrays", () => {
+    const converted = convertInput(
+      "record",
+      structuredObjectInput({
+        label: "Record",
+        inputs: {
+          tags: input({ label: "Tags", type: "string", collection: "valuelist" }),
+        },
+      }),
+    );
+
+    expect(converted.default).toBeUndefined();
+    expect(converted.inputs).toEqual([
+      expect.objectContaining({ key: "tags", collection: "valuelist", default: [] }),
+    ]);
+  });
+
   const dataSourceKey = "string-data-source";
   const basicInputWithDataSource = input({
     label: "Basic Input",
@@ -194,6 +283,7 @@ describe("convertInput", () => {
 
     expect(converted.type).toBe("structuredObject");
     expect(converted.collection).toBe("valuelist");
+    expect(converted.default).toEqual([]);
     expect(converted.inputs).toHaveLength(1);
   });
 
