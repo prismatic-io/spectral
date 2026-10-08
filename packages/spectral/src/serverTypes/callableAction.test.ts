@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { action, component, input } from "..";
+import { action, component, input, structuredObjectInput } from "..";
 import { ConnectionError, isUserError, UserError } from "../errors";
 import { runWithContext } from "./asyncContext";
 import { createCallableComponent } from "./callableAction";
@@ -96,6 +96,41 @@ describe("createCallableComponent", () => {
     const result = await runWithContext({} as any, () => echo.actions.sayHello({}));
 
     expect(result).toEqual({ data: "Hello, World!" });
+  });
+
+  it("fills an omitted structuredObject input with an object of its children's defaults", async () => {
+    const paged = component(
+      {
+        key: "paged",
+        public: true,
+        display: { label: "Paged", description: "x" },
+        actions: {
+          list: action({
+            display: { label: "List", description: "x" },
+            inputs: {
+              query: input({ type: "string", label: "Query", required: false }),
+              pagination: structuredObjectInput({
+                label: "Pagination",
+                required: false,
+                inputs: {
+                  pageSize: input({ type: "string", label: "Page Size", default: "10" }),
+                  pageToken: input({ type: "string", label: "Page Token" }),
+                },
+              }),
+            },
+            // Destructures the container the way a component's perform would.
+            perform: async (_context, { query, pagination: { pageSize, pageToken } }) => ({
+              data: { query, pageSize, pageToken },
+            }),
+          }),
+        },
+      },
+      { callable: true },
+    );
+
+    const result = await runWithContext({} as any, () => paged.actions.list({}));
+
+    expect(result).toEqual({ data: { query: "", pageSize: "10", pageToken: "" } });
   });
 
   it("normalizes a bare (non-{data}) return value into { data: ... }", async () => {

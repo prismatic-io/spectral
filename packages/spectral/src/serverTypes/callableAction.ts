@@ -1,5 +1,10 @@
+import type {
+  ActionDefinition,
+  ActionInputParameters,
+  CallableActionInputParameters,
+} from "../types";
 import type { CollectionType } from "../types/ConfigVars";
-import type { Action, AnyConvertedAction, Component, Input } from ".";
+import type { Action, ActionContext, AnyConvertedAction, Component, Input } from ".";
 import { performActionFunctionExecutor } from "./actionExecutor";
 import { requireContext } from "./asyncContext";
 import { convertInputValue } from "./convertIntegration";
@@ -13,9 +18,20 @@ import { convertInputValue } from "./convertIntegration";
  * invoke `.perform(context, params)` directly. */
 export type CallableAction = Action & ((values: Record<string, unknown>) => Promise<unknown>);
 
+/** The value an omitted input takes: its declared default, except that an
+ * omitted (non-collection) `structuredObject` becomes an object of its
+ * children's defaults, recursively — the platform always hands a `perform` an
+ * object for these, so a component may destructure it without guarding. */
+const defaultFor = (input: Input): unknown => {
+  if (input.type === "structuredObject" && !input.collection && input.inputs) {
+    return fillDefaults(input.inputs, {});
+  }
+  return input.default;
+};
+
 const fillDefaults = (inputs: Input[], values: Record<string, unknown>) =>
   inputs.reduce<Record<string, unknown>>((accumulator, input) => {
-    const value = values[input.key] ?? input.default;
+    const value = values[input.key] ?? defaultFor(input);
     accumulator[input.key] = convertInputValue(
       value,
       input.collection as CollectionType | undefined,
@@ -43,6 +59,29 @@ export type MakeCallable<TAction> = TAction extends {
 }
   ? TAction & ((params: TParams) => TReturn)
   : TAction;
+
+/** The directly-callable form of an action, typed from its original
+ * `ActionDefinition` rather than from the converted `perform`: that keeps the
+ * input definitions in reach, so inputs that aren't `required: true` (or that
+ * have a `default`) are optional to the caller — see
+ * {@link CallableActionInputParameters} — while the return type stays the
+ * `perform`'s own. This is what `component(definition, { callable: true })`
+ * produces; {@link MakeCallable} is the fallback for wrapping a component whose
+ * definitions are no longer available. */
+export type CallableConvertedAction<TDef> =
+  TDef extends ActionDefinition<
+    infer TInputs,
+    infer TConfigVars,
+    infer _TAllowsBranching,
+    infer TReturn
+  >
+    ? Omit<Action, "perform"> & {
+        perform: (
+          context: ActionContext<TConfigVars>,
+          params: ActionInputParameters<TInputs>,
+        ) => Promise<TReturn>;
+      } & ((params: CallableActionInputParameters<TInputs>) => Promise<TReturn>)
+    : never;
 
 /**
  * Wraps an already-converted component's actions so each is directly

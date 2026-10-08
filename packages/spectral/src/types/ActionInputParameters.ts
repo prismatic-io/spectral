@@ -60,3 +60,35 @@ export type ExtractValue<
   : TCollection extends "valuelist"
     ? TType[]
     : TType;
+
+/** Input keys a caller may omit when invoking an action directly: anything not
+ * declared `required: true`, plus anything with a `default` (which fills in for
+ * an omitted value at call time). */
+type OptionalCallableInputKey<TInputs extends Inputs> = {
+  [Property in keyof TInputs]: TInputs[Property] extends { required: true }
+    ? TInputs[Property] extends { default: unknown }
+      ? Property
+      : never
+    : Property;
+}[keyof TInputs];
+
+/**
+ * The values accepted by a directly-callable action (an action imported from an
+ * npm-published component and invoked as a function, e.g.
+ * `googleDrive.actions.listFolders({ connection })`).
+ *
+ * Unlike {@link ActionInputParameters}, which describes what `perform` receives
+ * (every input, already cleaned and defaulted), this describes what the caller
+ * must supply: inputs that are not `required: true`, or that carry a `default`,
+ * may be left out and are filled in with their default at call time.
+ */
+export type CallableActionInputParameters<TInputs extends Inputs> = 0 extends 1 & TInputs
+  ? // `any` inputs (e.g. the `AnyActionDefinition` bound): nothing to split on.
+    Record<string, unknown>
+  : {
+      [Property in Exclude<keyof TInputs, OptionalCallableInputKey<TInputs>>]: InputValue<
+        TInputs[Property]
+      >;
+    } & {
+      [Property in OptionalCallableInputKey<TInputs>]?: InputValue<TInputs[Property]>;
+    };

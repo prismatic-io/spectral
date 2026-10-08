@@ -4,7 +4,11 @@
  * that can run on the Prismatic platform.
  */
 
-import type { ConvertedAction, MakeCallable, Component as ServerComponent } from "./serverTypes";
+import type {
+  CallableConvertedAction,
+  ConvertedAction,
+  Component as ServerComponent,
+} from "./serverTypes";
 import { createCallableComponent, runWithIntegrationContext } from "./serverTypes";
 import {
   defaultBatchResolver,
@@ -668,7 +672,7 @@ export const component = <
   TriggerResult<boolean, TriggerPayload>,
   {
     [K in keyof TActions]: TCallable extends true
-      ? MakeCallable<ConvertedAction<TActions[K]>>
+      ? CallableConvertedAction<TActions[K]>
       : ConvertedAction<TActions[K]>;
   }
 > => {
@@ -691,7 +695,7 @@ export const component = <
     TriggerResult<boolean, TriggerPayload>,
     {
       [K in keyof TActions]: TCallable extends true
-        ? MakeCallable<ConvertedAction<TActions[K]>>
+        ? CallableConvertedAction<TActions[K]>
         : ConvertedAction<TActions[K]>;
     }
   >;
