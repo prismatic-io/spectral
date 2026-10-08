@@ -1,4 +1,11 @@
-import { action, type Connection, component, input } from "@prismatic-io/spectral";
+import {
+  action,
+  type Connection,
+  component,
+  dynamicObjectInput,
+  input,
+  structuredObjectInput,
+} from "@prismatic-io/spectral";
 import type { Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable, expectError, expectType } from "tsd";
 
@@ -72,3 +79,60 @@ const plain = component({
   },
 });
 expectError(plain.actions.echo({ name: "Pat" }));
+
+// Optional-ness applies recursively through structuredObject children and
+// dynamicObject configuration values.
+const nested = component(
+  {
+    key: "nested-definition",
+    display: { label: "Nested", description: "Nested", iconPath: "icon.png" },
+    actions: {
+      list: action({
+        display: { label: "List", description: "List" },
+        inputs: {
+          pagination: structuredObjectInput({
+            label: "Pagination",
+            required: false,
+            inputs: {
+              pageSize: input({ label: "Page Size", type: "string", default: "10" }),
+              pageToken: input({ label: "Page Token", type: "string", required: false }),
+              cursor: input({ label: "Cursor", type: "string", required: true }),
+            },
+          }),
+          target: dynamicObjectInput({
+            label: "Target",
+            configurations: {
+              email: {
+                label: "Email",
+                inputs: {
+                  address: input({ label: "Address", type: "string", required: true }),
+                  subject: input({ label: "Subject", type: "string", default: "Hello" }),
+                },
+              },
+            },
+          }),
+        },
+        perform: async (_context, { pagination, target }) => ({ data: { pagination, target } }),
+      }),
+    },
+  },
+  { callable: true },
+);
+
+nested.actions.list({ target: { configuration: "email", values: { address: "a@b.c" } } });
+nested.actions.list({
+  pagination: { cursor: "c" },
+  target: { configuration: "email", values: { address: "a@b.c" } },
+});
+nested.actions.list({
+  pagination: { cursor: "c", pageSize: "5", pageToken: "t" },
+  target: { configuration: "email", values: { address: "a@b.c", subject: "Hi" } },
+});
+// A required child is still required.
+expectError(
+  nested.actions.list({
+    pagination: {},
+    target: { configuration: "email", values: { address: "a@b.c" } },
+  }),
+);
+expectError(nested.actions.list({ target: { configuration: "email", values: {} } }));

@@ -64,13 +64,39 @@ export type ExtractValue<
 /** Input keys a caller may omit when invoking an action directly: anything not
  * declared `required: true`, plus anything with a `default` (which fills in for
  * an omitted value at call time). */
-type OptionalCallableInputKey<TInputs extends Inputs> = {
+type OptionalCallableInputKey<TInputs> = {
   [Property in keyof TInputs]: TInputs[Property] extends { required: true }
     ? TInputs[Property] extends { default: unknown }
       ? Property
       : never
     : Property;
 }[keyof TInputs];
+
+/** {@link ActionInputParameters} for a directly-callable action: the same
+ * per-input value types, with the keys a caller may omit made optional, applied
+ * recursively through `structuredObject` children and `dynamicObject`
+ * configuration values. */
+type CallableInputValues<TInputs> = {
+  [Property in Exclude<keyof TInputs, OptionalCallableInputKey<TInputs>>]: CallableInputValue<
+    TInputs[Property]
+  >;
+} & {
+  [Property in OptionalCallableInputKey<TInputs>]?: CallableInputValue<TInputs[Property]>;
+};
+
+/** {@link InputValue} for a directly-callable action: containers resolve to
+ * {@link CallableInputValues} of their children so optional children stay
+ * optional; every other input resolves exactly as `InputValue` does. */
+type CallableInputValue<T> = T extends StructuredObjectInputField
+  ? ExtractValue<CallableInputValues<T["inputs"]>, T["collection"]>
+  : T extends DynamicObjectInputField
+    ? {
+        [C in keyof T["configurations"]]: {
+          configuration: C;
+          values: CallableInputValues<T["configurations"][C]["inputs"]>;
+        };
+      }[keyof T["configurations"]]
+    : InputValue<T>;
 
 /**
  * The values accepted by a directly-callable action (an action imported from an
@@ -80,15 +106,11 @@ type OptionalCallableInputKey<TInputs extends Inputs> = {
  * Unlike {@link ActionInputParameters}, which describes what `perform` receives
  * (every input, already cleaned and defaulted), this describes what the caller
  * must supply: inputs that are not `required: true`, or that carry a `default`,
- * may be left out and are filled in with their default at call time.
+ * may be left out and are filled in with their default at call time. The same
+ * applies to the children of a `structuredObject` and to the `values` of a
+ * `dynamicObject` configuration.
  */
 export type CallableActionInputParameters<TInputs extends Inputs> = 0 extends 1 & TInputs
   ? // `any` inputs (e.g. the `AnyActionDefinition` bound): nothing to split on.
     Record<string, unknown>
-  : {
-      [Property in Exclude<keyof TInputs, OptionalCallableInputKey<TInputs>>]: InputValue<
-        TInputs[Property]
-      >;
-    } & {
-      [Property in OptionalCallableInputKey<TInputs>]?: InputValue<TInputs[Property]>;
-    };
+  : CallableInputValues<TInputs>;

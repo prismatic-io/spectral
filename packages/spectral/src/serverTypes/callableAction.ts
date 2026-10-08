@@ -18,20 +18,53 @@ import { convertInputValue } from "./convertIntegration";
  * invoke `.perform(context, params)` directly. */
 export type CallableAction = Action & ((values: Record<string, unknown>) => Promise<unknown>);
 
-/** The value an omitted input takes: its declared default, except that an
- * omitted (non-collection) `structuredObject` becomes an object of its
- * children's defaults, recursively — the platform always hands a `perform` an
- * object for these, so a component may destructure it without guarding. */
-const defaultFor = (input: Input): unknown => {
-  if (input.type === "structuredObject" && !input.collection && input.inputs) {
-    return fillDefaults(input.inputs, {});
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+/** Resolves what a `structuredObject` / `dynamicObject` input's value should be
+ * once child defaults are applied. An omitted container becomes an object of
+ * its children's defaults; a partially supplied one keeps what the caller
+ * gave and fills the rest, recursively. The platform always hands a `perform`
+ * fully-populated containers, so a component may destructure them without
+ * guarding, and the callable form must match. Collections apply the same
+ * filling per element (`valuelist`) or per entry value (`keyvaluelist`). */
+const withChildDefaults = (input: Input, value: unknown): unknown => {
+  if (input.type === "structuredObject" && input.inputs) {
+    const children = input.inputs;
+    const fillRecord = (record: unknown) =>
+      isPlainObject(record) ? fillDefaults(children, record) : record;
+    if (input.collection === "valuelist") {
+      return Array.isArray(value) ? value.map(fillRecord) : value;
+    }
+    if (input.collection === "keyvaluelist") {
+      return Array.isArray(value)
+        ? value.map((entry) =>
+            isPlainObject(entry) && "value" in entry
+              ? { ...entry, value: fillRecord(entry.value) }
+              : entry,
+          )
+        : value;
+    }
+    return fillRecord(value ?? {});
   }
-  return input.default;
+
+  if (input.type === "dynamicObject" && input.inputs && isPlainObject(value)) {
+    const { configuration, values } = value;
+    const selected =
+      typeof configuration === "string"
+        ? input.inputs.find((candidate) => candidate.key === configuration)
+        : undefined;
+    return selected?.inputs
+      ? { ...value, values: fillDefaults(selected.inputs, isPlainObject(values) ? values : {}) }
+      : value;
+  }
+
+  return value;
 };
 
-const fillDefaults = (inputs: Input[], values: Record<string, unknown>) =>
+const fillDefaults = (inputs: Input[], values: Record<string, unknown>): Record<string, unknown> =>
   inputs.reduce<Record<string, unknown>>((accumulator, input) => {
-    const value = values[input.key] ?? defaultFor(input);
+    const value = withChildDefaults(input, values[input.key] ?? input.default);
     accumulator[input.key] = convertInputValue(
       value,
       input.collection as CollectionType | undefined,
