@@ -404,7 +404,11 @@ export interface DataSource {
   perform: DataSourcePerformFunction;
   dataSourceType: DataSourceType;
   examplePayload?: unknown;
+  detailDataSource?: string;
 }
+
+/** Any converted data source, with its type parameters left open. */
+export type AnyDataSource = DataSource;
 
 export enum OAuth2Type {
   ClientCredentials = "client_credentials",
@@ -513,4 +517,5 @@ export interface Input {
 
 export * from "./asyncContext";
 export * from "./callableAction";
+export * from "./callableDataSource";
 export * from "./callableTrigger";

@@ -1,5 +1,5 @@
 import type { NpmTriggerReference } from "../types";
-import type { AnyTrigger } from ".";
+import type { AnyDataSource, AnyTrigger } from ".";
 
 export type { NpmTriggerReference } from "../types";
 export { isNpmTriggerReference } from "../types";
@@ -12,11 +12,15 @@ export { isNpmTriggerReference } from "../types";
  * Not part of `convertComponent`'s own unconditional behavior — `component()` calls this
  * internally (via `createCallableComponent`), only when its caller opts in via
  * `component(definition, { callable: true })`.
+ *
+ * `dataSources` can be resolved once this trigger is hoisted onto the CNI's own
+ * wrapper component. See `NpmTriggerReference`.
  */
 export const createCallableTrigger =
-  <TTrigger extends AnyTrigger>(trigger: TTrigger) =>
+  <TTrigger extends AnyTrigger>(trigger: TTrigger, dataSources: Record<string, AnyDataSource>) =>
   (values: Record<string, unknown> = {}): NpmTriggerReference<TTrigger> => ({
     __npmTriggerReference: true,
     trigger,
     values,
+    dataSources,
   });
