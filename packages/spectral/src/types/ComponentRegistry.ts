@@ -91,6 +91,43 @@ export type ComponentReference<
 export const isComponentReference = (ref: unknown): ref is ComponentReference =>
   typeof ref === "object" && ref !== null && "key" in ref && "component" in ref;
 
+export interface NpmTriggerReference<TTrigger = unknown> {
+  __npmTriggerReference: true;
+  trigger: TTrigger;
+  values: Record<string, unknown>;
+  dataSources: Record<string, unknown>;
+}
+
+export const isNpmTriggerReference = (ref: unknown): ref is NpmTriggerReference =>
+  typeof ref === "object" &&
+  ref !== null &&
+  (ref as { __npmTriggerReference?: unknown }).__npmTriggerReference === true;
+
+export interface NpmDataSourceReference<TDataSource = unknown> {
+  __npmDataSourceReference: true;
+  dataSource: TDataSource;
+  values: Record<string, unknown>;
+  /** The source component's data sources, so this one's sibling dependencies (its
+   * `detailDataSource`, its inputs' `dataSource`) can be hoisted along with it. */
+  dataSources: Record<string, unknown>;
+}
+
+export const isNpmDataSourceReference = (ref: unknown): ref is NpmDataSourceReference =>
+  typeof ref === "object" &&
+  ref !== null &&
+  (ref as { __npmDataSourceReference?: unknown }).__npmDataSourceReference === true;
+
+export interface NpmConnectionReference<TConnection = unknown> {
+  __npmConnectionReference: true;
+  connection: TConnection;
+  values: Record<string, unknown>;
+}
+
+export const isNpmConnectionReference = (ref: unknown): ref is NpmConnectionReference =>
+  typeof ref === "object" &&
+  ref !== null &&
+  (ref as { __npmConnectionReference?: unknown }).__npmConnectionReference === true;
+
 type ComponentRegistryFunctionsByType = UnionToIntersection<
   ComponentReferenceType extends infer TComponentReferenceType
     ? TComponentReferenceType extends Extract<

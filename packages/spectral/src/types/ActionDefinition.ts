@@ -48,6 +48,7 @@ export interface ActionDefinition<
     TReturn
   >;
   performSafety?: PerformSafety;
+  examplePerformSafety?: PerformSafety;
   /**
    * The inputs to present a low-code integration builder. Values of these inputs
    * are passed to the `perform` function when the action is invoked.

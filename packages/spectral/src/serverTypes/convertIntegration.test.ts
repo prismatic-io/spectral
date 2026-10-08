@@ -1,17 +1,30 @@
 import { describe, expect, it } from "vitest";
 import {
   batchFlowTrigger,
+  batchTrigger,
+  component,
   configPage,
   configVar,
+  connection,
   customerActivatedConnection,
+  dataSource,
   dataSourceConfigVar,
   flow,
+  input,
   integration,
   organizationActivatedConnection,
+  pollingTrigger,
+  trigger,
   userActivatedConnection,
   userLevelConfigPage,
 } from "..";
 import type { ConfigVar, TriggerPayload, TriggerReference } from "../types";
+import {
+  isComponentReference,
+  isNpmConnectionReference,
+  isNpmDataSourceReference,
+  isNpmTriggerReference,
+} from "../types";
 import {
   convertConfigPages,
   convertConfigVar,
@@ -1417,5 +1430,566 @@ describe("custom-trigger reference input values reach the trigger functions", ()
     // It must declare the referenced inputs, matching convertComponent's contract.
     const inputKeys = (wrapperTrigger.inputs as Array<{ key: string }>).map((i) => i.key);
     expect(inputKeys).toEqual(expect.arrayContaining(["inputOne", "inputTwo"]));
+  });
+});
+
+describe("npm trigger references", () => {
+  // Stands in for an npm-imported `@prismatic-io/*` component built with
+  // `component(definition, { callable: true })` — its triggers are directly-callable
+  // reference helpers, not manifest-registry lookups.
+  const npmComponent = component(
+    {
+      key: "acme-npm",
+      public: true,
+      display: { label: "Acme", description: "An npm-published component" },
+      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+      triggers: {
+        webhook: trigger({
+          display: { label: "Webhook", description: "Fires on an inbound webhook" },
+          inputs: { greeting: input({ type: "string", label: "Greeting", default: "hi" }) },
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          perform: async (_context, payload) => ({ payload }),
+          onInstanceDeploy: async () => ({ instanceState: { deployed: true } }),
+          webhookLifecycleHandlers: {
+            create: async () => ({ instanceState: { created: true } }),
+            delete: async () => ({}),
+          },
+        }),
+        pollForChanges: pollingTrigger({
+          display: { label: "Poll For Changes", description: "Polls on a schedule" },
+          inputs: {},
+          perform: async (context, payload) => {
+            context.polling.setState({ cursor: "next" });
+            return { payload: { ...payload, body: { data: [] } } };
+          },
+        }),
+        branching: trigger({
+          display: { label: "Branching", description: "Returns a branch" },
+          inputs: {},
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          terminateExecution: true,
+          breakLoop: true,
+          allowsBranching: true,
+          staticBranchNames: ["Yes", "No"],
+          perform: async (_context, payload) => ({ payload, branch: "Yes" }),
+        }),
+        syncOrders: batchTrigger({
+          display: { label: "Sync Orders", description: "Fetches orders in batches" },
+          inputs: {},
+          scheduleSupport: "required",
+          batchConfig: { batchSize: 25 },
+          perform: async () => ({ items: [1, 2, 3], paginationState: null }),
+          onDeploy: {
+            perform: async () => ({ items: [9], paginationState: null }),
+          },
+        }),
+        pickItem: trigger({
+          display: { label: "Pick Item", description: "Fires when an item is picked" },
+          inputs: {
+            itemId: input({ type: "string", label: "Item", dataSource: "items" }),
+          },
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          perform: async (_context, payload) => ({ payload }),
+        }),
+      },
+      dataSources: {
+        items: dataSource({
+          display: { label: "Items", description: "Pick an item" },
+          dataSourceType: "picklist",
+          inputs: {},
+          perform: async () => ({ result: ["item-1", "item-2"] }),
+        }),
+      },
+    },
+    { callable: true },
+  );
+
+  it("produces a tagged reference distinct from a manifest ComponentReference", () => {
+    const ref = npmComponent.triggers.webhook({ greeting: { value: "hey" } });
+
+    expect(isNpmTriggerReference(ref)).toBe(true);
+    expect(isComponentReference(ref)).toBe(false);
+    expect(ref).toMatchObject({
+      __npmTriggerReference: true,
+      values: { greeting: { value: "hey" } },
+    });
+  });
+
+  it("a plain reference (no lifecycle) still routes through the wrapper-trigger path, with no registry lookup", () => {
+    const plainFlow = flow({
+      name: "Plain Flow",
+      stableKey: "plain-flow",
+      description: "Npm trigger reference, no custom lifecycle",
+      onTrigger: npmComponent.triggers.webhook({ greeting: { value: "hey" } }),
+      onExecution: async () => ({ data: "test" }),
+    });
+
+    // An empty component registry: a manifest-registry lookup would throw here.
+    const result = convertFlow(plainFlow, {}, "test-ref");
+    const [triggerStep] = result.steps as Array<Record<string, unknown>>;
+
+    expect(triggerStep.inputs).toMatchObject({ greeting: { type: "value", value: "hey" } });
+    expect((triggerStep.action as { component: { key: string } }).component.key).toBe("test-ref");
+  });
+
+  it("calls the referenced trigger's perform directly, with no remote invokeTrigger involved", async () => {
+    const result = integration({
+      name: "npm-ref-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Webhook Flow",
+          stableKey: "webhook-flow",
+          description: "Npm webhook trigger reference",
+          onTrigger: npmComponent.triggers.webhook({ greeting: { value: "hey" } }),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.webhookFlow_onTrigger;
+    expect(wrapperTrigger.scheduleSupport).toBe("invalid");
+    expect(wrapperTrigger.hasOnInstanceDeploy).toBe(true);
+    expect(wrapperTrigger.hasWebhookCreateFunction).toBe(true);
+    expect(wrapperTrigger.hasWebhookDeleteFunction).toBe(true);
+
+    const performResult = await (
+      wrapperTrigger.perform as (
+        context: unknown,
+        payload: unknown,
+        params: unknown,
+      ) => Promise<unknown>
+    )({} as never, { headers: {} } as never, { greeting: "hey" });
+    expect(performResult).toMatchObject({ payload: { headers: {} } });
+
+    const deployResult = await (
+      wrapperTrigger.onInstanceDeploy as (context: unknown, params: unknown) => Promise<unknown>
+    )({} as never, {});
+    expect(deployResult).toMatchObject({ instanceState: { deployed: true } });
+  });
+
+  it("carries a batch trigger's resolver/on-deploy shape onto the synthesized wrapper trigger", () => {
+    const result = integration({
+      name: "npm-batch-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Sync Orders Flow",
+          stableKey: "sync-orders-flow",
+          description: "Npm batch trigger reference",
+          onTrigger: npmComponent.triggers.syncOrders({}),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.syncOrdersFlow_onTrigger;
+    expect(wrapperTrigger.triggerResolverSupport).toBe("required");
+    expect(wrapperTrigger.hasResolveTriggerItems).toBe(true);
+    expect(wrapperTrigger.hasGetNextDiscoveryState).toBe(true);
+    expect(wrapperTrigger.triggerResolverDefaultBatchSize).toBe(25);
+    expect(wrapperTrigger.hasOnDeployPerform).toBe(true);
+    expect(wrapperTrigger.hasResolveOnDeployItems).toBe(true);
+  });
+
+  it("marks a polling trigger reference as polling on the synthesized wrapper trigger", () => {
+    const result = integration({
+      name: "npm-polling-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Poll Flow",
+          stableKey: "poll-flow",
+          description: "Npm polling trigger reference",
+          onTrigger: npmComponent.triggers.pollForChanges({}),
+          schedule: { value: "*/5 * * * *" },
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.pollFlow_onTrigger;
+    expect(wrapperTrigger.isPollingTrigger).toBe(true);
+    expect(wrapperTrigger.scheduleSupport).toBe("required");
+  });
+
+  it("requires a schedule for a polling trigger reference", () => {
+    expect(() =>
+      integration({
+        name: "npm-polling-integration",
+        description: "x",
+        flows: [
+          flow({
+            name: "Poll Flow",
+            stableKey: "poll-flow",
+            description: "Npm polling trigger reference",
+            onTrigger: npmComponent.triggers.pollForChanges({}),
+            onExecution: async () => ({ data: "test" }),
+          }),
+        ],
+      }),
+    ).toThrow(/no schedule/);
+  });
+
+  it("carries the npm trigger's branching and termination settings onto the wrapper trigger", () => {
+    const result = integration({
+      name: "npm-branching-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Branch Flow",
+          stableKey: "branch-flow",
+          description: "Npm branching trigger reference",
+          onTrigger: npmComponent.triggers.branching({}),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    expect(result.triggers.branchFlow_onTrigger).toMatchObject({
+      terminateExecution: true,
+      breakLoop: true,
+      allowsBranching: true,
+      staticBranchNames: ["Yes", "No"],
+    });
+  });
+
+  it("resolves a trigger input's sibling data source onto the CNI's own wrapper component", async () => {
+    const result = integration({
+      name: "npm-sibling-datasource-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Pick Item Flow",
+          stableKey: "pick-item-flow",
+          description: "Npm trigger reference with a sibling data source input",
+          onTrigger: npmComponent.triggers.pickItem({}),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.pickItemFlow_onTrigger;
+    const itemIdInput = wrapperTrigger.inputs.find((i) => i.key === "itemId");
+    expect(itemIdInput?.dataSource).toBe("pickItemFlow_onTrigger_items");
+
+    const wrapperDataSource = result.dataSources.pickItemFlow_onTrigger_items;
+    expect(wrapperDataSource).toBeDefined();
+    expect(wrapperDataSource.dataSourceType).toBe("picklist");
+
+    const performResult = await (
+      wrapperDataSource.perform as (context: unknown, params: unknown) => Promise<unknown>
+    )({} as never, {});
+    expect(performResult).toMatchObject({ result: ["item-1", "item-2"] });
+  });
+});
+
+describe("npm data source references", () => {
+  // Stands in for an npm-imported `@prismatic-io/*` component built with
+  // `component(definition, { callable: true })` — its data sources are directly-callable
+  // reference helpers, not manifest-registry lookups.
+  const npmComponent = component(
+    {
+      key: "acme-npm",
+      public: true,
+      display: { label: "Acme", description: "An npm-published component" },
+      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+      dataSources: {
+        selectChannel: dataSource({
+          display: { label: "Select Channel", description: "Pick a channel" },
+          dataSourceType: "picklist",
+          inputs: { workspace: input({ type: "string", label: "Workspace", default: "" }) },
+          detailDataSource: "channelDetails",
+          perform: async (_context, params) => ({
+            result: [`${params.workspace}-general`, `${params.workspace}-random`],
+          }),
+        }),
+        channelDetails: dataSource({
+          display: { label: "Channel Details", description: "Details for a channel" },
+          dataSourceType: "picklist",
+          inputs: {
+            owner: input({ type: "string", label: "Owner", dataSource: "selectOwner" }),
+          },
+          perform: async () => ({ result: ["details"] }),
+        }),
+        selectOwner: dataSource({
+          display: { label: "Select Owner", description: "Pick an owner" },
+          dataSourceType: "picklist",
+          inputs: {},
+          // Cycles back to the data source that depends on it.
+          detailDataSource: "channelDetails",
+          perform: async () => ({ result: ["owner-1"] }),
+        }),
+      },
+    },
+    { callable: true },
+  );
+
+  it("produces a config var whose dataSource is a tagged reference, distinct from a manifest ComponentReference", () => {
+    const configVarDef = npmComponent.dataSources.selectChannel({
+      stableKey: "select-channel",
+      values: { workspace: { value: "acme" } },
+    }) as ConfigVar & { dataSource: unknown };
+
+    expect(configVarDef.stableKey).toBe("select-channel");
+    expect(isNpmDataSourceReference(configVarDef.dataSource)).toBe(true);
+    expect(isComponentReference(configVarDef.dataSource)).toBe(false);
+    expect(configVarDef.dataSource).toMatchObject({
+      __npmDataSourceReference: true,
+      values: { workspace: { value: "acme" } },
+    });
+  });
+
+  it("routes a config var's npm data source reference to the CNI's own wrapper component, with no registry lookup", () => {
+    const configVarDef = npmComponent.dataSources.selectChannel({
+      stableKey: "select-channel",
+      values: { workspace: { value: "acme" } },
+    }) as ConfigVar;
+
+    // An empty component registry: a manifest-registry lookup would throw here.
+    const result = convertConfigVar("Select Channel", configVarDef, "test-ref", {});
+
+    expect(result.dataType).toBe("picklist");
+    expect(result.dataSource).toEqual({
+      key: "selectChannel",
+      component: { key: "test-ref", version: "LATEST", isPublic: false },
+    });
+    expect(result.inputs).toMatchObject({ workspace: { type: "value", value: "acme" } });
+  });
+
+  it("hoists the npm data source's perform into the CNI's own wrapper component", async () => {
+    const result = integration({
+      name: "npm-datasource-integration",
+      description: "x",
+      configPages: {
+        Setup: configPage({
+          elements: {
+            "Select Channel": npmComponent.dataSources.selectChannel({
+              stableKey: "select-channel",
+              values: { workspace: { value: "acme" } },
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Noop Flow",
+          stableKey: "noop-flow",
+          description: "x",
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperDataSource = result.dataSources.selectChannel;
+    expect(wrapperDataSource.dataSourceType).toBe("picklist");
+    expect(wrapperDataSource.display).toMatchObject({
+      label: "Select Channel",
+      description: "Pick a channel",
+    });
+
+    const performResult = await (
+      wrapperDataSource.perform as (context: unknown, params: unknown) => Promise<unknown>
+    )({} as never, { workspace: "acme" });
+    expect(performResult).toMatchObject({ result: ["acme-general", "acme-random"] });
+  });
+
+  it("hoists the data source's sibling dependencies and rewrites their keys to wrapper-owned ones", () => {
+    const result = integration({
+      name: "npm-datasource-deps-integration",
+      description: "x",
+      configPages: {
+        Setup: configPage({
+          elements: {
+            "Select Channel": npmComponent.dataSources.selectChannel({
+              stableKey: "select-channel",
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Noop Flow",
+          stableKey: "noop-flow",
+          description: "x",
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    expect(result.dataSources.selectChannel.detailDataSource).toBe("selectChannel_channelDetails");
+    expect(result.dataSources.selectChannel_channelDetails.inputs[0].dataSource).toBe(
+      "selectChannel_selectOwner",
+    );
+    // The cycle back to channelDetails resolves to the already-hoisted copy.
+    expect(result.dataSources.selectChannel_selectOwner.detailDataSource).toBe(
+      "selectChannel_channelDetails",
+    );
+  });
+});
+
+describe("npm connection references", () => {
+  // Stands in for an npm-imported `@prismatic-io/*` component built with
+  // `component(definition, { callable: true })` — its connections are directly-callable
+  // reference helpers, not manifest-registry lookups.
+  const npmComponent = component(
+    {
+      key: "acme-npm",
+      public: true,
+      display: { label: "Acme", description: "An npm-published component" },
+      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+      connections: [
+        connection({
+          key: "apiKey",
+          display: { label: "API Key", description: "Authenticate with an API key" },
+          inputs: {
+            apiKey: input({ type: "string", label: "API Key" }),
+          },
+        }),
+      ],
+    },
+    { callable: true },
+  );
+
+  it("produces a config var whose connection is a tagged reference, distinct from a manifest ComponentReference", () => {
+    const configVarDef = npmComponent.connections.apiKey({
+      stableKey: "acme-api-key",
+      values: { apiKey: { value: "shh" } },
+    }) as ConfigVar & { connection: unknown };
+
+    expect(configVarDef.stableKey).toBe("acme-api-key");
+    expect(isNpmConnectionReference(configVarDef.connection)).toBe(true);
+    expect(isComponentReference(configVarDef.connection)).toBe(false);
+    expect(configVarDef.connection).toMatchObject({
+      __npmConnectionReference: true,
+      values: { apiKey: { value: "shh" } },
+    });
+  });
+
+  it("routes a config var's npm connection reference to the CNI's own wrapper component, with no registry lookup", () => {
+    const configVarDef = npmComponent.connections.apiKey({
+      stableKey: "acme-api-key",
+      values: { apiKey: { value: "shh" } },
+    }) as ConfigVar;
+
+    // An empty component registry: a manifest-registry lookup would throw here.
+    const result = convertConfigVar("Acme API Key", configVarDef, "test-ref", {});
+
+    expect(result.dataType).toBe("connection");
+    // The connection's own declared key ("apiKey"), not derived from the config var's own label
+    // ("Acme API Key") — a component's own runtime code may dispatch on this key to decide how
+    // to authenticate, so it can't be renamed the way a data source's key safely can be.
+    expect(result.connection).toEqual({
+      key: "apiKey",
+      component: { key: "test-ref", version: "LATEST", isPublic: false },
+    });
+    expect(result.inputs).toMatchObject({ apiKey: { type: "value", value: "shh" } });
+  });
+
+  it("hoists the npm connection's already-converted fields into the CNI's own wrapper component", () => {
+    const result = integration({
+      name: "npm-connection-integration",
+      description: "x",
+      configPages: {
+        Setup: configPage({
+          elements: {
+            "Acme API Key": npmComponent.connections.apiKey({
+              stableKey: "acme-api-key",
+              values: { apiKey: { value: "shh" } },
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Noop Flow",
+          stableKey: "noop-flow",
+          description: "x",
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperConnection = result.connections.find((c) => c.key === "apiKey");
+    expect(wrapperConnection).toMatchObject({
+      key: "apiKey",
+      label: "API Key",
+    });
+  });
+
+  it("shares one wrapper connection entry across two config vars referencing the same npm connection type", () => {
+    const result = integration({
+      name: "npm-connection-dedup-integration",
+      description: "x",
+      configPages: {
+        Setup: configPage({
+          elements: {
+            "Acme API Key 1": npmComponent.connections.apiKey({
+              stableKey: "acme-api-key-1",
+              values: { apiKey: { value: "shh-1" } },
+            }),
+            "Acme API Key 2": npmComponent.connections.apiKey({
+              stableKey: "acme-api-key-2",
+              values: { apiKey: { value: "shh-2" } },
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Noop Flow",
+          stableKey: "noop-flow",
+          description: "x",
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    expect(result.connections.filter((c) => c.key === "apiKey")).toHaveLength(1);
+  });
+
+  it("throws when two different npm connections share a key instead of silently collapsing them", () => {
+    const otherComponent = component(
+      {
+        key: "other-npm",
+        public: true,
+        display: { label: "Other", description: "Another npm-published component" },
+        documentationUrl: "https://prismatic.io/docs/components/other-npm/",
+        connections: [
+          connection({
+            key: "apiKey",
+            display: { label: "Other API Key", description: "A different apiKey connection" },
+            inputs: { token: input({ type: "string", label: "Token" }) },
+          }),
+        ],
+      },
+      { callable: true },
+    );
+
+    expect(() =>
+      integration({
+        name: "npm-connection-conflict-integration",
+        description: "x",
+        configPages: {
+          Setup: configPage({
+            elements: {
+              "Acme API Key": npmComponent.connections.apiKey({ stableKey: "acme-api-key" }),
+              "Other API Key": otherComponent.connections.apiKey({ stableKey: "other-api-key" }),
+            },
+          }),
+        },
+        flows: [
+          flow({
+            name: "Noop Flow",
+            stableKey: "noop-flow",
+            description: "x",
+            onExecution: async () => ({ data: "test" }),
+          }),
+        ],
+      }),
+    ).toThrow(/conflicts with a different connection/);
   });
 });

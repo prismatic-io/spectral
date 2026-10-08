@@ -2,6 +2,8 @@
  * component and integration definitions. */
 
 import type {
+  ActionDefinition,
+  ActionInputParameters,
   BatchInfo,
   ComponentManifest,
   ConfigVarResultCollection,
@@ -56,12 +58,13 @@ export interface Component<
     TAllowsBranching,
     TPayload
   >,
+  TActions extends Record<string, AnyConvertedAction> = Record<string, Action>,
 > {
   key: string;
   public?: boolean;
   documentationUrl?: string;
   display: DisplayDefinition & { category?: string; iconPath?: string };
-  actions: Record<string, Action>;
+  actions: TActions;
   triggers: Record<
     string,
     Trigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>
@@ -107,6 +110,39 @@ export interface Action {
   examplePerformSafety?: PerformSafety;
   performSafety?: PerformSafety;
 }
+
+/**
+ * The loosest shape every action form satisfies — the erased {@link Action} and
+ * every {@link ConvertedAction}. `perform` is contravariant in its `params`, so a
+ * typed `perform` is NOT assignable to `ActionPerformFunction`; this bound is what
+ * lets both flow through the same generic constraint.
+ */
+export type AnyConvertedAction = Omit<Action, "perform"> & {
+  perform: (...args: never[]) => unknown;
+};
+
+/**
+ * The converted, on-the-wire form of a single {@link ActionDefinition}, with the
+ * definition's input and return types carried through onto `perform`.
+ *
+ * `inputs` deliberately stays `Input[]` — that positional form is what
+ * `PublishComponent` and the runner's `loadComponent` read, and spectral's own
+ * build reads it at the value level, so it needs no per-key types.
+ */
+export type ConvertedAction<TDef> =
+  TDef extends ActionDefinition<
+    infer TInputs,
+    infer TConfigVars,
+    infer _TAllowsBranching,
+    infer TReturn
+  >
+    ? Omit<Action, "perform"> & {
+        perform: (
+          context: ActionContext<TConfigVars>,
+          params: ActionInputParameters<TInputs>,
+        ) => Promise<TReturn>;
+      }
+    : never;
 
 export type ServerOutputSchema =
   | { type: "actionOutput"; schema: string }
@@ -338,6 +374,9 @@ export interface Trigger<
   isPollingTrigger?: boolean;
 }
 
+/** Any converted trigger, with its type parameters left open. */
+export type AnyTrigger = Trigger<Inputs, Inputs>;
+
 export interface DataSourceContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
 > {
@@ -365,7 +404,11 @@ export interface DataSource {
   perform: DataSourcePerformFunction;
   dataSourceType: DataSourceType;
   examplePayload?: unknown;
+  detailDataSource?: string;
 }
+
+/** Any converted data source, with its type parameters left open. */
+export type AnyDataSource = DataSource;
 
 export enum OAuth2Type {
   ClientCredentials = "client_credentials",
@@ -381,6 +424,9 @@ export interface Connection {
   avatarIconPath?: string;
   inputs: (Input & { shown?: boolean; onPremControlled?: boolean })[];
 }
+
+/** Any converted connection, with its type parameters left open. */
+export type AnyConnection = Connection;
 
 export interface ConnectionValue {
   key: string;
@@ -473,3 +519,7 @@ export interface Input {
 }
 
 export * from "./asyncContext";
+export * from "./callableAction";
+export * from "./callableConnection";
+export * from "./callableDataSource";
+export * from "./callableTrigger";

@@ -432,6 +432,7 @@ export const convertAction = (
     outputSchema,
     examplePerform,
     performSafety,
+    examplePerformSafety,
     ...action
   }: ActionDefinition<Inputs, any, boolean, any>,
   hooks?: ComponentHooks,
@@ -457,7 +458,7 @@ export const convertAction = (
             inputCleaners,
             errorHandler: hooks?.error,
           }),
-          examplePerformSafety: toServerPerformSafety(PerformSafety.SAFE),
+          examplePerformSafety: toServerPerformSafety(examplePerformSafety ?? PerformSafety.SAFE),
         }
       : {}),
     ...(performSafety ? { performSafety: toServerPerformSafety(performSafety) } : {}),
