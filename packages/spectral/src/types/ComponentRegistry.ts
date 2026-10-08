@@ -117,6 +117,17 @@ export const isNpmDataSourceReference = (ref: unknown): ref is NpmDataSourceRefe
   ref !== null &&
   (ref as { __npmDataSourceReference?: unknown }).__npmDataSourceReference === true;
 
+export interface NpmConnectionReference<TConnection = unknown> {
+  __npmConnectionReference: true;
+  connection: TConnection;
+  values: Record<string, unknown>;
+}
+
+export const isNpmConnectionReference = (ref: unknown): ref is NpmConnectionReference =>
+  typeof ref === "object" &&
+  ref !== null &&
+  (ref as { __npmConnectionReference?: unknown }).__npmConnectionReference === true;
+
 type ComponentRegistryFunctionsByType = UnionToIntersection<
   ComponentReferenceType extends infer TComponentReferenceType
     ? TComponentReferenceType extends Extract<

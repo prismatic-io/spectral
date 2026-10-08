@@ -5,6 +5,7 @@
  */
 
 import type {
+  CallableConnectionHelper,
   CallableDataSourceHelper,
   CallableTriggerHelper,
   ConvertedAction,
@@ -679,13 +680,14 @@ export const component = <
         : ConvertedAction<TActions[K]>;
     }
   >,
-  "triggers" | "dataSources"
+  "triggers" | "dataSources" | "connections"
 > & {
   // `ComponentDefinition["triggers"]`/`["dataSources"]` don't preserve each trigger's/data
   // source's own definition type the way `TActions` does for actions (no `TTriggers`/
   // `TDataSources` generic), so — matching their looser, cosmetic-only call-signature bar (see
   // the npm trigger/data-source-reference work) — these stay loose `values? => reference` shapes
-  // rather than per-key-typed ones.
+  // rather than per-key-typed ones. `connections` is looser still — it's an array on
+  // `ComponentDefinition`, not a keyed record, so there's no literal key set to preserve at all.
   triggers: TCallable extends true
     ? Record<string, CallableTriggerHelper<unknown>>
     : ServerComponent<
@@ -706,6 +708,16 @@ export const component = <
         boolean,
         TriggerResult<boolean, TriggerPayload>
       >["dataSources"];
+  connections: TCallable extends true
+    ? Record<string, CallableConnectionHelper>
+    : ServerComponent<
+        Inputs,
+        Inputs,
+        ConfigVarResultCollection,
+        TriggerPayload,
+        boolean,
+        TriggerResult<boolean, TriggerPayload>
+      >["connections"];
 } => {
   const converted = convertComponent(definition) as ServerComponent<
     Inputs,
