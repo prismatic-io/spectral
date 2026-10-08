@@ -1,7 +1,23 @@
+import type {
+  ComponentReference,
+  NpmConnectionReferenceConfigVar,
+  NpmDataSourceReferenceConfigVar,
+} from "../types";
 import type { CollectionType } from "../types/ConfigVars";
-import type { Action, AnyConvertedAction, Component, Input } from ".";
+import type {
+  Action,
+  AnyConnection,
+  AnyConvertedAction,
+  AnyDataSource,
+  AnyTrigger,
+  Component,
+  Input,
+} from ".";
 import { performActionFunctionExecutor } from "./actionExecutor";
 import { requireContext } from "./asyncContext";
+import { type CallableConnectionConfigVar, createCallableConnection } from "./callableConnection";
+import { type CallableDataSourceConfigVar, createCallableDataSource } from "./callableDataSource";
+import { createCallableTrigger, type NpmTriggerReference } from "./callableTrigger";
 import { convertInputValue } from "./convertIntegration";
 
 /** A converted {@link Action}, directly callable with just its input values
@@ -57,12 +73,38 @@ export type MakeCallable<TAction> = TAction extends {
  * form (the legacy self-contained bundle `prism components:publish` uses,
  * manifest generation, low-code).
  */
+/** A trigger reference helper, directly callable with its `values` (e.g.
+ * `slack.triggers.webhook({ ... })`), produced by {@link createCallableTrigger}. */
+export type CallableTriggerHelper<TTrigger> = (
+  values?: ComponentReference["values"],
+) => NpmTriggerReference<TTrigger>;
+
+/** A data source reference helper, directly callable with the config var it should back (e.g.
+ * `foo.dataSources.selectChannels({ stableKey: "...", values: { ... } })`), produced by
+ * {@link createCallableDataSource}. */
+export type CallableDataSourceHelper = (
+  configVar: CallableDataSourceConfigVar,
+) => NpmDataSourceReferenceConfigVar;
+
+/** A connection reference helper, directly callable with the config var it should back (e.g.
+ * `foo.connections.oauth2({ stableKey: "...", values: { ... } })`), produced by
+ * {@link createCallableConnection}. */
+export type CallableConnectionHelper = (
+  configVar: CallableConnectionConfigVar,
+) => NpmConnectionReferenceConfigVar;
+
 export const createCallableComponent = <
   TComponent extends Component<any, any, any, any, any, any, Record<string, AnyConvertedAction>>,
 >(
   component: TComponent,
-): Omit<TComponent, "actions"> & {
+): Omit<TComponent, "actions" | "triggers" | "dataSources" | "connections"> & {
   actions: { [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]> };
+  triggers: {
+    [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
+  };
+  dataSources: { [K in keyof TComponent["dataSources"]]: CallableDataSourceHelper };
+  // `connections` is an array on `Component` (each self-keyed by its own `.key`, e.g. "oauth2")
+  connections: Record<string, CallableConnectionHelper>;
 } => {
   const actions = Object.entries(component.actions).reduce<Record<string, CallableAction>>(
     (result, [key, action]) => {
@@ -72,7 +114,41 @@ export const createCallableComponent = <
     {},
   );
 
-  return { ...component, actions } as unknown as Omit<TComponent, "actions"> & {
+  const triggers = Object.entries(component.triggers ?? {}).reduce<
+    Record<string, CallableTriggerHelper<unknown>>
+  >((result, [key, trigger]) => {
+    result[key] = createCallableTrigger(trigger as AnyTrigger, component.dataSources ?? {});
+    return result;
+  }, {});
+
+  const dataSources = Object.entries(component.dataSources ?? {}).reduce<
+    Record<string, CallableDataSourceHelper>
+  >((result, [key, dataSource]) => {
+    result[key] = createCallableDataSource(
+      dataSource as AnyDataSource,
+      component.dataSources ?? {},
+    );
+    return result;
+  }, {});
+
+  const connections = (component.connections ?? []).reduce<
+    Record<string, CallableConnectionHelper>
+  >((result, connection) => {
+    result[(connection as AnyConnection).key] = createCallableConnection(
+      connection as AnyConnection,
+    );
+    return result;
+  }, {});
+
+  return { ...component, actions, triggers, dataSources, connections } as unknown as Omit<
+    TComponent,
+    "actions" | "triggers" | "dataSources" | "connections"
+  > & {
     actions: { [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]> };
+    triggers: {
+      [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
+    };
+    dataSources: { [K in keyof TComponent["dataSources"]]: CallableDataSourceHelper };
+    connections: Record<string, CallableConnectionHelper>;
   };
 };

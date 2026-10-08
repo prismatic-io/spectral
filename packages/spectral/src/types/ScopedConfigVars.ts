@@ -2,6 +2,7 @@ import {
   type ConfigVar,
   isConnectionDefinitionConfigVar,
   isConnectionReferenceConfigVar,
+  isNpmConnectionReferenceConfigVar,
 } from "./ConfigVars";
 import type { UnionToIntersection } from "./utils";
 
@@ -79,11 +80,12 @@ export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar 
     return false;
   }
 
-  // A declaration carrying a component reference or its own inputs is a connection
-  // definition, not a reference to a Scoped Config Variable.
+  // A declaration carrying a component reference (manifest or npm) or its own inputs is a
+  // connection definition, not a reference to a Scoped Config Variable.
   return (
     !isConnectionDefinitionConfigVar(cv as ConfigVar) &&
-    !isConnectionReferenceConfigVar(cv as ConfigVar)
+    !isConnectionReferenceConfigVar(cv as ConfigVar) &&
+    !isNpmConnectionReferenceConfigVar(cv as ConfigVar)
   );
 };
 

@@ -4,7 +4,14 @@
  * that can run on the Prismatic platform.
  */
 
-import type { ConvertedAction, MakeCallable, Component as ServerComponent } from "./serverTypes";
+import type {
+  CallableConnectionHelper,
+  CallableDataSourceHelper,
+  CallableTriggerHelper,
+  ConvertedAction,
+  MakeCallable,
+  Component as ServerComponent,
+} from "./serverTypes";
 import { createCallableComponent, runWithIntegrationContext } from "./serverTypes";
 import {
   defaultBatchResolver,
@@ -659,30 +666,8 @@ export const component = <
 >(
   definition: ComponentDefinition<TPublic, TKey, TActions>,
   options?: { callable?: TCallable },
-): ServerComponent<
-  Inputs,
-  Inputs,
-  ConfigVarResultCollection,
-  TriggerPayload,
-  boolean,
-  TriggerResult<boolean, TriggerPayload>,
-  {
-    [K in keyof TActions]: TCallable extends true
-      ? MakeCallable<ConvertedAction<TActions[K]>>
-      : ConvertedAction<TActions[K]>;
-  }
-> => {
-  const converted = convertComponent(definition) as ServerComponent<
-    Inputs,
-    Inputs,
-    ConfigVarResultCollection,
-    TriggerPayload,
-    boolean,
-    TriggerResult<boolean, TriggerPayload>,
-    { [K in keyof TActions]: ConvertedAction<TActions[K]> }
-  >;
-
-  return (options?.callable ? createCallableComponent(converted) : converted) as ServerComponent<
+): Omit<
+  ServerComponent<
     Inputs,
     Inputs,
     ConfigVarResultCollection,
@@ -694,7 +679,57 @@ export const component = <
         ? MakeCallable<ConvertedAction<TActions[K]>>
         : ConvertedAction<TActions[K]>;
     }
+  >,
+  "triggers" | "dataSources" | "connections"
+> & {
+  // `ComponentDefinition["triggers"]`/`["dataSources"]` don't preserve each trigger's/data
+  // source's own definition type the way `TActions` does for actions (no `TTriggers`/
+  // `TDataSources` generic), so — matching their looser, cosmetic-only call-signature bar (see
+  // the npm trigger/data-source-reference work) — these stay loose `values? => reference` shapes
+  // rather than per-key-typed ones. `connections` is looser still — it's an array on
+  // `ComponentDefinition`, not a keyed record, so there's no literal key set to preserve at all.
+  triggers: TCallable extends true
+    ? Record<string, CallableTriggerHelper<unknown>>
+    : ServerComponent<
+        Inputs,
+        Inputs,
+        ConfigVarResultCollection,
+        TriggerPayload,
+        boolean,
+        TriggerResult<boolean, TriggerPayload>
+      >["triggers"];
+  dataSources: TCallable extends true
+    ? Record<string, CallableDataSourceHelper>
+    : ServerComponent<
+        Inputs,
+        Inputs,
+        ConfigVarResultCollection,
+        TriggerPayload,
+        boolean,
+        TriggerResult<boolean, TriggerPayload>
+      >["dataSources"];
+  connections: TCallable extends true
+    ? Record<string, CallableConnectionHelper>
+    : ServerComponent<
+        Inputs,
+        Inputs,
+        ConfigVarResultCollection,
+        TriggerPayload,
+        boolean,
+        TriggerResult<boolean, TriggerPayload>
+      >["connections"];
+} => {
+  const converted = convertComponent(definition) as ServerComponent<
+    Inputs,
+    Inputs,
+    ConfigVarResultCollection,
+    TriggerPayload,
+    boolean,
+    TriggerResult<boolean, TriggerPayload>,
+    { [K in keyof TActions]: ConvertedAction<TActions[K]> }
   >;
+
+  return (options?.callable ? createCallableComponent(converted) : converted) as never;
 };
 
 /**

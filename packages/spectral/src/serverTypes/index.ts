@@ -374,6 +374,9 @@ export interface Trigger<
   isPollingTrigger?: boolean;
 }
 
+/** Any converted trigger, with its type parameters left open. */
+export type AnyTrigger = Trigger<Inputs, Inputs>;
+
 export interface DataSourceContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
 > {
@@ -401,7 +404,11 @@ export interface DataSource {
   perform: DataSourcePerformFunction;
   dataSourceType: DataSourceType;
   examplePayload?: unknown;
+  detailDataSource?: string;
 }
+
+/** Any converted data source, with its type parameters left open. */
+export type AnyDataSource = DataSource;
 
 export enum OAuth2Type {
   ClientCredentials = "client_credentials",
@@ -417,6 +424,9 @@ export interface Connection {
   avatarIconPath?: string;
   inputs: (Input & { shown?: boolean; onPremControlled?: boolean })[];
 }
+
+/** Any converted connection, with its type parameters left open. */
+export type AnyConnection = Connection;
 
 export interface ConnectionValue {
   key: string;
@@ -510,3 +520,6 @@ export interface Input {
 
 export * from "./asyncContext";
 export * from "./callableAction";
+export * from "./callableConnection";
+export * from "./callableDataSource";
+export * from "./callableTrigger";
