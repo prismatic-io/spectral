@@ -75,9 +75,7 @@ const syncFlow = flow({
   stableKey: "sync-records",
   description: "Syncs mapped records on a schedule",
   onExecution: async (context) => {
-    // `configuration` and `connections` reach a flow only once an integration
-    // augments `Experimental`, which is global to a compilation and so cannot
-    // happen here without reaching the rest of the suite.
+    // Definition augmentation is global, so this shared fixture narrows its own values.
     const { configuration, userConfiguration, connections } = context as typeof context & {
       configuration?: { mappings?: Array<{ source: string }> };
       userConfiguration?: { channel?: string };

@@ -5,7 +5,6 @@ import type { ActionPerformReturn } from "./ActionPerformReturn";
 import type { BatchInfo } from "./BatchContext";
 import type { ComponentManifest } from "./ComponentManifest";
 import type { CustomerAttributes } from "./CustomerAttributes";
-import type { WithExperimentalFlag } from "./Experimental";
 import type { FlowAttributes } from "./FlowAttributes";
 import type { FlowSchemas } from "./FlowSchemas";
 import type { ConfigVarResultCollection, Inputs } from "./Inputs";
@@ -182,12 +181,11 @@ export type ActionContext<
    * the size of the batches for each run of the flow.
    */
   batch?: BatchInfo;
-} & WithExperimentalFlag<"integrationConfiguration", IntegrationConfigurationContext>;
+} & IntegrationConfigurationContext;
 
 /**
- * What an execution context carries once an integration opts into the
- * `integrationConfiguration` flag, typed by its `IntegrationDefinitionConfiguration`
- * augmentation.
+ * Configuration supplied to execution contexts, typed by the integration's
+ * `IntegrationDefinitionConfiguration` augmentation when declared.
  */
 export interface IntegrationConfigurationContext {
   /** The value of the instance configuration, supplied already parsed. */
