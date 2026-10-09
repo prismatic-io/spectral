@@ -11,6 +11,21 @@ const schema = z.object({});
 const binding = { fields: { token: "secret" } };
 
 describe("scoped configuration boundaries", () => {
+  it("publishes custom UI metadata independently for both scopes", () => {
+    const instanceUi = { type: "custom", value: { widget: "mapping", nested: [1, null] } } as const;
+    const userUi = {
+      type: "uiSchema",
+      value: { type: "Control", scope: "#/properties/name" },
+    } as const;
+    const converted = convertIntegrationConfiguration({
+      instance: { schema, version: "1", ui: instanceUi },
+      userLevel: { schema, version: "1", ui: userUi },
+    });
+
+    expect(converted.configuration.instance.ui).toEqual(instanceUi);
+    expect(converted.configuration.userLevel?.ui).toEqual(userUi);
+  });
+
   it("publishes the current schema only once even when history repeats its version", () => {
     const current = { type: "object", properties: { name: { type: "string" } } } as const;
     const historical = { type: "object", properties: { id: { type: "number" } } } as const;

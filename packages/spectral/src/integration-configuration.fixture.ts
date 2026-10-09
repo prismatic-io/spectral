@@ -125,7 +125,7 @@ export const integrationConfigurationDefinition = {
   configuration: configuration({
     instance: {
       schema: configurationSchema,
-      uiSchema: configurationUiSchema,
+      ui: { type: "uiSchema", value: configurationUiSchema },
       version: CONFIGURATION_VERSION,
       versionSchemas,
       configPagesSchema,
@@ -196,7 +196,7 @@ export const integrationConfigurationDefinition = {
 
 export const configuredIntegration = integration(integrationConfigurationDefinition as never);
 
-/** A minimal definition with no `init` and no `uiSchema`, to assert the defaults. */
+/** A minimal definition with no `init` and no `ui`, to assert the defaults. */
 export const noInitDefinition = {
   name: "Integration Configuration Without Init",
   description: "Fixture for the no-init path",

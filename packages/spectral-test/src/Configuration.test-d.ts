@@ -162,3 +162,20 @@ configuration({
     },
   },
 });
+
+configuration({
+  instance: { schema, version: "v1", ui: { type: "uiSchema", value: { type: "Control" } } },
+  userLevel: { schema, version: "v1", ui: { type: "custom", value: ["custom", 1] } },
+});
+
+expectError(
+  configuration({
+    instance: { schema, version: "v1", ui: { type: "unknown", value: {} } },
+  }),
+);
+
+expectError(
+  configuration({
+    instance: { schema, version: "v1", ui: { type: "uiSchema" } },
+  }),
+);
