@@ -9,8 +9,8 @@ import type {
   AnyIntegrationConfiguration,
   AnyServerFunction,
   ConfigurationScope,
+  ConfigurationUi,
   JsonSchema,
-  UiSchema,
 } from "../types/IntegrationConfiguration";
 import {
   isConnectionScopedConfigVar,
@@ -29,13 +29,12 @@ import { createComponentMethods } from "./context";
  */
 
 /**
- * `schema` and `uiSchema` are objects, not JSON strings: the platform declares
- * them `map(any(), key=str())`, so a serialized one fails at import.
+ * Schemas and UI metadata stay structured so the platform can import them.
  */
 export interface ConfigurationDescriptorYaml {
   schema: JsonSchema;
   /** Omitted when the author wrote none, which the platform stores as null. */
-  uiSchema?: UiSchema;
+  ui?: ConfigurationUi;
   version: string;
   versionSchemas?: Record<string, JsonSchema>;
 }
@@ -107,7 +106,7 @@ export const convertIntegrationConfiguration = (
     return {
       schema: toJsonSchema(scope.schema),
       version: scope.version,
-      ...(scope.uiSchema ? { uiSchema: scope.uiSchema } : {}),
+      ...(scope.ui ? { ui: scope.ui } : {}),
       ...(scope.versionSchemas
         ? {
             versionSchemas: Object.fromEntries(
