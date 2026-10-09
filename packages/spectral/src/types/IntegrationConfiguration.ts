@@ -114,6 +114,14 @@ export type ConfigurationInitContext<
   connections: ConfigurationConnections<TConnectionKey>;
   configVars: Record<string, unknown>;
 } & ConfigurationVersionArms<TInstance>;
+export type ConfigurationInitResult<
+  TInstance extends ConfigurationScope<unknown>,
+  TUserLevel extends ConfigurationScope<unknown> | undefined = undefined,
+> = {
+  configuration: ConfigurationValue<TInstance["schema"]>;
+} & (TUserLevel extends ConfigurationScope<unknown>
+  ? { userConfiguration: ConfigurationValue<TUserLevel["schema"]> }
+  : Record<never, never>);
 export type AnyConfigurationInit = (context: never) => Promise<unknown>;
 export interface AnyIntegrationConfiguration {
   instance: ConfigurationScope;

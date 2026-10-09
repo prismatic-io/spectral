@@ -162,8 +162,13 @@ export const integrationConfigurationDefinition = {
     init: {
       connections: ["instance.orgConnection", "userLevel.orgConnection"],
       perform: async (context) => {
+        const userConfiguration = { channel: "" };
         if (context.configurationVersion === null) {
           return {
+            configuration: {
+              mappings: context.configuration?.pairs?.map((mapping) => ({ ...mapping })) ?? [],
+            },
+            userConfiguration,
             previousValues: context.configuration,
             migratedValues: { mappings: context.configuration?.pairs ?? [] },
             configurationVersion: context.configurationVersion,
@@ -171,6 +176,10 @@ export const integrationConfigurationDefinition = {
         }
         if (context.configurationVersion === PREVIOUS_CONFIGURATION_VERSION) {
           return {
+            configuration: {
+              mappings: context.configuration.pairs.map((mapping) => ({ ...mapping })),
+            },
+            userConfiguration,
             previousValues: context.configuration,
             migratedValues: { mappings: context.configuration.pairs },
             configurationVersion: context.configurationVersion,
@@ -178,12 +187,18 @@ export const integrationConfigurationDefinition = {
         }
         if (context.configurationVersion === CONFIGURATION_VERSION) {
           return {
+            configuration: {
+              mappings: context.configuration.mappings.map((mapping) => ({ ...mapping })),
+            },
+            userConfiguration,
             previousValues: context.configuration,
             migratedValues: context.configuration,
             configurationVersion: context.configurationVersion,
           };
         }
         return {
+          configuration: { mappings: [] },
+          userConfiguration,
           previousValues: context.configuration,
           migratedValues: { mappings: [] },
           configurationVersion: context.configurationVersion,
