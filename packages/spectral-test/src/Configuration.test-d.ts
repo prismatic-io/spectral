@@ -6,6 +6,7 @@ import {
   userActivatedConnection,
 } from "@prismatic-io/spectral";
 import { expectError, expectType } from "tsd";
+import { z } from "zod";
 
 const schema = {
   type: "object",
@@ -63,7 +64,11 @@ const definition = configuration({
         expectType<{ readonly name: string }>(context.configuration);
         expectType<unknown>(context.userConfiguration);
       }
-      return { initialized: true };
+      return {
+        configuration: { name: "" },
+        userConfiguration: { name: "" },
+        initialized: true,
+      };
     },
   },
 });
@@ -79,7 +84,7 @@ expectError(
     userLevel,
     init: {
       connections: ["userLevel.instanceOnly"],
-      perform: async () => ({}),
+      perform: async () => ({ configuration: { name: "" }, userConfiguration: { name: "" } }),
     },
   }),
 );
@@ -90,7 +95,7 @@ expectError(
     userLevel,
     init: {
       connections: ["instance.userOnly"],
-      perform: async () => ({}),
+      perform: async () => ({ configuration: { name: "" }, userConfiguration: { name: "" } }),
     },
   }),
 );
@@ -100,7 +105,7 @@ expectError(
     instance,
     init: {
       connections: ["userLevel.shared"],
-      perform: async () => ({}),
+      perform: async () => ({ configuration: { name: "" } }),
     },
   }),
 );
@@ -158,7 +163,99 @@ configuration({
     perform: async (context) => {
       // @ts-expect-error no initializer dependencies were declared
       context.connections.instance.shared;
-      return {};
+      return { configuration: { name: "" } };
     },
   },
 });
+
+expectError(
+  configuration({
+    instance,
+    init: { perform: async () => ({ initialized: true }) },
+  }),
+);
+
+expectError(
+  configuration({
+    instance,
+    init: { perform: async () => ({ configuration: { name: 42 } }) },
+  }),
+);
+
+expectError(
+  configuration({
+    instance,
+    userLevel,
+    init: { perform: async () => ({ configuration: { name: "" } }) },
+  }),
+);
+
+expectError(
+  configuration({
+    instance,
+    userLevel,
+    init: {
+      perform: async () => ({
+        configuration: { name: "" },
+        userConfiguration: { name: false },
+      }),
+    },
+  }),
+);
+
+const zodInstance = { schema: z.object({ count: z.number() }), version: "v1" };
+const zodUser = { schema: z.object({ locale: z.string() }), version: "user-v1" };
+const zodDefinition = configuration({
+  instance: zodInstance,
+  userLevel: zodUser,
+  init: {
+    perform: async () => ({
+      configuration: { count: 0 },
+      userConfiguration: { locale: "" },
+      choices: ["en"],
+    }),
+  },
+});
+type ZodInitResult = Awaited<ReturnType<NonNullable<typeof zodDefinition.init>["perform"]>>;
+expectType<{
+  configuration: { count: number };
+  userConfiguration: { locale: string };
+  choices: string[];
+}>({} as ZodInitResult);
+
+expectError(
+  configuration({
+    instance: zodInstance,
+    init: { perform: async () => ({ configuration: { count: "wrong" } }) },
+  }),
+);
+
+expectError(
+  configuration({
+    instance: zodInstance,
+    userLevel: zodUser,
+    init: {
+      perform: async () => ({
+        configuration: { count: 0 },
+        userConfiguration: { locale: 42 },
+      }),
+    },
+  }),
+);
+
+configuration({
+  instance: { schema, version: "v1", ui: { type: "uiSchema", value: { type: "Control" } } },
+  userLevel: { schema, version: "v1", ui: { type: "custom", value: ["custom", 1] } },
+});
+
+expectError(
+  configuration({
+    instance: { schema, version: "v1", ui: { type: "unknown", value: {} } },
+  }),
+);
+
+expectError(
+  configuration({
+    instance: { schema, version: "v1", ui: { type: "uiSchema" } },
+  }),
+);

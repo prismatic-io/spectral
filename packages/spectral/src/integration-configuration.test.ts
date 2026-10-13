@@ -204,9 +204,7 @@ describe("configuration is a platform model, not a config variable", () => {
     expect(parse(emitted).configuration.userLevel.version).toBe(USER_CONFIGURATION_VERSION);
   });
 
-  it("emits schema and uiSchema as objects, not JSON strings", () => {
-    // The platform declares them `map(any(), key=str())`; serializing them, as
-    // Action.outputSchema does, fails import validation.
+  it("emits schema and ui as objects, not JSON strings", () => {
     const emitted = yaml();
 
     // A serialized schema would appear as a quoted `{"type":"object"...}` blob.
@@ -242,7 +240,7 @@ describe("init rides the component's configuration export, not a data source", (
   });
 
   it("emits no init at all when the author wrote none", () => {
-    // Nothing to publish: schema and uiSchema live on the model, so no data
+    // Nothing to publish: schema and ui live on the model, so no data
     // source has to exist just to carry them.
     const { configuration, configurationInit } = noInitIntegration as unknown as {
       configuration?: unknown;
@@ -572,7 +570,7 @@ describe("one context for init and flows", () => {
   });
 });
 
-describe("schema and uiSchema are published on the model, not as inputs", () => {
+describe("schema and ui are published on the model, not as inputs", () => {
   it("carries the converted JSON Schema in the YAML configuration block", () => {
     const emitted = yaml();
 
@@ -580,33 +578,38 @@ describe("schema and uiSchema are published on the model, not as inputs", () => 
     expect(emitted).toContain(`version: ${CONFIGURATION_VERSION}`);
   });
 
-  it("carries the author's uiSchema verbatim", () => {
+  it("carries the author's wrapped UI schema verbatim", () => {
     // Including the nested `scope` pointers, which a shallow key check misses.
     const emitted = yaml();
 
+    expect(parse(emitted).configuration.instance.ui).toEqual({
+      type: "uiSchema",
+      value: configurationUiSchema,
+    });
     expect(emitted).toContain(`type: ${configurationUiSchema.type}`);
     for (const element of configurationUiSchema.elements) {
       expect(emitted).toContain(element.scope);
     }
   });
 
-  it("omits uiSchema when the author wrote none", () => {
+  it("omits ui when the author wrote none", () => {
     // The platform stores absence as null, so emitting a bare layout would
     // claim the author chose one.
     const { codeNativeIntegrationYAML } = noInitIntegration as unknown as {
       codeNativeIntegrationYAML: string;
     };
 
-    expect(codeNativeIntegrationYAML).not.toContain("uiSchema");
+    expect(parse(codeNativeIntegrationYAML).configuration.instance).not.toHaveProperty("ui");
   });
 
-  it("emits no schema, uiSchema or version input on any data source", () => {
+  it("emits no schema, ui or version input on any data source", () => {
     // As input defaults these were editable by anyone opening the generated
     // component in the Designer.
     for (const source of Object.values(convert().dataSources ?? {})) {
       const keys = (source.inputs ?? []).map((input) => input.key);
 
       expect(keys).not.toContain("schema");
+      expect(keys).not.toContain("ui");
       expect(keys).not.toContain("uiSchema");
       expect(keys).not.toContain("version");
       expect(keys).not.toContain("eTag");

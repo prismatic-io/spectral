@@ -23,6 +23,7 @@ import type {
   ComponentManifest,
   ConfigPage,
   ConfigurationInitContext,
+  ConfigurationInitResult,
   ConfigurationScope,
   ConfigurationValue,
   ConfigVarResultCollection,
@@ -312,6 +313,10 @@ export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T 
  * Qualified connection prerequisites such as "instance.airtable" are exposed as
  * context.connections.instance.airtable. Init and server functions receive only
  * their declared dependencies.
+ * Init returns `configuration` matching the current instance schema, and
+ * `userConfiguration` matching the current user-level schema when declared.
+ * Additional result properties are preserved. These are type constraints only:
+ * migrated values can require correction before save-time validation.
  * @returns The definition, for use as an integration's `configuration`.
  * @example
  * import { z } from "zod";
@@ -326,9 +331,9 @@ export const configPage = <T extends ConfigPage = ConfigPage>(definition: T): T 
  *   init: {
  *     perform: async (context) => {
  *       if (context.configurationVersion === "config-v1") {
- *         return { proposedValues: { objectName: context.configuration.objectKey } };
+ *         return { configuration: { objectName: context.configuration.objectKey } };
  *       }
- *       return { proposedValues: { objectName: "" } };
+ *       return { configuration: { objectName: "" } };
  *     },
  *   },
  * });
@@ -338,7 +343,7 @@ export const configuration = <
   const U extends ConfigurationScope<UserConfigurationConnection> | undefined = undefined,
   const F extends Record<string, AnyServerFunction> = Record<never, never>,
   const K extends QualifiedConnectionKeys<I, U> = never,
-  TInitResult = unknown,
+  TInitResult extends ConfigurationInitResult<I, U> = ConfigurationInitResult<I, U>,
 >(
   definition: {
     instance: I;

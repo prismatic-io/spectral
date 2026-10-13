@@ -11,6 +11,34 @@ const schema = z.object({});
 const binding = { fields: { token: "secret" } };
 
 describe("scoped configuration boundaries", () => {
+  it("publishes custom UI metadata independently for both scopes", () => {
+    const instanceUi = { type: "custom", value: { widget: "mapping", nested: [1, null] } } as const;
+    const userUi = {
+      type: "uiSchema",
+      value: { type: "Control", scope: "#/properties/name" },
+    } as const;
+    const converted = convertIntegrationConfiguration({
+      instance: { schema, version: "1", ui: instanceUi },
+      userLevel: { schema, version: "1", ui: userUi },
+    });
+
+    expect(converted.configuration.instance.ui).toEqual(instanceUi);
+    expect(converted.configuration.userLevel?.ui).toEqual(userUi);
+  });
+
+  it("preserves init values requiring correction and author-defined result metadata", async () => {
+    const validatedSchema = z.object({ name: z.string().min(5) });
+    const result = { configuration: { name: "" }, choices: ["example"] };
+    const definition = configuration({
+      instance: { schema: validatedSchema, version: "1" },
+      init: { perform: async () => result },
+    });
+    const converted = convertIntegrationConfiguration(definition);
+
+    expect(validatedSchema.safeParse(result.configuration).success).toBe(false);
+    await expect(converted.componentConfiguration?.init.perform({})).resolves.toBe(result);
+  });
+
   it("publishes the current schema only once even when history repeats its version", () => {
     const current = { type: "object", properties: { name: { type: "string" } } } as const;
     const historical = { type: "object", properties: { id: { type: "number" } } } as const;
@@ -100,7 +128,7 @@ describe("scoped configuration boundaries", () => {
           version: "1",
           connections: { airtable: userActivatedConnection({ stableKey: "user" }) },
         },
-        init: { connections: ["instance.airtable"], perform: async () => null },
+        init: { connections: ["instance.airtable"], perform: async () => ({ configuration: {} }) },
       }),
     ).toThrow('Undeclared configuration connection: "instance.airtable"');
   });

@@ -7,6 +7,7 @@ import type {
 } from "@prismatic-io/spectral";
 import {
   configuration,
+  flow,
   organizationActivatedConnection,
   userActivatedConnection,
 } from "@prismatic-io/spectral";
@@ -55,9 +56,19 @@ expectType<Connection>(connections.userLevel.airtable);
 // @ts-expect-error only declared connection names are exposed after augmentation
 connections.userLevel.warehouse;
 
-// An execution context carries the same types once the flag is on. The flag itself is
-// global to a compilation, so the gated shape is asserted directly.
 declare const executionContext: IntegrationConfigurationContext;
 expectType<{ locale: string } | undefined>(executionContext.userConfiguration);
 expectType<{ region: string } | undefined>(executionContext.configuration);
 expectType<Connection | undefined>(executionContext.connections?.userLevel?.airtable);
+
+flow({
+  name: "Configured flow",
+  stableKey: "configured-flow",
+  onExecution: async (context) => {
+    expectType<{ region: string } | undefined>(context.configuration);
+    expectType<{ locale: string } | undefined>(context.userConfiguration);
+    expectType<Connection | undefined>(context.connections?.instance?.airtable);
+    expectType<Connection | undefined>(context.connections?.userLevel?.airtable);
+    return { data: context.configuration };
+  },
+});

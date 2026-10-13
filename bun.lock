@@ -96,6 +96,7 @@
         "@prismatic-io/spectral": "*",
         "@types/node": "26.6.2",
         "tsd": "^0.33.0",
+        "zod": "^4.6.5",
       },
     },
   },

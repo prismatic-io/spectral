@@ -47,7 +47,7 @@ describe("configuration version narrowing", () => {
         perform: async (context) => {
           if (context.configurationVersion === "config-v1") {
             expectTypeOf(context.configuration).toEqualTypeOf<{ readonly objectKey: string }>();
-            return {};
+            return { configuration: { objectName: context.configuration.objectKey, mappings: [] } };
           }
 
           if (context.configurationVersion === CURRENT_VERSION) {
@@ -55,10 +55,12 @@ describe("configuration version narrowing", () => {
               readonly objectName: string;
               readonly mappings: Mappings;
             }>();
-            return {};
+            return {
+              configuration: { objectName: context.configuration.objectName, mappings: [] },
+            };
           }
 
-          return {};
+          return { configuration: { objectName: "", mappings: [] } };
         },
       },
     });
@@ -79,7 +81,7 @@ describe("configuration version narrowing", () => {
               readonly region?: string;
             }>();
           }
-          return {};
+          return { configuration: { objectName: "", mappings: [] } };
         },
       },
     });
@@ -101,7 +103,7 @@ describe("configuration version narrowing", () => {
           ) {
             expectTypeOf(context.configuration).toEqualTypeOf<unknown>();
           }
-          return {};
+          return { configuration: { objectName: "", mappings: [] } };
         },
       },
     });
@@ -124,7 +126,7 @@ describe("configuration version narrowing", () => {
               readonly mappings: Mappings;
             }>();
           }
-          return {};
+          return { configuration: { objectName: "", mappings: [] } };
         },
       },
     });
@@ -141,7 +143,7 @@ describe("configuration version narrowing", () => {
           if (context.configurationVersion === CURRENT_VERSION) {
             expectTypeOf(context.configuration.mappings).toEqualTypeOf<Mappings>();
           }
-          return {};
+          return { configuration: { objectName: "", mappings: [] } };
         },
       },
     });
@@ -154,14 +156,25 @@ describe("configuration version narrowing", () => {
         version: CURRENT_VERSION,
         versionSchemas: { "config-v1": v1Schema },
       },
-      init: { perform: async () => ({ migrated: true }) },
+      init: {
+        perform: async () => ({
+          configuration: {
+            objectName: "",
+            mappings: [] as { source: string; destination: string }[],
+          },
+          migrated: true,
+        }),
+      },
     });
 
     expectTypeOf(definition.instance.schema).toEqualTypeOf<typeof currentSchema>();
     expectTypeOf(definition.instance.version).toEqualTypeOf<typeof CURRENT_VERSION>();
 
     type InitResult = Awaited<ReturnType<NonNullable<typeof definition.init>["perform"]>>;
-    expectTypeOf<InitResult>().toEqualTypeOf<{ migrated: boolean }>();
+    expectTypeOf<InitResult>().toEqualTypeOf<{
+      configuration: { objectName: string; mappings: { source: string; destination: string }[] };
+      migrated: boolean;
+    }>();
   });
 
   it("narrows only instance values even when user versions have identical names", () => {
@@ -197,7 +210,10 @@ describe("configuration version narrowing", () => {
               readonly mappings: Mappings;
             }>();
           }
-          return {};
+          return {
+            configuration: { objectName: "", mappings: [] },
+            userConfiguration: { locale: "" },
+          };
         },
       },
     });
@@ -225,7 +241,10 @@ describe("configuration version narrowing", () => {
             expectTypeOf(context.configuration).toEqualTypeOf<unknown>();
             expectTypeOf(context.userConfiguration).toEqualTypeOf<unknown>();
           }
-          return {};
+          return {
+            configuration: { objectName: "", mappings: [] },
+            userConfiguration: { locale: "" },
+          };
         },
       },
     });

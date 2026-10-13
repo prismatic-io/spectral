@@ -75,9 +75,7 @@ const syncFlow = flow({
   stableKey: "sync-records",
   description: "Syncs mapped records on a schedule",
   onExecution: async (context) => {
-    // `configuration` and `connections` reach a flow only once an integration
-    // augments `Experimental`, which is global to a compilation and so cannot
-    // happen here without reaching the rest of the suite.
+    // Definition augmentation is global, so this shared fixture narrows its own values.
     const { configuration, userConfiguration, connections } = context as typeof context & {
       configuration?: { mappings?: Array<{ source: string }> };
       userConfiguration?: { channel?: string };
@@ -125,7 +123,7 @@ export const integrationConfigurationDefinition = {
   configuration: configuration({
     instance: {
       schema: configurationSchema,
-      uiSchema: configurationUiSchema,
+      ui: { type: "uiSchema", value: configurationUiSchema },
       version: CONFIGURATION_VERSION,
       versionSchemas,
       configPagesSchema,
@@ -162,8 +160,13 @@ export const integrationConfigurationDefinition = {
     init: {
       connections: ["instance.orgConnection", "userLevel.orgConnection"],
       perform: async (context) => {
+        const userConfiguration = { channel: "" };
         if (context.configurationVersion === null) {
           return {
+            configuration: {
+              mappings: context.configuration?.pairs?.map((mapping) => ({ ...mapping })) ?? [],
+            },
+            userConfiguration,
             previousValues: context.configuration,
             migratedValues: { mappings: context.configuration?.pairs ?? [] },
             configurationVersion: context.configurationVersion,
@@ -171,6 +174,10 @@ export const integrationConfigurationDefinition = {
         }
         if (context.configurationVersion === PREVIOUS_CONFIGURATION_VERSION) {
           return {
+            configuration: {
+              mappings: context.configuration.pairs.map((mapping) => ({ ...mapping })),
+            },
+            userConfiguration,
             previousValues: context.configuration,
             migratedValues: { mappings: context.configuration.pairs },
             configurationVersion: context.configurationVersion,
@@ -178,12 +185,18 @@ export const integrationConfigurationDefinition = {
         }
         if (context.configurationVersion === CONFIGURATION_VERSION) {
           return {
+            configuration: {
+              mappings: context.configuration.mappings.map((mapping) => ({ ...mapping })),
+            },
+            userConfiguration,
             previousValues: context.configuration,
             migratedValues: context.configuration,
             configurationVersion: context.configurationVersion,
           };
         }
         return {
+          configuration: { mappings: [] },
+          userConfiguration,
           previousValues: context.configuration,
           migratedValues: { mappings: [] },
           configurationVersion: context.configurationVersion,
@@ -196,7 +209,7 @@ export const integrationConfigurationDefinition = {
 
 export const configuredIntegration = integration(integrationConfigurationDefinition as never);
 
-/** A minimal definition with no `init` and no `uiSchema`, to assert the defaults. */
+/** A minimal definition with no `init` and no `ui`, to assert the defaults. */
 export const noInitDefinition = {
   name: "Integration Configuration Without Init",
   description: "Fixture for the no-init path",

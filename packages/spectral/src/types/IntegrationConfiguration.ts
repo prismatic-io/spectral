@@ -33,6 +33,9 @@ export type StoredConfigurationValue<TSchema extends SchemaInput> = DeepReadonly
   ConfigurationValue<TSchema>
 >;
 export type UiSchema = { readonly [key: string]: unknown };
+export type ConfigurationUi =
+  | { type: "uiSchema"; value: UiSchema }
+  | { type: "custom"; value: unknown };
 export type VersionSchemas = Record<string, SchemaInput>;
 export type ConfigurationConnection =
   | CustomerActivatedConnectionConfigVar
@@ -42,7 +45,7 @@ export type UserConfigurationConnection = UserActivatedConnectionConfigVar | Con
 export interface ConfigurationScope<TConnection = ConfigurationConnection> {
   schema: SchemaInput;
   version: string;
-  uiSchema?: UiSchema;
+  ui?: ConfigurationUi;
   /** Published historical schemas used to narrow migration values. */
   versionSchemas?: VersionSchemas;
   /** Authoring-only shape for values migrated from legacy config pages. */
@@ -111,6 +114,14 @@ export type ConfigurationInitContext<
   connections: ConfigurationConnections<TConnectionKey>;
   configVars: Record<string, unknown>;
 } & ConfigurationVersionArms<TInstance>;
+export type ConfigurationInitResult<
+  TInstance extends ConfigurationScope<unknown>,
+  TUserLevel extends ConfigurationScope<unknown> | undefined = undefined,
+> = {
+  configuration: ConfigurationValue<TInstance["schema"]>;
+} & (TUserLevel extends ConfigurationScope<unknown>
+  ? { userConfiguration: ConfigurationValue<TUserLevel["schema"]> }
+  : Record<never, never>);
 export type AnyConfigurationInit = (context: never) => Promise<unknown>;
 export interface AnyIntegrationConfiguration {
   instance: ConfigurationScope;
