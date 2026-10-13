@@ -206,9 +206,8 @@ describe("util", () => {
 
   describe("date", () => {
     const invalidValues = fc.oneof(
-      // Filter out numerical strings as many of those are valid enough for ISO
-      // TODO: Figure out if this is fine or if we should only accept specific formats
-      fc.string().filter((v) => !Number.parseInt(v, 10)),
+      // Numeric strings are coerced as unix timestamps
+      fc.string().filter((v) => Number.isNaN(Number(v))),
     );
 
     fcTest.prop([fc.date({ noInvalidDate: true })])("detects date value", (v) => {
