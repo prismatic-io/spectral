@@ -1,20 +1,29 @@
 import { isAbsolute, relative } from "path";
-import { codemods } from "./codemods";
+import { type Codemod, codemodId } from "./codemod";
+import { codemods, resolveCodemod } from "./codemods";
 import { runCodemod } from "./runner";
 
-const USAGE = `Usage: spectral-codemod <codemod> [path] [--dry-run]
+const USAGE = `Usage: spectral-codemod v<version>/<codemod> [path] [--dry-run]
+       spectral-codemod <codemod> --target-spectral <version> [path] [--dry-run]
        spectral-codemod --list
 
-Applies a named migration to the project at <path> (default: the current directory).
+Applies a migration to the project at <path> (default: the current directory).
+Name the codemod with its version, such as v10.0.0/integration-configuration, or
+name it alone and pass the spectral version to migrate to. The latest version of
+the codemod at or below that version runs.
 
 Options:
-  --dry-run   Report the files that would change without writing them.
-  --list      Print the available codemods.
-  --help      Print this message.`;
+  --target-spectral <version>  The spectral version to migrate to, such as 10.3.1.
+  --dry-run                    Report the files that would change without writing them.
+  --list                       Print the available codemods.
+  --help                       Print this message.`;
+
+const TARGET_SPECTRAL = "--target-spectral";
 
 interface ParsedArgs {
   codemod?: string;
   path?: string;
+  targetSpectral?: string;
   dryRun: boolean;
   list: boolean;
   help: boolean;
@@ -23,8 +32,15 @@ interface ParsedArgs {
 export const parseArgs = (argv: string[]): ParsedArgs => {
   const parsed: ParsedArgs = { dryRun: false, list: false, help: false };
   const positional: string[] = [];
-  for (const arg of argv) {
-    if (arg === "--dry-run") {
+  for (let index = 0; index < argv.length; index++) {
+    const arg = argv[index];
+    if (arg === TARGET_SPECTRAL || arg.startsWith(`${TARGET_SPECTRAL}=`)) {
+      const value = arg === TARGET_SPECTRAL ? argv[++index] : arg.slice(TARGET_SPECTRAL.length + 1);
+      if (!value || value.startsWith("-")) {
+        throw new Error(`${TARGET_SPECTRAL} needs a spectral version.\n\n${USAGE}`);
+      }
+      parsed.targetSpectral = value;
+    } else if (arg === "--dry-run") {
       parsed.dryRun = true;
     } else if (arg === "--list") {
       parsed.list = true;
@@ -44,9 +60,9 @@ export const parseArgs = (argv: string[]): ParsedArgs => {
 };
 
 export const listCodemods = (): string => {
-  const width = Math.max(...[...codemods.keys()].map((name) => name.length));
-  return [...codemods.values()]
-    .map((mod) => `  ${mod.name.padEnd(width)}  ${mod.description}`)
+  const width = Math.max(...[...codemods.keys()].map((id) => id.length));
+  return [...codemods.entries()]
+    .map(([id, mod]) => `  ${id.padEnd(width)}  ${mod.description}`)
     .join("\n");
 };
 
@@ -76,15 +92,19 @@ export const main = async (
     return 1;
   }
 
-  const codemod = codemods.get(args.codemod);
-  if (!codemod) {
-    io.error(`Unknown codemod "${args.codemod}". Available codemods:\n${listCodemods()}`);
+  let codemod: Codemod;
+  try {
+    codemod = resolveCodemod(args.codemod, args.targetSpectral);
+  } catch (error) {
+    io.error(`${(error as Error).message} Available codemods:\n${listCodemods()}`);
     return 1;
   }
 
   const result = await runCodemod(codemod, { path: args.path, dryRun: args.dryRun });
   const verb = args.dryRun ? "would change" : "changed";
-  io.log(`${codemod.name}: scanned ${result.scanned} files, ${verb} ${result.changed.length}`);
+  io.log(
+    `${codemodId(codemod)}: scanned ${result.scanned} files, ${verb} ${result.changed.length}`,
+  );
   for (const file of result.changed) {
     io.log(`  ${displayPath(file)}`);
   }

@@ -5,7 +5,9 @@ import type { Project, SourceFile } from "ts-morph";
  * and returns the files it changed; the runner saves only those.
  */
 export interface Codemod {
-  /** Name given on the command line: `spectral-codemod <name> [path]`. */
+  /** The spectral release the codemod migrates a project to, such as `10.0.0`. */
+  version: string;
+  /** The name of the migration, shared by each of its versions, such as `integration-configuration`. */
   name: string;
   /** One line shown by `--list`. */
   description: string;
@@ -13,6 +15,9 @@ export interface Codemod {
 }
 
 export const defineCodemod = (codemod: Codemod): Codemod => codemod;
+
+/** The versioned name given on the command line, such as `v10.0.0/integration-configuration`. */
+export const codemodId = (codemod: Codemod): string => `v${codemod.version}/${codemod.name}`;
 
 /** Lifts a file-level transform, which reports whether it changed the file, to a project transform. */
 export const eachFile =
