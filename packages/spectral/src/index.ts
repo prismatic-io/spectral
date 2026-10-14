@@ -10,6 +10,7 @@ import type {
   CallableDataSourceHelper,
   CallableTriggerHelper,
   ConvertedAction,
+  ErasedConvertedAction,
   Component as ServerComponent,
 } from "./serverTypes";
 import { createCallableComponent, runWithIntegrationContext } from "./serverTypes";
@@ -674,7 +675,11 @@ export const component = <
     TriggerPayload,
     boolean,
     TriggerResult<boolean, TriggerPayload>,
-    {
+    // The index signature comes first so that, on a literal key, the typed entry's `perform`
+    // is the last overload — the one `ReturnType`/`Parameters` read — while a runtime string
+    // key still resolves, as `Record<string, Action>` let it before action types were carried
+    // through here.
+    Record<string, ErasedConvertedAction> & {
       [K in keyof TActions]: TCallable extends true
         ? CallableConvertedAction<TActions[K]>
         : ConvertedAction<TActions[K]>;

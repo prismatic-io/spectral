@@ -96,7 +96,16 @@ export interface Action {
   allowsBranching?: boolean;
   staticBranchNames?: string[];
   dynamicBranchInput?: string;
-  perform: ActionPerformFunction;
+  /**
+   * Declared as a method rather than a property on purpose. A converted action keeps its
+   * definition's own `params` and return types on `perform` (see {@link ConvertedAction}), and
+   * a property-typed function is checked contravariantly in `params` under
+   * `strictFunctionTypes`, which would stop every such action — and every `component()`
+   * result — from satisfying this erased shape. Method parameters are checked bivariantly, so
+   * the erased `Action` keeps accepting each converted form, as it did before `component()`
+   * carried those types through.
+   */
+  perform(context: ActionContext, params: Record<string, unknown>): Promise<ActionPerformReturn>;
   examplePayload?: unknown;
   /**
    * The on-the-wire form of an action's `outputSchema`, as accepted by the
@@ -119,6 +128,17 @@ export interface Action {
  */
 export type AnyConvertedAction = Omit<Action, "perform"> & {
   perform: (...args: never[]) => unknown;
+};
+
+/**
+ * What `component().actions[key]` yields for a runtime string `key`: the erased {@link Action}
+ * shape, which is all a key that isn't a literal can promise. Its `perform` takes no
+ * particular arguments (rather than `ActionPerformFunction`'s `Record<string, unknown>`) so
+ * that, where it intersects with a typed per-key entry, a call with the wrong `params` isn't
+ * let through on this looser overload.
+ */
+export type ErasedConvertedAction = Omit<Action, "perform"> & {
+  perform: (...args: never[]) => Promise<ActionPerformReturn>;
 };
 
 /**

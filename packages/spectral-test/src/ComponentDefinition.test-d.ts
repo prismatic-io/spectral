@@ -1,4 +1,5 @@
 import {
+  type ActionContext,
   action,
   type Connection,
   component,
@@ -6,7 +7,7 @@ import {
   input,
   structuredObjectInput,
 } from "@prismatic-io/spectral";
-import type { Component } from "@prismatic-io/spectral/dist/serverTypes";
+import type { Action, Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable, expectError, expectType } from "tsd";
 
 const privateDefinition = component({
@@ -136,3 +137,42 @@ expectError(
   }),
 );
 expectError(nested.actions.list({ target: { configuration: "email", values: {} } }));
+
+// A built component, callable or not, still satisfies the erased server types — what
+// loaders, publishers and hand-written test utilities annotate with — exactly as it did
+// before `component()` started carrying each action's own types through.
+// (A callable component isn't one: its triggers, data sources and connections are reference
+// helpers rather than converted definitions, by design.)
+expectAssignable<Component>(plain);
+expectAssignable<Action>(plain.actions.echo);
+expectAssignable<Action>(callable.actions.echo);
+expectAssignable<Action[]>(Object.values(plain.actions));
+
+// Actions can still be read back by a runtime string, as `Record<string, Action>` allowed,
+// and what comes back is the erased `Action`.
+expectAssignable<Action>(plain.actions["echo" as string]);
+expectAssignable<Action>(callable.actions["echo" as string]);
+
+// Carrying the index signature doesn't loosen the typed entries: a literal key still
+// checks `params` and still reports the definition's own return type.
+const cleaned = component({
+  key: "cleaned-definition",
+  display: { label: "Cleaned", description: "Cleaned", iconPath: "icon.png" },
+  actions: {
+    shout: action({
+      display: { label: "Shout", description: "Shout" },
+      inputs: { text: input({ label: "Text", type: "string", clean: (value) => String(value) }) },
+      perform: async (_context, { text }) => ({ data: text.toUpperCase() }),
+    }),
+  },
+});
+expectType<Promise<{ data: string }>>(
+  cleaned.actions.shout.perform({} as ActionContext, { text: "hi" }),
+);
+expectError(cleaned.actions.shout.perform({} as ActionContext, { text: 1 }));
+expectError(cleaned.actions.shout.perform({} as ActionContext, {}));
+expectType<Promise<{ data: string }>>(
+  null as unknown as ReturnType<typeof cleaned.actions.shout.perform>,
+);
+expectAssignable<Component>(cleaned);
+expectAssignable<Action>(cleaned.actions["shout" as string]);
