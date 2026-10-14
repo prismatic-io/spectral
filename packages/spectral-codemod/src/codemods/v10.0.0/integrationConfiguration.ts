@@ -13,6 +13,7 @@ import {
   accessor,
   capitalize,
   ensureNamedImport,
+  isSpectralImport,
   literalString,
   literalStrings,
   location,
@@ -26,6 +27,7 @@ import {
 } from "./ast";
 import type { ClassifiedElement, Scope } from "./element";
 import { migrateConfigVarReferences, migrateFlowReads } from "./flowReads";
+import { migrateFlowSchedules } from "./flowSchedules";
 import { migrateInvokeFlowCalls } from "./invokeFlowCalls";
 import { createNamer, type FileNames, withNames } from "./names";
 import {
@@ -122,12 +124,12 @@ export default defineCodemod({
       }
     }
 
-    const elements: ClassifiedElement[] = [];
+    const classified: ClassifiedElement[] = [];
     const hoisted: Node[] = [];
     const pageScopes = new Set<Scope>();
     for (const { scope, pages: propertyName } of SCOPES) {
       const pages = hoistedProperty(definition, propertyName, call, (name, literal) => {
-        elements.push(...classifyPages(name, literal, scope));
+        classified.push(...classifyPages(name, literal, scope));
       });
       if (pages) {
         pageScopes.add(scope);
@@ -136,7 +138,7 @@ export default defineCodemod({
     }
     const scoped = hoistedProperty(definition, SCOPED_PROPERTY, call, (name, literal) => {
       for (const [key, value] of ownProperties(literal)) {
-        elements.push({
+        classified.push({
           key,
           path: `${name}${accessor(key)}`,
           scope: connectionScope(value, "instance"),
@@ -146,9 +148,14 @@ export default defineCodemod({
       }
     });
     if (scoped?.hoisted) hoisted.push(scoped.hoisted);
-    if (elements.length === 0 && !hasAnyProperty(definition, pageProperties)) {
+    if (classified.length === 0 && !hasAnyProperty(definition, pageProperties)) {
       throw new Error(`${file.getFilePath()}: integration() declares no configPages to migrate.`);
     }
+
+    // A flow's schedule now comes from the deploying user, so a config var that only a
+    // schedule read is not part of the configuration.
+    const schedules = migrateFlowSchedules(project, classified);
+    const elements = classified.filter((element) => !schedules.scheduleOnly.has(element));
 
     // Names are resolved before any edit, against what the author's files already bind.
     const namer = createNamer();
@@ -218,13 +225,13 @@ export default defineCodemod({
     // definition, and each server function already reads the new context, so none is
     // a flow to migrate.
     const excluded = [
-      ...elements.flatMap((element) => element.literal ?? []),
+      ...classified.flatMap((element) => element.literal ?? []),
       ...hoisted,
       ...planned.map(({ file, name }) => file.getVariableStatementOrThrow(name)),
     ];
     const flowFiles = migrateFlowReads(project, elements, excluded);
     const referenceFiles = migrateConfigVarReferences(project, elements);
-    const testFiles = migrateInvokeFlowCalls(project, elements);
+    const testFiles = migrateInvokeFlowCalls(project, elements, schedules.scheduleOnly);
     namer.addImports(file, ["configuration", "z"]);
     file.formatText({ indentSize: 2 });
     file.replaceWithText(file.getFullText().replace(/\n{3,}/g, "\n\n"));
@@ -233,6 +240,7 @@ export default defineCodemod({
         file,
         ...pageFiles,
         ...augmentationFiles,
+        ...schedules.files,
         ...flowFiles,
         ...referenceFiles,
         ...testFiles,
@@ -477,21 +485,6 @@ const findIntegrationCall = (project: Project): CallExpression => {
     );
   }
   return calls[0];
-};
-
-/** True when `expression` is an identifier bound by a named import of `exportName` from `SPECTRAL`. */
-const isSpectralImport = (expression: Expression, exportName: string): boolean => {
-  if (!Node.isIdentifier(expression)) {
-    return false;
-  }
-  // The local symbol, not its definition: once the module resolves, definitions lead
-  // past the import into spectral itself.
-  return (expression.getSymbol()?.getDeclarations() ?? []).some(
-    (declaration) =>
-      Node.isImportSpecifier(declaration) &&
-      declaration.getName() === exportName &&
-      declaration.getImportDeclaration().getModuleSpecifierValue() === SPECTRAL,
-  );
 };
 
 /**

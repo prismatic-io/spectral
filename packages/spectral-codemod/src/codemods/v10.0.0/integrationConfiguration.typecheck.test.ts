@@ -37,6 +37,7 @@ export const configPages = {
     elements: {
       "Object Key": configVar({ stableKey: "object-key", dataType: "string" }),
       limit: configVar({ stableKey: "limit", dataType: "number" }),
+      "Sync Schedule": configVar({ stableKey: "sync-schedule", dataType: "schedule" }),
       fields: dataSourceConfigVar({
         stableKey: "fields",
         dataSourceType: "picklist",
@@ -94,6 +95,20 @@ export default [
     onInstanceDeploy: async ({ configVars, logger }) => {
       logger.info(String(configVars.limit));
     },
+    onExecution: async () => ({ data: null }),
+  }),
+  flow({
+    name: "Scheduled",
+    stableKey: "scheduled",
+    schedule: { configVar: "Sync Schedule", timezone: "America/Chicago" },
+    onExecution: async () => ({ data: null }),
+  }),
+  flow({
+    name: "Poll",
+    stableKey: "poll",
+    triggerType: "polling",
+    schedule: { configVar: "Sync Schedule" },
+    onTrigger: async (_context, payload) => ({ payload }),
     onExecution: async () => ({ data: null }),
   }),
 ];
