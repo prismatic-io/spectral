@@ -91,8 +91,8 @@ const CONNECTION_WRAPPERS = new Set([
  * vars become schema fields. Each one with an inline `perform` also becomes a server
  * function declared beside it; a comment lists the rest.
  *
- * The codemod types `context.configuration` by the emitted schemas. It does not emit a
- * `uiSchema`.
+ * The codemod types `context.configuration` by the emitted schemas. It does not emit
+ * `ui` metadata.
  */
 export default defineCodemod({
   name: CODEMOD_NAME,
@@ -344,7 +344,7 @@ const configurationSource = (
   return [
     "configuration({",
     ...scopes.flatMap(scopeSource),
-    ...initSource(elements, scopes[0].schema),
+    ...initSource(elements, scopes),
     ...(serverFunctions.length
       ? [
           "  serverFunctions: {",
@@ -364,30 +364,41 @@ const configurationSource = (
 };
 
 /**
- * An `init` that proposes the saved configuration as it is. The config wizard's values
- * arrive while `configurationVersion` is null, and the instance schema starts as their
- * shape. A collection whose items the wizard stored as strings gets a TODO to parse them.
+ * An `init` that proposes the saved configuration of each scope as it is. The config
+ * wizard's values arrive while `configurationVersion` is null, and the instance schema
+ * starts as their shape. Each value is cast to its scope's schema, because `init` must
+ * return the current schemas' values and the saved ones are typed by the version they
+ * were saved under. A collection whose items the wizard stored as strings gets a TODO
+ * to parse them.
  */
-const initSource = (elements: ClassifiedElement[], schemaName: string): string[] => {
+const initSource = (elements: ClassifiedElement[], scopes: ScopeNames[]): string[] => {
   const unparsed = elements.filter(
     (element) =>
       element.scope === "instance" &&
       element.kind !== "connection" &&
       storedAsString(element.shape),
   );
+  const resultKey = (scope: Scope) =>
+    scope === "instance" ? "configuration" : "userConfiguration";
   return [
     "  init: {",
     "    perform: async (context) => {",
     "      // The config wizard's values arrive while context.configurationVersion is null,",
-    `      // and ${schemaName} starts as their shape. Branch on the version when the`,
-    "      // schema changes.",
+    `      // and ${scopes[0].schema} starts as their shape. Branch on the version when the`,
+    "      // schema changes. The casts check nothing at runtime, so the user corrects a",
+    "      // value the schema refuses before the configuration is saved.",
     ...(unparsed.length
       ? [
           "      // TODO: The config wizard stored each item of these collections as a string.",
           `      // Parse them before you return the configuration: ${unparsed.map((element) => element.key).join(", ")}.`,
         ]
       : []),
-    "      return context.configuration;",
+    "      return {",
+    ...scopes.map(
+      ({ scope, schema }) =>
+        `        ${resultKey(scope)}: context.${resultKey(scope)} as z.output<typeof ${schema}>,`,
+    ),
+    "      };",
     "    },",
     "  },",
   ];
