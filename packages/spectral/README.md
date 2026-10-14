@@ -15,6 +15,19 @@ npm install @prismatic-io/spectral
 
 Please see our [documentation](https://prismatic.io/docs/custom-connectors/) on writing and publishing custom connectors for Prismatic's platform.
 
+### Entry points
+
+Spectral has three public entry points:
+
+| Import | What it provides |
+| --- | --- |
+| `@prismatic-io/spectral` | `component`, `action`, `trigger`, `connection`, `integration`, `flow`, all types, `util` |
+| `@prismatic-io/spectral/http` | the HTTP client: `createClient`, `handleErrors`, `sendRawRequest`, `buildRawRequestAction`, `inputs` |
+| `@prismatic-io/spectral/testing` | the test harness: `invoke`, `createConnection`, `createHarness`, `invokeTrigger`, `invokeDataSource`, mocks |
+
+Imports from `@prismatic-io/spectral/dist/...` still resolve but are deprecated; they
+expose the build layout rather than an API, and will be removed in a future major version.
+
 ## What is Prismatic?
 
 Prismatic is the leading embedded iPaaS, enabling B2B SaaS teams to ship product integrations faster and with less dev time. The only embedded iPaaS that empowers both developers and non-developers with tools for the complete integration lifecycle, Prismatic includes low-code and code-native building options, deployment and management tooling, and self-serve customer tools.

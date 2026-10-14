@@ -123,7 +123,7 @@ export const toAxiosRetryConfig = ({
  * @returns An Axios instance configured with the provided options.
  * @see {@link https://prismatic.io/docs/custom-connectors/connections/#using-the-built-in-createclient-http-client | Using the Built-in HTTP Client}
  * @example
- * import { createClient } from "@prismatic-io/spectral/dist/clients/http";
+ * import { createClient } from "@prismatic-io/spectral/http";
  *
  * const client = createClient({
  *   baseUrl: "https://api.acme.com/v2",
@@ -225,7 +225,7 @@ export const createClient = ({
  * @see {@link https://prismatic.io/docs/custom-connectors/error-handling/ | Error Handling}
  * @example
  * import { component } from "@prismatic-io/spectral";
- * import { handleErrors } from "@prismatic-io/spectral/dist/clients/http";
+ * import { handleErrors } from "@prismatic-io/spectral/http";
  *
  * export default component({
  *   key: "acme",
@@ -259,7 +259,7 @@ type SendRawRequestValues = ActionInputParameters<typeof inputs>;
  * @returns The Axios response to the request.
  * @see {@link https://prismatic.io/docs/integrations/low-code-integration-designer/raw-request-actions/#building-an-http-raw-request-action-in-your-custom-component | Raw Request Actions}
  * @example
- * import { sendRawRequest } from "@prismatic-io/spectral/dist/clients/http";
+ * import { sendRawRequest } from "@prismatic-io/spectral/http";
  *
  * const response = await sendRawRequest(
  *   "https://api.acme.com/v2",
@@ -324,7 +324,7 @@ export const sendRawRequest = async (
  * @returns An action definition for the raw request action.
  * @see {@link https://prismatic.io/docs/integrations/low-code-integration-designer/raw-request-actions/#building-an-http-raw-request-action-in-your-custom-component | Raw Request Actions}
  * @example
- * import { buildRawRequestAction } from "@prismatic-io/spectral/dist/clients/http";
+ * import { buildRawRequestAction } from "@prismatic-io/spectral/http";
  *
  * // Add a raw request action to your component
  * const actions = {
