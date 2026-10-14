@@ -114,7 +114,7 @@ export type CallableAction<TDefinition> =
  * callable (e.g. `slack.actions.postMessage({ ... })`), with no `.perform`
  * and no context argument required.
  *
- * Not part of `convertComponent`'s own behavior — `callableComponent()` calls
+ * Not part of `convertComponent`'s own behavior — `npmComponent()` calls
  * this on the converted component. `component()` keeps producing the exact
  * same plain `Action` shape it always has, for every consumer of the platform
  * bundle (`prism components:publish`, manifest generation, low-code).
@@ -141,7 +141,7 @@ export type CallableConnectionHelper = (
 
 /**
  * The npm-publishable form of a component, typed from its definition: what
- * `callableComponent(definition)` returns. Each action is a {@link CallableAction};
+ * `npmComponent(definition)` returns. Each action is a {@link CallableAction};
  * triggers, data sources and connections are reference helpers for an
  * integration's flows and config pages, keyed as the definition keys them (a
  * connection by its own `key`).
@@ -149,7 +149,7 @@ export type CallableConnectionHelper = (
  * It is deliberately not a {@link Component}: the platform bundle and the npm
  * package are separate artifacts, and only the former is what the runner loads.
  */
-export type CallableComponent<TDefinition extends ComponentDefinition<boolean, string>> = Omit<
+export type NpmComponent<TDefinition extends ComponentDefinition<boolean, string>> = Omit<
   Component,
   "actions" | "triggers" | "dataSources" | "connections"
 > & {
@@ -169,9 +169,9 @@ export type CallableComponent<TDefinition extends ComponentDefinition<boolean, s
   };
 };
 
-/** {@link CallableComponent} with its definition erased: what wrapping an
+/** {@link NpmComponent} with its definition erased: what wrapping an
  * already-converted {@link Component} can promise. */
-export type AnyCallableComponent = Omit<
+export type AnyNpmComponent = Omit<
   Component,
   "actions" | "triggers" | "dataSources" | "connections"
 > & {
@@ -181,7 +181,7 @@ export type AnyCallableComponent = Omit<
   connections: Record<string, CallableConnectionHelper>;
 };
 
-export const createCallableComponent = (component: Component): AnyCallableComponent => {
+export const createNpmComponent = (component: Component): AnyNpmComponent => {
   const actions = Object.entries(component.actions).reduce<Record<string, AnyCallableAction>>(
     (result, [key, action]) => {
       result[key] = createCallableAction(action);

@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   action,
-  callableComponent,
   component,
   dynamicObjectInput,
   input,
+  npmComponent,
   structuredObjectInput,
 } from "..";
 import { ConnectionError, isUserError, UserError } from "../errors";
 import { runWithContext } from "./asyncContext";
-import { createCallableComponent } from "./callableAction";
+import { createNpmComponent } from "./callableAction";
 
 const rawEcho = component({
   key: "echo",
@@ -54,7 +54,7 @@ describe("component()", () => {
   });
 });
 
-describe("callableComponent(definition)", () => {
+describe("npmComponent(definition)", () => {
   const echoDefinition = {
     key: "echo",
     public: true as const,
@@ -68,9 +68,9 @@ describe("callableComponent(definition)", () => {
     },
   };
 
-  it("produces the same callable shape as component() + createCallableComponent", async () => {
-    const viaEntry = callableComponent(echoDefinition);
-    const viaWrapper = createCallableComponent(component(echoDefinition));
+  it("produces the same callable shape as component() + createNpmComponent", async () => {
+    const viaEntry = npmComponent(echoDefinition);
+    const viaWrapper = createNpmComponent(component(echoDefinition));
 
     expect(typeof viaEntry.actions.sayHello).toBe("function");
 
@@ -88,8 +88,8 @@ describe("callableComponent(definition)", () => {
   });
 });
 
-describe("createCallableComponent", () => {
-  const echo = createCallableComponent(rawEcho);
+describe("createNpmComponent", () => {
+  const echo = createNpmComponent(rawEcho);
 
   it("is invokable directly, with no context argument, inside runWithContext", async () => {
     const result = await runWithContext({} as any, () => echo.actions.sayHello({ name: "Pat" }));
@@ -104,7 +104,7 @@ describe("createCallableComponent", () => {
   });
 
   it("fills an omitted structuredObject input with an object of its children's defaults", async () => {
-    const paged = callableComponent({
+    const paged = npmComponent({
       key: "paged",
       public: true,
       display: { label: "Paged", description: "x" },
@@ -136,7 +136,7 @@ describe("createCallableComponent", () => {
   });
 
   it("fills the missing children of a partially supplied structuredObject input", async () => {
-    const paged = callableComponent({
+    const paged = npmComponent({
       key: "paged-partial",
       public: true,
       display: { label: "Paged", description: "x" },
@@ -184,7 +184,7 @@ describe("createCallableComponent", () => {
   });
 
   it("fills the missing values of a dynamicObject input's selected configuration", async () => {
-    const dyn = callableComponent({
+    const dyn = npmComponent({
       key: "dyn",
       public: true,
       display: { label: "Dyn", description: "x" },
@@ -251,7 +251,7 @@ describe("createCallableComponent", () => {
 
   it("lets an already-wrapped UserError pass through unchanged", async () => {
     const alreadyWrapped = new UserError(new Error("already wrapped"));
-    const wrapOnce = callableComponent({
+    const wrapOnce = npmComponent({
       key: "wrap-once",
       public: true,
       display: { label: "Wrap Once", description: "x" },

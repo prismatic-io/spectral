@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   batchFlowTrigger,
   batchTrigger,
-  callableComponent,
   configPage,
   configVar,
   connection,
@@ -12,6 +11,7 @@ import {
   flow,
   input,
   integration,
+  npmComponent,
   organizationActivatedConnection,
   pollingTrigger,
   trigger,
@@ -1435,9 +1435,9 @@ describe("custom-trigger reference input values reach the trigger functions", ()
 
 describe("npm trigger references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `callableComponent(definition)` — its triggers are directly-callable
+  // `npmComponent(definition)` — its triggers are directly-callable
   // reference helpers, not manifest-registry lookups.
-  const npmComponent = callableComponent({
+  const acmeNpm = npmComponent({
     key: "acme-npm",
     public: true,
     display: { label: "Acme", description: "An npm-published component" },
@@ -1505,7 +1505,7 @@ describe("npm trigger references", () => {
   });
 
   it("produces a tagged reference distinct from a manifest ComponentReference", () => {
-    const ref = npmComponent.triggers.webhook({ greeting: { value: "hey" } });
+    const ref = acmeNpm.triggers.webhook({ greeting: { value: "hey" } });
 
     expect(isNpmTriggerReference(ref)).toBe(true);
     expect(isComponentReference(ref)).toBe(false);
@@ -1520,7 +1520,7 @@ describe("npm trigger references", () => {
       name: "Plain Flow",
       stableKey: "plain-flow",
       description: "Npm trigger reference, no custom lifecycle",
-      onTrigger: npmComponent.triggers.webhook({ greeting: { value: "hey" } }),
+      onTrigger: acmeNpm.triggers.webhook({ greeting: { value: "hey" } }),
       onExecution: async () => ({ data: "test" }),
     });
 
@@ -1541,7 +1541,7 @@ describe("npm trigger references", () => {
           name: "Webhook Flow",
           stableKey: "webhook-flow",
           description: "Npm webhook trigger reference",
-          onTrigger: npmComponent.triggers.webhook({ greeting: { value: "hey" } }),
+          onTrigger: acmeNpm.triggers.webhook({ greeting: { value: "hey" } }),
           onExecution: async () => ({ data: "test" }),
         }),
       ],
@@ -1577,7 +1577,7 @@ describe("npm trigger references", () => {
           name: "Sync Orders Flow",
           stableKey: "sync-orders-flow",
           description: "Npm batch trigger reference",
-          onTrigger: npmComponent.triggers.syncOrders({}),
+          onTrigger: acmeNpm.triggers.syncOrders({}),
           onExecution: async () => ({ data: "test" }),
         }),
       ],
@@ -1601,7 +1601,7 @@ describe("npm trigger references", () => {
           name: "Poll Flow",
           stableKey: "poll-flow",
           description: "Npm polling trigger reference",
-          onTrigger: npmComponent.triggers.pollForChanges({}),
+          onTrigger: acmeNpm.triggers.pollForChanges({}),
           schedule: { value: "*/5 * * * *" },
           onExecution: async () => ({ data: "test" }),
         }),
@@ -1623,7 +1623,7 @@ describe("npm trigger references", () => {
             name: "Poll Flow",
             stableKey: "poll-flow",
             description: "Npm polling trigger reference",
-            onTrigger: npmComponent.triggers.pollForChanges({}),
+            onTrigger: acmeNpm.triggers.pollForChanges({}),
             onExecution: async () => ({ data: "test" }),
           }),
         ],
@@ -1640,7 +1640,7 @@ describe("npm trigger references", () => {
           name: "Branch Flow",
           stableKey: "branch-flow",
           description: "Npm branching trigger reference",
-          onTrigger: npmComponent.triggers.branching({}),
+          onTrigger: acmeNpm.triggers.branching({}),
           onExecution: async () => ({ data: "test" }),
         }),
       ],
@@ -1663,7 +1663,7 @@ describe("npm trigger references", () => {
           name: "Pick Item Flow",
           stableKey: "pick-item-flow",
           description: "Npm trigger reference with a sibling data source input",
-          onTrigger: npmComponent.triggers.pickItem({}),
+          onTrigger: acmeNpm.triggers.pickItem({}),
           onExecution: async () => ({ data: "test" }),
         }),
       ],
@@ -1686,9 +1686,9 @@ describe("npm trigger references", () => {
 
 describe("npm data source references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `callableComponent(definition)` — its data sources are directly-callable
+  // `npmComponent(definition)` — its data sources are directly-callable
   // reference helpers, not manifest-registry lookups.
-  const npmComponent = callableComponent({
+  const acmeNpm = npmComponent({
     key: "acme-npm",
     public: true,
     display: { label: "Acme", description: "An npm-published component" },
@@ -1723,7 +1723,7 @@ describe("npm data source references", () => {
   });
 
   it("produces a config var whose dataSource is a tagged reference, distinct from a manifest ComponentReference", () => {
-    const configVarDef = npmComponent.dataSources.selectChannel({
+    const configVarDef = acmeNpm.dataSources.selectChannel({
       stableKey: "select-channel",
       values: { workspace: { value: "acme" } },
     }) as ConfigVar & { dataSource: unknown };
@@ -1738,7 +1738,7 @@ describe("npm data source references", () => {
   });
 
   it("routes a config var's npm data source reference to the CNI's own wrapper component, with no registry lookup", () => {
-    const configVarDef = npmComponent.dataSources.selectChannel({
+    const configVarDef = acmeNpm.dataSources.selectChannel({
       stableKey: "select-channel",
       values: { workspace: { value: "acme" } },
     }) as ConfigVar;
@@ -1761,7 +1761,7 @@ describe("npm data source references", () => {
       configPages: {
         Setup: configPage({
           elements: {
-            "Select Channel": npmComponent.dataSources.selectChannel({
+            "Select Channel": acmeNpm.dataSources.selectChannel({
               stableKey: "select-channel",
               values: { workspace: { value: "acme" } },
             }),
@@ -1798,7 +1798,7 @@ describe("npm data source references", () => {
       configPages: {
         Setup: configPage({
           elements: {
-            "Select Channel": npmComponent.dataSources.selectChannel({
+            "Select Channel": acmeNpm.dataSources.selectChannel({
               stableKey: "select-channel",
             }),
           },
@@ -1827,9 +1827,9 @@ describe("npm data source references", () => {
 
 describe("npm connection references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `callableComponent(definition)` — its connections are directly-callable
+  // `npmComponent(definition)` — its connections are directly-callable
   // reference helpers, not manifest-registry lookups.
-  const npmComponent = callableComponent({
+  const acmeNpm = npmComponent({
     key: "acme-npm",
     public: true,
     display: { label: "Acme", description: "An npm-published component" },
@@ -1846,7 +1846,7 @@ describe("npm connection references", () => {
   });
 
   it("produces a config var whose connection is a tagged reference, distinct from a manifest ComponentReference", () => {
-    const configVarDef = npmComponent.connections.apiKey({
+    const configVarDef = acmeNpm.connections.apiKey({
       stableKey: "acme-api-key",
       values: { apiKey: { value: "shh" } },
     }) as ConfigVar & { connection: unknown };
@@ -1861,7 +1861,7 @@ describe("npm connection references", () => {
   });
 
   it("routes a config var's npm connection reference to the CNI's own wrapper component, with no registry lookup", () => {
-    const configVarDef = npmComponent.connections.apiKey({
+    const configVarDef = acmeNpm.connections.apiKey({
       stableKey: "acme-api-key",
       values: { apiKey: { value: "shh" } },
     }) as ConfigVar;
@@ -1887,7 +1887,7 @@ describe("npm connection references", () => {
       configPages: {
         Setup: configPage({
           elements: {
-            "Acme API Key": npmComponent.connections.apiKey({
+            "Acme API Key": acmeNpm.connections.apiKey({
               stableKey: "acme-api-key",
               values: { apiKey: { value: "shh" } },
             }),
@@ -1918,11 +1918,11 @@ describe("npm connection references", () => {
       configPages: {
         Setup: configPage({
           elements: {
-            "Acme API Key 1": npmComponent.connections.apiKey({
+            "Acme API Key 1": acmeNpm.connections.apiKey({
               stableKey: "acme-api-key-1",
               values: { apiKey: { value: "shh-1" } },
             }),
-            "Acme API Key 2": npmComponent.connections.apiKey({
+            "Acme API Key 2": acmeNpm.connections.apiKey({
               stableKey: "acme-api-key-2",
               values: { apiKey: { value: "shh-2" } },
             }),
@@ -1943,7 +1943,7 @@ describe("npm connection references", () => {
   });
 
   it("throws when two different npm connections share a key instead of silently collapsing them", () => {
-    const otherComponent = callableComponent({
+    const otherComponent = npmComponent({
       key: "other-npm",
       public: true,
       display: { label: "Other", description: "Another npm-published component" },
@@ -1964,7 +1964,7 @@ describe("npm connection references", () => {
         configPages: {
           Setup: configPage({
             elements: {
-              "Acme API Key": npmComponent.connections.apiKey({ stableKey: "acme-api-key" }),
+              "Acme API Key": acmeNpm.connections.apiKey({ stableKey: "acme-api-key" }),
               "Other API Key": otherComponent.connections.apiKey({ stableKey: "other-api-key" }),
             },
           }),

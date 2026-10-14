@@ -4,8 +4,8 @@
  * that can run on the Prismatic platform.
  */
 
-import type { CallableComponent } from "./serverTypes";
-import { createCallableComponent, runWithIntegrationContext } from "./serverTypes";
+import type { NpmComponent } from "./serverTypes";
+import { createNpmComponent, runWithIntegrationContext } from "./serverTypes";
 import {
   defaultBatchResolver,
   withPolledResultType,
@@ -668,7 +668,7 @@ export const component = <TPublic extends boolean, TKey extends string>(
  * export default component(definition);
  *
  * // src/npm.ts — the entry `tsconfig.npm.json` compiles for the npm package
- * export default callableComponent(definition);
+ * export default npmComponent(definition);
  *
  * @example
  * import googleDrive from "@prismatic-io/google-drive";
@@ -689,10 +689,10 @@ export const component = <TPublic extends boolean, TKey extends string>(
  * @returns The component's actions as callable functions typed from their definitions, and
  * its triggers, data sources and connections as reference helpers.
  */
-export const callableComponent = <const TDefinition extends ComponentDefinition<boolean, string>>(
+export const npmComponent = <const TDefinition extends ComponentDefinition<boolean, string>>(
   definition: TDefinition,
-): CallableComponent<TDefinition> =>
-  createCallableComponent(convertComponent(definition)) as CallableComponent<TDefinition>;
+): NpmComponent<TDefinition> =>
+  createNpmComponent(convertComponent(definition)) as NpmComponent<TDefinition>;
 
 /**
  * This function creates an action object that can be referenced
@@ -1329,6 +1329,9 @@ export const componentManifests = <T extends Record<string, ComponentManifest>>(
   definition;
 
 export * from "./errors";
+// The npm-publishable shapes `npmComponent()` produces, so a component's emitted declarations
+// (and anything annotating with them) reference the package root rather than dist/.
+export type { CallableAction, NpmComponent } from "./serverTypes";
 export { default as testing } from "./testing";
 export * from "./types";
 export { default as util } from "./util";

@@ -34,7 +34,7 @@ export type CallableConnectionConfigVar = BaseConfigVar & {
  * }),
  * ```
  *
- * Only produced by `callableComponent()`, via `createCallableComponent`.
+ * Only produced by `npmComponent()`, via `createNpmComponent`.
  */
 export const createCallableConnection =
   (connection: AnyConnection) =>

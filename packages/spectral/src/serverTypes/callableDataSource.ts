@@ -37,8 +37,8 @@ export type CallableDataSourceConfigVar = BaseConfigVar & {
  * }),
  * ```
  *
- * Not part of `convertComponent`'s own behavior — `callableComponent()` calls this (via
- * `createCallableComponent`) on the converted component.
+ * Not part of `convertComponent`'s own behavior — `npmComponent()` calls this (via
+ * `createNpmComponent`) on the converted component.
  */
 export const createCallableDataSource =
   (dataSource: AnyDataSource, dataSources: Record<string, AnyDataSource>) =>

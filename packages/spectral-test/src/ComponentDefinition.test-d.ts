@@ -1,10 +1,10 @@
 import {
   action,
   type Connection,
-  callableComponent,
   component,
   dynamicObjectInput,
   input,
+  npmComponent,
   structuredObjectInput,
 } from "@prismatic-io/spectral";
 import type { Component } from "@prismatic-io/spectral/dist/serverTypes";
@@ -29,8 +29,8 @@ const publicDefinition = component({
 });
 expectAssignable<Component>(publicDefinition);
 
-// callableComponent(definition) makes each action directly callable.
-const callable = callableComponent({
+// npmComponent(definition) makes each action directly callable.
+const callable = npmComponent({
   key: "callable-definition",
   display: { label: "Callable", description: "Callable", iconPath: "icon.png" },
   actions: {
@@ -80,7 +80,7 @@ expectError(plain.actions.echo({ name: "Pat" }));
 
 // Optional-ness applies recursively through structuredObject children and
 // dynamicObject configuration values.
-const nested = callableComponent({
+const nested = npmComponent({
   key: "nested-definition",
   display: { label: "Nested", description: "Nested", iconPath: "icon.png" },
   actions: {

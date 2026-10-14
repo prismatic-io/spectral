@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { callableComponent, input, trigger } from "..";
+import { input, npmComponent, trigger } from "..";
 import { isNpmTriggerReference } from "../types";
 
-const npmComponent = callableComponent({
+const acmeNpm = npmComponent({
   key: "acme-npm",
   public: true,
   display: { label: "Acme", description: "An npm-published component" },
@@ -18,24 +18,24 @@ const npmComponent = callableComponent({
   },
 });
 
-describe("createCallableTrigger (via callableComponent(...))", () => {
+describe("createCallableTrigger (via npmComponent(...))", () => {
   it("returns a function, not the plain trigger object", () => {
-    expect(typeof npmComponent.triggers.webhook).toBe("function");
+    expect(typeof acmeNpm.triggers.webhook).toBe("function");
   });
 
   it("tags its return value so isNpmTriggerReference recognizes it", () => {
-    const ref = npmComponent.triggers.webhook({ greeting: { value: "hey" } });
+    const ref = acmeNpm.triggers.webhook({ greeting: { value: "hey" } });
     expect(isNpmTriggerReference(ref)).toBe(true);
   });
 
   it("carries the referenced trigger's own converted definition", () => {
-    const ref = npmComponent.triggers.webhook({});
+    const ref = acmeNpm.triggers.webhook({});
     expect(ref.trigger.key).toBe("webhook");
     expect(typeof ref.trigger.perform).toBe("function");
   });
 
   it("defaults to an empty values object when called with no arguments", () => {
-    const ref = npmComponent.triggers.webhook();
+    const ref = acmeNpm.triggers.webhook();
     expect(ref.values).toEqual({});
   });
 
@@ -43,7 +43,7 @@ describe("createCallableTrigger (via callableComponent(...))", () => {
     // Unlike an action's `fillDefaults`, a trigger reference's values are
     // ValueExpression/ConfigVarExpression/TemplateExpression, not resolved
     // input values — default-filling happens later, at convert time.
-    const ref = npmComponent.triggers.webhook({ greeting: { configVar: "Org Greeting" } });
+    const ref = acmeNpm.triggers.webhook({ greeting: { configVar: "Org Greeting" } });
     expect(ref.values).toEqual({ greeting: { configVar: "Org Greeting" } });
   });
 });
