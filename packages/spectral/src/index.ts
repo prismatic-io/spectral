@@ -6,10 +6,10 @@
 
 import type {
   CallableConnectionHelper,
+  CallableConvertedAction,
   CallableDataSourceHelper,
   CallableTriggerHelper,
   ConvertedAction,
-  MakeCallable,
   Component as ServerComponent,
 } from "./serverTypes";
 import { createCallableComponent, runWithIntegrationContext } from "./serverTypes";
@@ -676,7 +676,7 @@ export const component = <
     TriggerResult<boolean, TriggerPayload>,
     {
       [K in keyof TActions]: TCallable extends true
-        ? MakeCallable<ConvertedAction<TActions[K]>>
+        ? CallableConvertedAction<TActions[K]>
         : ConvertedAction<TActions[K]>;
     }
   >,
