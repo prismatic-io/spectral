@@ -286,7 +286,7 @@
     "json-schema-to-ts": "^3.1.1",
     "lodash": "^4.18.1",
     "object-sizeof": "^2.6.4",
-    "prettier": "^3.9.8",
+    "prettier": "^3.9.9",
     "safe-stable-stringify": "^2.5.0",
     "valid-url": "1.0.9",
     "yaml": "^2.9.1",
@@ -297,14 +297,14 @@
     "@fast-check/vitest": "^0.5.0",
     "@types/ejs": "3.1.5",
     "@types/lodash": "^4.17.25",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "@types/prettier": "^3.0.0",
     "@types/sax": "^1.2.7",
     "@types/valid-url": "^1.0.7",
-    "@vitest/ui": "^5.0.1",
+    "@vitest/ui": "^5.0.3",
     "copyfiles": "2.4.1",
     "fast-check": "^4.10.2",
     "typescript": "6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.3"
   }
 }
