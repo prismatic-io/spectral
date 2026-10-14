@@ -64,7 +64,7 @@ describe("getInputs — structuredObject", () => {
     });
 
     expect(result.valueType).toBe(
-      '{ conn: import("@prismatic-io/spectral/dist/types").Connection; name: string }',
+      '{ conn: import("@prismatic-io/spectral").Connection; name: string }',
     );
   });
 
@@ -170,9 +170,7 @@ describe("getInputs — structuredObject", () => {
       ],
     });
 
-    expect(result.valueType).toBe(
-      '{ conns: Array<import("@prismatic-io/spectral/dist/types").Connection> }',
-    );
+    expect(result.valueType).toBe('{ conns: Array<import("@prismatic-io/spectral").Connection> }');
   });
 
   it("falls back to StructuredObject import when inputs are empty", () => {
@@ -180,7 +178,7 @@ describe("getInputs — structuredObject", () => {
       inputs: [baseInput({ key: "empty", type: "structuredObject", inputs: [] })],
     });
 
-    expect(result.valueType).toBe('import("@prismatic-io/spectral/dist/types").StructuredObject');
+    expect(result.valueType).toBe('import("@prismatic-io/spectral").StructuredObject');
   });
 });
 
@@ -266,7 +264,7 @@ describe("getInputs — dynamicObject", () => {
     });
 
     expect(result.valueType).toBe(
-      '{ configuration: "empty"; values: import("@prismatic-io/spectral/dist/types").StructuredObject } | { configuration: "hasFields"; values: { name: string } }',
+      '{ configuration: "empty"; values: import("@prismatic-io/spectral").StructuredObject } | { configuration: "hasFields"; values: { name: string } }',
     );
   });
 
@@ -275,6 +273,6 @@ describe("getInputs — dynamicObject", () => {
       inputs: [baseInput({ key: "empty", type: "dynamicObject", inputs: [] })],
     });
 
-    expect(result.valueType).toBe('import("@prismatic-io/spectral/dist/types").DynamicObject');
+    expect(result.valueType).toBe('import("@prismatic-io/spectral").DynamicObject');
   });
 });

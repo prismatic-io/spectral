@@ -64,23 +64,23 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   boolean: "boolean",
   code: "string",
   conditional: {
-    module: "@prismatic-io/spectral/dist/util",
+    module: "@prismatic-io/spectral",
     type: "ConditionalExpression",
   },
   connection: {
-    module: "@prismatic-io/spectral/dist/types",
+    module: "@prismatic-io/spectral",
     type: "Connection",
   },
   objectSelection: {
-    module: "@prismatic-io/spectral/dist/types",
+    module: "@prismatic-io/spectral",
     type: "ObjectSelection",
   },
   objectFieldMap: {
-    module: "@prismatic-io/spectral/dist/types",
+    module: "@prismatic-io/spectral",
     type: "ObjectFieldMap",
   },
   jsonForm: {
-    module: "@prismatic-io/spectral/dist/types",
+    module: "@prismatic-io/spectral",
     type: "JSONForm",
   },
   dynamicObjectSelection: "string",
@@ -90,11 +90,11 @@ export const INPUT_TYPE_MAP: Record<InputFieldDefinition["type"], InputType> = {
   flow: "string",
   template: "string",
   structuredObject: {
-    module: "@prismatic-io/spectral/dist/types",
+    module: "@prismatic-io/spectral",
     type: "StructuredObject",
   },
   dynamicObject: {
-    module: "@prismatic-io/spectral/dist/types",
+    module: "@prismatic-io/spectral",
     type: "DynamicObject",
   },
   number: "number",
@@ -197,11 +197,11 @@ const getLeafTypeString = (child: ServerTypeInput): string => {
   return wrapCollection(getLeafBaseType(child), child.collection);
 };
 
-const SPECTRAL_TYPES_MODULE = "@prismatic-io/spectral/dist/types";
+const SPECTRAL_MODULE = "@prismatic-io/spectral";
 
 const structuredObjectTypeString = (inputs: ServerTypeInput[]): string => {
   if (!inputs.length) {
-    return `import("${SPECTRAL_TYPES_MODULE}").StructuredObject`;
+    return `import("${SPECTRAL_MODULE}").StructuredObject`;
   }
 
   const fields = inputs
@@ -217,14 +217,14 @@ const structuredObjectTypeString = (inputs: ServerTypeInput[]): string => {
 
 const dynamicObjectTypeString = (configurations: ServerTypeInput[]): string => {
   if (!configurations.length) {
-    return `import("${SPECTRAL_TYPES_MODULE}").DynamicObject`;
+    return `import("${SPECTRAL_MODULE}").DynamicObject`;
   }
 
   return configurations
     .map((config) => {
       const valuesType = config.inputs?.length
         ? structuredObjectTypeString(config.inputs)
-        : `import("${SPECTRAL_TYPES_MODULE}").StructuredObject`;
+        : `import("${SPECTRAL_MODULE}").StructuredObject`;
 
       return `{ configuration: ${JSON.stringify(config.key)}; values: ${valuesType} }`;
     })
