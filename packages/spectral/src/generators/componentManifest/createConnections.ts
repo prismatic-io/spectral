@@ -89,7 +89,7 @@ export const createConnections = async <
       const imports = getImports({
         inputs,
         additionalImports: {
-          "@prismatic-io/spectral/dist/types": ["ConfigVarExpression", "ConfigVarVisibility"],
+          "@prismatic-io/spectral": ["ConfigVarExpression", "ConfigVarVisibility"],
         },
       });
 

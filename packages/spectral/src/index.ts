@@ -1305,7 +1305,15 @@ export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(
 export const componentManifests = <T extends Record<string, ComponentManifest>>(definition: T): T =>
   definition;
 
+export * as conditionalLogic from "./conditionalLogic";
 export * from "./errors";
+// Used by generated code (component manifests, the low-code converter) that runs inside a
+// code-native integration; exported here so that code never has to reach into dist/.
+export {
+  findUserDefinedComponentKey,
+  requireContext,
+  requireIntegrationContext,
+} from "./serverTypes";
 export { default as testing } from "./testing";
 export * from "./types";
 export { default as util } from "./util";

@@ -28,7 +28,8 @@
     "lint": "biome lint .",
     "format": "biome check --write --unsafe .",
     "check": "biome check .",
-    "tsd": "tsd --typings ../spectral/dist/index.d.ts"
+    "tsd": "tsd --typings ../spectral/dist/index.d.ts",
+    "test:esm": "node scripts/esm-smoke.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
