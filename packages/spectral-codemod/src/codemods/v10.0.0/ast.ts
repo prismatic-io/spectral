@@ -83,6 +83,21 @@ const declarationsOf = (identifier: Node): Node[] => {
   );
 };
 
+/** True when `expression` is an identifier bound by a named import of `exportName` from `SPECTRAL`. */
+export const isSpectralImport = (expression: Expression, exportName: string): boolean => {
+  if (!Node.isIdentifier(expression)) {
+    return false;
+  }
+  // The local symbol, not its definition: once the module resolves, definitions lead
+  // past the import into spectral itself.
+  return (expression.getSymbol()?.getDeclarations() ?? []).some(
+    (declaration) =>
+      Node.isImportSpecifier(declaration) &&
+      declaration.getName() === exportName &&
+      declaration.getImportDeclaration().getModuleSpecifierValue() === SPECTRAL,
+  );
+};
+
 export const wrapperName = (call: CallExpression): string | undefined => {
   const callee = call.getExpression();
   return Node.isIdentifier(callee) && WRAPPERS.has(callee.getText()) ? callee.getText() : undefined;

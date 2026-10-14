@@ -11,16 +11,18 @@ const TODO = [
 /**
  * Rewrites the `configVars` that each `invokeFlow` call passes into the options that
  * replace them: a value into `configuration` or `userConfiguration` by its scope, and a
- * connection into `connections.<scope>`. A call whose `configVars` is not an object
- * literal of config vars the integration declares gets a TODO; the compiler also flags
- * it, because `invokeFlow` takes no `configVars` once the integration declares its
- * configuration types.
+ * connection into `connections.<scope>`. A value of a config var in `scheduleOnly` is
+ * dropped: the flow's schedule now comes from the deploying user, and no flow reads it.
+ * A call whose `configVars` is not an object literal of config vars the integration
+ * declares gets a TODO; the compiler also flags it, because `invokeFlow` takes no
+ * `configVars` once the integration declares its configuration types.
  *
  * Returns the files it changed.
  */
 export const migrateInvokeFlowCalls = (
   project: Project,
   elements: ClassifiedElement[],
+  scheduleOnly: ReadonlySet<ClassifiedElement>,
 ): SourceFile[] =>
   project.getSourceFiles().filter((file) => {
     if (file.isDeclarationFile() || file.isInNodeModules()) {
@@ -34,7 +36,7 @@ export const migrateInvokeFlowCalls = (
       const configVars = options.getProperty("configVars");
       if (!configVars) continue;
       const replacement = Node.isPropertyAssignment(configVars)
-        ? replacementOptions(configVars.getInitializer(), elements)
+        ? replacementOptions(configVars.getInitializer(), elements, scheduleOnly)
         : undefined;
       if (replacement) {
         const index = options.getProperties().indexOf(configVars);
@@ -58,6 +60,7 @@ type PropertyAssignmentSource = { name: string; initializer: string };
 const replacementOptions = (
   initializer: Node | undefined,
   elements: ClassifiedElement[],
+  scheduleOnly: ReadonlySet<ClassifiedElement>,
 ): PropertyAssignmentSource[] | undefined => {
   if (!Node.isObjectLiteralExpression(initializer)) {
     return undefined;
@@ -70,6 +73,7 @@ const replacementOptions = (
   };
   for (const property of initializer.getProperties()) {
     const key = staticKey(property);
+    if ([...scheduleOnly].some((element) => element.key === key)) continue;
     const element = key === undefined ? undefined : findElement(elements, key, "instance");
     if (!element || !Node.isPropertyAssignment(property)) {
       return undefined;

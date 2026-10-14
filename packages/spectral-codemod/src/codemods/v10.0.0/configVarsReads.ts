@@ -148,6 +148,20 @@ export const configVarsReads = (fn: ContextFunction): Node[] => {
     );
 };
 
+/**
+ * The static keys `fn` reads off `configVars`, and whether it also uses `configVars` in
+ * a way that names no key, such as passing it on or destructuring it.
+ */
+export const configVarsReadKeys = (fn: ContextFunction): { keys: string[]; dynamic: boolean } => {
+  const reads = configVarsReads(fn);
+  const keys = reads.flatMap((read) => keyedAccess(read)?.key ?? []);
+  const destructured = configVarsPatterns(fn).some((pattern) => {
+    const nameNode = bindingElement(pattern, "configVars")?.getNameNode();
+    return nameNode !== undefined && !Node.isIdentifier(nameNode);
+  });
+  return { keys, dynamic: destructured || keys.length < reads.length };
+};
+
 /** False for an identifier that names a property or a binding rather than reading one. */
 const isReference = (identifier: Node): boolean => {
   const parent = identifier.getParent();
