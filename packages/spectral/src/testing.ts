@@ -152,7 +152,7 @@ async function invokeFlowTest(
  * @returns An object of mocked component actions, suitable for use in test context.
  * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/ | Unit Testing}
  * @example
- * import { createMockContextComponents } from "@prismatic-io/spectral/dist/testing";
+ * import { createMockContextComponents } from "@prismatic-io/spectral/testing";
  * import { componentRegistry } from "./componentRegistry";
  *
  * // Default mocks (uses examplePayload from the manifest)
@@ -571,7 +571,7 @@ const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
  * @returns An object with `result` (the flow execution return value) and `loggerMock`.
  * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/ | Unit Testing}
  * @example
- * import { invokeFlow } from "@prismatic-io/spectral/dist/testing";
+ * import { invokeFlow } from "@prismatic-io/spectral/testing";
  * import { myFlow } from "./flows";
  *
  * it("should execute the flow end-to-end", async () => {
