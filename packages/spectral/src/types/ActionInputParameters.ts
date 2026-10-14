@@ -111,6 +111,6 @@ type CallableInputValue<T> = T extends StructuredObjectInputField
  * `dynamicObject` configuration.
  */
 export type CallableActionInputParameters<TInputs extends Inputs> = 0 extends 1 & TInputs
-  ? // `any` inputs (e.g. the `AnyActionDefinition` bound): nothing to split on.
+  ? // `any` inputs: nothing to split on.
     Record<string, unknown>
   : CallableInputValues<TInputs>;

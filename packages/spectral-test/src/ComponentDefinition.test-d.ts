@@ -1,6 +1,7 @@
 import {
   action,
   type Connection,
+  callableComponent,
   component,
   dynamicObjectInput,
   input,
@@ -28,28 +29,25 @@ const publicDefinition = component({
 });
 expectAssignable<Component>(publicDefinition);
 
-// component(definition, { callable: true }) makes each action directly callable.
-const callable = component(
-  {
-    key: "callable-definition",
-    display: { label: "Callable", description: "Callable", iconPath: "icon.png" },
-    actions: {
-      echo: action({
-        display: { label: "Echo", description: "Echo" },
-        inputs: {
-          connection: input({ label: "Connection", type: "connection", required: true }),
-          greeting: input({ label: "Greeting", type: "string", required: true, default: "Hi" }),
-          name: input({ label: "Name", type: "string", required: false }),
-          shout: input({ label: "Shout", type: "boolean", clean: (value) => Boolean(value) }),
-        },
-        perform: async (_context, { greeting, name, shout }) => ({
-          data: { message: `${greeting} ${name ?? "there"}`, shout },
-        }),
+// callableComponent(definition) makes each action directly callable.
+const callable = callableComponent({
+  key: "callable-definition",
+  display: { label: "Callable", description: "Callable", iconPath: "icon.png" },
+  actions: {
+    echo: action({
+      display: { label: "Echo", description: "Echo" },
+      inputs: {
+        connection: input({ label: "Connection", type: "connection", required: true }),
+        greeting: input({ label: "Greeting", type: "string", required: true, default: "Hi" }),
+        name: input({ label: "Name", type: "string", required: false }),
+        shout: input({ label: "Shout", type: "boolean", clean: (value) => Boolean(value) }),
+      },
+      perform: async (_context, { greeting, name, shout }) => ({
+        data: { message: `${greeting} ${name ?? "there"}`, shout },
       }),
-    },
+    }),
   },
-  { callable: true },
-);
+});
 
 // Only inputs that are `required: true` without a default must be supplied.
 expectType<Promise<{ data: { message: string; shout: boolean } }>>(
@@ -82,42 +80,39 @@ expectError(plain.actions.echo({ name: "Pat" }));
 
 // Optional-ness applies recursively through structuredObject children and
 // dynamicObject configuration values.
-const nested = component(
-  {
-    key: "nested-definition",
-    display: { label: "Nested", description: "Nested", iconPath: "icon.png" },
-    actions: {
-      list: action({
-        display: { label: "List", description: "List" },
-        inputs: {
-          pagination: structuredObjectInput({
-            label: "Pagination",
-            required: false,
-            inputs: {
-              pageSize: input({ label: "Page Size", type: "string", default: "10" }),
-              pageToken: input({ label: "Page Token", type: "string", required: false }),
-              cursor: input({ label: "Cursor", type: "string", required: true }),
-            },
-          }),
-          target: dynamicObjectInput({
-            label: "Target",
-            configurations: {
-              email: {
-                label: "Email",
-                inputs: {
-                  address: input({ label: "Address", type: "string", required: true }),
-                  subject: input({ label: "Subject", type: "string", default: "Hello" }),
-                },
+const nested = callableComponent({
+  key: "nested-definition",
+  display: { label: "Nested", description: "Nested", iconPath: "icon.png" },
+  actions: {
+    list: action({
+      display: { label: "List", description: "List" },
+      inputs: {
+        pagination: structuredObjectInput({
+          label: "Pagination",
+          required: false,
+          inputs: {
+            pageSize: input({ label: "Page Size", type: "string", default: "10" }),
+            pageToken: input({ label: "Page Token", type: "string", required: false }),
+            cursor: input({ label: "Cursor", type: "string", required: true }),
+          },
+        }),
+        target: dynamicObjectInput({
+          label: "Target",
+          configurations: {
+            email: {
+              label: "Email",
+              inputs: {
+                address: input({ label: "Address", type: "string", required: true }),
+                subject: input({ label: "Subject", type: "string", default: "Hello" }),
               },
             },
-          }),
-        },
-        perform: async (_context, { pagination, target }) => ({ data: { pagination, target } }),
-      }),
-    },
+          },
+        }),
+      },
+      perform: async (_context, { pagination, target }) => ({ data: { pagination, target } }),
+    }),
   },
-  { callable: true },
-);
+});
 
 nested.actions.list({ target: { configuration: "email", values: { address: "a@b.c" } } });
 nested.actions.list({
