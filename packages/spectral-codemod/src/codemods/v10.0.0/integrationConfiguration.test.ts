@@ -277,8 +277,12 @@ describe("v10.0.0/integration-configuration", () => {
           perform: async (context) => {
             // The config wizard's values arrive while context.configurationVersion is null,
             // and configurationSchema starts as their shape. Branch on the version when the
-            // schema changes.
-            return context.configuration;
+            // schema changes. The casts check nothing at runtime, so the user corrects a
+            // value the schema refuses before the configuration is saved.
+            return {
+              configuration: context.configuration as z.output<typeof configurationSchema>,
+              userConfiguration: context.userConfiguration as z.output<typeof userConfigurationSchema>,
+            };
           },
         },
         serverFunctions: {
@@ -527,8 +531,11 @@ export default integration({
           perform: async (context) => {
             // The config wizard's values arrive while context.configurationVersion is null,
             // and configurationSchema starts as their shape. Branch on the version when the
-            // schema changes.
-            return context.configuration;
+            // schema changes. The casts check nothing at runtime, so the user corrects a
+            // value the schema refuses before the configuration is saved.
+            return {
+              configuration: context.configuration as z.output<typeof configurationSchema>,
+            };
           },
         },
       });
@@ -737,12 +744,40 @@ export default integration({
     perform: async (context) => {
       // The config wizard's values arrive while context.configurationVersion is null,
       // and configurationSchema starts as their shape. Branch on the version when the
-      // schema changes.
+      // schema changes. The casts check nothing at runtime, so the user corrects a
+      // value the schema refuses before the configuration is saved.
       // TODO: The config wizard stored each item of these collections as a string.
       // Parse them before you return the configuration: ports.
-      return context.configuration;
+      return {
+        configuration: context.configuration as z.output<typeof configurationSchema>,
+      };
     },
   },`);
+  });
+
+  it("proposes the saved user configuration from init when there is a user level", () => {
+    const { files } = run({
+      "src/index.ts": `
+import { configPage, configVar, integration, userLevelConfigPage } from "@prismatic-io/spectral";
+
+export default integration({
+  name: "Init",
+  configPages: {
+    Page: configPage({ elements: { region: configVar({ stableKey: "r", dataType: "string" }) } }),
+  },
+  userLevelConfigPages: {
+    Personal: userLevelConfigPage({
+      elements: { nickname: configVar({ stableKey: "n", dataType: "string" }) },
+    }),
+  },
+});
+`,
+    });
+
+    expect(files["src/index.ts"]).toContain(`      return {
+        configuration: context.configuration as z.output<typeof configurationSchema>,
+        userConfiguration: context.userConfiguration as z.output<typeof userConfigurationSchema>,
+      };`);
   });
 
   it.each([
