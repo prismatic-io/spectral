@@ -1,3 +1,4 @@
+import noDistImports from "./rules/noDistImports";
 import noNestedSection from "./rules/noNestedSection";
 import noSectionOutsideFlow from "./rules/noSectionOutsideFlow";
 import noUnclosedSection from "./rules/noUnclosedSection";
@@ -6,6 +7,7 @@ import sectionLabelMatch from "./rules/sectionLabelMatch";
 
 const plugin = {
   rules: {
+    "no-dist-imports": noDistImports,
     "no-nested-section": noNestedSection,
     "no-section-outside-flow": noSectionOutsideFlow,
     "no-unclosed-section": noUnclosedSection,
@@ -16,6 +18,7 @@ const plugin = {
     recommended: {
       plugins: ["@prismatic-io/spectral"],
       rules: {
+        "@prismatic-io/spectral/no-dist-imports": "error",
         "@prismatic-io/spectral/no-nested-section": "error",
         "@prismatic-io/spectral/no-section-outside-flow": "error",
         "@prismatic-io/spectral/no-unclosed-section": "error",

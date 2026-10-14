@@ -33,6 +33,7 @@ rules surface the mistake at lint time instead:
 
 | Rule | Catches |
 | --- | --- |
+| `@prismatic-io/spectral/no-dist-imports` | An import from `@prismatic-io/spectral/dist/...`, the deprecated build-output paths |
 | `@prismatic-io/spectral/no-nested-section` | A section opened while another is still open |
 | `@prismatic-io/spectral/no-unclosed-section` | A section never closed, or a `sectionEnd` with nothing open |
 | `@prismatic-io/spectral/section-label-match` | A `sectionEnd` label that does not match the open section |

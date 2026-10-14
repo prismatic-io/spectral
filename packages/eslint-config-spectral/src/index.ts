@@ -34,6 +34,7 @@ module.exports = {
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/prefer-nullish-coalescing": "off",
     "@typescript-eslint/restrict-template-expressions": "off",
+    "@prismatic-io/spectral/no-dist-imports": "error",
     "@prismatic-io/spectral/no-nested-section": "error",
     "@prismatic-io/spectral/no-section-outside-flow": "error",
     "@prismatic-io/spectral/no-unclosed-section": "error",

@@ -12,6 +12,21 @@ Most developers should not install this package directly — it is enabled for y
 
 ## Rules
 
+### `no-dist-imports`
+
+Spectral's public API is its package root plus the `@prismatic-io/spectral/http` and
+`@prismatic-io/spectral/testing` entry points. Paths under `dist/` expose the build layout rather
+than an API: they are deprecated and do not resolve under native ESM. Where a public entry point
+exposes the same module the rule fixes the import; otherwise it reports it.
+
+```ts
+import { createClient } from "@prismatic-io/spectral/dist/clients/http"; // reported, fixed to "@prismatic-io/spectral/http"
+import { createHarness } from "@prismatic-io/spectral/dist/testing"; // reported, fixed to "@prismatic-io/spectral/testing"
+import type { Component } from "@prismatic-io/spectral/dist/serverTypes"; // reported: import it from "@prismatic-io/spectral"
+```
+
+### Log sections
+
 A code-native flow can group its logs into sections:
 
 ```ts
