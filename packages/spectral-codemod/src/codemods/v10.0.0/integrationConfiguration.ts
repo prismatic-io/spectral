@@ -8,7 +8,7 @@ import {
   SyntaxKind,
   ts,
 } from "ts-morph";
-import { defineCodemod } from "../../codemod";
+import { codemodId, defineCodemod } from "../../codemod";
 import {
   accessor,
   capitalize,
@@ -43,7 +43,6 @@ import {
   zodSchemaFor,
 } from "./zodSchema";
 
-const CODEMOD_NAME = "v10.0.0/integration-configuration";
 const VERSION = "INITIAL";
 const CONFIGURATION_NAME = "integrationConfiguration";
 const SCOPED_PROPERTY = "scopedConfigVars";
@@ -96,8 +95,9 @@ const CONNECTION_WRAPPERS = new Set([
  * The codemod types `context.configuration` by the emitted schemas. It does not emit
  * `ui` metadata.
  */
-export default defineCodemod({
-  name: CODEMOD_NAME,
+const codemod = defineCodemod({
+  version: "10.0.0",
+  name: "integration-configuration",
   description:
     "Migrate configPages, userLevelConfigPages, and scopedConfigVars to an integration configuration",
   transform(project) {
@@ -248,6 +248,8 @@ export default defineCodemod({
     ];
   },
 });
+
+export default codemod;
 
 /**
  * A scope's schema statements. A scope with pages records their values in a
@@ -480,7 +482,7 @@ const findIntegrationCall = (project: Project): CallExpression => {
       [
         `Found ${calls.length} integration() calls: ${calls.map(location).join(", ")}.`,
         "Pass the file of the integration to migrate as the path, for example:",
-        `  spectral-codemod ${CODEMOD_NAME} ${calls[0].getSourceFile().getFilePath()}`,
+        `  spectral-codemod ${codemodId(codemod)} ${calls[0].getSourceFile().getFilePath()}`,
       ].join("\n"),
     );
   }

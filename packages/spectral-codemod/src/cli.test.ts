@@ -21,6 +21,28 @@ describe("parseArgs", () => {
     });
   });
 
+  it("reads the spectral version to migrate to", () => {
+    expect(parseArgs(["integration-configuration", "--target-spectral", "10.3.1"])).toEqual({
+      codemod: "integration-configuration",
+      targetSpectral: "10.3.1",
+      dryRun: false,
+      list: false,
+      help: false,
+    });
+    expect(
+      parseArgs(["integration-configuration", "--target-spectral=10.3.1"]).targetSpectral,
+    ).toBe("10.3.1");
+  });
+
+  it("needs a version after --target-spectral", () => {
+    expect(() => parseArgs(["integration-configuration", "--target-spectral"])).toThrow(
+      "--target-spectral needs a spectral version.",
+    );
+    expect(() =>
+      parseArgs(["integration-configuration", "--target-spectral", "--dry-run"]),
+    ).toThrow("--target-spectral needs a spectral version.");
+  });
+
   it("rejects unknown options and extra positionals", () => {
     expect(() => parseArgs(["--nope"])).toThrow("Unknown option: --nope");
     expect(() => parseArgs(["a", "b", "c"])).toThrow("Too many arguments");
@@ -47,7 +69,17 @@ describe("main", () => {
     expect(err[0]).toContain("v10.0.0/integration-configuration");
   });
 
-  it("runs a codemod against a path and reports the changed files", async () => {
+  it("fails for a codemod named without its version or a target", async () => {
+    const { io, err } = capture();
+    expect(await main(["integration-configuration"], io)).toBe(1);
+    expect(err[0]).toContain('"integration-configuration" does not name a version.');
+    expect(err[0]).toContain("v10.0.0/integration-configuration");
+  });
+
+  it.each([
+    [["v10.0.0/integration-configuration"]],
+    [["integration-configuration", "--target-spectral", "10.3.1"]],
+  ])("runs a codemod against a path and reports the changed files: %j", async (args) => {
     const dir = mkdtempSync(join(tmpdir(), "spectral-codemod-cli-"));
     try {
       writeFileSync(
@@ -61,7 +93,7 @@ export default integration({
       );
       const { io, out } = capture();
 
-      expect(await main(["v10.0.0/integration-configuration", dir], io)).toBe(0);
+      expect(await main([...args, dir], io)).toBe(0);
 
       expect(out[0]).toBe("v10.0.0/integration-configuration: scanned 1 files, changed 1");
       expect(out[1]).toContain("index.ts");

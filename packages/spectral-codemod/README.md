@@ -12,8 +12,16 @@ rewrites your source files in place.
 Run the latest published codemods without installing anything:
 
 ```sh
-npx @prismatic-io/spectral-codemod@latest <codemod> [path]
+npx @prismatic-io/spectral-codemod@latest v<version>/<codemod> [path]
+npx @prismatic-io/spectral-codemod@latest <codemod> --target-spectral <version> [path]
 ```
+
+Each codemod has the spectral version it migrates to, as in
+`v10.0.0/integration-configuration`. Name the codemod with its version, or name it alone
+and pass the spectral version to migrate to with `--target-spectral`. The latest version of
+the codemod at or below that spectral version runs. A preview release, such as
+`10.26.2-preview.1`, is below its release. You must give the version in one of the two
+ways, and not in both.
 
 `path` is a project directory, a `tsconfig.json`, or a single source file. It defaults
 to the current directory. A directory with a `tsconfig.json` contributes the files that
@@ -25,6 +33,7 @@ and the test files that import one of those, compiled with the options of the ne
 ```sh
 npx @prismatic-io/spectral-codemod@latest --list                          # available codemods
 npx @prismatic-io/spectral-codemod@latest v10.0.0/integration-configuration --dry-run   # report without writing
+npx @prismatic-io/spectral-codemod@latest integration-configuration --target-spectral 10.3.1   # v10.0.0
 ```
 
 Commit or stash your work first, then review the diff the codemod leaves behind. When a
@@ -48,13 +57,14 @@ finds the project's single `integration()` call, ignoring calls in test files, a
   scope: user-activated connections into `userLevel`, organization- and
   customer-activated connections into `instance`, and a connection with its own inputs
   into the scope of its page,
-- adds an `init` that proposes the saved configuration as it is, and no `uiSchema`,
+- adds an `init` that proposes the saved configuration of each scope as it is, cast to
+  the scope's schema, and no `ui` metadata,
 - keeps data source config variables as schema fields, and converts each data source
   with an inline `perform` to a server function in `configuration.serverFunctions`
   (see below),
-- enables the `integrationConfiguration` experimental flag and augments
-  `IntegrationDefinitionConfiguration`, so that flows read `context.configuration` and
-  `context.connections`, typed,
+- augments `IntegrationDefinitionConfiguration`, so that flows read
+  `context.configuration` and `context.connections`, typed,
+- takes each flow schedule that reads a config var from the deploying user (see below),
 - rewrites the flows' `configVars` reads and connection references, and the `configVars`
   that flow tests pass to `invokeFlow` (see below), removes
   the project's `IntegrationDefinitionConfigPages`, `IntegrationDefinitionUserLevelConfigPages`,
@@ -128,11 +138,28 @@ the page declarations and the new server functions:
 
 When the codemod cannot follow a read, for example a computed key or `configVars` passed
 whole, it leaves the read as it is under a TODO. The compiler flags each read that remains.
-A `{ configVar }` reference to a value, such as a schedule's, is left as it is: the
-configuration has no equivalent yet.
+Any other `{ configVar }` reference to a value is left as it is: the configuration has no
+equivalent.
 
 The reads are optional, because a flow's configurations and connections can be absent.
 Code that relied on a value being present now needs to handle `undefined`.
+
+#### Flow schedules
+
+An integration with a configuration has no config vars, so a flow schedule cannot read
+one. The codemod rewrites each flow schedule that reads a declared config var to
+`{ fromDeployer: true }`, and the deploying user supplies the schedule and its timezone. A
+schedule declared apart from its flow is rewritten where it is declared. A flow is the
+argument of `flow()` or an object literal with `onExecution`, so a component trigger's
+schedule input is left alone.
+
+- Flows that read one schedule config var get a TODO each: the deploying user now
+  supplies a schedule for each flow.
+- A schedule that reads an undeclared config var keeps it under a TODO, and the compiler
+  flags it.
+- A config var that only schedules read is not part of the configuration, and its value
+  leaves the flow tests. When a function uses `configVars` without a static key, every
+  config var stays.
 
 #### Flow tests
 
@@ -145,9 +172,9 @@ that replace them:
   `configVarKey` the runner does, `<scope>.<key>`.
 
 A call whose `configVars` is not an object literal of declared config vars, for example a
-shared constant, keeps it under a TODO. Once the integration enables the
-`integrationConfiguration` flag, `invokeFlow` takes no `configVars`, so the compiler flags
-each such call. The migrated tests need a spectral release whose `invokeFlow` takes
+shared constant, keeps it under a TODO. Once the integration augments
+`IntegrationDefinitionConfiguration`, `invokeFlow` takes no `configVars`, so the compiler
+flags each such call. The migrated tests need a spectral release whose `invokeFlow` takes
 `configuration`, `userConfiguration`, and `connections`.
 
 #### Schemas
@@ -176,7 +203,9 @@ are not carried into the schema.
 
 ## Writing a codemod
 
-A codemod is a `Codemod` from `src/codemod.ts`: a `name`, a `description`, and a
+A codemod is a `Codemod` from `src/codemod.ts`: the spectral `version` it migrates to, a
+`name` shared by each version of the migration, a `description`, and a
 `transform(project)` that edits a [ts-morph](https://ts-morph.com) `Project` and returns
-the files it changed. Wrap a file-level transform with `eachFile`. Add the codemod to
-`src/codemods/index.ts` and give it a test built on `applyCodemod` from `src/testing.ts`.
+the files it changed. The `version` is a release, such as `10.0.0`, and the codemod lives
+in `src/codemods/v<version>/`. Wrap a file-level transform with `eachFile`. Add the codemod
+to `src/codemods/index.ts` and give it a test built on `applyCodemod` from `src/testing.ts`.
