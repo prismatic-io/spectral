@@ -10,6 +10,7 @@ export * from "./ActionPerformFunction";
 export * from "./ActionPerformReturn";
 export * from "./BatchContext";
 export * from "./BatchTriggerDefinition";
+export * from "./ComponentClient";
 export * from "./ComponentDefinition";
 export * from "./ComponentManifest";
 export * from "./ComponentRegistry";

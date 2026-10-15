@@ -10,13 +10,16 @@ import {
   type AnyConfigPageElement,
   type BatchTrigger,
   type CollectionType,
+  type ComponentClientReference,
   type ComponentManifest,
   type ComponentReference,
   type ComponentRegistry,
   type ConfigPages,
   type ConfigPagesIntegrationDefinition,
   type ConfigVar,
+  type ConfigVarExpression,
   type ConfigVarResultCollection,
+  type ConfigVarVisibility,
   type ConnectionTemplateInputField,
   DEFAULT_JSON_SCHEMA_VERSION,
   type EndpointType,
@@ -27,6 +30,9 @@ import {
   type FlowTriggerType,
   type Inputs,
   type IntegrationDefinition,
+  isComponentClientConnectionConfigVar,
+  isComponentClientDataSourceConfigVar,
+  isComponentClientReference,
   isComponentReference,
   isConnectionDefinitionConfigVar,
   isConnectionReferenceConfigVar,
@@ -48,11 +54,13 @@ import {
   type QueueConfig,
   type StandardQueueConfig,
   type StandardTriggerType,
+  type TemplateExpression,
   type TriggerEventFunctionReturn,
   type TriggerPerformFunction,
   type TriggerResult as TriggerPerformResult,
   type TriggerReference,
   type UserLevelConfigPages,
+  type ValueExpression,
 } from "../types";
 import type {
   AnyIntegrationConfiguration,
@@ -652,6 +660,90 @@ const convertConfigVarPermissionAndVisibility = ({
   };
 };
 
+/**
+ * Converts the values an integration supplies for a referenced component member's inputs
+ * (a manifest entry's or an npm client's) into wire inputs. A value the integration leaves
+ * out falls back to the input's own default. Only `collection` and `default` are read off
+ * each referenced input, so a manifest entry input and a definition input both serve.
+ */
+export const convertReferenceValues = (
+  // `object` rather than `{ collection?; default? }`: an all-optional type is "weak", and an
+  // input kind that declares neither property would fail to satisfy it.
+  referenceInputs: Record<string, object>,
+  values:
+    | Record<
+        string,
+        | ValueExpression
+        | ConfigVarExpression
+        | TemplateExpression
+        | (ConfigVarVisibility & { writeOnly?: true })
+        | undefined
+      >
+    | undefined,
+): Record<string, ServerInput> =>
+  Object.entries(referenceInputs).reduce<Record<string, ServerInput>>(
+    (result, [key, referenceInput]) => {
+      const { collection, default: defaultValue } = referenceInput as {
+        collection?: string;
+        default?: unknown;
+      };
+      const isCollection = Boolean(collection);
+
+      const value = values?.[key] ?? {
+        value: isCollection ? (defaultValue === "" ? [] : defaultValue) : (defaultValue ?? ""),
+      };
+
+      const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
+
+      if ("value" in value) {
+        const valueExpr =
+          collection === "keyvaluelist" && value.value instanceof Object
+            ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
+                name: { type: "value", value: k },
+                type: "value",
+                value: JSON.stringify(v),
+              }))
+            : collection === "valuelist" && Array.isArray(value.value)
+              ? value.value.map((v) => ({ type: "value", value: v }))
+              : value.value;
+
+        const formattedValue =
+          type === "complex" || typeof valueExpr === "string"
+            ? valueExpr
+            : JSON.stringify(valueExpr);
+
+        const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
+          convertInputPermissionAndVisibility(
+            pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
+              permissionAndVisibilityType?: PermissionAndVisibilityType;
+              visibleToOrgDeployer?: boolean;
+            },
+          );
+
+        const { writeOnly } = pick(value, ["writeOnly"]) as { writeOnly?: true };
+        if (writeOnly) {
+          meta.writeOnly = writeOnly;
+        }
+
+        result[key] = { type, value: formattedValue, meta } as unknown as ServerInput;
+        return result;
+      }
+
+      if ("configVar" in value) {
+        result[key] = { type: "configVar", value: value.configVar };
+        return result;
+      }
+
+      if ("template" in value) {
+        result[key] = { type: "template", value: value.template };
+        return result;
+      }
+
+      return result;
+    },
+    {},
+  );
+
 const convertComponentReference = (
   componentReference: ComponentReference,
   componentRegistry: ComponentRegistry,
@@ -689,84 +781,22 @@ const convertComponentReference = (
     key: manifestEntry.key ?? componentReference.key,
   };
 
-  const inputs = Object.entries(manifestEntry.inputs).reduce(
-    (result, [key, manifestEntryInput]) => {
-      const isCollection = Boolean(manifestEntryInput.collection);
-      // Retrieve the input value or default to the manifest's default value
-
-      const value = componentReference.values?.[key] ?? {
-        value: isCollection
-          ? manifestEntryInput.default === ""
-            ? []
-            : manifestEntryInput.default
-          : (manifestEntryInput.default ?? ""),
-      };
-
-      const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
-
-      if ("value" in value) {
-        const valueExpr =
-          manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
-            ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
-                name: { type: "value", value: k },
-                type: "value",
-                value: JSON.stringify(v),
-              }))
-            : manifestEntryInput.collection === "valuelist" && Array.isArray(value.value)
-              ? value.value.map((v) => ({ type: "value", value: v }))
-              : value.value;
-
-        const formattedValue =
-          type === "complex" || typeof valueExpr === "string"
-            ? valueExpr
-            : JSON.stringify(valueExpr);
-
-        const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
-          convertInputPermissionAndVisibility(
-            pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-              permissionAndVisibilityType?: PermissionAndVisibilityType;
-              visibleToOrgDeployer?: boolean;
-            },
-          );
-
-        const { writeOnly } = pick(value, ["writeOnly"]) as {
-          writeOnly?: true;
-        };
-
-        if (writeOnly) {
-          meta.writeOnly = writeOnly;
-        }
-
-        return {
-          ...result,
-          [key]: { type: type, value: formattedValue, meta },
-        };
-      }
-
-      if ("configVar" in value) {
-        return {
-          ...result,
-          [key]: { type: "configVar", value: value.configVar },
-        };
-      }
-
-      if ("template" in value) {
-        return {
-          ...result,
-          [key]: { type: "template", value: value.template },
-        };
-      }
-
-      return result;
-    },
-    {},
-  );
-
   return {
     ref,
-    inputs,
+    inputs: convertReferenceValues(manifestEntry.inputs, componentReference.values),
   };
 };
+
+const convertComponentClientReference = (
+  reference: ComponentClientReference,
+): { ref: ServerComponentReference; inputs: Record<string, ServerInput> } => ({
+  ref: {
+    component: { ...reference.component, version: "LATEST" },
+    key: reference.key,
+    template: reference.template,
+  },
+  inputs: convertReferenceValues(reference.inputs, reference.values),
+});
 
 const convertComponentRegistry = (
   componentRegistry: ComponentRegistry,
@@ -938,12 +968,13 @@ export const convertFlow = <
 
   const useWrapperTrigger = flowUsesWrapperTrigger(flow);
 
-  if (isComponentReference(flow.onTrigger) && !useWrapperTrigger) {
-    const { ref, inputs } = convertComponentReference(
-      flow.onTrigger,
-      componentRegistry,
-      "triggers",
-    );
+  if (
+    (isComponentReference(flow.onTrigger) || isComponentClientReference(flow.onTrigger)) &&
+    !useWrapperTrigger
+  ) {
+    const { ref, inputs } = isComponentClientReference(flow.onTrigger)
+      ? convertComponentClientReference(flow.onTrigger)
+      : convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
     triggerStep.action = ref;
     triggerStep.inputs = inputs;
   } else if (useWrapperTrigger) {
@@ -956,8 +987,10 @@ export const convertFlow = <
     // trigger, still carry that reference's configured input values onto the
     // step so the wrapper trigger receives them as params (and can forward them
     // to the referenced trigger via invokeTrigger).
-    if (isComponentReference(flow.onTrigger)) {
-      const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
+    if (isComponentReference(flow.onTrigger) || isComponentClientReference(flow.onTrigger)) {
+      const { inputs } = isComponentClientReference(flow.onTrigger)
+        ? convertComponentClientReference(flow.onTrigger)
+        : convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
       triggerStep.inputs = inputs;
     }
 
@@ -1278,6 +1311,21 @@ export const convertConfigVar = (
     };
   }
 
+  if (isComponentClientConnectionConfigVar(configVar)) {
+    const { ref, inputs } = convertComponentClientReference(configVar.connection);
+    return {
+      stableKey: configVar.stableKey,
+      description: configVar.description,
+      key,
+      dataType: "connection",
+      onPremiseConnectionConfig: configVar.connection.onPremiseConnectionConfig,
+      connection: { ...ref, template: configVar.connection.template },
+      inputs,
+      orgOnly,
+      meta: { ...meta, ...(configVar.oauth2Config ?? {}) },
+    };
+  }
+
   const rawDefaultValue =
     "defaultValue" in configVar
       ? convertInputValue(configVar.defaultValue, configVar.collectionType)
@@ -1377,6 +1425,20 @@ export const convertConfigVar = (
     }
   }
 
+  if (isComponentClientDataSourceConfigVar(configVar)) {
+    const { ref, inputs } = convertComponentClientReference(configVar.dataSource);
+    result.dataType = configVar.dataSource.dataSourceType ?? "string";
+    result.dataSource = ref;
+    result.inputs = inputs;
+
+    if (configVar.validationMode) {
+      result.meta = { ...result.meta, validationMode: configVar.validationMode };
+    }
+    if (configVar.dataSourceReset) {
+      result.meta = { ...result.meta, dataSourceReset: configVar.dataSourceReset.mode };
+    }
+  }
+
   return result;
 };
 
@@ -1406,7 +1468,7 @@ const flowFunctionKey = (flowName: string, functionName: "onExecution" | "onTrig
 /* Generates component argument for invokeTrigger calls. */
 export const invokeTriggerComponentInput = (
   componentRef: ServerComponentReference,
-  onTrigger: TriggerReference | undefined,
+  onTrigger: Pick<TriggerReference, "key"> | undefined,
   eventName:
     | "perform"
     | "onInstanceDeploy"
@@ -1444,6 +1506,9 @@ const wrapperTriggerInputsFromReference = (
   onTrigger: unknown,
   componentRegistry: ComponentRegistry,
 ): ServerTriggerInput[] => {
+  if (isComponentClientReference(onTrigger)) {
+    return Object.entries(onTrigger.inputs).map(([key, input]) => convertInput(key, input));
+  }
   if (!isComponentReference(onTrigger)) {
     return [];
   }
@@ -1479,6 +1544,7 @@ type PreValidationTriggerPerformConfig<
   componentRef: ServerComponentReference | undefined;
   onTrigger:
     | TriggerReference
+    | ComponentClientReference<Inputs, "trigger">
     | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
     | PollingTriggerPerformFunction<
         TInputs,
@@ -1507,7 +1573,7 @@ interface GenerateTriggerPerformFn<
 
 interface GenerateComponentRefTriggerPerformFn {
   componentRef: ServerComponentReference;
-  onTrigger: TriggerReference;
+  onTrigger: TriggerReference | ComponentClientReference<Inputs, "trigger">;
   componentRegistry: ComponentRegistry;
   triggerType: ComponentRefTrigger;
 }
@@ -1701,6 +1767,7 @@ const generateTriggerEventWrapperFn = <
   componentRef: ServerComponentReference | undefined,
   onTrigger:
     | TriggerReference
+    | ComponentClientReference<Inputs, "trigger">
     | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
     | PollingTriggerPerformFunction<
         TInputs,
@@ -1901,9 +1968,11 @@ const codeNativeIntegrationComponent = <
     };
 
     // The component ref here is undefined if onTrigger is a function.
-    const { ref } = isComponentReference(onTrigger)
-      ? convertComponentReference(onTrigger, componentRegistry, "triggers")
-      : { ref: onTrigger ? undefined : defaultComponentRef };
+    const { ref } = isComponentClientReference(onTrigger)
+      ? convertComponentClientReference(onTrigger)
+      : isComponentReference(onTrigger)
+        ? convertComponentReference(onTrigger, componentRegistry, "triggers")
+        : { ref: onTrigger ? undefined : defaultComponentRef };
 
     const performFn = generateTriggerPerformFn({
       componentRef: ref,

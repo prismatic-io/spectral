@@ -1,5 +1,5 @@
 import { connectionConfigVar } from "@prismatic-io/spectral";
-import { expectAssignable } from "tsd";
+import { expectAssignable, expectError } from "tsd";
 
 /**
  * A connection-reference value-bag may be visibility-only —
@@ -139,18 +139,18 @@ expectAssignable(
 
 // A bag with neither `value`, `configVar`, nor any visibility field
 // does not satisfy the value-bag union.
-connectionConfigVar({
-  dataType: "connection",
-  stableKey: "slack-oauth-bogus",
-  connection: {
-    component: "slack",
-    key: "slackOAuth",
-    values: {
-      // @ts-expect-error — not a ValueExpression, ConfigVarExpression,
-      // TemplateExpression, or ConfigVarVisibility.
-      clientId: { somethingElse: "nope" },
-      clientSecret: { value: "secret" },
-      signingSecret: { value: "signing" },
+expectError(
+  connectionConfigVar({
+    dataType: "connection",
+    stableKey: "slack-oauth-bogus",
+    connection: {
+      component: "slack",
+      key: "slackOAuth",
+      values: {
+        clientId: { somethingElse: "nope" },
+        clientSecret: { value: "secret" },
+        signingSecret: { value: "signing" },
+      },
     },
-  },
-});
+  }),
+);

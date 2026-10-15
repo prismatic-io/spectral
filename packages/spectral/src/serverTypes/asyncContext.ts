@@ -9,8 +9,22 @@ import type { ActionContext } from "../types/ActionPerformFunction";
 
 // Only import async_hooks in Node.js environments
 const asyncHooks = typeof window === "undefined" ? require("node:async_hooks") : null;
-const actionContextStorage = asyncHooks ? new asyncHooks.AsyncLocalStorage() : null;
-const integrationContextStorage = asyncHooks ? new asyncHooks.AsyncLocalStorage() : null;
+const sharedStorage = globalThis as typeof globalThis & Record<symbol, unknown>;
+const actionContextStorageKey = Symbol.for("@prismatic-io/spectral/action-context");
+const integrationContextStorageKey = Symbol.for("@prismatic-io/spectral/integration-context");
+
+const getSharedContextStorage = (key: symbol) => {
+  if (!asyncHooks) return null;
+  const existing = sharedStorage[key];
+  if (existing) return existing as InstanceType<typeof asyncHooks.AsyncLocalStorage>;
+
+  const storage = new asyncHooks.AsyncLocalStorage();
+  sharedStorage[key] = storage;
+  return storage;
+};
+
+const actionContextStorage = getSharedContextStorage(actionContextStorageKey);
+const integrationContextStorage = getSharedContextStorage(integrationContextStorageKey);
 
 export function runWithContext<T>(
   context: ActionContext,

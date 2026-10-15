@@ -1,5 +1,6 @@
 import {
   type ConfigVar,
+  isComponentClientConnectionConfigVar,
   isConnectionDefinitionConfigVar,
   isConnectionReferenceConfigVar,
 } from "./ConfigVars";
@@ -83,7 +84,8 @@ export const isConnectionScopedConfigVar = (cv: unknown): cv is ScopedConfigVar 
   // definition, not a reference to a Scoped Config Variable.
   return (
     !isConnectionDefinitionConfigVar(cv as ConfigVar) &&
-    !isConnectionReferenceConfigVar(cv as ConfigVar)
+    !isConnectionReferenceConfigVar(cv as ConfigVar) &&
+    !isComponentClientConnectionConfigVar(cv)
   );
 };
 

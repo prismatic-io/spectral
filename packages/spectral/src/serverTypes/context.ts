@@ -18,7 +18,7 @@ import type { ComponentReference as ServerComponentReference } from "./integrati
 
 const MEMORY_USAGE_CONVERSION = 1024 * 1024;
 
-type ComponentActionInvokeFunction = <
+export type ComponentActionInvokeFunction = <
   TValues extends Record<string, unknown>,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
   TComponentActions extends Record<string, ComponentManifest["actions"]> = Record<
@@ -130,12 +130,22 @@ export function createCNIContext<
 ): ActionContext<TConfigVars, TComponentActions, TFlows> {
   // Component, debug, and invokeFlow methods are not provided as part of the
   // server context. They are added to the context via spectral, here.
-  return {
+  const cniContext = {
     ...context,
     debug: createDebugContext(context),
     components: createComponentMethods(context, componentRegistry),
     invokeFlow: createInvokeFlow(context, { isCNI: true }),
   };
+
+  // The runner attaches `_components` as a non-enumerable property, which the spread above
+  // drops. The manifest path captured it before the spread (see createComponentMethods); an
+  // npm component client reads it off the ambient context at call time, so carry it over.
+  const internalComponents = Object.getOwnPropertyDescriptor(context, "_components");
+  if (internalComponents) {
+    Object.defineProperty(cniContext, "_components", { ...internalComponents, enumerable: false });
+  }
+
+  return cniContext;
 }
 
 export function createDebugContext(context: ServerActionContext): DebugContext {

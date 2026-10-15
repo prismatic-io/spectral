@@ -18,7 +18,7 @@ import type {
  *   collisions with the `configuration` discriminant key.
  * The depth caps (`LeafInputFieldDefinition`, `StructuredOrLeafInputFieldDefinition`)
  * prevent unbounded recursion. */
-type InputValue<T> = T extends StructuredObjectInputField
+export type InputValue<T> = T extends StructuredObjectInputField
   ? ExtractValue<{ [K in keyof T["inputs"]]: InputValue<T["inputs"][K]> }, T["collection"]>
   : T extends DynamicObjectInputField
     ? {
@@ -60,3 +60,36 @@ export type ExtractValue<
   : TCollection extends "valuelist"
     ? TType[]
     : TType;
+
+type OptionalClientInputKey<TInputs> = {
+  [Property in keyof TInputs]: TInputs[Property] extends { required: true }
+    ? TInputs[Property] extends { default: unknown }
+      ? Property
+      : never
+    : Property;
+}[keyof TInputs];
+
+type ComponentClientInputValues<TInputs> = {
+  [Property in Exclude<keyof TInputs, OptionalClientInputKey<TInputs>>]: ComponentClientInputValue<
+    TInputs[Property]
+  >;
+} & {
+  [Property in OptionalClientInputKey<TInputs>]?: ComponentClientInputValue<TInputs[Property]>;
+};
+
+type ComponentClientInputValue<T> = T extends StructuredObjectInputField
+  ? ExtractValue<ComponentClientInputValues<T["inputs"]>, T["collection"]>
+  : T extends DynamicObjectInputField
+    ? {
+        [C in keyof T["configurations"]]: {
+          configuration: C;
+          values: ComponentClientInputValues<T["configurations"][C]["inputs"]>;
+        };
+      }[keyof T["configurations"]]
+    : InputValue<T>;
+
+/** Values accepted by an action on an npm component client. Required inputs
+ * stay required, while optional and defaulted inputs may be omitted. */
+export type ComponentClientActionInputParameters<TInputs extends Inputs> = 0 extends 1 & TInputs
+  ? Record<string, unknown>
+  : ComponentClientInputValues<TInputs>;

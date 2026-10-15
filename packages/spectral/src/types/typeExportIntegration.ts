@@ -2,6 +2,7 @@ export * from "./ActionInputParameters";
 export * from "./ActionLogger";
 export * from "./ActionPerformFunction";
 export * from "./ActionPerformReturn";
+export * from "./ComponentClient";
 export * from "./ComponentManifest";
 export * from "./ComponentRegistry";
 export * from "./ConfigPages";

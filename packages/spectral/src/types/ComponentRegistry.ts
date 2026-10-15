@@ -88,8 +88,20 @@ export type ComponentReference<
   },
 > = TComponentReference;
 
-export const isComponentReference = (ref: unknown): ref is ComponentReference =>
-  typeof ref === "object" && ref !== null && "key" in ref && "component" in ref;
+export const isComponentReference = (ref: unknown): ref is ComponentReference => {
+  if (typeof ref !== "object" || ref === null || !("key" in ref) || !("component" in ref)) {
+    return false;
+  }
+
+  // Manifest references expose `component` through a context-dependent getter. Inspecting
+  // the descriptor avoids invoking that getter merely to classify the value.
+  const component = Object.getOwnPropertyDescriptor(ref, "component");
+  return (
+    typeof (ref as { key?: unknown }).key === "string" &&
+    Boolean(component) &&
+    (typeof component?.value === "string" || typeof component?.get === "function")
+  );
+};
 
 type ComponentRegistryFunctionsByType = UnionToIntersection<
   ComponentReferenceType extends infer TComponentReferenceType

@@ -5,6 +5,17 @@
  */
 
 import { runWithIntegrationContext } from "./serverTypes";
+
+export {
+  type ComponentClient,
+  type ComponentClientAction,
+  type ComponentClientConnection,
+  type ComponentClientDataSource,
+  type ComponentClientDescriptor,
+  type ComponentClientTrigger,
+  componentClient,
+} from "./serverTypes";
+
 import {
   defaultBatchResolver,
   withPolledResultType,
@@ -667,9 +678,17 @@ export const componentManifest = <T extends ComponentManifest>(definition: T): T
  *   connections,
  * });
  */
-export const component = <TPublic extends boolean, TKey extends string>(
-  definition: ComponentDefinition<TPublic, TKey>,
-): ReturnType<typeof convertComponent> => convertComponent(definition);
+export const component = <const TDefinition extends ComponentDefinition<boolean, string>>(
+  definition: TDefinition,
+): ReturnType<typeof convertComponent> & { readonly definition: TDefinition } => {
+  const converted = convertComponent(definition);
+  // The converted object is what the platform publishes and runs; the definition it was built
+  // from rides along for the npm client (`componentClient(built.definition)`) and for tooling
+  // that needs the authored shape. Non-enumerable so nothing that spreads, serializes or
+  // enumerates the converted component ever sees it.
+  Object.defineProperty(converted, "definition", { value: definition, enumerable: false });
+  return converted as ReturnType<typeof convertComponent> & { readonly definition: TDefinition };
+};
 
 /**
  * This function creates an action object that can be referenced
@@ -1159,8 +1178,8 @@ export const dynamicObjectInput = <
  *   },
  * });
  */
-export const connection = <T extends DefaultConnectionDefinition>(
-  definition: Exact<DefaultConnectionDefinition, T>,
+export const connection = <const T extends DefaultConnectionDefinition>(
+  definition: T & Exact<DefaultConnectionDefinition, T>,
 ): T => definition;
 
 /**
@@ -1208,8 +1227,8 @@ export const connection = <T extends DefaultConnectionDefinition>(
  *   },
  * });
  */
-export const onPremConnection = <T extends OnPremConnectionDefinition>(
-  definition: Exact<OnPremConnectionDefinition, T>,
+export const onPremConnection = <const T extends OnPremConnectionDefinition>(
+  definition: T & Exact<OnPremConnectionDefinition, T>,
 ): T => definition;
 
 /**
@@ -1265,8 +1284,9 @@ export const onPremConnection = <T extends OnPremConnectionDefinition>(
  *   },
  * });
  */
-export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(
-  definition: Exact<OAuth2ConnectionDefinition, T> &
+export const oauth2Connection = <const T extends OAuth2ConnectionDefinition>(
+  definition: T &
+    Exact<OAuth2ConnectionDefinition, T> &
     (T extends { oauth2Config?: infer TConfig }
       ? {
           oauth2Config?: TConfig extends OAuth2Config ? Exact<OAuth2Config, TConfig> : never;

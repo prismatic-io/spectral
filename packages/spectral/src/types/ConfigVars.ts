@@ -1,3 +1,5 @@
+import type { ComponentClientReference } from "./ComponentClient";
+import { isComponentClientReference } from "./ComponentClient";
 import type {
   ComponentRegistryConnection,
   ComponentRegistryDataSource,
@@ -129,7 +131,7 @@ interface ConfigVarInputVisibility {
 }
 
 /** Common attribute shared by all types of config variables. */
-type BaseConfigVar = {
+export type BaseConfigVar = {
   /** A unique, unchanging value that is used to maintain identity for the config variable even if the key changes. */
   stableKey: string;
   /** Description for this config variable. */
@@ -222,7 +224,7 @@ type ObjectSelectionConfigVar = CreateStandardConfigVar<"objectSelection">;
 
 type ObjectFieldMapConfigVar = CreateStandardConfigVar<"objectFieldMap">;
 
-type DataSourceReset = {
+export type DataSourceReset = {
   /** Either always prompt a user to reset the data source when a dependent config variable changes, or always reset the data source */
   mode: "prompt" | "always";
   /** List of config variable names that, if changed, should trigger a reset of the JSON Form */
@@ -311,7 +313,18 @@ type DataSourceReferenceConfigVar =
     : never;
 
 /** Defines attributes of a data source config variable. */
-export type DataSourceConfigVar = DataSourceDefinitionConfigVar | DataSourceReferenceConfigVar;
+export type ComponentClientDataSourceConfigVar = BaseConfigVar & {
+  __componentClientConfigVar: true;
+  dataSource: ComponentClientReference<Inputs, "dataSource">;
+  collectionType?: CollectionType;
+  validationMode?: ValidationMode;
+  dataSourceReset?: Omit<DataSourceReset, "dependencies">;
+};
+
+export type DataSourceConfigVar =
+  | DataSourceDefinitionConfigVar
+  | DataSourceReferenceConfigVar
+  | ComponentClientDataSourceConfigVar;
 
 // Connection Config Vars
 type BaseConnectionConfigVar = BaseConfigVar & {
@@ -382,7 +395,16 @@ type ConnectionReferenceConfigVar = ComponentRegistryConnection extends infer TC
   : never;
 
 /** Defines attributes of a config variable that represents a connection. */
-export type ConnectionConfigVar = ConnectionDefinitionConfigVar | ConnectionReferenceConfigVar;
+export type ComponentClientConnectionConfigVar = BaseConnectionConfigVar & {
+  __componentClientConfigVar: true;
+  connection: ComponentClientReference<Inputs, "connection">;
+  oauth2Config?: OAuth2Config;
+};
+
+export type ConnectionConfigVar =
+  | ConnectionDefinitionConfigVar
+  | ConnectionReferenceConfigVar
+  | ComponentClientConnectionConfigVar;
 
 export type ConfigVar =
   | StandardConfigVar
@@ -534,6 +556,14 @@ export const isDataSourceReferenceConfigVar = (
   "dataSource" in cv &&
   isComponentReference((cv as DataSourceReferenceConfigVar).dataSource);
 
+export const isComponentClientDataSourceConfigVar = (
+  cv: unknown,
+): cv is ComponentClientDataSourceConfigVar =>
+  typeof cv === "object" &&
+  cv !== null &&
+  "dataSource" in cv &&
+  isComponentClientReference((cv as ComponentClientDataSourceConfigVar).dataSource);
+
 export const isConnectionDefinitionConfigVar = (
   cv: ConfigVar,
 ): cv is ConnectionDefinitionConfigVar =>
@@ -549,3 +579,11 @@ export const isConnectionReferenceConfigVar = (
   cv !== null &&
   "connection" in cv &&
   isComponentReference((cv as ConnectionReferenceConfigVar).connection);
+
+export const isComponentClientConnectionConfigVar = (
+  cv: unknown,
+): cv is ComponentClientConnectionConfigVar =>
+  typeof cv === "object" &&
+  cv !== null &&
+  "connection" in cv &&
+  isComponentClientReference((cv as ComponentClientConnectionConfigVar).connection);
