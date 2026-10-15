@@ -34,7 +34,7 @@ export type CallableConnectionConfigVar = BaseConfigVar & {
  * }),
  * ```
  *
- * Only relevant when its caller opts in via `component(definition, { callable: true })`.
+ * `component()` attaches one of these under each converted connection's `key`.
  */
 export const createCallableConnection =
   (connection: AnyConnection) =>

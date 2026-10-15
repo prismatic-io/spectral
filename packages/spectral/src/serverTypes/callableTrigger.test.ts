@@ -2,26 +2,23 @@ import { describe, expect, it } from "vitest";
 import { component, input, trigger } from "..";
 import { isNpmTriggerReference } from "../types";
 
-const npmComponent = component(
-  {
-    key: "acme-npm",
-    public: true,
-    display: { label: "Acme", description: "An npm-published component" },
-    documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
-    triggers: {
-      webhook: trigger({
-        display: { label: "Webhook", description: "Fires on an inbound webhook" },
-        inputs: { greeting: input({ type: "string", label: "Greeting", default: "hi" }) },
-        scheduleSupport: "invalid",
-        synchronousResponseSupport: "valid",
-        perform: async (_context, payload) => ({ payload }),
-      }),
-    },
+const npmComponent = component({
+  key: "acme-npm",
+  public: true,
+  display: { label: "Acme", description: "An npm-published component" },
+  documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+  triggers: {
+    webhook: trigger({
+      display: { label: "Webhook", description: "Fires on an inbound webhook" },
+      inputs: { greeting: input({ type: "string", label: "Greeting", default: "hi" }) },
+      scheduleSupport: "invalid",
+      synchronousResponseSupport: "valid",
+      perform: async (_context, payload) => ({ payload }),
+    }),
   },
-  { callable: true },
-);
+});
 
-describe("createCallableTrigger (via component(..., { callable: true }))", () => {
+describe("createCallableTrigger (via component(...))", () => {
   it("returns a function, not the plain trigger object", () => {
     expect(typeof npmComponent.triggers.webhook).toBe("function");
   });

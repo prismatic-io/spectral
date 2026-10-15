@@ -9,9 +9,8 @@ export { isNpmTriggerReference } from "../types";
  * `slack.triggers.webhook({ ... })`), mirroring the manifest-era generated helper of the same
  * name but sourced directly from the npm-imported component — no component registry involved.
  *
- * Not part of `convertComponent`'s own unconditional behavior — `component()` calls this
- * internally (via `createCallableComponent`), only when its caller opts in via
- * `component(definition, { callable: true })`.
+ * `component()` applies this to every converted trigger (via `createCallableComponent`); the
+ * converted trigger's own properties stay on the result for the platform to read.
  *
  * `dataSources` can be resolved once this trigger is hoisted onto the CNI's own
  * wrapper component. See `NpmTriggerReference`.

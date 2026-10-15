@@ -1,22 +1,13 @@
 import type {
   ActionDefinition,
-  ActionInputParameters,
   CallableActionInputParameters,
+  ComponentDefinition,
   ComponentReference,
   NpmConnectionReferenceConfigVar,
   NpmDataSourceReferenceConfigVar,
 } from "../types";
 import type { CollectionType } from "../types/ConfigVars";
-import type {
-  Action,
-  ActionContext,
-  AnyConnection,
-  AnyConvertedAction,
-  AnyDataSource,
-  AnyTrigger,
-  Component,
-  Input,
-} from ".";
+import type { Action, AnyTrigger, Component, Connection, DataSource, Input, Trigger } from ".";
 import { performActionFunctionExecutor } from "./actionExecutor";
 import { requireContext } from "./asyncContext";
 import { type CallableConnectionConfigVar, createCallableConnection } from "./callableConnection";
@@ -30,8 +21,11 @@ import { convertInputValue } from "./convertIntegration";
  * inside a flow step (which establishes that context via `runWithContext`).
  * All of the `Action` data properties (`key`, `inputs`, `perform`, ...) are
  * still present on it, for the runner and other existing consumers that
- * invoke `.perform(context, params)` directly. */
-export type CallableAction = Action & ((values: Record<string, unknown>) => Promise<unknown>);
+ * invoke `.perform(context, params)` directly.
+ *
+ * This is the erased form; {@link CallableAction} types the call from the
+ * action's own definition. */
+export type AnyCallableAction = Action & ((values: Record<string, unknown>) => Promise<unknown>);
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -87,7 +81,7 @@ const fillDefaults = (inputs: Input[], values: Record<string, unknown>): Record<
     return accumulator;
   }, {});
 
-export const createCallableAction = (action: Action): CallableAction => {
+export const createCallableAction = (action: Action): AnyCallableAction => {
   const callable = async (values: Record<string, unknown> = {}) => {
     const context = requireContext();
     const filledValues = fillDefaults(action.inputs, values);
@@ -97,40 +91,22 @@ export const createCallableAction = (action: Action): CallableAction => {
   return Object.assign(callable, action);
 };
 
-/** Maps a single already-converted action to its directly-callable form,
- * inferring the callable signature structurally off its own `perform` (the
- * `context` parameter is dropped; the rest is unchanged) — this doesn't need
- * the original `ActionDefinition`, since `createCallableComponent` only ever
- * has an already-converted `Component` to work from. */
-export type MakeCallable<TAction> = TAction extends {
-  perform: (context: never, params: infer TParams) => infer TReturn;
-}
-  ? TAction & ((params: TParams) => TReturn)
-  : TAction;
-
-/** The directly-callable form of an action, typed from the original
- * `ActionDefinition` rather than from the converted `perform`. Only the
- * definition still carries each input's `required` and `default`; the converted
- * `perform` has already flattened them into plain value types. Reading them from
- * the definition is what lets inputs that aren't `required: true` (or that have
- * a `default`) be optional to the caller — see
- * {@link CallableActionInputParameters} — while the return type stays the
- * `perform`'s own. This is what `component(definition, { callable: true })`
- * produces; {@link MakeCallable} is the fallback for wrapping a component whose
- * definitions are no longer available. */
-export type CallableConvertedAction<TDef> =
-  TDef extends ActionDefinition<
+/**
+ * The directly-callable form of an action, typed from its {@link ActionDefinition}:
+ * the erased {@link Action} (for the runner and anything else that calls
+ * `.perform(context, params)`), plus a call signature that takes only the input
+ * values. Inputs that aren't `required: true`, or that carry a `default`, are
+ * optional to the caller — see {@link CallableActionInputParameters} — and the
+ * return type is the definition's own.
+ */
+export type CallableAction<TDefinition> =
+  TDefinition extends ActionDefinition<
     infer TInputs,
-    infer TConfigVars,
+    infer _TConfigVars,
     infer _TAllowsBranching,
     infer TReturn
   >
-    ? Omit<Action, "perform"> & {
-        perform: (
-          context: ActionContext<TConfigVars>,
-          params: ActionInputParameters<TInputs>,
-        ) => Promise<TReturn>;
-      } & ((params: CallableActionInputParameters<TInputs>) => Promise<TReturn>)
+    ? Action & ((params: CallableActionInputParameters<TInputs>) => Promise<TReturn>)
     : never;
 
 /**
@@ -138,13 +114,9 @@ export type CallableConvertedAction<TDef> =
  * callable (e.g. `slack.actions.postMessage({ ... })`), with no `.perform`
  * and no context argument required.
  *
- * Not part of `convertComponent`'s own unconditional behavior — `component()`
- * calls this internally, only when its caller opts in via
- * `component(definition, { callable: true })`. Without that option,
- * `component()` keeps producing the exact same plain `Action`/`ConvertedAction`
- * shape it always has, for every consumer that doesn't ask for the callable
- * form (the legacy self-contained bundle `prism components:publish` uses,
- * manifest generation, low-code).
+ * `component()` applies this to every converted component. The platform
+ * consumers of the result (`prism components:publish`, the runner, manifest
+ * generation) read the converted properties, which all remain in place.
  */
 /** A trigger reference helper, directly callable with its `values` (e.g.
  * `slack.triggers.webhook({ ... })`), produced by {@link createCallableTrigger}. */
@@ -166,62 +138,98 @@ export type CallableConnectionHelper = (
   configVar: CallableConnectionConfigVar,
 ) => NpmConnectionReferenceConfigVar;
 
-export const createCallableComponent = <
-  TComponent extends Component<any, any, any, any, any, any, Record<string, AnyConvertedAction>>,
->(
-  component: TComponent,
-): Omit<TComponent, "actions" | "triggers" | "dataSources" | "connections"> & {
-  actions: { [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]> };
-  triggers: {
-    [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
+/**
+ * What `component(definition)` returns: the converted {@link Component} the
+ * platform publishes and runs, with each entry also carrying the surface a
+ * code-native integration uses when it imports the component from npm.
+ *
+ * - `actions[key]` is the converted action and is callable with just its
+ *   input values ({@link CallableAction}).
+ * - `triggers[key]` / `dataSources[key]` are the converted trigger / data
+ *   source and are callable as reference helpers ({@link CallableTriggerHelper},
+ *   {@link CallableDataSourceHelper}).
+ * - `connections` is the converted array, with a reference helper attached
+ *   under each connection's own `key` ({@link CallableConnectionHelper}).
+ *
+ * Every platform consumer reads the converted properties, so this is
+ * assignable to the erased {@link Component}; the index signatures come first
+ * in each intersection so a runtime string key resolves to the erased entry
+ * while a literal key gets the typed one.
+ */
+export type ComponentOf<TDefinition extends ComponentDefinition<boolean, string>> = Omit<
+  Component,
+  "actions" | "triggers" | "dataSources" | "connections"
+> & {
+  actions: Record<string, Action> & {
+    [K in keyof NonNullable<TDefinition["actions"]>]: CallableAction<
+      NonNullable<TDefinition["actions"]>[K]
+    >;
   };
-  dataSources: { [K in keyof TComponent["dataSources"]]: CallableDataSourceHelper };
-  // `connections` is an array on `Component` (each self-keyed by its own `.key`, e.g. "oauth2")
-  connections: Record<string, CallableConnectionHelper>;
-} => {
-  const actions = Object.entries(component.actions).reduce<Record<string, CallableAction>>(
+  triggers: Record<string, Trigger<any, any>> & {
+    [K in keyof NonNullable<TDefinition["triggers"]>]: AnyTrigger &
+      CallableTriggerHelper<AnyTrigger>;
+  };
+  dataSources: Record<string, DataSource> & {
+    [K in keyof NonNullable<TDefinition["dataSources"]>]: DataSource & CallableDataSourceHelper;
+  };
+  connections: Connection[] & {
+    [C in NonNullable<TDefinition["connections"]>[number] as C["key"]]: CallableConnectionHelper;
+  };
+};
+
+/** {@link ComponentOf} with its definition erased: what wrapping an
+ * already-converted {@link Component} can promise. */
+export type AnyCallableComponent = Omit<
+  Component,
+  "actions" | "triggers" | "dataSources" | "connections"
+> & {
+  actions: Record<string, AnyCallableAction>;
+  triggers: Record<string, AnyTrigger & CallableTriggerHelper<AnyTrigger>>;
+  dataSources: Record<string, DataSource & CallableDataSourceHelper>;
+  connections: Connection[] & Record<string, CallableConnectionHelper>;
+};
+
+/** Attaches the callable surface to a converted component without taking
+ * anything away: every converted property stays where the platform reads it. */
+export const createCallableComponent = (component: Component): AnyCallableComponent => {
+  const actions = Object.entries(component.actions).reduce<Record<string, AnyCallableAction>>(
     (result, [key, action]) => {
-      result[key] = createCallableAction(action as Action);
+      result[key] = createCallableAction(action);
       return result;
     },
     {},
   );
 
   const triggers = Object.entries(component.triggers ?? {}).reduce<
-    Record<string, CallableTriggerHelper<unknown>>
+    Record<string, AnyTrigger & CallableTriggerHelper<AnyTrigger>>
   >((result, [key, trigger]) => {
-    result[key] = createCallableTrigger(trigger as AnyTrigger, component.dataSources ?? {});
+    result[key] = Object.assign(
+      createCallableTrigger(trigger, component.dataSources ?? {}),
+      trigger,
+    );
     return result;
   }, {});
 
   const dataSources = Object.entries(component.dataSources ?? {}).reduce<
-    Record<string, CallableDataSourceHelper>
+    Record<string, DataSource & CallableDataSourceHelper>
   >((result, [key, dataSource]) => {
-    result[key] = createCallableDataSource(
-      dataSource as AnyDataSource,
-      component.dataSources ?? {},
+    result[key] = Object.assign(
+      createCallableDataSource(dataSource, component.dataSources ?? {}),
+      dataSource,
     );
     return result;
   }, {});
 
-  const connections = (component.connections ?? []).reduce<
-    Record<string, CallableConnectionHelper>
-  >((result, connection) => {
-    result[(connection as AnyConnection).key] = createCallableConnection(
-      connection as AnyConnection,
-    );
-    return result;
-  }, {});
+  const connections = Object.assign(
+    [...(component.connections ?? [])],
+    (component.connections ?? []).reduce<Record<string, CallableConnectionHelper>>(
+      (result, connection) => {
+        result[connection.key] = createCallableConnection(connection);
+        return result;
+      },
+      {},
+    ),
+  );
 
-  return { ...component, actions, triggers, dataSources, connections } as unknown as Omit<
-    TComponent,
-    "actions" | "triggers" | "dataSources" | "connections"
-  > & {
-    actions: { [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]> };
-    triggers: {
-      [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
-    };
-    dataSources: { [K in keyof TComponent["dataSources"]]: CallableDataSourceHelper };
-    connections: Record<string, CallableConnectionHelper>;
-  };
+  return { ...component, actions, triggers, dataSources, connections };
 };

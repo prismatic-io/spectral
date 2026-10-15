@@ -4,14 +4,7 @@
  * that can run on the Prismatic platform.
  */
 
-import type {
-  CallableConnectionHelper,
-  CallableConvertedAction,
-  CallableDataSourceHelper,
-  CallableTriggerHelper,
-  ConvertedAction,
-  Component as ServerComponent,
-} from "./serverTypes";
+import type { ComponentOf } from "./serverTypes";
 import { createCallableComponent, runWithIntegrationContext } from "./serverTypes";
 import {
   defaultBatchResolver,
@@ -20,14 +13,11 @@ import {
   wrapBatchedFire,
 } from "./serverTypes/batching";
 
-export { createCallableComponent } from "./serverTypes";
-
 import { convertComponent } from "./serverTypes/convertComponent";
 import { convertIntegration } from "./serverTypes/convertIntegration";
 import type {
   ActionDefinition,
   ActionPerformReturn,
-  AnyActionDefinition,
   AnyServerFunction,
   BatchTrigger,
   BatchTriggerDefinition,
@@ -658,79 +648,10 @@ export const componentManifest = <T extends ComponentManifest>(definition: T): T
  *   connections,
  * });
  */
-export const component = <
-  TPublic extends boolean,
-  TKey extends string,
-  TActions extends Record<string, AnyActionDefinition> = Record<string, AnyActionDefinition>,
-  TCallable extends boolean = false,
->(
-  definition: ComponentDefinition<TPublic, TKey, TActions>,
-  options?: { callable?: TCallable },
-): Omit<
-  ServerComponent<
-    Inputs,
-    Inputs,
-    ConfigVarResultCollection,
-    TriggerPayload,
-    boolean,
-    TriggerResult<boolean, TriggerPayload>,
-    {
-      [K in keyof TActions]: TCallable extends true
-        ? CallableConvertedAction<TActions[K]>
-        : ConvertedAction<TActions[K]>;
-    }
-  >,
-  "triggers" | "dataSources" | "connections"
-> & {
-  // `ComponentDefinition["triggers"]`/`["dataSources"]` don't preserve each trigger's/data
-  // source's own definition type the way `TActions` does for actions (no `TTriggers`/
-  // `TDataSources` generic), so — matching their looser, cosmetic-only call-signature bar (see
-  // the npm trigger/data-source-reference work) — these stay loose `values? => reference` shapes
-  // rather than per-key-typed ones. `connections` is looser still — it's an array on
-  // `ComponentDefinition`, not a keyed record, so there's no literal key set to preserve at all.
-  triggers: TCallable extends true
-    ? Record<string, CallableTriggerHelper<unknown>>
-    : ServerComponent<
-        Inputs,
-        Inputs,
-        ConfigVarResultCollection,
-        TriggerPayload,
-        boolean,
-        TriggerResult<boolean, TriggerPayload>
-      >["triggers"];
-  dataSources: TCallable extends true
-    ? Record<string, CallableDataSourceHelper>
-    : ServerComponent<
-        Inputs,
-        Inputs,
-        ConfigVarResultCollection,
-        TriggerPayload,
-        boolean,
-        TriggerResult<boolean, TriggerPayload>
-      >["dataSources"];
-  connections: TCallable extends true
-    ? Record<string, CallableConnectionHelper>
-    : ServerComponent<
-        Inputs,
-        Inputs,
-        ConfigVarResultCollection,
-        TriggerPayload,
-        boolean,
-        TriggerResult<boolean, TriggerPayload>
-      >["connections"];
-} => {
-  const converted = convertComponent(definition) as ServerComponent<
-    Inputs,
-    Inputs,
-    ConfigVarResultCollection,
-    TriggerPayload,
-    boolean,
-    TriggerResult<boolean, TriggerPayload>,
-    { [K in keyof TActions]: ConvertedAction<TActions[K]> }
-  >;
-
-  return (options?.callable ? createCallableComponent(converted) : converted) as never;
-};
+export const component = <const TDefinition extends ComponentDefinition<boolean, string>>(
+  definition: TDefinition,
+): ComponentOf<TDefinition> =>
+  createCallableComponent(convertComponent(definition)) as ComponentOf<TDefinition>;
 
 /**
  * This function creates an action object that can be referenced

@@ -1,12 +1,13 @@
 import {
   action,
+  type ActionContext,
   type Connection,
   component,
   dynamicObjectInput,
   input,
   structuredObjectInput,
 } from "@prismatic-io/spectral";
-import type { Component } from "@prismatic-io/spectral/dist/serverTypes";
+import type { Action, Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable, expectError, expectType } from "tsd";
 
 const privateDefinition = component({
@@ -28,7 +29,8 @@ const publicDefinition = component({
 });
 expectAssignable<Component>(publicDefinition);
 
-// component(definition, { callable: true }) makes each action directly callable.
+// component(definition) makes each action directly callable, and the result is still the
+// component the platform publishes and runs.
 const callable = component(
   {
     key: "callable-definition",
@@ -48,7 +50,6 @@ const callable = component(
       }),
     },
   },
-  { callable: true },
 );
 
 // Only inputs that are `required: true` without a default must be supplied.
@@ -66,19 +67,16 @@ expectAssignable<(context: never, params: never) => Promise<unknown>>(
   callable.actions.echo.perform,
 );
 
-// Without the option the action stays a plain object, not a function.
-const plain = component({
-  key: "plain-definition",
-  display: { label: "Plain", description: "Plain", iconPath: "icon.png" },
-  actions: {
-    echo: action({
-      display: { label: "Echo", description: "Echo" },
-      inputs: { name: input({ label: "Name", type: "string" }) },
-      perform: async (_context, { name }) => ({ data: name }),
-    }),
-  },
-});
-expectError(plain.actions.echo({ name: "Pat" }));
+// The result is the erased server Component too, so loaders, publishers and
+// hand-written test utilities that annotate with it keep compiling; its actions
+// are erased `Action`s; and a runtime string key still resolves.
+expectAssignable<Component>(callable);
+expectAssignable<Action>(callable.actions.echo);
+expectAssignable<Action>(callable.actions["echo" as string]);
+expectAssignable<Action[]>(Object.values(callable.actions));
+expectAssignable<(context: ActionContext, params: Record<string, unknown>) => Promise<unknown>>(
+  callable.actions.echo.perform,
+);
 
 // Optional-ness applies recursively through structuredObject children and
 // dynamicObject configuration values.
@@ -116,7 +114,6 @@ const nested = component(
       }),
     },
   },
-  { callable: true },
 );
 
 nested.actions.list({ target: { configuration: "email", values: { address: "a@b.c" } } });
