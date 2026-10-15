@@ -9,7 +9,6 @@ import YAML from "yaml";
 import {
   type AnyConfigPageElement,
   type BatchTrigger,
-  type BundledTriggerReference,
   type CollectionType,
   type ComponentClientReference,
   type ComponentManifest,
@@ -32,7 +31,6 @@ import {
   type Inputs,
   type IntegrationDefinition,
   isBundledDataSourceConfigVar,
-  isBundledTriggerReference,
   isComponentClientConnectionConfigVar,
   isComponentReference,
   isConnectionDefinitionConfigVar,
@@ -83,8 +81,9 @@ import type {
   TriggerPayload,
   TriggerResult,
 } from ".";
-import { runWithContext } from "./asyncContext";
+import { runWithContext, runWithDataSourceContext } from "./asyncContext";
 import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./batching";
+import { type BoundTrigger, getBoundTrigger, normalizeBoundTrigger } from "./boundTrigger";
 import { type ConnectionNameMap, createConfigurationConnections } from "./configurationContext";
 import { createCNIContext, logDebugResults } from "./context";
 import {
@@ -93,14 +92,6 @@ import {
   convertBundledDataSourceReferenceInputs,
   hoistBundledDataSource,
 } from "./convertBundledDataSourceReference";
-import {
-  asBundledTriggerReference,
-  bundledTriggerWireFields,
-  convertBundledTriggerReferenceInputs,
-  createBundledTriggerPerform,
-  resolveBundledTriggerSiblingDataSources,
-  type TriggerWireFields,
-} from "./convertBundledTriggerReference";
 import {
   convertInput,
   convertTemplateInput,
@@ -157,6 +148,7 @@ const normalizeBatchedFlow = <
 >(
   flow: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
 ): Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult> => {
+  flow = normalizeBoundTrigger(flow);
   const trigger =
     "trigger" in flow ? (flow.trigger as BatchTrigger<unknown> | undefined) : undefined;
   if (!trigger) {
@@ -837,6 +829,51 @@ const convertComponentRegistry = (
   return convertedRegistry;
 };
 
+// Branch metadata must name an input on the CNI's own trigger. All other bound inputs
+// stay inside the local invocation; the platform does not need their definitions or values.
+const boundBranchInput = (bound: BoundTrigger | undefined) => {
+  if (!bound || !("dynamicBranchInput" in bound.definition) || !bound.definition.dynamicBranchInput)
+    return undefined;
+  const key = bound.definition.dynamicBranchInput;
+  const definition = bound.definition.inputs[key];
+  if (!definition) throw new Error(`Dynamic branch input "${key}" is not defined on the trigger.`);
+  const binding = bound.bindings[key];
+  const expression = binding !== null && typeof binding === "object" ? binding : undefined;
+  if (expression && "configVar" in expression) {
+    return {
+      input: convertInput(key, definition),
+      value: { type: "configVar", value: expression.configVar },
+    };
+  }
+  const raw = expression && "value" in expression ? expression.value : binding;
+  const value =
+    raw === undefined ? ("default" in definition ? definition.default : undefined) : raw;
+  const serialize = (entry: unknown) => (typeof entry === "string" ? entry : JSON.stringify(entry));
+  const wireValue =
+    definition.collection === "keyvaluelist"
+      ? (Array.isArray(value)
+          ? value
+          : Object.entries((value ?? {}) as Record<string, unknown>).map(([key, value]) => ({
+              key,
+              value,
+            }))
+        ).map(({ key, value }) => ({
+          name: { type: "value", value: key },
+          type: "value",
+          value: serialize(value),
+        }))
+      : definition.collection === "valuelist"
+        ? (Array.isArray(value) ? value : []).map((entry) => ({
+            type: "value",
+            value: serialize(entry),
+          }))
+        : serialize(value ?? "");
+  return {
+    input: convertInput(key, definition),
+    value: { type: definition.collection ? "complex" : "value", value: wireValue },
+  };
+};
+
 /**
  * Create a reference to the private component built as part of this CNI.
  *
@@ -869,7 +906,6 @@ const flowUsesWrapperTrigger = <
 ) => {
   return (
     typeof flow.onTrigger === "function" ||
-    isBundledTriggerReference(flow.onTrigger) ||
     flow.onInstanceDelete ||
     flow.onInstanceDeploy ||
     flow.webhookLifecycleHandlers
@@ -1003,12 +1039,12 @@ export const convertFlow = <
     // trigger, still carry that reference's configured input values onto the
     // step so the wrapper trigger receives them as params (and can forward them
     // to the referenced trigger via invokeTrigger).
-    const bundledOnTrigger = asBundledTriggerReference(flow.onTrigger);
     if (isComponentReference(flow.onTrigger)) {
       const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
       triggerStep.inputs = inputs;
-    } else if (bundledOnTrigger) {
-      triggerStep.inputs = convertBundledTriggerReferenceInputs(bundledOnTrigger);
+    } else {
+      const branch = boundBranchInput(getBoundTrigger(flow.onTrigger));
+      if (branch) triggerStep.inputs = { [branch.input.key]: branch.value };
     }
 
     triggerStep.action = {
@@ -1039,10 +1075,7 @@ export const convertFlow = <
     hasSchedule = true;
   }
 
-  const isPollingFlow =
-    flow.triggerType === "polling" ||
-    Boolean(asBundledTriggerReference(flow.onTrigger)?.trigger.isPollingTrigger);
-  if (isPollingFlow && !hasSchedule) {
+  if (flow.triggerType === "polling" && !hasSchedule) {
     throw new Error(
       `${flow.name} is marked as a polling trigger but has no schedule. Polling triggers require a schedule.`,
     );
@@ -1137,7 +1170,9 @@ export const convertFlow = <
       batchSize: validateBatchSize(flow.name, "batchConfig", batchConfig.batchSize),
       enabled: true,
       ...(concurrentBatchLimit !== undefined ? { concurrentBatchLimit } : {}),
-      ...(runInitialSyncOnDeploy ? { runInitialSyncOnDeploy: true } : {}),
+      ...("runInitialSyncOnDeploy" in flow && flow.runInitialSyncOnDeploy !== undefined
+        ? { runInitialSyncOnDeploy }
+        : {}),
     };
   }
 
@@ -1529,38 +1564,25 @@ export const invokeTriggerComponentInput = (
  * forwards to the referenced trigger via invokeTrigger). */
 const wrapperTriggerInputsFromReference = (
   onTrigger: unknown,
-  wrapperTriggerKey: string,
   componentRegistry: ComponentRegistry,
-): { inputs: ServerTriggerInput[]; dataSources: Record<string, ServerDataSource> } => {
-  const bundledTriggerReference = asBundledTriggerReference(onTrigger);
-  if (bundledTriggerReference) {
-    return resolveBundledTriggerSiblingDataSources(
-      bundledTriggerReference,
-      wrapperTriggerKey,
-      componentRegistry,
-    );
-  }
-
+): ServerTriggerInput[] => {
   if (!isComponentReference(onTrigger)) {
-    return { inputs: [], dataSources: {} };
+    return [];
   }
 
   const manifestInputs = componentRegistry[onTrigger.component]?.triggers?.[onTrigger.key]?.inputs;
   if (!manifestInputs) {
-    return { inputs: [], dataSources: {} };
+    return [];
   }
 
-  return {
-    inputs: Object.entries(manifestInputs).map(([key, input]) => ({
-      key,
-      label: key,
-      type: input.inputType,
-      ...(input.collection ? { collection: input.collection } : {}),
-      ...(input.default !== undefined ? { default: input.default } : {}),
-      ...(input.required !== undefined ? { required: input.required } : {}),
-    })),
-    dataSources: {},
-  };
+  return Object.entries(manifestInputs).map(([key, input]) => ({
+    key,
+    label: key,
+    type: input.inputType,
+    ...(input.collection ? { collection: input.collection } : {}),
+    ...(input.default !== undefined ? { default: input.default } : {}),
+    ...(input.required !== undefined ? { required: input.required } : {}),
+  }));
 };
 
 type ComponentRefTrigger = "component-ref";
@@ -1801,7 +1823,6 @@ const generateTriggerEventWrapperFn = <
   componentRef: ServerComponentReference | undefined,
   onTrigger:
     | TriggerReference
-    | BundledTriggerReference
     | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
     | PollingTriggerPerformFunction<
         TInputs,
@@ -1817,7 +1838,6 @@ const generateTriggerEventWrapperFn = <
   customFn?: TriggerEventFunction,
 ): TriggerEventFunction | undefined => {
   const usesComponentRef = componentRef && typeof onTrigger !== "function";
-  const bundledTriggerReference = asBundledTriggerReference(onTrigger);
 
   if (usesComponentRef) {
     return async (context, params) => {
@@ -1850,21 +1870,6 @@ const generateTriggerEventWrapperFn = <
         return merge(invokeResponse, customResponse);
       });
     };
-  } else if (bundledTriggerReference) {
-    const bundledFn = bundledTriggerReference.trigger[eventName];
-    if (!bundledFn && !customFn) {
-      return;
-    }
-    return async (context, params) => {
-      const cniContext = createCNIContext(context, componentRegistry);
-      return await runWithContext(cniContext, async () => {
-        const bundledResponse = bundledFn ? (await bundledFn(cniContext, params)) || {} : {};
-        const customResponse: TriggerEventFunctionReturn = customFn
-          ? (await customFn(cniContext, params)) || {}
-          : {};
-        return merge(bundledResponse, customResponse);
-      });
-    };
   } else if (customFn) {
     return async (context, params) => {
       const cniContext = createCNIContext(context, componentRegistry);
@@ -1878,7 +1883,37 @@ const generateTriggerEventWrapperFn = <
   }
 };
 
-/** Trigger fields for triggers authored within the CNI. */
+type TriggerWireFields = Pick<
+  ServerTrigger<any, any, any, any, any, any>,
+  | "scheduleSupport"
+  | "synchronousResponseSupport"
+  | "isPollingTrigger"
+  | "triggerResolverSupport"
+  | "triggerResolverDefaultBatchSize"
+  | "triggerResolverDefaultConcurrentBatchLimit"
+  | "resolveTriggerItems"
+  | "hasResolveTriggerItems"
+  | "getNextPaginationState"
+  | "hasGetNextDiscoveryState"
+  | "onDeployPerform"
+  | "hasOnDeployPerform"
+  | "resolveOnDeployItems"
+  | "hasResolveOnDeployItems"
+  | "getOnDeployNextPaginationState"
+  | "hasGetOnDeployNextDiscoveryState"
+> &
+  Partial<
+    Pick<
+      ServerTrigger<any, any, any, any, any, any>,
+      | "allowsBranching"
+      | "staticBranchNames"
+      | "dynamicBranchInput"
+      | "terminateExecution"
+      | "breakLoop"
+    >
+  >;
+
+/** Trigger fields for triggers authored within the CNI, or bound from a bundled component. */
 const authoredTriggerWireFields = ({
   triggerType,
   triggerResolver,
@@ -1886,6 +1921,7 @@ const authoredTriggerWireFields = ({
   batchConfig,
   onDeployTrigger,
   componentRegistry,
+  bound,
 }: {
   triggerType: FlowTriggerType | undefined;
   triggerResolver: WireResolver | undefined;
@@ -1893,60 +1929,102 @@ const authoredTriggerWireFields = ({
   batchConfig: { batchSize: number; concurrentBatchLimit?: number } | undefined;
   onDeployTrigger: TriggerPerformFunction<any, any, any, any> | undefined;
   componentRegistry: ComponentRegistry;
-}): TriggerWireFields => ({
-  scheduleSupport: triggerType === "polling" ? "required" : "valid",
-  synchronousResponseSupport: "valid",
-  isPollingTrigger: triggerType === "polling",
-  triggerResolverSupport: triggerResolver ? "valid" : "invalid",
-  // The authoritative batch size is stored on the flow (see convertFlow). We also emit the
-  // single shared default on the synthesized trigger because component publish validation
-  // requires `triggerResolverDefaultBatchSize` whenever resolver support is active.
-  ...(triggerResolver || onDeployResolver
-    ? {
-        triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
-        ...(batchConfig?.concurrentBatchLimit !== undefined
-          ? { triggerResolverDefaultConcurrentBatchLimit: batchConfig.concurrentBatchLimit }
-          : {}),
-      }
-    : {}),
-  ...(triggerResolver
-    ? {
-        ...(triggerResolver.resolveItems
-          ? { resolveTriggerItems: triggerResolver.resolveItems, hasResolveTriggerItems: true }
-          : {}),
-        ...(triggerResolver.getNextPaginationState
-          ? {
-              getNextPaginationState: triggerResolver.getNextPaginationState,
-              hasGetNextDiscoveryState: true,
-            }
-          : {}),
-      }
-    : {}),
-  // On-deploy is presence-driven (no support flag): the behavior flags below tell the platform
-  // what runs.
-  ...(onDeployTrigger
-    ? {
-        onDeployPerform: createCNIPerform({ componentRegistry, onTrigger: onDeployTrigger }),
-        hasOnDeployPerform: true,
-      }
-    : {}),
-  ...(onDeployResolver
-    ? {
-        ...(onDeployResolver.resolveItems
-          ? {
-              resolveOnDeployItems: onDeployResolver.resolveItems,
-              hasResolveOnDeployItems: true,
-            }
-          : {}),
-        ...(onDeployResolver.getNextPaginationState
-          ? {
-              getOnDeployNextPaginationState: onDeployResolver.getNextPaginationState,
-              hasGetOnDeployNextDiscoveryState: true,
-            }
-          : {}),
-      }
-    : {}),
-});
+  bound: BoundTrigger | undefined;
+}): TriggerWireFields => {
+  // Resolver callbacks enter independently of perform, so they need their own CNI scope.
+  const bindResolver = <TResult>(
+    fn: (context: ActionContext, result: { payload: TriggerPayload }) => TResult,
+  ) =>
+    bound
+      ? (context: ActionContext, result: { payload: TriggerPayload }) => {
+          const cniContext = createCNIContext(context, componentRegistry);
+          return runWithContext(cniContext, () => fn(cniContext, result));
+        }
+      : fn;
+  const resolverSupport =
+    bound?.definition.triggerResolverSupport ?? (triggerResolver ? "valid" : "invalid");
+  return {
+    scheduleSupport:
+      bound && "scheduleSupport" in bound.definition
+        ? bound.definition.scheduleSupport
+        : triggerType === "polling"
+          ? "required"
+          : "valid",
+    synchronousResponseSupport:
+      bound && "synchronousResponseSupport" in bound.definition
+        ? bound.definition.synchronousResponseSupport
+        : bound && triggerType === "polling"
+          ? "invalid"
+          : "valid",
+    ...(bound
+      ? pick(bound.definition, [
+          "allowsBranching",
+          "staticBranchNames",
+          "dynamicBranchInput",
+          "terminateExecution",
+          "breakLoop",
+        ])
+      : {}),
+    isPollingTrigger: triggerType === "polling",
+    triggerResolverSupport: resolverSupport,
+    // The authoritative batch size is stored on the flow (see convertFlow). We also emit the
+    // single shared default on the synthesized trigger because component publish validation
+    // requires `triggerResolverDefaultBatchSize` whenever resolver support is active.
+    ...(triggerResolver ||
+    onDeployResolver ||
+    resolverSupport === "valid" ||
+    resolverSupport === "required"
+      ? {
+          triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
+          ...(batchConfig?.concurrentBatchLimit !== undefined
+            ? { triggerResolverDefaultConcurrentBatchLimit: batchConfig.concurrentBatchLimit }
+            : {}),
+        }
+      : {}),
+    ...(triggerResolver
+      ? {
+          ...(triggerResolver.resolveItems
+            ? {
+                resolveTriggerItems: bindResolver(triggerResolver.resolveItems),
+                hasResolveTriggerItems: true,
+              }
+            : {}),
+          ...(triggerResolver.getNextPaginationState
+            ? {
+                getNextPaginationState: bindResolver(triggerResolver.getNextPaginationState),
+                hasGetNextDiscoveryState: true,
+              }
+            : {}),
+        }
+      : {}),
+    // On-deploy is presence-driven (no support flag): the behavior flags below tell the
+    // platform what runs.
+    ...(onDeployTrigger
+      ? {
+          onDeployPerform: createCNIPerform({ componentRegistry, onTrigger: onDeployTrigger }),
+          hasOnDeployPerform: true,
+        }
+      : {}),
+    ...(onDeployResolver
+      ? {
+          ...(onDeployResolver.resolveItems
+            ? {
+                resolveOnDeployItems: bindResolver(onDeployResolver.resolveItems),
+                hasResolveOnDeployItems: true,
+              }
+            : {}),
+          ...(onDeployResolver.getNextPaginationState
+            ? {
+                getOnDeployNextPaginationState: bindResolver(
+                  onDeployResolver.getNextPaginationState,
+                ),
+                hasGetOnDeployNextDiscoveryState: true,
+              }
+            : {}),
+        }
+      : {}),
+  };
+};
 
 const convertOnExecution =
   (
@@ -2037,10 +2115,6 @@ const codeNativeIntegrationComponent = <
     {},
   );
 
-  // Populated while building `convertedTriggers`: a bundled trigger's sibling data sources land
-  // in the wrapper component's own `dataSources` (see `wrapperTriggerInputsFromReference`).
-  const bundledTriggerSiblingDataSources: Record<string, ServerDataSource> = {};
-
   const convertedTriggers = flows.reduce<
     Record<
       string,
@@ -2095,22 +2169,20 @@ const codeNativeIntegrationComponent = <
       key: defaultComponentKey,
     };
 
-    // The component ref here is undefined if onTrigger is a function or a bundled trigger.
+    // The component ref here is undefined if onTrigger is a function (including a bound
+    // bundled trigger).
     const { ref } = isComponentReference(onTrigger)
       ? convertComponentReference(onTrigger, componentRegistry, "triggers")
       : { ref: onTrigger ? undefined : defaultComponentRef };
+    const bound = getBoundTrigger(onTrigger);
+    const branch = boundBranchInput(bound);
 
-    // A bundled trigger reference carries its own already-converted `Trigger`.
-    const bundledTrigger = asBundledTriggerReference(onTrigger)?.trigger;
-
-    const performFn = bundledTrigger
-      ? createBundledTriggerPerform(bundledTrigger, componentRegistry)
-      : generateTriggerPerformFn({
-          componentRef: ref,
-          onTrigger: onTrigger as Exclude<typeof onTrigger, BundledTriggerReference>,
-          componentRegistry,
-          triggerType,
-        });
+    const performFn = generateTriggerPerformFn({
+      componentRef: ref,
+      onTrigger,
+      componentRegistry,
+      triggerType,
+    });
     const deleteFn = generateTriggerEventWrapperFn(
       ref,
       onTrigger,
@@ -2140,10 +2212,6 @@ const codeNativeIntegrationComponent = <
       webhookLifecycleHandlers?.delete,
     );
 
-    const { inputs: wrapperInputs, dataSources: wrapperSiblingDataSources } =
-      wrapperTriggerInputsFromReference(onTrigger, key, componentRegistry);
-    Object.assign(bundledTriggerSiblingDataSources, wrapperSiblingDataSources);
-
     return {
       ...result,
       [key]: {
@@ -2161,17 +2229,18 @@ const codeNativeIntegrationComponent = <
         hasWebhookCreateFunction: !!webhookCreateFn,
         webhookDelete: webhookDeleteFn,
         hasWebhookDeleteFunction: !!webhookDeleteFn,
-        inputs: wrapperInputs,
-        ...(bundledTrigger
-          ? bundledTriggerWireFields(bundledTrigger, componentRegistry)
-          : authoredTriggerWireFields({
-              triggerType,
-              triggerResolver,
-              onDeployResolver,
-              batchConfig,
-              onDeployTrigger,
-              componentRegistry,
-            })),
+        inputs: branch
+          ? [branch.input]
+          : wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
+        ...authoredTriggerWireFields({
+          triggerType,
+          triggerResolver,
+          onDeployResolver,
+          batchConfig,
+          onDeployTrigger,
+          componentRegistry,
+          bound,
+        }),
       },
     };
   }, {});
@@ -2187,10 +2256,10 @@ const codeNativeIntegrationComponent = <
           ...result,
           [camelKey]: {
             dataSourceType,
-            // Establishes the ambient context so a bundled component action can be called
-            // from the data source, as it can from a flow.
+            // Establishes the configuration-time scope so a bundled data source can be called
+            // from this one; bundled actions need an execution and are refused here.
             perform: ((context, params) =>
-              runWithContext(context as unknown as ActionContext, () =>
+              runWithDataSourceContext(context, () =>
                 (perform as ServerDataSource["perform"])(context, params),
               )) as ServerDataSource["perform"],
             key: camelKey,
@@ -2233,7 +2302,7 @@ const codeNativeIntegrationComponent = <
 
       return result;
     },
-    { ...bundledTriggerSiblingDataSources },
+    {},
   );
 
   const convertedConnections = Object.entries(configVars).reduce<ServerConnection[]>(

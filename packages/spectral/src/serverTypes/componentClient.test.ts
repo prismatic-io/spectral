@@ -49,7 +49,7 @@ const built = component({
       display: { label: "Projects", description: "Projects" },
       inputs: { query: input({ label: "Query", type: "string" }) },
       dataSourceType: "picklist",
-      perform: async () => ({ result: [] }),
+      perform: async (_context, { query }) => ({ result: [query] }),
     }),
   },
   connections: [
@@ -131,10 +131,10 @@ describe("componentClient actions", () => {
 });
 
 describe("componentClient actions called from other handlers", () => {
-  it("resolve the ambient context from a flow's own trigger and from a data source", async () => {
+  it("resolve the ambient context from a flow's own trigger, and only a data source from a data source", async () => {
     const converted = integration({
       name: "Handlers",
-      description: "Calls a bundled action from a trigger and a data source",
+      description: "Calls bundled entities from a trigger and a data source",
       iconPath: "icon.png",
       componentRegistry: {},
       configPages: {
@@ -142,6 +142,11 @@ describe("componentClient actions called from other handlers", () => {
           elements: {
             Options: dataSourceConfigVar({
               stableKey: "options",
+              dataSourceType: "picklist",
+              perform: async () => client.dataSources.projects({ query: "from data source" }),
+            }),
+            Refused: dataSourceConfigVar({
+              stableKey: "refused",
               dataSourceType: "picklist",
               perform: async () => ({
                 result: [(await client.actions.echo({ message: "from data source" })) as never],
@@ -174,40 +179,65 @@ describe("componentClient actions called from other handlers", () => {
       data: { message: "from trigger", prefix: "hello", count: 2 },
     });
 
-    const [dataSourcePerform] = Object.values(converted.dataSources).map((d) => d.perform);
-    expect(await dataSourcePerform(context, {})).toEqual({
-      result: [{ data: { message: "from data source", prefix: "hello", count: 2 } }],
-    });
+    const [dataSourcePerform, refusedPerform] = Object.values(converted.dataSources).map(
+      (d) => d.perform,
+    );
+    expect(await dataSourcePerform(context, {})).toEqual({ result: ["from data source"] });
+    // Configuration runs without an execution, so a bundled action has nothing to run in.
+    await expect(refusedPerform(context, {})).rejects.toThrow(
+      "ActionContext is unavailable during configuration. Invoke a data source instead.",
+    );
   });
 });
 
 describe("componentClient triggers and data sources", () => {
-  it("become triggers on the integration's own wrapper component", () => {
-    const reference = client.triggers.webhook({ secret: { value: "s3cret" } });
-    expect(reference.__bundledTriggerReference).toBe(true);
-    expect(reference.trigger).toBe(built.triggers.webhook);
+  it("bind their inputs and become the flow's trigger on the integration's own wrapper component", async () => {
+    const bound = client.triggers.webhook({ secret: "s3cret" });
+    expect(typeof bound).toBe("function");
+    const events = flow({
+      name: "Events",
+      stableKey: "events",
+      description: "events",
+      onTrigger: bound,
+      onExecution: async () => ({ data: null }),
+    });
 
-    const converted = convertFlow(
-      {
-        name: "Events",
-        stableKey: "events",
-        onTrigger: reference,
-        onExecution: async () => ({ data: null }),
-      },
-      {},
-      "integration",
-    );
+    const converted = convertFlow(events, {}, "integration");
     const [triggerStep] = converted.steps as Array<Record<string, unknown>>;
     expect(triggerStep).toMatchObject({
       action: { component: { key: "integration" }, key: "events_onTrigger" },
-      inputs: { secret: { type: "value", value: "s3cret" } },
     });
+    // Bound values stay inside the integration; the platform never sees them.
+    expect(triggerStep.inputs).toBeUndefined();
+    expect(converted.supplementalComponents).toEqual([]);
+
+    const cni = integration({
+      name: "Events",
+      description: "events",
+      iconPath: "icon.png",
+      componentRegistry: {},
+      flows: [events],
+    });
+    const [wire] = Object.values(cni.triggers);
+    const payload = { headers: {}, queryParameters: {}, rawBody: { data: "" }, body: { data: "" } };
+    await expect(
+      wire.perform({ globalDebug: false, configVars: {}, logger: console } as never, payload, {}),
+    ).resolves.toMatchObject({ payload });
   });
 
-  it("become data sources hoisted onto the wrapper component", () => {
+  it("are callable in-process, and `.configVar` hoists a data source onto the wrapper component", async () => {
+    await expect(
+      runWithContext({ configVars: {} } as never, () =>
+        client.dataSources.projects({ query: "active" }),
+      ),
+    ).resolves.toEqual({ result: ["active"] });
+    await expect(client.dataSources.projects({ query: "active" })).rejects.toThrow(
+      "DataSourceContext not found",
+    );
+
     const converted = convertConfigVar(
       "Projects",
-      client.dataSources.projects({
+      client.dataSources.projects.configVar({
         stableKey: "projects",
         values: { query: { value: "active" } },
       }),

@@ -6,6 +6,7 @@ import type {
   TriggerResult,
 } from "../types";
 import type { ActionContext } from "../types/ActionPerformFunction";
+import type { DataSourceContext } from "../types/DataSourcePerformFunction";
 
 // Only import async_hooks in Node.js environments
 const asyncHooks = typeof window === "undefined" ? require("node:async_hooks") : null;
@@ -26,24 +27,54 @@ const getSharedContextStorage = (key: symbol) => {
 const actionContextStorage = getSharedContextStorage(actionContextStorageKey);
 const integrationContextStorage = getSharedContextStorage(integrationContextStorageKey);
 
-export function runWithContext<T>(
-  context: ActionContext,
-  fn: () => T | Promise<T>,
-): T | Promise<T> {
+/**
+ * What a bundled component call can resolve ambiently: a flow execution's full context, or
+ * the narrower one configuration-time callbacks (data sources, `init`, server functions) get.
+ */
+type InvocationScope =
+  | { kind: "execution"; context: ActionContext }
+  | { kind: "dataSource"; context: DataSourceContext };
+
+export function runWithContext<T>(context: ActionContext, fn: () => T): T {
   if (!actionContextStorage) {
     return fn();
   }
-  return actionContextStorage.run(context, fn);
+  return actionContextStorage.run({ kind: "execution", context } satisfies InvocationScope, fn);
 }
 
 export function requireContext(): ActionContext {
-  const context = actionContextStorage.getStore();
+  const scope = actionContextStorage?.getStore() as InvocationScope | undefined;
 
-  if (!context) {
+  if (!scope) {
     throw new Error("ActionContext not found. Ensure this code is wrapped via runWithContext.");
   }
 
-  return context;
+  if (scope.kind !== "execution") {
+    throw new Error(
+      "ActionContext is unavailable during configuration. Invoke a data source instead.",
+    );
+  }
+
+  return scope.context;
+}
+
+/** Configuration callbacks supply the smaller context data sources get. */
+export function runWithDataSourceContext<T>(context: DataSourceContext, fn: () => T): T {
+  if (!actionContextStorage) {
+    return fn();
+  }
+  return actionContextStorage.run({ kind: "dataSource", context } satisfies InvocationScope, fn);
+}
+
+/** The ambient context a bundled data source may use: either kind of scope supplies it. */
+export function requireDataSourceContext(): DataSourceContext {
+  const scope = actionContextStorage?.getStore() as InvocationScope | undefined;
+  if (!scope) {
+    throw new Error(
+      "DataSourceContext not found. Invoke within an execution or configuration callback.",
+    );
+  }
+  return scope.context;
 }
 
 export function runWithIntegrationContext<

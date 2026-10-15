@@ -490,6 +490,6 @@ export interface Input {
 }
 
 export * from "./asyncContext";
+export * from "./boundTrigger";
 export * from "./bundledAction";
 export * from "./bundledDataSource";
-export * from "./bundledTrigger";

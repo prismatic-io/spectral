@@ -4,6 +4,7 @@ import {
   isConnectionDefinitionConfigVar,
   isConnectionReferenceConfigVar,
 } from "../types/ConfigVars";
+import type { DataSourceContext } from "../types/DataSourcePerformFunction";
 import type {
   AnyConfigurationInit,
   AnyIntegrationConfiguration,
@@ -18,6 +19,7 @@ import {
   isUserScopedConnectionConfigVar,
   type ScopedConfigVarMap,
 } from "../types/ScopedConfigVars";
+import { runWithDataSourceContext } from "./asyncContext";
 import { type ConnectionNameMap, createConfigurationContext } from "./configurationContext";
 import { serializeSchema, toJsonSchema } from "./configurationSchema";
 import { createComponentMethods } from "./context";
@@ -230,6 +232,19 @@ const readConfigurationVersion = (context: unknown): string | null | undefined =
 const readConfigVars = (context: unknown): Record<string, unknown> =>
   (context as { configVars?: Record<string, unknown> } | undefined)?.configVars ?? {};
 
+/** The context a bundled data source gets when called from a configuration callback. */
+const configurationDataSourceContext = (
+  context: unknown,
+  authorContext: ReturnType<typeof createConfigurationContext>,
+): DataSourceContext =>
+  ({
+    logger: authorContext.logger,
+    customer: authorContext.customer,
+    instance: authorContext.instance,
+    user: authorContext.user,
+    configVars: readConfigVars(context),
+  }) as DataSourceContext;
+
 /**
  * Wraps `init` for the component's `configuration` export, mapping the platform
  * context onto the author's. The return passes through untouched: the platform
@@ -241,7 +256,9 @@ export const convertConfigurationInit =
     const configurationVersion = readConfigurationVersion(context) ?? null;
     const configVars = readConfigVars(context);
     const authorContext = createConfigurationContext(context, connectionNames);
-    return init(Object.assign(authorContext, { configurationVersion, configVars }) as never);
+    return runWithDataSourceContext(configurationDataSourceContext(context, authorContext), () =>
+      init(Object.assign(authorContext, { configurationVersion, configVars }) as never),
+    );
   };
 
 /**
@@ -259,11 +276,13 @@ export const convertServerFunction = (
   return async (context: unknown, inputs: unknown): Promise<unknown> => {
     const authorContext = createConfigurationContext(context, dependencies);
 
-    return serverFunction.perform(
-      Object.assign(authorContext, {
-        components: createComponentMethods(context as never, componentRegistry),
-      }) as never,
-      inputs as never,
+    return runWithDataSourceContext(configurationDataSourceContext(context, authorContext), () =>
+      serverFunction.perform(
+        Object.assign(authorContext, {
+          components: createComponentMethods(context as never, componentRegistry),
+        }) as never,
+        inputs as never,
+      ),
     );
   };
 };

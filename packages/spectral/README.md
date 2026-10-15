@@ -15,6 +15,45 @@ npm install @prismatic-io/spectral
 
 Please see our [documentation](https://prismatic.io/docs/custom-connectors/) on writing and publishing custom connectors for Prismatic's platform.
 
+### Using a component package from a code-native integration
+
+A component built with `component(...)` can be installed from npm and used directly from a
+code-native integration through `componentClient`:
+
+```typescript
+import { componentClient } from "@prismatic-io/spectral";
+import slack from "@acme/slack-component";
+
+const client = componentClient(slack);
+
+export const slackFlow = flow({
+  name: "Slack events",
+  stableKey: "slack-events",
+  onTrigger: client.triggers.webhook({
+    slackConnection: { configVar: "Slack Connection" },
+  }),
+  onExecution: async (context, params) => ({
+    data: await client.actions.postMessage({ channel: "#general", message: "hi" }),
+  }),
+});
+```
+
+Actions run in the integration's own process. A trigger binds its inputs and becomes the
+flow's trigger; config-var bindings resolve from each invocation's context, other inputs accept
+ordinary pre-clean values or `{ value: rawValue }`, and defaults and cleaners run inside the
+component call. The bound trigger carries the component trigger's lifecycle handlers, polling
+behavior, batch defaults, pagination resolvers and initial-sync handler onto the integration's
+generated trigger, so no manifest or supplemental component is needed. A polling flow still
+needs a `schedule`, and a flow that also defines lifecycle handlers runs the component's handler
+first and merges its own returned state over it. Data sources are callable from a flow or a
+configuration callback, and `client.dataSources.x.configVar({ ... })` declares a config var
+backed by one. Connections reference the published component, so a connection config var stays
+shared with low-code integrations; Prism publishes the component and pins the version when the
+integration is imported.
+
+Keep `@prismatic-io/spectral` a peer dependency of the component package and externalize it when
+bundling the package, so the integration and the component share one execution context.
+
 ## What is Prismatic?
 
 Prismatic is the leading embedded iPaaS, enabling B2B SaaS teams to ship product integrations faster and with less dev time. The only embedded iPaaS that empowers both developers and non-developers with tools for the complete integration lifecycle, Prismatic includes low-code and code-native building options, deployment and management tooling, and self-serve customer tools.

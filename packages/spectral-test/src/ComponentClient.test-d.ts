@@ -1,10 +1,15 @@
 import {
+  type ActionContext,
   action,
+  type Connection,
   component,
   componentClient,
   connection,
+  type DataSourceResult,
   dataSource,
+  flow,
   input,
+  type TriggerPayload,
   trigger,
   util,
 } from "@prismatic-io/spectral";
@@ -74,12 +79,33 @@ expectError(client.actions.create({}));
 expectError(client.actions.create({ name: "Ada", unknown: true }));
 expectError(client.actions.missing);
 
-// Triggers and data sources are bundled references; connections reference the published
-// component.
-expectType<true>(client.triggers.webhook({ secret: { value: "s" } }).__bundledTriggerReference);
+// Triggers bind their inputs and become a flow's own trigger; each trigger function is also
+// callable in-process. Data sources are callable in-process and `.configVar` hoists one onto
+// the integration's wrapper component. Connections reference the published component.
+const boundWebhook = client.triggers.webhook({ secret: { configVar: "Secret" } });
+expectAssignable<(context: ActionContext, payload: TriggerPayload) => unknown>(boundWebhook);
+flow({
+  name: "Bound",
+  stableKey: "bound",
+  onTrigger: boundWebhook,
+  onExecution: async () => ({ data: true }),
+});
+client.triggers.webhook({ secret: "s" });
+client.triggers.webhook({ secret: { value: "s" } });
+expectError(client.triggers.webhook());
+expectError(client.triggers.webhook({ secret: { configVar: 3 } }));
 expectError(client.triggers.webhook({ missing: { value: "nope" } }));
+expectType<Promise<{ payload: TriggerPayload }>>(
+  client.triggers.webhook.perform({} as TriggerPayload, { secret: "s" }),
+);
+expectError(client.triggers.webhook.perform({} as TriggerPayload));
+expectType<Promise<DataSourceResult<"picklist">>>(
+  client.dataSources.projects({ connection: {} as Connection }),
+);
+expectError(client.dataSources.projects());
 expectType<true>(
-  client.dataSources.projects({ stableKey: "projects" }).dataSource.__bundledDataSourceReference,
+  client.dataSources.projects.configVar({ stableKey: "projects" }).dataSource
+    .__bundledDataSourceReference,
 );
 expectError(client.dataSources.missing);
 expectType<"connection">(client.connections.apiKey({ stableKey: "api-key" }).connection.kind);

@@ -1006,7 +1006,7 @@ export const pollingTrigger = <
 export const dataSource = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  TDataSourceType extends DataSourceType,
+  const TDataSourceType extends DataSourceType,
 >(
   definition: DataSourceDefinition<TInputs, TConfigVars, TDataSourceType>,
 ): DataSourceDefinition<TInputs, TConfigVars, TDataSourceType> => definition;
@@ -1177,7 +1177,10 @@ export const dynamicObjectInput = <
  *   },
  * });
  */
-export const connection = <const T extends DefaultConnectionDefinition>(
+export const connection = <
+  TKey extends string,
+  T extends DefaultConnectionDefinition & { key: TKey },
+>(
   definition: T & Exact<DefaultConnectionDefinition, T>,
 ): T => definition;
 
@@ -1226,7 +1229,10 @@ export const connection = <const T extends DefaultConnectionDefinition>(
  *   },
  * });
  */
-export const onPremConnection = <const T extends OnPremConnectionDefinition>(
+export const onPremConnection = <
+  TKey extends string,
+  T extends OnPremConnectionDefinition & { key: TKey },
+>(
   definition: T & Exact<OnPremConnectionDefinition, T>,
 ): T => definition;
 
@@ -1283,7 +1289,10 @@ export const onPremConnection = <const T extends OnPremConnectionDefinition>(
  *   },
  * });
  */
-export const oauth2Connection = <const T extends OAuth2ConnectionDefinition>(
+export const oauth2Connection = <
+  TKey extends string,
+  T extends OAuth2ConnectionDefinition & { key: TKey },
+>(
   definition: T &
     Exact<OAuth2ConnectionDefinition, T> &
     (T extends { oauth2Config?: infer TConfig }
