@@ -1084,7 +1084,9 @@ export const convertFlow = <
       batchSize: validateBatchSize(flow.name, "batchConfig", batchConfig.batchSize),
       enabled: true,
       ...(concurrentBatchLimit !== undefined ? { concurrentBatchLimit } : {}),
-      ...(runInitialSyncOnDeploy ? { runInitialSyncOnDeploy: true } : {}),
+      ...("runInitialSyncOnDeploy" in flow && flow.runInitialSyncOnDeploy !== undefined
+        ? { runInitialSyncOnDeploy }
+        : {}),
     };
   }
 
