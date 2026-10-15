@@ -34,7 +34,7 @@ export type CallableConnectionConfigVar = BaseConfigVar & {
  * }),
  * ```
  *
- * Only relevant when its caller opts in via `component(definition, { callable: true })`.
+ * Exposed by the consumer-facing side of `npmComponent(definition)`.
  */
 export const createCallableConnection =
   (connection: AnyConnection) =>

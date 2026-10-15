@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { action, component, dynamicObjectInput, input, structuredObjectInput } from "..";
+import {
+  action,
+  component,
+  connection,
+  dynamicObjectInput,
+  input,
+  npmComponent,
+  structuredObjectInput,
+} from "..";
 import { ConnectionError, isUserError, UserError } from "../errors";
 import { runWithContext } from "./asyncContext";
-import { createCallableComponent } from "./callableAction";
 
 const rawEcho = component({
   key: "echo",
@@ -47,7 +54,7 @@ describe("component()", () => {
   });
 });
 
-describe("component(definition, { callable: true })", () => {
+describe("npmComponent()", () => {
   const echoDefinition = {
     key: "echo",
     public: true as const,
@@ -61,30 +68,80 @@ describe("component(definition, { callable: true })", () => {
     },
   };
 
-  it("produces the same callable shape as component() + createCallableComponent", async () => {
-    const viaOption = component(echoDefinition, { callable: true });
-    const viaWrapper = createCallableComponent(component(echoDefinition));
+  it("keeps callable helpers separate from the server component", async () => {
+    const built = npmComponent(echoDefinition);
 
-    expect(typeof viaOption.actions.sayHello).toBe("function");
+    expect(typeof built.actions.sayHello).toBe("function");
+    expect(typeof built.component.actions.sayHello).toBe("object");
+    expect(typeof built.component.actions.sayHello.perform).toBe("function");
+    expect(JSON.parse(JSON.stringify(built.component.actions)).sayHello.key).toBe("sayHello");
 
-    const result = await runWithContext({} as any, () =>
-      viaOption.actions.sayHello({ name: "Pat" }),
-    );
+    const result = await runWithContext({} as any, () => built.actions.sayHello({ name: "Pat" }));
     expect(result).toEqual({ data: "Hello, Pat!" });
-    expect(typeof viaWrapper.actions.sayHello).toBe("function");
   });
 
-  it("omitting the option (or passing callable: false) stays plain, like component() alone", () => {
-    const withoutOption = component(echoDefinition);
-    const explicitlyFalse = component(echoDefinition, { callable: false });
+  it("uses the server component as the callable helper's source of truth", async () => {
+    const built = npmComponent(echoDefinition);
+    built.component.actions.sayHello.perform = async () => ({ data: "replacement" });
 
-    expect(typeof withoutOption.actions.sayHello).toBe("object");
-    expect(typeof explicitlyFalse.actions.sayHello).toBe("object");
+    await expect(runWithContext({} as any, () => built.actions.sayHello({}))).resolves.toEqual({
+      data: "replacement",
+    });
+  });
+
+  it("keeps connection helpers separate from the server connection array", () => {
+    const built = npmComponent({
+      key: "reserved-connection-keys",
+      public: true,
+      display: { label: "Reserved keys", description: "Reserved keys" },
+      connections: [
+        connection({
+          key: "length",
+          display: { label: "Length", description: "Length" },
+          inputs: {},
+        }),
+        connection({ key: "map", display: { label: "Map", description: "Map" }, inputs: {} }),
+      ],
+    });
+
+    expect(built.component.connections.map(({ key }) => key)).toEqual(["length", "map"]);
+    expect(typeof built.connections.length).toBe("function");
+    expect(typeof built.connections.map).toBe("function");
   });
 });
 
-describe("createCallableComponent", () => {
-  const echo = createCallableComponent(rawEcho);
+describe("npm component action helpers", () => {
+  const echo = npmComponent({
+    key: "echo",
+    public: true,
+    display: { label: "Echo", description: "Echoes things back." },
+    actions: {
+      sayHello: action({
+        display: { label: "Say Hello", description: "Says hello." },
+        inputs: { name: input({ type: "string", label: "Name", default: "World" }) },
+        perform: async (_context, { name }) => ({ data: `Hello, ${name}!` }),
+      }),
+      bareReturn: action({
+        display: { label: "Bare Return", description: "Returns a bare value." },
+        inputs: {},
+        perform: async () => "just a string" as any,
+      }),
+      blowUp: action({
+        display: { label: "Blow Up", description: "Always throws." },
+        inputs: { connection: input({ type: "connection", label: "Connection" }) },
+        perform: async (_context, { connection }) => {
+          throw new ConnectionError(connection as any, "bad credentials");
+        },
+      }),
+      blowUpPlain: action({
+        display: { label: "Blow Up Plain", description: "Always throws a plain error." },
+        inputs: {},
+        perform: async () => {
+          throw new Error("boom");
+        },
+      }),
+    },
+  });
 
   it("is invokable directly, with no context argument, inside runWithContext", async () => {
     const result = await runWithContext({} as any, () => echo.actions.sayHello({ name: "Pat" }));
@@ -99,34 +156,31 @@ describe("createCallableComponent", () => {
   });
 
   it("fills an omitted structuredObject input with an object of its children's defaults", async () => {
-    const paged = component(
-      {
-        key: "paged",
-        public: true,
-        display: { label: "Paged", description: "x" },
-        actions: {
-          list: action({
-            display: { label: "List", description: "x" },
-            inputs: {
-              query: input({ type: "string", label: "Query", required: false }),
-              pagination: structuredObjectInput({
-                label: "Pagination",
-                required: false,
-                inputs: {
-                  pageSize: input({ type: "string", label: "Page Size", default: "10" }),
-                  pageToken: input({ type: "string", label: "Page Token" }),
-                },
-              }),
-            },
-            // Destructures the container the way a component's perform would.
-            perform: async (_context, { query, pagination: { pageSize, pageToken } }) => ({
-              data: { query, pageSize, pageToken },
+    const paged = npmComponent({
+      key: "paged",
+      public: true,
+      display: { label: "Paged", description: "x" },
+      actions: {
+        list: action({
+          display: { label: "List", description: "x" },
+          inputs: {
+            query: input({ type: "string", label: "Query", required: false }),
+            pagination: structuredObjectInput({
+              label: "Pagination",
+              required: false,
+              inputs: {
+                pageSize: input({ type: "string", label: "Page Size", default: "10" }),
+                pageToken: input({ type: "string", label: "Page Token" }),
+              },
             }),
+          },
+          // Destructures the container the way a component's perform would.
+          perform: async (_context, { query, pagination: { pageSize, pageToken } }) => ({
+            data: { query, pageSize, pageToken },
           }),
-        },
+        }),
       },
-      { callable: true },
-    );
+    });
 
     const result = await runWithContext({} as any, () => paged.actions.list({}));
 
@@ -134,40 +188,37 @@ describe("createCallableComponent", () => {
   });
 
   it("fills the missing children of a partially supplied structuredObject input", async () => {
-    const paged = component(
-      {
-        key: "paged-partial",
-        public: true,
-        display: { label: "Paged", description: "x" },
-        actions: {
-          list: action({
-            display: { label: "List", description: "x" },
-            inputs: {
-              pagination: structuredObjectInput({
-                label: "Pagination",
-                required: false,
-                inputs: {
-                  pageSize: input({ type: "string", label: "Page Size", default: "10" }),
-                  pageToken: input({ type: "string", label: "Page Token", required: false }),
-                },
-              }),
-              filters: structuredObjectInput({
-                label: "Filters",
-                collection: "valuelist",
-                inputs: {
-                  field: input({ type: "string", label: "Field" }),
-                  op: input({ type: "string", label: "Op", default: "eq" }),
-                },
-              }),
-            },
-            perform: async (_context, { pagination, filters }) => ({
-              data: { pagination, filters },
+    const paged = npmComponent({
+      key: "paged-partial",
+      public: true,
+      display: { label: "Paged", description: "x" },
+      actions: {
+        list: action({
+          display: { label: "List", description: "x" },
+          inputs: {
+            pagination: structuredObjectInput({
+              label: "Pagination",
+              required: false,
+              inputs: {
+                pageSize: input({ type: "string", label: "Page Size", default: "10" }),
+                pageToken: input({ type: "string", label: "Page Token", required: false }),
+              },
             }),
+            filters: structuredObjectInput({
+              label: "Filters",
+              collection: "valuelist",
+              inputs: {
+                field: input({ type: "string", label: "Field" }),
+                op: input({ type: "string", label: "Op", default: "eq" }),
+              },
+            }),
+          },
+          perform: async (_context, { pagination, filters }) => ({
+            data: { pagination, filters },
           }),
-        },
+        }),
       },
-      { callable: true },
-    );
+    });
 
     const result = await runWithContext({} as any, () =>
       paged.actions.list({
@@ -185,34 +236,31 @@ describe("createCallableComponent", () => {
   });
 
   it("fills the missing values of a dynamicObject input's selected configuration", async () => {
-    const dyn = component(
-      {
-        key: "dyn",
-        public: true,
-        display: { label: "Dyn", description: "x" },
-        actions: {
-          send: action({
-            display: { label: "Send", description: "x" },
-            inputs: {
-              target: dynamicObjectInput({
-                label: "Target",
-                configurations: {
-                  email: {
-                    label: "Email",
-                    inputs: {
-                      address: input({ type: "string", label: "Address" }),
-                      subject: input({ type: "string", label: "Subject", default: "Hello" }),
-                    },
+    const dyn = npmComponent({
+      key: "dyn",
+      public: true,
+      display: { label: "Dyn", description: "x" },
+      actions: {
+        send: action({
+          display: { label: "Send", description: "x" },
+          inputs: {
+            target: dynamicObjectInput({
+              label: "Target",
+              configurations: {
+                email: {
+                  label: "Email",
+                  inputs: {
+                    address: input({ type: "string", label: "Address" }),
+                    subject: input({ type: "string", label: "Subject", default: "Hello" }),
                   },
                 },
-              }),
-            },
-            perform: async (_context, { target }) => ({ data: target }),
-          }),
-        },
+              },
+            }),
+          },
+          perform: async (_context, { target }) => ({ data: target }),
+        }),
       },
-      { callable: true },
-    );
+    });
 
     const result = await runWithContext({} as any, () =>
       dyn.actions.send({
@@ -255,23 +303,20 @@ describe("createCallableComponent", () => {
 
   it("lets an already-wrapped UserError pass through unchanged", async () => {
     const alreadyWrapped = new UserError(new Error("already wrapped"));
-    const wrapOnce = component(
-      {
-        key: "wrap-once",
-        public: true,
-        display: { label: "Wrap Once", description: "x" },
-        actions: {
-          blowUp: action({
-            display: { label: "Blow Up", description: "x" },
-            inputs: {},
-            perform: async () => {
-              throw alreadyWrapped;
-            },
-          }),
-        },
+    const wrapOnce = npmComponent({
+      key: "wrap-once",
+      public: true,
+      display: { label: "Wrap Once", description: "x" },
+      actions: {
+        blowUp: action({
+          display: { label: "Blow Up", description: "x" },
+          inputs: {},
+          perform: async () => {
+            throw alreadyWrapped;
+          },
+        }),
       },
-      { callable: true },
-    );
+    });
 
     const error = await runWithContext({} as any, () => wrapOnce.actions.blowUp({})).catch(
       (e) => e,
@@ -280,10 +325,10 @@ describe("createCallableComponent", () => {
     expect(error).toBe(alreadyWrapped);
   });
 
-  it("still exposes .perform for the runner's (context, params) invocation", async () => {
-    expect(typeof echo.actions.sayHello.perform).toBe("function");
+  it("exposes .perform only on the nested server component", async () => {
+    expect(typeof echo.component.actions.sayHello.perform).toBe("function");
 
-    const result = await echo.actions.sayHello.perform({} as any, { name: "Direct" });
+    const result = await echo.component.actions.sayHello.perform({} as any, { name: "Direct" });
     expect(result).toEqual({ data: "Hello, Direct!" });
   });
 });

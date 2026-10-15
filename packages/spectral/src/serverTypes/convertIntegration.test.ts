@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   batchFlowTrigger,
   batchTrigger,
-  component,
   configPage,
   configVar,
   connection,
+  npmComponent as createNpmComponent,
   customerActivatedConnection,
   dataSource,
   dataSourceConfigVar,
@@ -1435,77 +1435,74 @@ describe("custom-trigger reference input values reach the trigger functions", ()
 
 describe("npm trigger references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `component(definition, { callable: true })` — its triggers are directly-callable
+  // `npmComponent(definition)` — its triggers are directly-callable
   // reference helpers, not manifest-registry lookups.
-  const npmComponent = component(
-    {
-      key: "acme-npm",
-      public: true,
-      display: { label: "Acme", description: "An npm-published component" },
-      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
-      triggers: {
-        webhook: trigger({
-          display: { label: "Webhook", description: "Fires on an inbound webhook" },
-          inputs: { greeting: input({ type: "string", label: "Greeting", default: "hi" }) },
-          scheduleSupport: "invalid",
-          synchronousResponseSupport: "valid",
-          perform: async (_context, payload) => ({ payload }),
-          onInstanceDeploy: async () => ({ instanceState: { deployed: true } }),
-          webhookLifecycleHandlers: {
-            create: async () => ({ instanceState: { created: true } }),
-            delete: async () => ({}),
-          },
-        }),
-        pollForChanges: pollingTrigger({
-          display: { label: "Poll For Changes", description: "Polls on a schedule" },
-          inputs: {},
-          perform: async (context, payload) => {
-            context.polling.setState({ cursor: "next" });
-            return { payload: { ...payload, body: { data: [] } } };
-          },
-        }),
-        branching: trigger({
-          display: { label: "Branching", description: "Returns a branch" },
-          inputs: {},
-          scheduleSupport: "invalid",
-          synchronousResponseSupport: "valid",
-          terminateExecution: true,
-          breakLoop: true,
-          allowsBranching: true,
-          staticBranchNames: ["Yes", "No"],
-          perform: async (_context, payload) => ({ payload, branch: "Yes" }),
-        }),
-        syncOrders: batchTrigger({
-          display: { label: "Sync Orders", description: "Fetches orders in batches" },
-          inputs: {},
-          scheduleSupport: "required",
-          batchConfig: { batchSize: 25 },
-          perform: async () => ({ items: [1, 2, 3], paginationState: null }),
-          onDeploy: {
-            perform: async () => ({ items: [9], paginationState: null }),
-          },
-        }),
-        pickItem: trigger({
-          display: { label: "Pick Item", description: "Fires when an item is picked" },
-          inputs: {
-            itemId: input({ type: "string", label: "Item", dataSource: "items" }),
-          },
-          scheduleSupport: "invalid",
-          synchronousResponseSupport: "valid",
-          perform: async (_context, payload) => ({ payload }),
-        }),
-      },
-      dataSources: {
-        items: dataSource({
-          display: { label: "Items", description: "Pick an item" },
-          dataSourceType: "picklist",
-          inputs: {},
-          perform: async () => ({ result: ["item-1", "item-2"] }),
-        }),
-      },
+  const npmComponent = createNpmComponent({
+    key: "acme-npm",
+    public: true,
+    display: { label: "Acme", description: "An npm-published component" },
+    documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+    triggers: {
+      webhook: trigger({
+        display: { label: "Webhook", description: "Fires on an inbound webhook" },
+        inputs: { greeting: input({ type: "string", label: "Greeting", default: "hi" }) },
+        scheduleSupport: "invalid",
+        synchronousResponseSupport: "valid",
+        perform: async (_context, payload) => ({ payload }),
+        onInstanceDeploy: async () => ({ instanceState: { deployed: true } }),
+        webhookLifecycleHandlers: {
+          create: async () => ({ instanceState: { created: true } }),
+          delete: async () => ({}),
+        },
+      }),
+      pollForChanges: pollingTrigger({
+        display: { label: "Poll For Changes", description: "Polls on a schedule" },
+        inputs: {},
+        perform: async (context, payload) => {
+          context.polling.setState({ cursor: "next" });
+          return { payload: { ...payload, body: { data: [] } } };
+        },
+      }),
+      branching: trigger({
+        display: { label: "Branching", description: "Returns a branch" },
+        inputs: {},
+        scheduleSupport: "invalid",
+        synchronousResponseSupport: "valid",
+        terminateExecution: true,
+        breakLoop: true,
+        allowsBranching: true,
+        staticBranchNames: ["Yes", "No"],
+        perform: async (_context, payload) => ({ payload, branch: "Yes" }),
+      }),
+      syncOrders: batchTrigger({
+        display: { label: "Sync Orders", description: "Fetches orders in batches" },
+        inputs: {},
+        scheduleSupport: "required",
+        batchConfig: { batchSize: 25 },
+        perform: async () => ({ items: [1, 2, 3], paginationState: null }),
+        onDeploy: {
+          perform: async () => ({ items: [9], paginationState: null }),
+        },
+      }),
+      pickItem: trigger({
+        display: { label: "Pick Item", description: "Fires when an item is picked" },
+        inputs: {
+          itemId: input({ type: "string", label: "Item", dataSource: "items" }),
+        },
+        scheduleSupport: "invalid",
+        synchronousResponseSupport: "valid",
+        perform: async (_context, payload) => ({ payload }),
+      }),
     },
-    { callable: true },
-  );
+    dataSources: {
+      items: dataSource({
+        display: { label: "Items", description: "Pick an item" },
+        dataSourceType: "picklist",
+        inputs: {},
+        perform: async () => ({ result: ["item-1", "item-2"] }),
+      }),
+    },
+  });
 
   it("produces a tagged reference distinct from a manifest ComponentReference", () => {
     const ref = npmComponent.triggers.webhook({ greeting: { value: "hey" } });
@@ -1689,44 +1686,41 @@ describe("npm trigger references", () => {
 
 describe("npm data source references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `component(definition, { callable: true })` — its data sources are directly-callable
+  // `npmComponent(definition)` — its data sources are directly-callable
   // reference helpers, not manifest-registry lookups.
-  const npmComponent = component(
-    {
-      key: "acme-npm",
-      public: true,
-      display: { label: "Acme", description: "An npm-published component" },
-      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
-      dataSources: {
-        selectChannel: dataSource({
-          display: { label: "Select Channel", description: "Pick a channel" },
-          dataSourceType: "picklist",
-          inputs: { workspace: input({ type: "string", label: "Workspace", default: "" }) },
-          detailDataSource: "channelDetails",
-          perform: async (_context, params) => ({
-            result: [`${params.workspace}-general`, `${params.workspace}-random`],
-          }),
+  const npmComponent = createNpmComponent({
+    key: "acme-npm",
+    public: true,
+    display: { label: "Acme", description: "An npm-published component" },
+    documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+    dataSources: {
+      selectChannel: dataSource({
+        display: { label: "Select Channel", description: "Pick a channel" },
+        dataSourceType: "picklist",
+        inputs: { workspace: input({ type: "string", label: "Workspace", default: "" }) },
+        detailDataSource: "channelDetails",
+        perform: async (_context, params) => ({
+          result: [`${params.workspace}-general`, `${params.workspace}-random`],
         }),
-        channelDetails: dataSource({
-          display: { label: "Channel Details", description: "Details for a channel" },
-          dataSourceType: "picklist",
-          inputs: {
-            owner: input({ type: "string", label: "Owner", dataSource: "selectOwner" }),
-          },
-          perform: async () => ({ result: ["details"] }),
-        }),
-        selectOwner: dataSource({
-          display: { label: "Select Owner", description: "Pick an owner" },
-          dataSourceType: "picklist",
-          inputs: {},
-          // Cycles back to the data source that depends on it.
-          detailDataSource: "channelDetails",
-          perform: async () => ({ result: ["owner-1"] }),
-        }),
-      },
+      }),
+      channelDetails: dataSource({
+        display: { label: "Channel Details", description: "Details for a channel" },
+        dataSourceType: "picklist",
+        inputs: {
+          owner: input({ type: "string", label: "Owner", dataSource: "selectOwner" }),
+        },
+        perform: async () => ({ result: ["details"] }),
+      }),
+      selectOwner: dataSource({
+        display: { label: "Select Owner", description: "Pick an owner" },
+        dataSourceType: "picklist",
+        inputs: {},
+        // Cycles back to the data source that depends on it.
+        detailDataSource: "channelDetails",
+        perform: async () => ({ result: ["owner-1"] }),
+      }),
     },
-    { callable: true },
-  );
+  });
 
   it("produces a config var whose dataSource is a tagged reference, distinct from a manifest ComponentReference", () => {
     const configVarDef = npmComponent.dataSources.selectChannel({
@@ -1833,26 +1827,23 @@ describe("npm data source references", () => {
 
 describe("npm connection references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `component(definition, { callable: true })` — its connections are directly-callable
+  // `npmComponent(definition)` — its connections are directly-callable
   // reference helpers, not manifest-registry lookups.
-  const npmComponent = component(
-    {
-      key: "acme-npm",
-      public: true,
-      display: { label: "Acme", description: "An npm-published component" },
-      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
-      connections: [
-        connection({
-          key: "apiKey",
-          display: { label: "API Key", description: "Authenticate with an API key" },
-          inputs: {
-            apiKey: input({ type: "string", label: "API Key" }),
-          },
-        }),
-      ],
-    },
-    { callable: true },
-  );
+  const npmComponent = createNpmComponent({
+    key: "acme-npm",
+    public: true,
+    display: { label: "Acme", description: "An npm-published component" },
+    documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+    connections: [
+      connection({
+        key: "apiKey",
+        display: { label: "API Key", description: "Authenticate with an API key" },
+        inputs: {
+          apiKey: input({ type: "string", label: "API Key" }),
+        },
+      }),
+    ],
+  });
 
   it("produces a config var whose connection is a tagged reference, distinct from a manifest ComponentReference", () => {
     const configVarDef = npmComponent.connections.apiKey({
@@ -1952,22 +1943,19 @@ describe("npm connection references", () => {
   });
 
   it("throws when two different npm connections share a key instead of silently collapsing them", () => {
-    const otherComponent = component(
-      {
-        key: "other-npm",
-        public: true,
-        display: { label: "Other", description: "Another npm-published component" },
-        documentationUrl: "https://prismatic.io/docs/components/other-npm/",
-        connections: [
-          connection({
-            key: "apiKey",
-            display: { label: "Other API Key", description: "A different apiKey connection" },
-            inputs: { token: input({ type: "string", label: "Token" }) },
-          }),
-        ],
-      },
-      { callable: true },
-    );
+    const otherComponent = createNpmComponent({
+      key: "other-npm",
+      public: true,
+      display: { label: "Other", description: "Another npm-published component" },
+      documentationUrl: "https://prismatic.io/docs/components/other-npm/",
+      connections: [
+        connection({
+          key: "apiKey",
+          display: { label: "Other API Key", description: "A different apiKey connection" },
+          inputs: { token: input({ type: "string", label: "Token" }) },
+        }),
+      ],
+    });
 
     expect(() =>
       integration({
