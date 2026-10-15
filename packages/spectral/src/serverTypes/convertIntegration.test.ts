@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   batchFlowTrigger,
   batchTrigger,
-  component,
+  callableComponent,
   configPage,
   configVar,
   connection,
@@ -272,7 +272,9 @@ describe("convertFlow with polling triggers", () => {
       ctx: unknown,
       payload: unknown,
       params: unknown,
-    ) => Promise<{ payload: { body: { data: unknown }; paginationState: unknown } }>;
+    ) => Promise<{
+      payload: { body: { data: unknown }; paginationState: unknown };
+    }>;
 
     const page1 = await perform({}, { paginationState: { cursor: 1 } }, {});
     expect(page1.payload.body.data).toEqual([1]);
@@ -347,10 +349,14 @@ describe("convertFlow with polling triggers", () => {
 
     const page = await (trigger.perform as Perform)({ instanceState }, {}, {});
     expect(page.payload.body.data).toEqual(["2026-01-01"]);
-    expect(instanceState.__prismaticInternal).toEqual({ polling: { since: "2026-02-01" } });
+    expect(instanceState.__prismaticInternal).toEqual({
+      polling: { since: "2026-02-01" },
+    });
 
     await (trigger.onDeployPerform as Perform)({ instanceState }, {}, {});
-    expect(instanceState.__prismaticInternal).toEqual({ polling: { since: "backfilled" } });
+    expect(instanceState.__prismaticInternal).toEqual({
+      polling: { since: "backfilled" },
+    });
   });
 
   it("converts a polling flow with a batched trigger and maps polledNoChanges from the first fire to its result type", async () => {
@@ -400,7 +406,9 @@ describe("convertFlow with polling triggers", () => {
     const firstPage = await perform({ instanceState }, {}, {});
     expect(firstPage.payload.body.data).toEqual([1]);
     expect(firstPage.resultType).toBe("completed");
-    expect(instanceState.__prismaticInternal).toEqual({ polling: { since: 1 } });
+    expect(instanceState.__prismaticInternal).toEqual({
+      polling: { since: 1 },
+    });
 
     const lastPage = await perform({ instanceState }, { paginationState: { cursor: 1 } }, {});
     expect(lastPage.payload.body.data).toEqual([]);
@@ -449,7 +457,9 @@ describe("convertFlow with polling triggers", () => {
       triggerType: "polling" as const,
       schedule: { value: "*/5 * * * *" },
     };
-    const onTrigger = async (_ctx: unknown, payload: TriggerPayload) => ({ payload });
+    const onTrigger = async (_ctx: unknown, payload: TriggerPayload) => ({
+      payload,
+    });
 
     // @ts-expect-error - a polling flow with batchConfig defines its trigger with batchFlowTrigger
     flow({ ...pollingBase, batchConfig: { batchSize: 10 }, onTrigger });
@@ -495,7 +505,9 @@ describe("convertConfigPages", () => {
       Connections: {
         tagline: "Set up your connections",
         elements: {
-          "User Slack": userActivatedConnection({ stableKey: "user-slack-connection" }),
+          "User Slack": userActivatedConnection({
+            stableKey: "user-slack-connection",
+          }),
         },
       },
     } as unknown as Parameters<typeof convertConfigPages>[0];
@@ -508,7 +520,9 @@ describe("convertConfigPages", () => {
       "User Configuration": {
         tagline: "Connect your account",
         elements: {
-          "User Slack": userActivatedConnection({ stableKey: "user-slack-connection" }),
+          "User Slack": userActivatedConnection({
+            stableKey: "user-slack-connection",
+          }),
         },
       },
     } as unknown as Parameters<typeof convertConfigPages>[0];
@@ -581,10 +595,14 @@ describe("convertConfigPages", () => {
   it("names every misplaced connection at once, so fixing one does not uncover the next", () => {
     const pages = {
       "Page A": {
-        elements: { "User Slack": userActivatedConnection({ stableKey: "user-slack" }) },
+        elements: {
+          "User Slack": userActivatedConnection({ stableKey: "user-slack" }),
+        },
       },
       "Page B": {
-        elements: { "User Jira": userActivatedConnection({ stableKey: "user-jira" }) },
+        elements: {
+          "User Jira": userActivatedConnection({ stableKey: "user-jira" }),
+        },
       },
     } as unknown as Parameters<typeof convertConfigPages>[0];
 
@@ -600,7 +618,9 @@ describe("convertConfigPages", () => {
           Connections: userLevelConfigPage({
             tagline: "Connect your account",
             elements: {
-              "User Slack": userActivatedConnection({ stableKey: "user-slack-connection" }),
+              "User Slack": userActivatedConnection({
+                stableKey: "user-slack-connection",
+              }),
             },
           }),
         },
@@ -622,7 +642,9 @@ describe("convertConfigPages", () => {
         {
           Connections: configPage({
             elements: {
-              "Shared Slack": organizationActivatedConnection({ stableKey: "org-slack" }),
+              "Shared Slack": organizationActivatedConnection({
+                stableKey: "org-slack",
+              }),
               Region: configVar({ stableKey: "region", dataType: "string" }),
             },
           }),
@@ -747,7 +769,10 @@ describe("convertConfigPages", () => {
     const result = convertConfigPages(pages, false);
 
     expect(result[0].elements).toHaveLength(1);
-    expect(result[0].elements[0]).toEqual({ type: "configVar", value: "ApiKey" });
+    expect(result[0].elements[0]).toEqual({
+      type: "configVar",
+      value: "ApiKey",
+    });
   });
 });
 
@@ -795,7 +820,9 @@ describe("convertConfigVar", () => {
       const emitted = JSON.stringify(
         convertConfigVar(
           "Slack",
-          userActivatedConnection({ stableKey: "user-slack-connection" }) as ConfigVar,
+          userActivatedConnection({
+            stableKey: "user-slack-connection",
+          }) as ConfigVar,
           referenceKey,
           componentRegistry,
         ),
@@ -1381,10 +1408,18 @@ describe("custom-trigger reference input values reach the trigger functions", ()
     });
 
     const result = convertFlow(defaultedFlow, registry, "test-ref");
-    const [triggerStep] = result.steps as Array<{ inputs: Record<string, unknown> }>;
+    const [triggerStep] = result.steps as Array<{
+      inputs: Record<string, unknown>;
+    }>;
 
-    expect(triggerStep.inputs.inputOne).toMatchObject({ type: "value", value: "" });
-    expect(triggerStep.inputs.withDefault).toMatchObject({ type: "value", value: "fallback" });
+    expect(triggerStep.inputs.inputOne).toMatchObject({
+      type: "value",
+      value: "",
+    });
+    expect(triggerStep.inputs.withDefault).toMatchObject({
+      type: "value",
+      value: "fallback",
+    });
   });
 
   it("a reference WITH onInstanceDeploy still puts the values on the trigger step inputs", () => {
@@ -1435,77 +1470,88 @@ describe("custom-trigger reference input values reach the trigger functions", ()
 
 describe("npm trigger references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `component(definition, { callable: true })` — its triggers are directly-callable
+  // `callableComponent(definition)` — its triggers are directly-callable
   // reference helpers, not manifest-registry lookups.
-  const npmComponent = component(
-    {
-      key: "acme-npm",
-      public: true,
-      display: { label: "Acme", description: "An npm-published component" },
-      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
-      triggers: {
-        webhook: trigger({
-          display: { label: "Webhook", description: "Fires on an inbound webhook" },
-          inputs: { greeting: input({ type: "string", label: "Greeting", default: "hi" }) },
-          scheduleSupport: "invalid",
-          synchronousResponseSupport: "valid",
-          perform: async (_context, payload) => ({ payload }),
-          onInstanceDeploy: async () => ({ instanceState: { deployed: true } }),
-          webhookLifecycleHandlers: {
-            create: async () => ({ instanceState: { created: true } }),
-            delete: async () => ({}),
-          },
-        }),
-        pollForChanges: pollingTrigger({
-          display: { label: "Poll For Changes", description: "Polls on a schedule" },
-          inputs: {},
-          perform: async (context, payload) => {
-            context.polling.setState({ cursor: "next" });
-            return { payload: { ...payload, body: { data: [] } } };
-          },
-        }),
-        branching: trigger({
-          display: { label: "Branching", description: "Returns a branch" },
-          inputs: {},
-          scheduleSupport: "invalid",
-          synchronousResponseSupport: "valid",
-          terminateExecution: true,
-          breakLoop: true,
-          allowsBranching: true,
-          staticBranchNames: ["Yes", "No"],
-          perform: async (_context, payload) => ({ payload, branch: "Yes" }),
-        }),
-        syncOrders: batchTrigger({
-          display: { label: "Sync Orders", description: "Fetches orders in batches" },
-          inputs: {},
-          scheduleSupport: "required",
-          batchConfig: { batchSize: 25 },
-          perform: async () => ({ items: [1, 2, 3], paginationState: null }),
-          onDeploy: {
-            perform: async () => ({ items: [9], paginationState: null }),
-          },
-        }),
-        pickItem: trigger({
-          display: { label: "Pick Item", description: "Fires when an item is picked" },
-          inputs: {
-            itemId: input({ type: "string", label: "Item", dataSource: "items" }),
-          },
-          scheduleSupport: "invalid",
-          synchronousResponseSupport: "valid",
-          perform: async (_context, payload) => ({ payload }),
-        }),
-      },
-      dataSources: {
-        items: dataSource({
-          display: { label: "Items", description: "Pick an item" },
-          dataSourceType: "picklist",
-          inputs: {},
-          perform: async () => ({ result: ["item-1", "item-2"] }),
-        }),
-      },
+  const npmComponent = callableComponent({
+    key: "acme-npm",
+    public: true,
+    display: { label: "Acme", description: "An npm-published component" },
+    documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+    triggers: {
+      webhook: trigger({
+        display: {
+          label: "Webhook",
+          description: "Fires on an inbound webhook",
+        },
+        inputs: {
+          greeting: input({ type: "string", label: "Greeting", default: "hi" }),
+        },
+        scheduleSupport: "invalid",
+        synchronousResponseSupport: "valid",
+        perform: async (_context, payload) => ({ payload }),
+        onInstanceDeploy: async () => ({ instanceState: { deployed: true } }),
+        webhookLifecycleHandlers: {
+          create: async () => ({ instanceState: { created: true } }),
+          delete: async () => ({}),
+        },
+      }),
+      pollForChanges: pollingTrigger({
+        display: {
+          label: "Poll For Changes",
+          description: "Polls on a schedule",
+        },
+        inputs: {},
+        perform: async (context, payload) => {
+          context.polling.setState({ cursor: "next" });
+          return { payload: { ...payload, body: { data: [] } } };
+        },
+      }),
+      branching: trigger({
+        display: { label: "Branching", description: "Returns a branch" },
+        inputs: {},
+        scheduleSupport: "invalid",
+        synchronousResponseSupport: "valid",
+        terminateExecution: true,
+        breakLoop: true,
+        allowsBranching: true,
+        staticBranchNames: ["Yes", "No"],
+        perform: async (_context, payload) => ({ payload, branch: "Yes" }),
+      }),
+      syncOrders: batchTrigger({
+        display: {
+          label: "Sync Orders",
+          description: "Fetches orders in batches",
+        },
+        inputs: {},
+        scheduleSupport: "required",
+        batchConfig: { batchSize: 25 },
+        perform: async () => ({ items: [1, 2, 3], paginationState: null }),
+        onDeploy: {
+          perform: async () => ({ items: [9], paginationState: null }),
+        },
+      }),
+      pickItem: trigger({
+        display: {
+          label: "Pick Item",
+          description: "Fires when an item is picked",
+        },
+        inputs: {
+          itemId: input({ type: "string", label: "Item", dataSource: "items" }),
+        },
+        scheduleSupport: "invalid",
+        synchronousResponseSupport: "valid",
+        perform: async (_context, payload) => ({ payload }),
+      }),
     },
-    { callable: true },
-  );
+    dataSources: {
+      items: dataSource({
+        display: { label: "Items", description: "Pick an item" },
+        dataSourceType: "picklist",
+        inputs: {},
+        perform: async () => ({ result: ["item-1", "item-2"] }),
+      }),
+    },
+  });
 
   it("produces a tagged reference distinct from a manifest ComponentReference", () => {
     const ref = npmComponent.triggers.webhook({ greeting: { value: "hey" } });
@@ -1531,7 +1577,9 @@ describe("npm trigger references", () => {
     const result = convertFlow(plainFlow, {}, "test-ref");
     const [triggerStep] = result.steps as Array<Record<string, unknown>>;
 
-    expect(triggerStep.inputs).toMatchObject({ greeting: { type: "value", value: "hey" } });
+    expect(triggerStep.inputs).toMatchObject({
+      greeting: { type: "value", value: "hey" },
+    });
     expect((triggerStep.action as { component: { key: string } }).component.key).toBe("test-ref");
   });
 
@@ -1544,7 +1592,9 @@ describe("npm trigger references", () => {
           name: "Webhook Flow",
           stableKey: "webhook-flow",
           description: "Npm webhook trigger reference",
-          onTrigger: npmComponent.triggers.webhook({ greeting: { value: "hey" } }),
+          onTrigger: npmComponent.triggers.webhook({
+            greeting: { value: "hey" },
+          }),
           onExecution: async () => ({ data: "test" }),
         }),
       ],
@@ -1689,44 +1739,50 @@ describe("npm trigger references", () => {
 
 describe("npm data source references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `component(definition, { callable: true })` — its data sources are directly-callable
+  // `callableComponent(definition)` — its data sources are directly-callable
   // reference helpers, not manifest-registry lookups.
-  const npmComponent = component(
-    {
-      key: "acme-npm",
-      public: true,
-      display: { label: "Acme", description: "An npm-published component" },
-      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
-      dataSources: {
-        selectChannel: dataSource({
-          display: { label: "Select Channel", description: "Pick a channel" },
-          dataSourceType: "picklist",
-          inputs: { workspace: input({ type: "string", label: "Workspace", default: "" }) },
-          detailDataSource: "channelDetails",
-          perform: async (_context, params) => ({
-            result: [`${params.workspace}-general`, `${params.workspace}-random`],
+  const npmComponent = callableComponent({
+    key: "acme-npm",
+    public: true,
+    display: { label: "Acme", description: "An npm-published component" },
+    documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+    dataSources: {
+      selectChannel: dataSource({
+        display: { label: "Select Channel", description: "Pick a channel" },
+        dataSourceType: "picklist",
+        inputs: {
+          workspace: input({ type: "string", label: "Workspace", default: "" }),
+        },
+        detailDataSource: "channelDetails",
+        perform: async (_context, params) => ({
+          result: [`${params.workspace}-general`, `${params.workspace}-random`],
+        }),
+      }),
+      channelDetails: dataSource({
+        display: {
+          label: "Channel Details",
+          description: "Details for a channel",
+        },
+        dataSourceType: "picklist",
+        inputs: {
+          owner: input({
+            type: "string",
+            label: "Owner",
+            dataSource: "selectOwner",
           }),
-        }),
-        channelDetails: dataSource({
-          display: { label: "Channel Details", description: "Details for a channel" },
-          dataSourceType: "picklist",
-          inputs: {
-            owner: input({ type: "string", label: "Owner", dataSource: "selectOwner" }),
-          },
-          perform: async () => ({ result: ["details"] }),
-        }),
-        selectOwner: dataSource({
-          display: { label: "Select Owner", description: "Pick an owner" },
-          dataSourceType: "picklist",
-          inputs: {},
-          // Cycles back to the data source that depends on it.
-          detailDataSource: "channelDetails",
-          perform: async () => ({ result: ["owner-1"] }),
-        }),
-      },
+        },
+        perform: async () => ({ result: ["details"] }),
+      }),
+      selectOwner: dataSource({
+        display: { label: "Select Owner", description: "Pick an owner" },
+        dataSourceType: "picklist",
+        inputs: {},
+        // Cycles back to the data source that depends on it.
+        detailDataSource: "channelDetails",
+        perform: async () => ({ result: ["owner-1"] }),
+      }),
     },
-    { callable: true },
-  );
+  });
 
   it("produces a config var whose dataSource is a tagged reference, distinct from a manifest ComponentReference", () => {
     const configVarDef = npmComponent.dataSources.selectChannel({
@@ -1757,7 +1813,9 @@ describe("npm data source references", () => {
       key: "selectChannel",
       component: { key: "test-ref", version: "LATEST", isPublic: false },
     });
-    expect(result.inputs).toMatchObject({ workspace: { type: "value", value: "acme" } });
+    expect(result.inputs).toMatchObject({
+      workspace: { type: "value", value: "acme" },
+    });
   });
 
   it("hoists the npm data source's perform into the CNI's own wrapper component", async () => {
@@ -1794,7 +1852,9 @@ describe("npm data source references", () => {
     const performResult = await (
       wrapperDataSource.perform as (context: unknown, params: unknown) => Promise<unknown>
     )({} as never, { workspace: "acme" });
-    expect(performResult).toMatchObject({ result: ["acme-general", "acme-random"] });
+    expect(performResult).toMatchObject({
+      result: ["acme-general", "acme-random"],
+    });
   });
 
   it("hoists the data source's sibling dependencies and rewrites their keys to wrapper-owned ones", () => {
@@ -1833,26 +1893,26 @@ describe("npm data source references", () => {
 
 describe("npm connection references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `component(definition, { callable: true })` — its connections are directly-callable
+  // `callableComponent(definition)` — its connections are directly-callable
   // reference helpers, not manifest-registry lookups.
-  const npmComponent = component(
-    {
-      key: "acme-npm",
-      public: true,
-      display: { label: "Acme", description: "An npm-published component" },
-      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
-      connections: [
-        connection({
-          key: "apiKey",
-          display: { label: "API Key", description: "Authenticate with an API key" },
-          inputs: {
-            apiKey: input({ type: "string", label: "API Key" }),
-          },
-        }),
-      ],
-    },
-    { callable: true },
-  );
+  const npmComponent = callableComponent({
+    key: "acme-npm",
+    public: true,
+    display: { label: "Acme", description: "An npm-published component" },
+    documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+    connections: [
+      connection({
+        key: "apiKey",
+        display: {
+          label: "API Key",
+          description: "Authenticate with an API key",
+        },
+        inputs: {
+          apiKey: input({ type: "string", label: "API Key" }),
+        },
+      }),
+    ],
+  });
 
   it("produces a config var whose connection is a tagged reference, distinct from a manifest ComponentReference", () => {
     const configVarDef = npmComponent.connections.apiKey({
@@ -1886,7 +1946,9 @@ describe("npm connection references", () => {
       key: "apiKey",
       component: { key: "test-ref", version: "LATEST", isPublic: false },
     });
-    expect(result.inputs).toMatchObject({ apiKey: { type: "value", value: "shh" } });
+    expect(result.inputs).toMatchObject({
+      apiKey: { type: "value", value: "shh" },
+    });
   });
 
   it("hoists the npm connection's already-converted fields into the CNI's own wrapper component", () => {
@@ -1952,22 +2014,25 @@ describe("npm connection references", () => {
   });
 
   it("throws when two different npm connections share a key instead of silently collapsing them", () => {
-    const otherComponent = component(
-      {
-        key: "other-npm",
-        public: true,
-        display: { label: "Other", description: "Another npm-published component" },
-        documentationUrl: "https://prismatic.io/docs/components/other-npm/",
-        connections: [
-          connection({
-            key: "apiKey",
-            display: { label: "Other API Key", description: "A different apiKey connection" },
-            inputs: { token: input({ type: "string", label: "Token" }) },
-          }),
-        ],
+    const otherComponent = callableComponent({
+      key: "other-npm",
+      public: true,
+      display: {
+        label: "Other",
+        description: "Another npm-published component",
       },
-      { callable: true },
-    );
+      documentationUrl: "https://prismatic.io/docs/components/other-npm/",
+      connections: [
+        connection({
+          key: "apiKey",
+          display: {
+            label: "Other API Key",
+            description: "A different apiKey connection",
+          },
+          inputs: { token: input({ type: "string", label: "Token" }) },
+        }),
+      ],
+    });
 
     expect(() =>
       integration({
@@ -1976,8 +2041,12 @@ describe("npm connection references", () => {
         configPages: {
           Setup: configPage({
             elements: {
-              "Acme API Key": npmComponent.connections.apiKey({ stableKey: "acme-api-key" }),
-              "Other API Key": otherComponent.connections.apiKey({ stableKey: "other-api-key" }),
+              "Acme API Key": npmComponent.connections.apiKey({
+                stableKey: "acme-api-key",
+              }),
+              "Other API Key": otherComponent.connections.apiKey({
+                stableKey: "other-api-key",
+              }),
             },
           }),
         },

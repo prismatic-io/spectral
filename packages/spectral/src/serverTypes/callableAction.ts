@@ -1,6 +1,5 @@
 import type {
   ActionDefinition,
-  ActionInputParameters,
   CallableActionInputParameters,
   ComponentReference,
   NpmConnectionReferenceConfigVar,
@@ -9,7 +8,6 @@ import type {
 import type { CollectionType } from "../types/ConfigVars";
 import type {
   Action,
-  ActionContext,
   AnyConnection,
   AnyConvertedAction,
   AnyDataSource,
@@ -24,14 +22,13 @@ import { type CallableDataSourceConfigVar, createCallableDataSource } from "./ca
 import { createCallableTrigger, type NpmTriggerReference } from "./callableTrigger";
 import { convertInputValue } from "./convertIntegration";
 
-/** A converted {@link Action}, directly callable with just its input values
+/** An action facade, directly callable with just its input values
  * (e.g. `slack.actions.postMessage({ ... })`). Resolves the acting context
  * ambiently via {@link requireContext}, so it only works while running
  * inside a flow step (which establishes that context via `runWithContext`).
- * All of the `Action` data properties (`key`, `inputs`, `perform`, ...) are
- * still present on it, for the runner and other existing consumers that
- * invoke `.perform(context, params)` directly. */
-export type CallableAction = Action & ((values: Record<string, unknown>) => Promise<unknown>);
+ * This is deliberately not also an {@link Action}: npm consumers get a small
+ * callable facade, while the platform bundle retains the normal server shape. */
+export type CallableAction = (values?: Record<string, unknown>) => Promise<unknown>;
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -70,7 +67,10 @@ const withChildDefaults = (input: Input, value: unknown): unknown => {
         ? input.inputs.find((candidate) => candidate.key === configuration)
         : undefined;
     return selected?.inputs
-      ? { ...value, values: fillDefaults(selected.inputs, isPlainObject(values) ? values : {}) }
+      ? {
+          ...value,
+          values: fillDefaults(selected.inputs, isPlainObject(values) ? values : {}),
+        }
       : value;
   }
 
@@ -94,7 +94,7 @@ export const createCallableAction = (action: Action): CallableAction => {
     return performActionFunctionExecutor(action.perform, context, filledValues);
   };
 
-  return Object.assign(callable, action);
+  return callable;
 };
 
 /** Maps a single already-converted action to its directly-callable form,
@@ -105,7 +105,7 @@ export const createCallableAction = (action: Action): CallableAction => {
 export type MakeCallable<TAction> = TAction extends {
   perform: (context: never, params: infer TParams) => infer TReturn;
 }
-  ? TAction & ((params: TParams) => TReturn)
+  ? (params: TParams) => TReturn
   : TAction;
 
 /** The directly-callable form of an action, typed from the original
@@ -115,22 +115,17 @@ export type MakeCallable<TAction> = TAction extends {
  * the definition is what lets inputs that aren't `required: true` (or that have
  * a `default`) be optional to the caller — see
  * {@link CallableActionInputParameters} — while the return type stays the
- * `perform`'s own. This is what `component(definition, { callable: true })`
- * produces; {@link MakeCallable} is the fallback for wrapping a component whose
+ * `perform`'s own. This is what `callableComponent(definition)` produces;
+ * {@link MakeCallable} is the fallback for wrapping a component whose
  * definitions are no longer available. */
 export type CallableConvertedAction<TDef> =
   TDef extends ActionDefinition<
     infer TInputs,
-    infer TConfigVars,
+    infer _TConfigVars,
     infer _TAllowsBranching,
     infer TReturn
   >
-    ? Omit<Action, "perform"> & {
-        perform: (
-          context: ActionContext<TConfigVars>,
-          params: ActionInputParameters<TInputs>,
-        ) => Promise<TReturn>;
-      } & ((params: CallableActionInputParameters<TInputs>) => Promise<TReturn>)
+    ? (params: CallableActionInputParameters<TInputs>) => Promise<TReturn>
     : never;
 
 /**
@@ -138,13 +133,9 @@ export type CallableConvertedAction<TDef> =
  * callable (e.g. `slack.actions.postMessage({ ... })`), with no `.perform`
  * and no context argument required.
  *
- * Not part of `convertComponent`'s own unconditional behavior — `component()`
- * calls this internally, only when its caller opts in via
- * `component(definition, { callable: true })`. Without that option,
- * `component()` keeps producing the exact same plain `Action`/`ConvertedAction`
- * shape it always has, for every consumer that doesn't ask for the callable
- * form (the legacy self-contained bundle `prism components:publish` uses,
- * manifest generation, low-code).
+ * Not part of `convertComponent`'s own unconditional behavior. The public
+ * `callableComponent()` builder calls this for the npm artifact; `component()`
+ * continues to produce the platform's plain `Action`/`ConvertedAction` shape.
  */
 /** A trigger reference helper, directly callable with its `values` (e.g.
  * `slack.triggers.webhook({ ... })`), produced by {@link createCallableTrigger}. */
@@ -171,11 +162,15 @@ export const createCallableComponent = <
 >(
   component: TComponent,
 ): Omit<TComponent, "actions" | "triggers" | "dataSources" | "connections"> & {
-  actions: { [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]> };
+  actions: {
+    [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]>;
+  };
   triggers: {
     [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
   };
-  dataSources: { [K in keyof TComponent["dataSources"]]: CallableDataSourceHelper };
+  dataSources: {
+    [K in keyof TComponent["dataSources"]]: CallableDataSourceHelper;
+  };
   // `connections` is an array on `Component` (each self-keyed by its own `.key`, e.g. "oauth2")
   connections: Record<string, CallableConnectionHelper>;
 } => {
@@ -213,15 +208,22 @@ export const createCallableComponent = <
     return result;
   }, {});
 
-  return { ...component, actions, triggers, dataSources, connections } as unknown as Omit<
-    TComponent,
-    "actions" | "triggers" | "dataSources" | "connections"
-  > & {
-    actions: { [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]> };
+  return {
+    ...component,
+    actions,
+    triggers,
+    dataSources,
+    connections,
+  } as unknown as Omit<TComponent, "actions" | "triggers" | "dataSources" | "connections"> & {
+    actions: {
+      [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]>;
+    };
     triggers: {
       [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
     };
-    dataSources: { [K in keyof TComponent["dataSources"]]: CallableDataSourceHelper };
+    dataSources: {
+      [K in keyof TComponent["dataSources"]]: CallableDataSourceHelper;
+    };
     connections: Record<string, CallableConnectionHelper>;
   };
 };

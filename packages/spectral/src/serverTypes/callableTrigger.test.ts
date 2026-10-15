@@ -1,27 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { component, input, trigger } from "..";
+import { callableComponent, input, trigger } from "..";
 import { isNpmTriggerReference } from "../types";
 
-const npmComponent = component(
-  {
-    key: "acme-npm",
-    public: true,
-    display: { label: "Acme", description: "An npm-published component" },
-    documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
-    triggers: {
-      webhook: trigger({
-        display: { label: "Webhook", description: "Fires on an inbound webhook" },
-        inputs: { greeting: input({ type: "string", label: "Greeting", default: "hi" }) },
-        scheduleSupport: "invalid",
-        synchronousResponseSupport: "valid",
-        perform: async (_context, payload) => ({ payload }),
-      }),
-    },
+const npmComponent = callableComponent({
+  key: "acme-npm",
+  public: true,
+  display: { label: "Acme", description: "An npm-published component" },
+  documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+  triggers: {
+    webhook: trigger({
+      display: { label: "Webhook", description: "Fires on an inbound webhook" },
+      inputs: {
+        greeting: input({ type: "string", label: "Greeting", default: "hi" }),
+      },
+      scheduleSupport: "invalid",
+      synchronousResponseSupport: "valid",
+      perform: async (_context, payload) => ({ payload }),
+    }),
   },
-  { callable: true },
-);
+});
 
-describe("createCallableTrigger (via component(..., { callable: true }))", () => {
+describe("createCallableTrigger (via callableComponent(...))", () => {
   it("returns a function, not the plain trigger object", () => {
     expect(typeof npmComponent.triggers.webhook).toBe("function");
   });
@@ -46,7 +45,9 @@ describe("createCallableTrigger (via component(..., { callable: true }))", () =>
     // Unlike an action's `fillDefaults`, a trigger reference's values are
     // ValueExpression/ConfigVarExpression/TemplateExpression, not resolved
     // input values — default-filling happens later, at convert time.
-    const ref = npmComponent.triggers.webhook({ greeting: { configVar: "Org Greeting" } });
+    const ref = npmComponent.triggers.webhook({
+      greeting: { configVar: "Org Greeting" },
+    });
     expect(ref.values).toEqual({ greeting: { configVar: "Org Greeting" } });
   });
 });

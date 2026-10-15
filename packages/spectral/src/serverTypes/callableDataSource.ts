@@ -38,8 +38,7 @@ export type CallableDataSourceConfigVar = BaseConfigVar & {
  * ```
  *
  * Not part of `convertComponent`'s own unconditional behavior — `component()` calls this
- * internally (via `createCallableComponent`), only when its caller opts in via
- * `component(definition, { callable: true })`.
+ * internally by the consumer facade produced by `callableComponent(definition)`.
  */
 export const createCallableDataSource =
   (dataSource: AnyDataSource, dataSources: Record<string, AnyDataSource>) =>
