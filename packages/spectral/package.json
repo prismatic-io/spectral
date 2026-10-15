@@ -21,6 +21,8 @@
       "default": "./dist/testing.js"
     },
     "./package.json": "./package.json",
+    "./dist/callableComponent": "./dist/callableComponent.js",
+    "./dist/callableComponent.js": "./dist/callableComponent.js",
     "./dist/clients/http/index": "./dist/clients/http/index.js",
     "./dist/clients/http/index.js": "./dist/clients/http/index.js",
     "./dist/clients/http": "./dist/clients/http/index.js",

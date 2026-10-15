@@ -4,7 +4,12 @@
  * that can run on the Prismatic platform.
  */
 
+import { type ActionMap, type AuthoringCarrier, retainAuthoring } from "./callableComponent";
 import { runWithIntegrationContext } from "./serverTypes";
+
+export type { CallableComponent, CallableInputs } from "./callableComponent";
+export { callableComponent } from "./callableComponent";
+
 import {
   defaultBatchResolver,
   withPolledResultType,
@@ -667,9 +672,17 @@ export const componentManifest = <T extends ComponentManifest>(definition: T): T
  *   connections,
  * });
  */
-export const component = <TPublic extends boolean, TKey extends string>(
-  definition: ComponentDefinition<TPublic, TKey>,
-): ReturnType<typeof convertComponent> => convertComponent(definition);
+export const component = <
+  TPublic extends boolean,
+  TKey extends string,
+  TActions extends ActionMap = Record<never, never>,
+>(
+  definition: ComponentDefinition<TPublic, TKey> & { actions?: TActions },
+): ReturnType<typeof convertComponent> & AuthoringCarrier<TActions> =>
+  retainAuthoring(convertComponent(definition), {
+    actions: (definition.actions ?? {}) as TActions,
+    hooks: definition.hooks,
+  });
 
 /**
  * This function creates an action object that can be referenced
