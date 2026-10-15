@@ -148,7 +148,25 @@ describe("convertFlow with polling triggers", () => {
     });
   });
 
-  it("omits runInitialSyncOnDeploy when the CNI author does not opt in (default off)", () => {
+  it("preserves an explicit initial-sync opt-out on a batched flow", () => {
+    const optedOutFlow = flow({
+      ...baseFlowInput,
+      runInitialSyncOnDeploy: false,
+      batchConfig: { batchSize: 25 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+        onDeploy: async () => ({ items: [4, 5, 6] }),
+      }),
+    });
+
+    expect(convertFlow(optedOutFlow, {}, "test-ref").triggerResolver).toEqual({
+      batchSize: 25,
+      enabled: true,
+      runInitialSyncOnDeploy: false,
+    });
+  });
+
+  it("omits runInitialSyncOnDeploy when the author leaves platform inference enabled", () => {
     const defaultOffFlow = flow({
       ...baseFlowInput,
       batchConfig: { batchSize: 25 },
