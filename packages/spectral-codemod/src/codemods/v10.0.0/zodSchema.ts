@@ -1,0 +1,104 @@
+/**
+ * Maps a config variable's value type onto zod source text.
+ *
+ * The value type is what a flow reads at runtime, which is the same for a standard
+ * config var and for a data source config var of the same type.
+ */
+
+export interface ConfigVarShape {
+  /** `dataType` of a standard config var, or `dataSourceType` of a data source config var. */
+  valueType?: string;
+  collectionType?: "valuelist" | "keyvaluelist";
+  /** Literal choices of a `picklist` standard config var, when statically known. */
+  pickList?: string[];
+  /** `codeLanguage` of a `code` standard config var. */
+  codeLanguage?: string;
+  /** The type property the config var sets to something other than a string constant. */
+  unreadType?: "dataType" | "dataSourceType";
+}
+
+/** A comment for a field whose type the codemod could not read, or nothing. */
+export const unreadTypeComment = (shape: ConfigVarShape): string =>
+  shape.unreadType
+    ? ` // TODO: The codemod could not read this config var's ${shape.unreadType}.`
+    : "";
+
+/** Zod source for `Element`, shared by object selection and object field map values. */
+export const ELEMENT_SCHEMA_NAME = "elementSchema";
+export const ELEMENT_SCHEMA_SOURCE = `const ${ELEMENT_SCHEMA_NAME} = z.object({ key: z.string(), label: z.string().optional() });`;
+
+const SCALAR: Record<string, string> = {
+  string: "z.string()",
+  picklist: "z.string()",
+  code: "z.string()",
+  htmlElement: "z.string()",
+  date: "z.iso.date()",
+  // The config wizard stores a local time to the minute, such as 2026-09-30T14:05.
+  timestamp: "z.iso.datetime({ local: true, offset: true })",
+  boolean: "z.boolean()",
+  number: "z.number()",
+  schedule: "z.object({ value: z.string(), schedule_type: z.string(), time_zone: z.string() })",
+  objectSelection: `z.array(z.object({ object: ${ELEMENT_SCHEMA_NAME}, fields: z.array(${ELEMENT_SCHEMA_NAME}).optional(), defaultSelected: z.boolean().optional() }))`,
+  objectFieldMap: `z.object({ fields: z.array(z.object({ field: ${ELEMENT_SCHEMA_NAME}, mappedObject: ${ELEMENT_SCHEMA_NAME}.optional(), mappedField: ${ELEMENT_SCHEMA_NAME}.optional(), defaultObject: ${ELEMENT_SCHEMA_NAME}.optional(), defaultField: ${ELEMENT_SCHEMA_NAME}.optional() })), options: z.array(z.object({ object: ${ELEMENT_SCHEMA_NAME}, fields: z.array(${ELEMENT_SCHEMA_NAME}) })).optional() })`,
+  jsonForm: "z.unknown()",
+};
+
+const scalarSchemaFor = (shape: ConfigVarShape): string => {
+  if (shape.valueType === "picklist" && shape.pickList?.length) {
+    return `z.enum([${shape.pickList.map((choice) => JSON.stringify(choice)).join(", ")}])`;
+  }
+  if (shape.valueType === "code" && shape.codeLanguage === "json") {
+    return "z.json()";
+  }
+  return (shape.valueType && SCALAR[shape.valueType]) ?? "z.unknown()";
+};
+
+/**
+ * True when the config wizard stored each item of this collection as a string, although
+ * the schema describes it as a boolean, a number, or a parsed document.
+ */
+export const storedAsString = (shape: ConfigVarShape): boolean =>
+  shape.collectionType !== undefined &&
+  !/^z\.(string|iso\.|enum|unknown)/.test(scalarSchemaFor(shape));
+
+/**
+ * Zod source for one config variable. The schema describes the unpacked value: a JSON
+ * code variable is the parsed document, and collection scalars are typed even though
+ * the wizard stored them as strings. An unknown value type, such as a component data
+ * source reference whose type lives in the component registry, becomes `z.unknown()`.
+ */
+export const zodSchemaFor = (shape: ConfigVarShape): string => {
+  const scalar = scalarSchemaFor(shape);
+
+  switch (shape.collectionType) {
+    case "valuelist":
+      return `z.array(${scalar})`;
+    case "keyvaluelist":
+      return `z.array(z.object({ key: z.string(), value: ${scalar} }))`;
+    default:
+      return scalar;
+  }
+};
+
+const DATA_SOURCE_RESULT: Record<string, string> = {
+  string: "z.string()",
+  date: "z.string()",
+  timestamp: "z.string()",
+  code: "z.string()",
+  boolean: "z.boolean()",
+  number: "z.number()",
+  picklist: `z.union([z.array(z.string()), z.array(${ELEMENT_SCHEMA_NAME})])`,
+  schedule: "z.object({ value: z.string() })",
+  objectSelection: SCALAR.objectSelection,
+  objectFieldMap: SCALAR.objectFieldMap,
+  jsonForm:
+    "z.object({ schema: z.unknown(), uiSchema: z.unknown(), data: z.union([z.record(z.string(), z.unknown()), z.array(z.unknown())]).optional() })",
+};
+
+/**
+ * Zod source for what a data source of `dataSourceType` returns. That is the choices a
+ * person picks from, not the value they save: a `picklist` returns its options, and
+ * the result is the same whatever the config var's `collectionType`.
+ */
+export const dataSourceResultSchemaFor = (dataSourceType: string | undefined): string =>
+  (dataSourceType && DATA_SOURCE_RESULT[dataSourceType]) ?? "z.unknown()";
