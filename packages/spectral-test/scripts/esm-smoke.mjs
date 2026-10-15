@@ -14,7 +14,9 @@ import {
   requireIntegrationContext,
 } from "@prismatic-io/spectral";
 // Deprecated deep imports must keep resolving.
+// biome-ignore lint/style/noRestrictedImports: this smoke test checks the deprecated dist/ paths still resolve.
 import { handleErrors as handleErrorsDeep } from "@prismatic-io/spectral/dist/clients/http";
+// biome-ignore lint/style/noRestrictedImports: this smoke test checks the deprecated dist/ paths still resolve.
 import { invoke as invokeDeep } from "@prismatic-io/spectral/dist/testing";
 import { createClient, handleErrors } from "@prismatic-io/spectral/http";
 import { createConnection, invoke } from "@prismatic-io/spectral/testing";

@@ -22,7 +22,18 @@
       },
       "style": {
         "useNodejsImportProtocol": "off",
-        "noUselessElse": "off"
+        "noUselessElse": "off",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["@prismatic-io/spectral/dist", "@prismatic-io/spectral/dist/**"],
+                "message": "dist/ paths are deprecated and will be removed. Import from @prismatic-io/spectral, @prismatic-io/spectral/http, or @prismatic-io/spectral/testing instead."
+              }
+            ]
+          }
+        }
       },
       "complexity": {
         "noForEach": "off"

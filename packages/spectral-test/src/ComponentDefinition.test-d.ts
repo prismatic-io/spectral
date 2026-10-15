@@ -1,6 +1,8 @@
 import { component } from "@prismatic-io/spectral";
-import type { Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable } from "tsd";
+
+// The platform-facing component shape, reached through the public helper rather than dist/.
+type Component = ReturnType<typeof component>;
 
 const privateDefinition = component({
   key: "private-definition",

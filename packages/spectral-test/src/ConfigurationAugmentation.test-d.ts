@@ -11,10 +11,7 @@ import {
   organizationActivatedConnection,
   userActivatedConnection,
 } from "@prismatic-io/spectral";
-import type {
-  InvokeFlowConfiguration,
-  InvokeFlowOptions,
-} from "@prismatic-io/spectral/dist/testing";
+import type { InvokeFlowConfiguration, InvokeFlowOptions } from "@prismatic-io/spectral/testing";
 import { expectType } from "tsd";
 
 const definition = configuration({

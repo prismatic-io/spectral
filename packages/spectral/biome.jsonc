@@ -41,7 +41,13 @@
                   ".": "Import types directly from specific files instead of the generic index",
                   "..": "Import types directly from specific files instead of the generic index",
                   "../types": "Import types directly from specific files instead of the generic index"
-                }
+                },
+                "patterns": [
+                  {
+                    "group": ["@prismatic-io/spectral/dist", "@prismatic-io/spectral/dist/**"],
+                    "message": "dist/ paths are deprecated and will be removed. Import from @prismatic-io/spectral, @prismatic-io/spectral/http, or @prismatic-io/spectral/testing instead."
+                  }
+                ]
               }
             }
           }

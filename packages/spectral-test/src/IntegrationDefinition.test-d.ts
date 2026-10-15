@@ -1,10 +1,13 @@
 import {
+  type component,
   type FlowExecutionContext,
   type FlowExecutionContextActions,
   integration,
 } from "@prismatic-io/spectral";
-import type { Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable } from "tsd";
+
+// The platform-facing component shape, reached through the public helper rather than dist/.
+type Component = ReturnType<typeof component>;
 
 const basicDefinition = integration({
   name: "Basic Code Native Integration",
