@@ -9,6 +9,7 @@ import YAML from "yaml";
 import {
   type AnyConfigPageElement,
   type BatchTrigger,
+  type BundledTriggerReference,
   type CollectionType,
   type ComponentClientReference,
   type ComponentManifest,
@@ -30,9 +31,9 @@ import {
   type FlowTriggerType,
   type Inputs,
   type IntegrationDefinition,
+  isBundledDataSourceConfigVar,
+  isBundledTriggerReference,
   isComponentClientConnectionConfigVar,
-  isComponentClientDataSourceConfigVar,
-  isComponentClientReference,
   isComponentReference,
   isConnectionDefinitionConfigVar,
   isConnectionReferenceConfigVar,
@@ -69,6 +70,7 @@ import type {
 import type {
   ActionContext,
   ActionPerformFunction,
+  AnyDataSource,
   PublishingMetadata,
   Action as ServerAction,
   ActionPerformFunction as ServerActionPerformFunction,
@@ -85,6 +87,20 @@ import { runWithContext } from "./asyncContext";
 import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./batching";
 import { type ConnectionNameMap, createConfigurationConnections } from "./configurationContext";
 import { createCNIContext, logDebugResults } from "./context";
+import {
+  asBundledDataSourceReference,
+  type ConvertedBundledDataSourceReference,
+  convertBundledDataSourceReferenceInputs,
+  hoistBundledDataSource,
+} from "./convertBundledDataSourceReference";
+import {
+  asBundledTriggerReference,
+  bundledTriggerWireFields,
+  convertBundledTriggerReferenceInputs,
+  createBundledTriggerPerform,
+  resolveBundledTriggerSiblingDataSources,
+  type TriggerWireFields,
+} from "./convertBundledTriggerReference";
 import {
   convertInput,
   convertTemplateInput,
@@ -853,6 +869,7 @@ const flowUsesWrapperTrigger = <
 ) => {
   return (
     typeof flow.onTrigger === "function" ||
+    isBundledTriggerReference(flow.onTrigger) ||
     flow.onInstanceDelete ||
     flow.onInstanceDeploy ||
     flow.webhookLifecycleHandlers
@@ -968,13 +985,12 @@ export const convertFlow = <
 
   const useWrapperTrigger = flowUsesWrapperTrigger(flow);
 
-  if (
-    (isComponentReference(flow.onTrigger) || isComponentClientReference(flow.onTrigger)) &&
-    !useWrapperTrigger
-  ) {
-    const { ref, inputs } = isComponentClientReference(flow.onTrigger)
-      ? convertComponentClientReference(flow.onTrigger)
-      : convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
+  if (isComponentReference(flow.onTrigger) && !useWrapperTrigger) {
+    const { ref, inputs } = convertComponentReference(
+      flow.onTrigger,
+      componentRegistry,
+      "triggers",
+    );
     triggerStep.action = ref;
     triggerStep.inputs = inputs;
   } else if (useWrapperTrigger) {
@@ -987,11 +1003,12 @@ export const convertFlow = <
     // trigger, still carry that reference's configured input values onto the
     // step so the wrapper trigger receives them as params (and can forward them
     // to the referenced trigger via invokeTrigger).
-    if (isComponentReference(flow.onTrigger) || isComponentClientReference(flow.onTrigger)) {
-      const { inputs } = isComponentClientReference(flow.onTrigger)
-        ? convertComponentClientReference(flow.onTrigger)
-        : convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
+    const bundledOnTrigger = asBundledTriggerReference(flow.onTrigger);
+    if (isComponentReference(flow.onTrigger)) {
+      const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
       triggerStep.inputs = inputs;
+    } else if (bundledOnTrigger) {
+      triggerStep.inputs = convertBundledTriggerReferenceInputs(bundledOnTrigger);
     }
 
     triggerStep.action = {
@@ -1022,7 +1039,10 @@ export const convertFlow = <
     hasSchedule = true;
   }
 
-  if (flow.triggerType === "polling" && !hasSchedule) {
+  const isPollingFlow =
+    flow.triggerType === "polling" ||
+    Boolean(asBundledTriggerReference(flow.onTrigger)?.trigger.isPollingTrigger);
+  if (isPollingFlow && !hasSchedule) {
     throw new Error(
       `${flow.name} is marked as a polling trigger but has no schedule. Polling triggers require a schedule.`,
     );
@@ -1425,11 +1445,16 @@ export const convertConfigVar = (
     }
   }
 
-  if (isComponentClientDataSourceConfigVar(configVar)) {
-    const { ref, inputs } = convertComponentClientReference(configVar.dataSource);
-    result.dataType = configVar.dataSource.dataSourceType ?? "string";
-    result.dataSource = ref;
-    result.inputs = inputs;
+  if (isBundledDataSourceConfigVar(configVar)) {
+    const bundled = asBundledDataSourceReference(
+      configVar.dataSource,
+    ) as ConvertedBundledDataSourceReference;
+    result.dataType = bundled.dataSource.dataSourceType;
+    result.dataSource = {
+      key: camelCase(key),
+      component: codeNativeIntegrationComponentReference(referenceKey),
+    };
+    result.inputs = convertBundledDataSourceReferenceInputs(bundled);
 
     if (configVar.validationMode) {
       result.meta = { ...result.meta, validationMode: configVar.validationMode };
@@ -1504,28 +1529,38 @@ export const invokeTriggerComponentInput = (
  * forwards to the referenced trigger via invokeTrigger). */
 const wrapperTriggerInputsFromReference = (
   onTrigger: unknown,
+  wrapperTriggerKey: string,
   componentRegistry: ComponentRegistry,
-): ServerTriggerInput[] => {
-  if (isComponentClientReference(onTrigger)) {
-    return Object.entries(onTrigger.inputs).map(([key, input]) => convertInput(key, input));
+): { inputs: ServerTriggerInput[]; dataSources: Record<string, ServerDataSource> } => {
+  const bundledTriggerReference = asBundledTriggerReference(onTrigger);
+  if (bundledTriggerReference) {
+    return resolveBundledTriggerSiblingDataSources(
+      bundledTriggerReference,
+      wrapperTriggerKey,
+      componentRegistry,
+    );
   }
+
   if (!isComponentReference(onTrigger)) {
-    return [];
+    return { inputs: [], dataSources: {} };
   }
 
   const manifestInputs = componentRegistry[onTrigger.component]?.triggers?.[onTrigger.key]?.inputs;
   if (!manifestInputs) {
-    return [];
+    return { inputs: [], dataSources: {} };
   }
 
-  return Object.entries(manifestInputs).map(([key, input]) => ({
-    key,
-    label: key,
-    type: input.inputType,
-    ...(input.collection ? { collection: input.collection } : {}),
-    ...(input.default !== undefined ? { default: input.default } : {}),
-    ...(input.required !== undefined ? { required: input.required } : {}),
-  }));
+  return {
+    inputs: Object.entries(manifestInputs).map(([key, input]) => ({
+      key,
+      label: key,
+      type: input.inputType,
+      ...(input.collection ? { collection: input.collection } : {}),
+      ...(input.default !== undefined ? { default: input.default } : {}),
+      ...(input.required !== undefined ? { required: input.required } : {}),
+    })),
+    dataSources: {},
+  };
 };
 
 type ComponentRefTrigger = "component-ref";
@@ -1544,7 +1579,6 @@ type PreValidationTriggerPerformConfig<
   componentRef: ServerComponentReference | undefined;
   onTrigger:
     | TriggerReference
-    | ComponentClientReference<Inputs, "trigger">
     | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
     | PollingTriggerPerformFunction<
         TInputs,
@@ -1573,7 +1607,7 @@ interface GenerateTriggerPerformFn<
 
 interface GenerateComponentRefTriggerPerformFn {
   componentRef: ServerComponentReference;
-  onTrigger: TriggerReference | ComponentClientReference<Inputs, "trigger">;
+  onTrigger: TriggerReference;
   componentRegistry: ComponentRegistry;
   triggerType: ComponentRefTrigger;
 }
@@ -1767,7 +1801,7 @@ const generateTriggerEventWrapperFn = <
   componentRef: ServerComponentReference | undefined,
   onTrigger:
     | TriggerReference
-    | ComponentClientReference<Inputs, "trigger">
+    | BundledTriggerReference
     | TriggerPerformFunction<TInputs, TConfigVars, TAllowsBranching, TResult>
     | PollingTriggerPerformFunction<
         TInputs,
@@ -1783,6 +1817,7 @@ const generateTriggerEventWrapperFn = <
   customFn?: TriggerEventFunction,
 ): TriggerEventFunction | undefined => {
   const usesComponentRef = componentRef && typeof onTrigger !== "function";
+  const bundledTriggerReference = asBundledTriggerReference(onTrigger);
 
   if (usesComponentRef) {
     return async (context, params) => {
@@ -1797,7 +1832,11 @@ const generateTriggerEventWrapperFn = <
       return await runWithContext(cniContext, async () => {
         const invokeResponse =
           (await invokeTrigger(
-            invokeTriggerComponentInput(componentRef, onTrigger, eventName),
+            invokeTriggerComponentInput(
+              componentRef,
+              onTrigger as TriggerReference | undefined,
+              eventName,
+            ),
             cniContext,
             null,
             params,
@@ -1809,6 +1848,21 @@ const generateTriggerEventWrapperFn = <
         }
 
         return merge(invokeResponse, customResponse);
+      });
+    };
+  } else if (bundledTriggerReference) {
+    const bundledFn = bundledTriggerReference.trigger[eventName];
+    if (!bundledFn && !customFn) {
+      return;
+    }
+    return async (context, params) => {
+      const cniContext = createCNIContext(context, componentRegistry);
+      return await runWithContext(cniContext, async () => {
+        const bundledResponse = bundledFn ? (await bundledFn(cniContext, params)) || {} : {};
+        const customResponse: TriggerEventFunctionReturn = customFn
+          ? (await customFn(cniContext, params)) || {}
+          : {};
+        return merge(bundledResponse, customResponse);
       });
     };
   } else if (customFn) {
@@ -1823,6 +1877,76 @@ const generateTriggerEventWrapperFn = <
     return;
   }
 };
+
+/** Trigger fields for triggers authored within the CNI. */
+const authoredTriggerWireFields = ({
+  triggerType,
+  triggerResolver,
+  onDeployResolver,
+  batchConfig,
+  onDeployTrigger,
+  componentRegistry,
+}: {
+  triggerType: FlowTriggerType | undefined;
+  triggerResolver: WireResolver | undefined;
+  onDeployResolver: WireResolver | undefined;
+  batchConfig: { batchSize: number; concurrentBatchLimit?: number } | undefined;
+  onDeployTrigger: TriggerPerformFunction<any, any, any, any> | undefined;
+  componentRegistry: ComponentRegistry;
+}): TriggerWireFields => ({
+  scheduleSupport: triggerType === "polling" ? "required" : "valid",
+  synchronousResponseSupport: "valid",
+  isPollingTrigger: triggerType === "polling",
+  triggerResolverSupport: triggerResolver ? "valid" : "invalid",
+  // The authoritative batch size is stored on the flow (see convertFlow). We also emit the
+  // single shared default on the synthesized trigger because component publish validation
+  // requires `triggerResolverDefaultBatchSize` whenever resolver support is active.
+  ...(triggerResolver || onDeployResolver
+    ? {
+        triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
+        ...(batchConfig?.concurrentBatchLimit !== undefined
+          ? { triggerResolverDefaultConcurrentBatchLimit: batchConfig.concurrentBatchLimit }
+          : {}),
+      }
+    : {}),
+  ...(triggerResolver
+    ? {
+        ...(triggerResolver.resolveItems
+          ? { resolveTriggerItems: triggerResolver.resolveItems, hasResolveTriggerItems: true }
+          : {}),
+        ...(triggerResolver.getNextPaginationState
+          ? {
+              getNextPaginationState: triggerResolver.getNextPaginationState,
+              hasGetNextDiscoveryState: true,
+            }
+          : {}),
+      }
+    : {}),
+  // On-deploy is presence-driven (no support flag): the behavior flags below tell the platform
+  // what runs.
+  ...(onDeployTrigger
+    ? {
+        onDeployPerform: createCNIPerform({ componentRegistry, onTrigger: onDeployTrigger }),
+        hasOnDeployPerform: true,
+      }
+    : {}),
+  ...(onDeployResolver
+    ? {
+        ...(onDeployResolver.resolveItems
+          ? {
+              resolveOnDeployItems: onDeployResolver.resolveItems,
+              hasResolveOnDeployItems: true,
+            }
+          : {}),
+        ...(onDeployResolver.getNextPaginationState
+          ? {
+              getOnDeployNextPaginationState: onDeployResolver.getNextPaginationState,
+              hasGetOnDeployNextDiscoveryState: true,
+            }
+          : {}),
+      }
+    : {}),
+});
 
 const convertOnExecution =
   (
@@ -1913,6 +2037,10 @@ const codeNativeIntegrationComponent = <
     {},
   );
 
+  // Populated while building `convertedTriggers`: a bundled trigger's sibling data sources land
+  // in the wrapper component's own `dataSources` (see `wrapperTriggerInputsFromReference`).
+  const bundledTriggerSiblingDataSources: Record<string, ServerDataSource> = {};
+
   const convertedTriggers = flows.reduce<
     Record<
       string,
@@ -1967,19 +2095,22 @@ const codeNativeIntegrationComponent = <
       key: defaultComponentKey,
     };
 
-    // The component ref here is undefined if onTrigger is a function.
-    const { ref } = isComponentClientReference(onTrigger)
-      ? convertComponentClientReference(onTrigger)
-      : isComponentReference(onTrigger)
-        ? convertComponentReference(onTrigger, componentRegistry, "triggers")
-        : { ref: onTrigger ? undefined : defaultComponentRef };
+    // The component ref here is undefined if onTrigger is a function or a bundled trigger.
+    const { ref } = isComponentReference(onTrigger)
+      ? convertComponentReference(onTrigger, componentRegistry, "triggers")
+      : { ref: onTrigger ? undefined : defaultComponentRef };
 
-    const performFn = generateTriggerPerformFn({
-      componentRef: ref,
-      onTrigger,
-      componentRegistry,
-      triggerType,
-    });
+    // A bundled trigger reference carries its own already-converted `Trigger`.
+    const bundledTrigger = asBundledTriggerReference(onTrigger)?.trigger;
+
+    const performFn = bundledTrigger
+      ? createBundledTriggerPerform(bundledTrigger, componentRegistry)
+      : generateTriggerPerformFn({
+          componentRef: ref,
+          onTrigger: onTrigger as Exclude<typeof onTrigger, BundledTriggerReference>,
+          componentRegistry,
+          triggerType,
+        });
     const deleteFn = generateTriggerEventWrapperFn(
       ref,
       onTrigger,
@@ -2009,6 +2140,10 @@ const codeNativeIntegrationComponent = <
       webhookLifecycleHandlers?.delete,
     );
 
+    const { inputs: wrapperInputs, dataSources: wrapperSiblingDataSources } =
+      wrapperTriggerInputsFromReference(onTrigger, key, componentRegistry);
+    Object.assign(bundledTriggerSiblingDataSources, wrapperSiblingDataSources);
+
     return {
       ...result,
       [key]: {
@@ -2026,104 +2161,79 @@ const codeNativeIntegrationComponent = <
         hasWebhookCreateFunction: !!webhookCreateFn,
         webhookDelete: webhookDeleteFn,
         hasWebhookDeleteFunction: !!webhookDeleteFn,
-        inputs: wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
-        scheduleSupport: triggerType === "polling" ? "required" : "valid",
-        synchronousResponseSupport: "valid",
-        isPollingTrigger: triggerType === "polling",
-        triggerResolverSupport: triggerResolver ? "valid" : "invalid",
-        // The authoritative batch size is stored on the flow (see convertFlow). We also
-        // emit the single shared default on the synthesized trigger because component
-        // publish validation requires `triggerResolverDefaultBatchSize` whenever resolver
-        // support is active; both derive from the one `flow.batchConfig`.
-        ...(triggerResolver || onDeployResolver
-          ? {
-              triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
-              ...(batchConfig?.concurrentBatchLimit !== undefined
-                ? {
-                    triggerResolverDefaultConcurrentBatchLimit: batchConfig.concurrentBatchLimit,
-                  }
-                : {}),
-            }
-          : {}),
-        ...(triggerResolver
-          ? {
-              ...(triggerResolver.resolveItems
-                ? {
-                    resolveTriggerItems: triggerResolver.resolveItems,
-                    hasResolveTriggerItems: true,
-                  }
-                : {}),
-              ...(triggerResolver.getNextPaginationState
-                ? {
-                    getNextPaginationState: triggerResolver.getNextPaginationState,
-                    hasGetNextDiscoveryState: true,
-                  }
-                : {}),
-            }
-          : {}),
-        // On-deploy is presence-driven (no support flag): the behavior flags below
-        // (hasOnDeployPerform / hasResolveOnDeployItems) tell the platform what runs.
-        ...(onDeployTrigger
-          ? {
-              onDeployPerform: createCNIPerform({
-                componentRegistry,
-                onTrigger: onDeployTrigger,
-              }),
-              hasOnDeployPerform: true,
-            }
-          : {}),
-        ...(onDeployResolver
-          ? {
-              ...(onDeployResolver.resolveItems
-                ? {
-                    resolveOnDeployItems: onDeployResolver.resolveItems,
-                    hasResolveOnDeployItems: true,
-                  }
-                : {}),
-              ...(onDeployResolver.getNextPaginationState
-                ? {
-                    getOnDeployNextPaginationState: onDeployResolver.getNextPaginationState,
-                    hasGetOnDeployNextDiscoveryState: true,
-                  }
-                : {}),
-            }
-          : {}),
+        inputs: wrapperInputs,
+        ...(bundledTrigger
+          ? bundledTriggerWireFields(bundledTrigger, componentRegistry)
+          : authoredTriggerWireFields({
+              triggerType,
+              triggerResolver,
+              onDeployResolver,
+              batchConfig,
+              onDeployTrigger,
+              componentRegistry,
+            })),
       },
     };
   }, {});
 
   const convertedDataSources = Object.entries(configVars).reduce<Record<string, ServerDataSource>>(
     (result, [key, configVar]) => {
-      if (!isDataSourceDefinitionConfigVar(configVar)) {
-        return result;
+      const camelKey = camelCase(key);
+
+      if (isDataSourceDefinitionConfigVar(configVar)) {
+        const { perform, dataSourceType } = pick(configVar, ["perform", "dataSourceType"]);
+
+        return {
+          ...result,
+          [camelKey]: {
+            dataSourceType,
+            // Establishes the ambient context so a bundled component action can be called
+            // from the data source, as it can from a flow.
+            perform: ((context, params) =>
+              runWithContext(context as unknown as ActionContext, () =>
+                (perform as ServerDataSource["perform"])(context, params),
+              )) as ServerDataSource["perform"],
+            key: camelKey,
+            display: {
+              label: key,
+              description: key,
+            },
+            inputs:
+              // Create placeholder inputs for each config variable dependency,so that
+              // the config wizard can detect if any changed and reset the data source.
+              isJsonFormDataSourceConfigVar(configVar) && configVar.dataSourceReset
+                ? (configVar.dataSourceReset.dependencies || []).map((dep, idx) => ({
+                    key: `input${idx}`,
+                    label: dep,
+                    type: "string",
+                  }))
+                : [],
+          },
+        };
       }
 
-      const camelKey = camelCase(key);
-      const dataSource = pick(configVar, ["perform", "dataSourceType"]);
+      if (isBundledDataSourceConfigVar(configVar)) {
+        const { dataSource: bundledDataSource, dataSources: siblingDataSources } =
+          asBundledDataSourceReference(configVar.dataSource) as ConvertedBundledDataSourceReference;
 
-      return {
-        ...result,
-        [camelKey]: {
-          ...dataSource,
-          key: camelKey,
-          display: {
-            label: key,
-            description: key,
-          },
-          inputs:
-            // Create placeholder inputs for each config variable dependency,so that
-            // the config wizard can detect if any changed and reset the data source.
-            isJsonFormDataSourceConfigVar(configVar) && configVar.dataSourceReset
-              ? (configVar.dataSourceReset.dependencies || []).map((dep, idx) => ({
-                  key: `input${idx}`,
-                  label: dep,
-                  type: "string",
-                }))
-              : [],
-        },
-      };
+        // Hoists the data source under its own key, along with any sibling it depends on
+        // (e.g. its `detailDataSource`), keyed under it.
+        const hoisted: Record<string, ServerDataSource> = {};
+        hoistBundledDataSource({
+          dataSource: bundledDataSource,
+          hoistedKey: camelKey,
+          keyPrefix: camelKey,
+          siblings: siblingDataSources as Record<string, AnyDataSource>,
+          componentRegistry,
+          hoisted,
+        });
+
+        return { ...result, ...hoisted };
+      }
+
+      return result;
     },
-    {},
+    { ...bundledTriggerSiblingDataSources },
   );
 
   const convertedConnections = Object.entries(configVars).reduce<ServerConnection[]>(

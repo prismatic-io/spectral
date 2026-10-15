@@ -103,6 +103,39 @@ export const isComponentReference = (ref: unknown): ref is ComponentReference =>
   );
 };
 
+/**
+ * A flow trigger taken from a component bundled with the integration. Carries the converted
+ * trigger (and the component's data sources, for any sibling the trigger's inputs name) so the
+ * integration's own wrapper component can host it; the platform never calls out to the source
+ * component.
+ */
+export interface BundledTriggerReference<TTrigger = unknown> {
+  __bundledTriggerReference: true;
+  trigger: TTrigger;
+  values: Record<string, unknown>;
+  dataSources: Record<string, unknown>;
+}
+
+export const isBundledTriggerReference = (ref: unknown): ref is BundledTriggerReference =>
+  typeof ref === "object" &&
+  ref !== null &&
+  (ref as { __bundledTriggerReference?: unknown }).__bundledTriggerReference === true;
+
+/** A data source taken from a bundled component, hoisted onto the integration's wrapper
+ * component along with any sibling it depends on (its `detailDataSource`, its inputs'
+ * `dataSource`). */
+export interface BundledDataSourceReference<TDataSource = unknown> {
+  __bundledDataSourceReference: true;
+  dataSource: TDataSource;
+  values: Record<string, unknown>;
+  dataSources: Record<string, unknown>;
+}
+
+export const isBundledDataSourceReference = (ref: unknown): ref is BundledDataSourceReference =>
+  typeof ref === "object" &&
+  ref !== null &&
+  (ref as { __bundledDataSourceReference?: unknown }).__bundledDataSourceReference === true;
+
 type ComponentRegistryFunctionsByType = UnionToIntersection<
   ComponentReferenceType extends infer TComponentReferenceType
     ? TComponentReferenceType extends Extract<

@@ -1,8 +1,8 @@
 import type { CodeNativeActionLogger } from "./ActionLogger";
 import type { ActionContext, ActionPerformFunction } from "./ActionPerformFunction";
 import type { ActionPerformReturn } from "./ActionPerformReturn";
-import type { ComponentClientReference } from "./ComponentClient";
 import type {
+  BundledTriggerReference,
   ComponentRegistry,
   ConfigVarExpression,
   TriggerReference,
@@ -456,7 +456,7 @@ interface StandardFlow<
   /** Specifies the trigger function for this flow, which returns a payload and optional HTTP response. */
   onTrigger?:
     | TriggerReference
-    | ComponentClientReference<TInputs, "trigger">
+    | BundledTriggerReference
     | TriggerPerformFunction<TInputs, ConfigVars, TAllowsBranching, TResult, TPaginationState>;
   /**
    * Function to execute on initial instance deploy, in addition to (and independent of) `onTrigger`.

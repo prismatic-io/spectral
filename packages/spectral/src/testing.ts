@@ -19,6 +19,7 @@ import type {
   TriggerPayload,
   TriggerResult,
 } from "./serverTypes";
+import { runWithContext } from "./serverTypes";
 import type {
   ActionContext,
   ActionDefinition,
@@ -628,19 +629,23 @@ export const invokeFlow = async <
     onTrigger: { results: realizedPayload },
   };
 
-  if ("onTrigger" in flow && typeof flow.onTrigger === "function") {
-    const triggerResult = await flow.onTrigger(
-      // A polling trigger's perform additionally expects the `polling` helpers, which this
-      // tester does not simulate; the cast is narrowed to just that gap.
-      realizedContext as typeof realizedContext & PollingContext<TActionInputs>,
-      realizedPayload,
-      params as ActionInputParameters<TInputs>,
-    );
+  // Mirrors how a converted flow step runs inside runWithContext, so a bundled component action
+  // (e.g. `slack.actions.postMessage(values)`) resolves its ambient context under this harness.
+  const result = await runWithContext(realizedContext, async () => {
+    if ("onTrigger" in flow && typeof flow.onTrigger === "function") {
+      const triggerResult = await flow.onTrigger(
+        // A polling trigger's perform additionally expects the `polling` helpers, which this
+        // tester does not simulate; the cast is narrowed to just that gap.
+        realizedContext as typeof realizedContext & PollingContext<TActionInputs>,
+        realizedPayload,
+        params as ActionInputParameters<TInputs>,
+      );
 
-    params.onTrigger = { results: triggerResult?.payload };
-  }
+      params.onTrigger = { results: triggerResult?.payload };
+    }
 
-  const result = await flow.onExecution(realizedContext, params);
+    return flow.onExecution(realizedContext, params);
+  });
 
   return {
     result,

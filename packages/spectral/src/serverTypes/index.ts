@@ -26,11 +26,11 @@ import type { ServerFunctionDefinition } from "./convertIntegrationConfiguration
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
 
 export {
+  type BuiltComponent,
   type ComponentClient,
   type ComponentClientAction,
   type ComponentClientConnection,
   type ComponentClientDataSource,
-  type ComponentClientDescriptor,
   type ComponentClientTrigger,
   componentClient,
 } from "./componentClient";
@@ -348,6 +348,9 @@ export interface Trigger<
   isPollingTrigger?: boolean;
 }
 
+/** Any converted trigger, with its type parameters left open. */
+export type AnyTrigger = Trigger<Inputs, Inputs>;
+
 export interface DataSourceContext<
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
 > {
@@ -375,7 +378,11 @@ export interface DataSource {
   perform: DataSourcePerformFunction;
   dataSourceType: DataSourceType;
   examplePayload?: unknown;
+  detailDataSource?: string;
 }
+
+/** Any converted data source, with its type parameters left open. */
+export type AnyDataSource = DataSource;
 
 export enum OAuth2Type {
   ClientCredentials = "client_credentials",
@@ -483,3 +490,6 @@ export interface Input {
 }
 
 export * from "./asyncContext";
+export * from "./bundledAction";
+export * from "./bundledDataSource";
+export * from "./bundledTrigger";

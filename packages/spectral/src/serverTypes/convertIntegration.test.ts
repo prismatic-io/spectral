@@ -1,17 +1,31 @@
 import { describe, expect, it } from "vitest";
 import {
   batchFlowTrigger,
+  batchTrigger,
+  component,
+  componentClient,
   configPage,
   configVar,
   customerActivatedConnection,
+  dataSource,
   dataSourceConfigVar,
   flow,
+  input,
   integration,
   organizationActivatedConnection,
+  pollingTrigger,
+  trigger,
   userActivatedConnection,
   userLevelConfigPage,
 } from "..";
-import type { ConfigVar, TriggerPayload, TriggerReference } from "../types";
+import {
+  type ConfigVar,
+  isBundledDataSourceReference,
+  isBundledTriggerReference,
+  isComponentReference,
+  type TriggerPayload,
+  type TriggerReference,
+} from "../types";
 import {
   convertConfigPages,
   convertConfigVar,
@@ -1417,5 +1431,401 @@ describe("custom-trigger reference input values reach the trigger functions", ()
     // It must declare the referenced inputs, matching convertComponent's contract.
     const inputKeys = (wrapperTrigger.inputs as Array<{ key: string }>).map((i) => i.key);
     expect(inputKeys).toEqual(expect.arrayContaining(["inputOne", "inputTwo"]));
+  });
+});
+
+describe("bundled trigger references", () => {
+  // Stands in for a bundled-imported `@prismatic-io/*` component built with
+  // `componentClient(component(definition))` — its triggers are directly-callable
+  // reference helpers, not manifest-registry lookups.
+  const acmeBundled = componentClient(
+    component({
+      key: "acme-npm",
+      public: true,
+      display: { label: "Acme", description: "An bundled component" },
+      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+      triggers: {
+        webhook: trigger({
+          display: { label: "Webhook", description: "Fires on an inbound webhook" },
+          inputs: { greeting: input({ type: "string", label: "Greeting", default: "hi" }) },
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          perform: async (_context, payload) => ({ payload }),
+          onInstanceDeploy: async () => ({ instanceState: { deployed: true } }),
+          webhookLifecycleHandlers: {
+            create: async () => ({ instanceState: { created: true } }),
+            delete: async () => ({}),
+          },
+        }),
+        pollForChanges: pollingTrigger({
+          display: { label: "Poll For Changes", description: "Polls on a schedule" },
+          inputs: {},
+          perform: async (context, payload) => {
+            context.polling.setState({ cursor: "next" });
+            return { payload: { ...payload, body: { data: [] } } };
+          },
+        }),
+        branching: trigger({
+          display: { label: "Branching", description: "Returns a branch" },
+          inputs: {},
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          terminateExecution: true,
+          breakLoop: true,
+          allowsBranching: true,
+          staticBranchNames: ["Yes", "No"],
+          perform: async (_context, payload) => ({ payload, branch: "Yes" }),
+        }),
+        syncOrders: batchTrigger({
+          display: { label: "Sync Orders", description: "Fetches orders in batches" },
+          inputs: {},
+          scheduleSupport: "required",
+          batchConfig: { batchSize: 25 },
+          perform: async () => ({ items: [1, 2, 3], paginationState: null }),
+          onDeploy: {
+            perform: async () => ({ items: [9], paginationState: null }),
+          },
+        }),
+        pickItem: trigger({
+          display: { label: "Pick Item", description: "Fires when an item is picked" },
+          inputs: {
+            itemId: input({ type: "string", label: "Item", dataSource: "items" }),
+          },
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          perform: async (_context, payload) => ({ payload }),
+        }),
+      },
+      dataSources: {
+        items: dataSource({
+          display: { label: "Items", description: "Pick an item" },
+          dataSourceType: "picklist",
+          inputs: {},
+          perform: async () => ({ result: ["item-1", "item-2"] }),
+        }),
+      },
+    }),
+  );
+
+  it("produces a tagged reference distinct from a manifest ComponentReference", () => {
+    const ref = acmeBundled.triggers.webhook({ greeting: { value: "hey" } });
+
+    expect(isBundledTriggerReference(ref)).toBe(true);
+    expect(isComponentReference(ref)).toBe(false);
+    expect(ref).toMatchObject({
+      __bundledTriggerReference: true,
+      values: { greeting: { value: "hey" } },
+    });
+  });
+
+  it("a plain reference (no lifecycle) still routes through the wrapper-trigger path, with no registry lookup", () => {
+    const plainFlow = flow({
+      name: "Plain Flow",
+      stableKey: "plain-flow",
+      description: "Npm trigger reference, no custom lifecycle",
+      onTrigger: acmeBundled.triggers.webhook({ greeting: { value: "hey" } }),
+      onExecution: async () => ({ data: "test" }),
+    });
+
+    // An empty component registry: a manifest-registry lookup would throw here.
+    const result = convertFlow(plainFlow, {}, "test-ref");
+    const [triggerStep] = result.steps as Array<Record<string, unknown>>;
+
+    expect(triggerStep.inputs).toMatchObject({ greeting: { type: "value", value: "hey" } });
+    expect((triggerStep.action as { component: { key: string } }).component.key).toBe("test-ref");
+  });
+
+  it("calls the referenced trigger's perform directly, with no remote invokeTrigger involved", async () => {
+    const result = integration({
+      name: "npm-ref-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Webhook Flow",
+          stableKey: "webhook-flow",
+          description: "Npm webhook trigger reference",
+          onTrigger: acmeBundled.triggers.webhook({ greeting: { value: "hey" } }),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.webhookFlow_onTrigger;
+    expect(wrapperTrigger.scheduleSupport).toBe("invalid");
+    expect(wrapperTrigger.hasOnInstanceDeploy).toBe(true);
+    expect(wrapperTrigger.hasWebhookCreateFunction).toBe(true);
+    expect(wrapperTrigger.hasWebhookDeleteFunction).toBe(true);
+
+    const performResult = await (
+      wrapperTrigger.perform as (
+        context: unknown,
+        payload: unknown,
+        params: unknown,
+      ) => Promise<unknown>
+    )({} as never, { headers: {} } as never, { greeting: "hey" });
+    expect(performResult).toMatchObject({ payload: { headers: {} } });
+
+    const deployResult = await (
+      wrapperTrigger.onInstanceDeploy as (context: unknown, params: unknown) => Promise<unknown>
+    )({} as never, {});
+    expect(deployResult).toMatchObject({ instanceState: { deployed: true } });
+  });
+
+  it("carries a batch trigger's resolver/on-deploy shape onto the synthesized wrapper trigger", () => {
+    const result = integration({
+      name: "npm-batch-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Sync Orders Flow",
+          stableKey: "sync-orders-flow",
+          description: "Npm batch trigger reference",
+          onTrigger: acmeBundled.triggers.syncOrders({}),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.syncOrdersFlow_onTrigger;
+    expect(wrapperTrigger.triggerResolverSupport).toBe("required");
+    expect(wrapperTrigger.hasResolveTriggerItems).toBe(true);
+    expect(wrapperTrigger.hasGetNextDiscoveryState).toBe(true);
+    expect(wrapperTrigger.triggerResolverDefaultBatchSize).toBe(25);
+    expect(wrapperTrigger.hasOnDeployPerform).toBe(true);
+    expect(wrapperTrigger.hasResolveOnDeployItems).toBe(true);
+  });
+
+  it("marks a polling trigger reference as polling on the synthesized wrapper trigger", () => {
+    const result = integration({
+      name: "npm-polling-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Poll Flow",
+          stableKey: "poll-flow",
+          description: "Npm polling trigger reference",
+          onTrigger: acmeBundled.triggers.pollForChanges({}),
+          schedule: { value: "*/5 * * * *" },
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.pollFlow_onTrigger;
+    expect(wrapperTrigger.isPollingTrigger).toBe(true);
+    expect(wrapperTrigger.scheduleSupport).toBe("required");
+  });
+
+  it("requires a schedule for a polling trigger reference", () => {
+    expect(() =>
+      integration({
+        name: "npm-polling-integration",
+        description: "x",
+        flows: [
+          flow({
+            name: "Poll Flow",
+            stableKey: "poll-flow",
+            description: "Npm polling trigger reference",
+            onTrigger: acmeBundled.triggers.pollForChanges({}),
+            onExecution: async () => ({ data: "test" }),
+          }),
+        ],
+      }),
+    ).toThrow(/no schedule/);
+  });
+
+  it("carries the bundled trigger's branching and termination settings onto the wrapper trigger", () => {
+    const result = integration({
+      name: "npm-branching-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Branch Flow",
+          stableKey: "branch-flow",
+          description: "Npm branching trigger reference",
+          onTrigger: acmeBundled.triggers.branching({}),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    expect(result.triggers.branchFlow_onTrigger).toMatchObject({
+      terminateExecution: true,
+      breakLoop: true,
+      allowsBranching: true,
+      staticBranchNames: ["Yes", "No"],
+    });
+  });
+
+  it("resolves a trigger input's sibling data source onto the CNI's own wrapper component", async () => {
+    const result = integration({
+      name: "npm-sibling-datasource-integration",
+      description: "x",
+      flows: [
+        flow({
+          name: "Pick Item Flow",
+          stableKey: "pick-item-flow",
+          description: "Npm trigger reference with a sibling data source input",
+          onTrigger: acmeBundled.triggers.pickItem({}),
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperTrigger = result.triggers.pickItemFlow_onTrigger;
+    const itemIdInput = wrapperTrigger.inputs.find((i) => i.key === "itemId");
+    expect(itemIdInput?.dataSource).toBe("pickItemFlow_onTrigger_items");
+
+    const wrapperDataSource = result.dataSources.pickItemFlow_onTrigger_items;
+    expect(wrapperDataSource).toBeDefined();
+    expect(wrapperDataSource.dataSourceType).toBe("picklist");
+
+    const performResult = await (
+      wrapperDataSource.perform as (context: unknown, params: unknown) => Promise<unknown>
+    )({} as never, {});
+    expect(performResult).toMatchObject({ result: ["item-1", "item-2"] });
+  });
+});
+
+describe("bundled data source references", () => {
+  // Stands in for a bundled-imported `@prismatic-io/*` component built with
+  // `componentClient(component(definition))` — its data sources are directly-callable
+  // reference helpers, not manifest-registry lookups.
+  const acmeBundled = componentClient(
+    component({
+      key: "acme-npm",
+      public: true,
+      display: { label: "Acme", description: "An bundled component" },
+      documentationUrl: "https://prismatic.io/docs/components/acme-npm/",
+      dataSources: {
+        selectChannel: dataSource({
+          display: { label: "Select Channel", description: "Pick a channel" },
+          dataSourceType: "picklist",
+          inputs: { workspace: input({ type: "string", label: "Workspace", default: "" }) },
+          detailDataSource: "channelDetails",
+          perform: async (_context, params) => ({
+            result: [`${params.workspace}-general`, `${params.workspace}-random`],
+          }),
+        }),
+        channelDetails: dataSource({
+          display: { label: "Channel Details", description: "Details for a channel" },
+          dataSourceType: "picklist",
+          inputs: {
+            owner: input({ type: "string", label: "Owner", dataSource: "selectOwner" }),
+          },
+          perform: async () => ({ result: ["details"] }),
+        }),
+        selectOwner: dataSource({
+          display: { label: "Select Owner", description: "Pick an owner" },
+          dataSourceType: "picklist",
+          inputs: {},
+          // Cycles back to the data source that depends on it.
+          detailDataSource: "channelDetails",
+          perform: async () => ({ result: ["owner-1"] }),
+        }),
+      },
+    }),
+  );
+
+  it("produces a config var whose dataSource is a tagged reference, distinct from a manifest ComponentReference", () => {
+    const configVarDef = acmeBundled.dataSources.selectChannel({
+      stableKey: "select-channel",
+      values: { workspace: { value: "acme" } },
+    }) as ConfigVar & { dataSource: unknown };
+
+    expect(configVarDef.stableKey).toBe("select-channel");
+    expect(isBundledDataSourceReference(configVarDef.dataSource)).toBe(true);
+    expect(isComponentReference(configVarDef.dataSource)).toBe(false);
+    expect(configVarDef.dataSource).toMatchObject({
+      __bundledDataSourceReference: true,
+      values: { workspace: { value: "acme" } },
+    });
+  });
+
+  it("routes a config var's bundled data source reference to the CNI's own wrapper component, with no registry lookup", () => {
+    const configVarDef = acmeBundled.dataSources.selectChannel({
+      stableKey: "select-channel",
+      values: { workspace: { value: "acme" } },
+    }) as ConfigVar;
+
+    // An empty component registry: a manifest-registry lookup would throw here.
+    const result = convertConfigVar("Select Channel", configVarDef, "test-ref", {});
+
+    expect(result.dataType).toBe("picklist");
+    expect(result.dataSource).toEqual({
+      key: "selectChannel",
+      component: { key: "test-ref", version: "LATEST", isPublic: false },
+    });
+    expect(result.inputs).toMatchObject({ workspace: { type: "value", value: "acme" } });
+  });
+
+  it("hoists the bundled data source's perform into the CNI's own wrapper component", async () => {
+    const result = integration({
+      name: "npm-datasource-integration",
+      description: "x",
+      configPages: {
+        Setup: configPage({
+          elements: {
+            "Select Channel": acmeBundled.dataSources.selectChannel({
+              stableKey: "select-channel",
+              values: { workspace: { value: "acme" } },
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Noop Flow",
+          stableKey: "noop-flow",
+          description: "x",
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    const wrapperDataSource = result.dataSources.selectChannel;
+    expect(wrapperDataSource.dataSourceType).toBe("picklist");
+    expect(wrapperDataSource.display).toMatchObject({
+      label: "Select Channel",
+      description: "Pick a channel",
+    });
+
+    const performResult = await (
+      wrapperDataSource.perform as (context: unknown, params: unknown) => Promise<unknown>
+    )({} as never, { workspace: "acme" });
+    expect(performResult).toMatchObject({ result: ["acme-general", "acme-random"] });
+  });
+
+  it("hoists the data source's sibling dependencies and rewrites their keys to wrapper-owned ones", () => {
+    const result = integration({
+      name: "npm-datasource-deps-integration",
+      description: "x",
+      configPages: {
+        Setup: configPage({
+          elements: {
+            "Select Channel": acmeBundled.dataSources.selectChannel({
+              stableKey: "select-channel",
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Noop Flow",
+          stableKey: "noop-flow",
+          description: "x",
+          onExecution: async () => ({ data: "test" }),
+        }),
+      ],
+    });
+
+    expect(result.dataSources.selectChannel.detailDataSource).toBe("selectChannel_channelDetails");
+    expect(result.dataSources.selectChannel_channelDetails.inputs[0].dataSource).toBe(
+      "selectChannel_selectOwner",
+    );
+    // The cycle back to channelDetails resolves to the already-hoisted copy.
+    expect(result.dataSources.selectChannel_selectOwner.detailDataSource).toBe(
+      "selectChannel_channelDetails",
+    );
   });
 });

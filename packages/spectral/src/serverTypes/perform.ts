@@ -15,6 +15,7 @@ import type {
   TriggerReference,
   TriggerResult,
 } from "../types";
+import { runWithContext } from "./asyncContext";
 import { createCNIContext, createDebugContext, createInvokeFlow, logDebugResults } from "./context";
 import {
   invokeTriggerComponentInput,
@@ -257,7 +258,11 @@ export const createCNIPollingPerform = <
       }),
     } as ActionContext<TConfigVars> & PollingContext<TActionInputs>;
 
-    const result = await onTrigger(finalContext, payload, params);
+    // Establishes the ambient context so a bundled component action can be called from the
+    // trigger, as it can from a flow.
+    const result = await runWithContext(finalContext, () =>
+      onTrigger(finalContext, payload, params),
+    );
 
     if (result === undefined) {
       return undefined;
@@ -329,6 +334,6 @@ export const createCNIPerform = <
 > => {
   return async (context, payload, params) => {
     const cniContext = createCNIContext(context, componentRegistry);
-    return await onTrigger(cniContext, payload, params);
+    return await runWithContext(cniContext, () => onTrigger(cniContext, payload, params));
   };
 };

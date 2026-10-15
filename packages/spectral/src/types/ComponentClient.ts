@@ -1,44 +1,35 @@
 import type { InputValue } from "./ActionInputParameters";
-import type { ConfigVarExpression, TemplateExpression, ValueExpression } from "./ComponentRegistry";
+import type { ConfigVarExpression, ValueExpression } from "./ComponentRegistry";
 import type { ConfigVarVisibility } from "./ConfigVars";
-import type { DataSourceType } from "./DataSourceResult";
 import type { Inputs } from "./Inputs";
 
+/** The published component a connection reference points at; `prism integrations:import`
+ * pins the version. */
 export interface ComponentClientIdentity {
   key: string;
   isPublic: boolean;
 }
 
-type ReferenceValue<
-  TInput,
-  TKind extends "trigger" | "dataSource" | "connection",
-> = TKind extends "trigger"
-  ? ValueExpression<InputValue<TInput>> | ConfigVarExpression
-  : TKind extends "dataSource"
-    ? ValueExpression<InputValue<TInput>> | ConfigVarExpression | TemplateExpression
-    :
-        | ((ValueExpression<InputValue<TInput>> | ConfigVarExpression) &
-            ConfigVarVisibility & { writeOnly?: true })
-        | (ConfigVarVisibility & { writeOnly?: true });
-
-export type ComponentClientReferenceValues<
-  TInputs extends Record<string, unknown>,
-  TKind extends "trigger" | "dataSource" | "connection",
-> = {
-  [K in keyof TInputs]?: ReferenceValue<TInputs[K], TKind>;
+export type ComponentClientConnectionValues<TInputs extends Record<string, unknown>> = {
+  [K in keyof TInputs]?:
+    | ((ValueExpression<InputValue<TInputs[K]>> | ConfigVarExpression) &
+        ConfigVarVisibility & { writeOnly?: true })
+    | (ConfigVarVisibility & { writeOnly?: true });
 };
 
-export interface ComponentClientReference<
-  TInputs extends Record<string, unknown> = Inputs,
-  TKind extends "trigger" | "dataSource" | "connection" = "trigger" | "dataSource" | "connection",
-> {
+/**
+ * A connection config var's reference to a connection on the published component. Connections
+ * are platform objects (credentials, OAuth flows, sharing with low-code and other integrations),
+ * so unlike a bundled component's actions, triggers and data sources, they are not carried
+ * into the integration; the reference is resolved by the platform.
+ */
+export interface ComponentClientReference<TInputs extends Record<string, unknown> = Inputs> {
   __componentClientReference: true;
-  kind: TKind;
+  kind: "connection";
   component: ComponentClientIdentity;
   key: string;
   inputs: TInputs;
-  values: ComponentClientReferenceValues<TInputs, TKind>;
-  dataSourceType?: DataSourceType;
+  values: ComponentClientConnectionValues<TInputs>;
   template?: string;
   onPremiseConnectionConfig?: "allowed" | "disallowed" | "required";
 }

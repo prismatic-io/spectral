@@ -1,11 +1,12 @@
 import type { ComponentClientReference } from "./ComponentClient";
 import { isComponentClientReference } from "./ComponentClient";
 import type {
+  BundledDataSourceReference,
   ComponentRegistryConnection,
   ComponentRegistryDataSource,
   DataSourceReference,
 } from "./ComponentRegistry";
-import { isComponentReference } from "./ComponentRegistry";
+import { isBundledDataSourceReference, isComponentReference } from "./ComponentRegistry";
 import type {
   ConfigPage,
   ConfigPages,
@@ -312,19 +313,22 @@ type DataSourceReferenceConfigVar =
       }
     : never;
 
-/** Defines attributes of a data source config variable. */
-export type ComponentClientDataSourceConfigVar = BaseConfigVar & {
-  __componentClientConfigVar: true;
-  dataSource: ComponentClientReference<Inputs, "dataSource">;
-  collectionType?: CollectionType;
+/** A data source config var backed by a data source from a component bundled with the
+ * integration (e.g. `foo.dataSources.selectChannels({ stableKey, values })`). */
+export type BundledDataSourceConfigVar = Omit<
+  BaseDataSourceConfigVar<DataSourceType>,
+  "dataSourceType"
+> & {
+  dataSource: BundledDataSourceReference;
   validationMode?: ValidationMode;
   dataSourceReset?: Omit<DataSourceReset, "dependencies">;
 };
 
+/** Defines attributes of a data source config variable. */
 export type DataSourceConfigVar =
   | DataSourceDefinitionConfigVar
   | DataSourceReferenceConfigVar
-  | ComponentClientDataSourceConfigVar;
+  | BundledDataSourceConfigVar;
 
 // Connection Config Vars
 type BaseConnectionConfigVar = BaseConfigVar & {
@@ -397,7 +401,7 @@ type ConnectionReferenceConfigVar = ComponentRegistryConnection extends infer TC
 /** Defines attributes of a config variable that represents a connection. */
 export type ComponentClientConnectionConfigVar = BaseConnectionConfigVar & {
   __componentClientConfigVar: true;
-  connection: ComponentClientReference<Inputs, "connection">;
+  connection: ComponentClientReference<Inputs>;
   oauth2Config?: OAuth2Config;
 };
 
@@ -556,13 +560,11 @@ export const isDataSourceReferenceConfigVar = (
   "dataSource" in cv &&
   isComponentReference((cv as DataSourceReferenceConfigVar).dataSource);
 
-export const isComponentClientDataSourceConfigVar = (
-  cv: unknown,
-): cv is ComponentClientDataSourceConfigVar =>
+export const isBundledDataSourceConfigVar = (cv: unknown): cv is BundledDataSourceConfigVar =>
   typeof cv === "object" &&
   cv !== null &&
   "dataSource" in cv &&
-  isComponentClientReference((cv as ComponentClientDataSourceConfigVar).dataSource);
+  isBundledDataSourceReference((cv as BundledDataSourceConfigVar).dataSource);
 
 export const isConnectionDefinitionConfigVar = (
   cv: ConfigVar,

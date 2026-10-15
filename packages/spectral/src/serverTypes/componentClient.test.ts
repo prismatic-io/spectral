@@ -3,19 +3,24 @@ import {
   action,
   component,
   componentClient,
+  configPage,
   connection,
   dataSource,
+  dataSourceConfigVar,
   flow,
   input,
   integration,
   trigger,
 } from "..";
 import { runWithContext } from "./asyncContext";
+import { createCNIContext } from "./context";
 import { convertConfigVar, convertFlow } from "./convertIntegration";
 
-const localPerform = vi.fn(async () => ({ data: "local" }));
+const perform = vi.fn(async (_context: unknown, params: Record<string, unknown>) => ({
+  data: params,
+}));
 
-const definition = {
+const built = component({
   key: "acme",
   public: false,
   display: { label: "Acme", description: "Acme", iconPath: "icon.png" },
@@ -25,177 +30,57 @@ const definition = {
       inputs: {
         message: input({ label: "Message", type: "string", required: true }),
         prefix: input({ label: "Prefix", type: "string", default: "hello" }),
+        count: input({ label: "Count", type: "string", default: "2", clean: (v) => Number(v) }),
       },
-      perform: localPerform,
+      perform,
     }),
   },
-};
-
-describe("componentClient", () => {
-  it("invokes the published platform action and never the local implementation", async () => {
-    const invoke = vi.fn(async () => ({ data: "platform" }));
-    const client = componentClient(definition);
-    const context = {
-      _components: { invoke },
-      globalDebug: false,
-      runnerAllocatedMemoryMb: 1024,
-    } as never;
-
-    await expect(
-      runWithContext(context, () => client.actions.echo({ message: "world" })),
-    ).resolves.toEqual({ data: "platform" });
-
-    expect(localPerform).not.toHaveBeenCalled();
-    expect(invoke).toHaveBeenCalledWith(
-      {
-        component: { key: "acme", isPublic: false },
-        key: "echo",
-      },
-      expect.objectContaining({ debug: expect.objectContaining({ enabled: false }) }),
-      { message: "world", prefix: "hello" },
-    );
-  });
-
-  it("fails explicitly when used outside a platform execution", async () => {
-    const client = componentClient(definition);
-    await expect(client.actions.echo({ message: "world" })).rejects.toThrow(
-      "ActionContext not found",
-    );
-  });
-
-  it("emits platform-scoped trigger, data source, and connection references", () => {
-    const referenceClient = componentClient({
-      key: "references",
-      public: false,
-      display: { label: "References", description: "References", iconPath: "icon.png" },
-      triggers: {
-        webhook: trigger({
-          display: { label: "Webhook", description: "Webhook" },
-          inputs: { secret: input({ label: "Secret", type: "string" }) },
-          scheduleSupport: "invalid",
-          synchronousResponseSupport: "valid",
-          perform: async (_context, payload) => ({ payload }),
-        }),
-      },
-      dataSources: {
-        projects: dataSource({
-          display: { label: "Projects", description: "Projects" },
-          inputs: { query: input({ label: "Query", type: "string" }) },
-          dataSourceType: "picklist",
-          perform: async () => ({ result: [] }),
-        }),
-      },
-      connections: [
-        connection({
-          key: "apiKey",
-          display: { label: "API key", description: "API key" },
-          inputs: { token: input({ label: "Token", type: "password" }) },
-        }),
-      ],
-    });
-
-    const convertedFlow = convertFlow(
-      {
-        name: "Events",
-        stableKey: "events",
-        onTrigger: referenceClient.triggers.webhook({ secret: { value: "secret" } }),
-        onExecution: async () => ({ data: null }),
-      },
-      {},
-      "integration",
-    );
-    expect((convertedFlow.steps as Array<Record<string, unknown>>)[0]).toMatchObject({
-      action: {
-        component: { key: "references", isPublic: false },
-        key: "webhook",
-      },
-      inputs: { secret: { type: "value", value: "secret" } },
-    });
-
-    expect(
-      convertConfigVar(
-        "Projects",
-        referenceClient.dataSources.projects({
-          stableKey: "projects",
-          values: { query: { value: "active" } },
-        }),
-        "integration",
-        {},
-      ),
-    ).toMatchObject({
-      dataType: "picklist",
-      dataSource: { component: { key: "references" }, key: "projects" },
-    });
-    expect(
-      convertConfigVar(
-        "API key",
-        referenceClient.connections.apiKey({ stableKey: "api-key" }),
-        "integration",
-        {},
-      ),
-    ).toMatchObject({
-      dataType: "connection",
-      connection: { component: { key: "references" }, key: "apiKey" },
-    });
-  });
+  triggers: {
+    webhook: trigger({
+      display: { label: "Webhook", description: "Webhook" },
+      inputs: { secret: input({ label: "Secret", type: "string" }) },
+      scheduleSupport: "invalid",
+      synchronousResponseSupport: "valid",
+      perform: async (_context, payload) => ({ payload }),
+    }),
+  },
+  dataSources: {
+    projects: dataSource({
+      display: { label: "Projects", description: "Projects" },
+      inputs: { query: input({ label: "Query", type: "string" }) },
+      dataSourceType: "picklist",
+      perform: async () => ({ result: [] }),
+    }),
+  },
+  connections: [
+    connection({
+      key: "apiKey",
+      display: { label: "API key", description: "API key" },
+      inputs: { token: input({ label: "Token", type: "password" }) },
+    }),
+  ],
 });
 
-describe("component().definition", () => {
-  const built = component(definition);
+const client = componentClient(built);
 
-  it("carries the definition the converted component was built from", () => {
-    expect(built.definition).toBe(definition);
-    expect(built.definition.actions.echo.inputs.message.required).toBe(true);
+describe("componentClient actions", () => {
+  it("run the bundled implementation in-process, with defaults and cleaners applied", async () => {
+    const context = { globalDebug: false } as never;
+    const result = await runWithContext(context, () => client.actions.echo({ message: "hi" }));
+
+    expect(result).toEqual({ data: { message: "hi", prefix: "hello", count: 2 } });
+    expect(perform).toHaveBeenCalledTimes(1);
+    expect(perform.mock.calls[0][0]).toMatchObject({ globalDebug: false });
   });
 
-  it("is invisible to everything that publishes or loads the converted component", () => {
-    // prism components:publish spreads the component and picks known keys; the runner
-    // destructures `actions`/`triggers`/`dataSources`; both are blind to non-enumerables.
-    expect(Object.keys(built)).not.toContain("definition");
-    expect({ ...built }).not.toHaveProperty("definition");
-    expect(JSON.parse(JSON.stringify(built))).not.toHaveProperty("definition");
-    expect(Object.keys(built.actions.echo.inputs.map((i) => i.key))).toHaveLength(2);
+  it("fail clearly outside an execution", async () => {
+    await expect(client.actions.echo({ message: "hi" })).rejects.toThrow("ActionContext not found");
   });
 
-  it("builds a client from a shape-only descriptor derived from the definition", async () => {
-    // What a component's npm build generates: keys and inputs, no implementation.
-    const descriptor = {
-      key: built.definition.key,
-      public: built.definition.public,
-      actions: Object.fromEntries(
-        Object.entries(built.definition.actions).map(([key, { inputs }]) => [key, { inputs }]),
-      ),
-    };
-    const client = componentClient<typeof built.definition>(descriptor);
-    const invoke = vi.fn(async () => ({ data: "platform" }));
-    await runWithContext({ _components: { invoke }, globalDebug: false } as never, () =>
-      client.actions.echo({ message: "world" }),
-    );
-    expect(invoke).toHaveBeenCalledWith(
-      expect.objectContaining({ key: "echo" }),
-      expect.anything(),
-      { message: "world", prefix: "hello" },
-    );
-    expect(localPerform).not.toHaveBeenCalled();
-  });
-});
-
-describe("componentClient given the converted component", () => {
-  it("refuses it rather than silently dropping every value", () => {
-    const built = component(definition);
-    expect(() => componentClient(built as never)).toThrow(
-      "Pass `component(...).definition`, or a descriptor generated from it.",
-    );
-    expect(() => componentClient({ ...built } as never)).toThrow("converted component");
-  });
-});
-
-describe("componentClient inside a converted flow", () => {
-  it("reaches the runner's non-enumerable _components through the ambient context", async () => {
-    const client = componentClient(definition);
+  it("work inside a converted flow without any runner involvement", async () => {
     const converted = integration({
-      name: "Client Flow",
-      description: "Calls an npm component client",
+      name: "Bundled Flow",
+      description: "Calls a bundled component action",
       iconPath: "icon.png",
       componentRegistry: {},
       flows: [
@@ -203,28 +88,153 @@ describe("componentClient inside a converted flow", () => {
           name: "Echo Flow",
           stableKey: "echo-flow",
           description: "echo",
-          onExecution: async () => ({ data: await client.actions.echo({ message: "hi" }) }),
+          onExecution: async () => ({ data: await client.actions.echo({ message: "flow" }) }),
         }),
       ],
     });
+    const [onExecution] = Object.values(converted.actions);
+    const result = await onExecution.perform(
+      { globalDebug: false, configVars: {}, logger: console } as never,
+      { onTrigger: { results: {} } },
+    );
+    expect(result).toEqual({ data: { data: { message: "flow", prefix: "hello", count: 2 } } });
+  });
+});
 
-    const invoke = vi.fn(async () => ({ data: "platform" }));
-    const context = { globalDebug: false, configVars: {}, logger: console } as Record<
-      string,
-      unknown
-    >;
-    // The runner attaches `_components` exactly like this: non-enumerable, non-writable.
+describe("componentClient actions called from other handlers", () => {
+  it("resolve the ambient context from a flow's own trigger and from a data source", async () => {
+    const converted = integration({
+      name: "Handlers",
+      description: "Calls a bundled action from a trigger and a data source",
+      iconPath: "icon.png",
+      componentRegistry: {},
+      configPages: {
+        Settings: configPage({
+          elements: {
+            Options: dataSourceConfigVar({
+              stableKey: "options",
+              dataSourceType: "picklist",
+              perform: async () => ({
+                result: [(await client.actions.echo({ message: "from data source" })) as never],
+              }),
+            }),
+          },
+        }),
+      },
+      flows: [
+        flow({
+          name: "Triggered",
+          stableKey: "triggered",
+          description: "t",
+          onTrigger: async (_context, payload) => ({
+            payload: {
+              ...payload,
+              body: { data: await client.actions.echo({ message: "from trigger" }) },
+            },
+          }),
+          onExecution: async (_context, params) => ({ data: params.onTrigger.results.body.data }),
+        }),
+      ],
+    });
+    const context = { globalDebug: false, configVars: {}, logger: console } as never;
+    const payload = { headers: {}, queryParameters: {}, rawBody: { data: "" }, body: { data: "" } };
+
+    const [triggerPerform] = Object.values(converted.triggers).map((t) => t.perform);
+    const triggered = await triggerPerform(context, payload as never, {});
+    expect(triggered?.payload.body.data).toEqual({
+      data: { message: "from trigger", prefix: "hello", count: 2 },
+    });
+
+    const [dataSourcePerform] = Object.values(converted.dataSources).map((d) => d.perform);
+    expect(await dataSourcePerform(context, {})).toEqual({
+      result: [{ data: { message: "from data source", prefix: "hello", count: 2 } }],
+    });
+  });
+});
+
+describe("componentClient triggers and data sources", () => {
+  it("become triggers on the integration's own wrapper component", () => {
+    const reference = client.triggers.webhook({ secret: { value: "s3cret" } });
+    expect(reference.__bundledTriggerReference).toBe(true);
+    expect(reference.trigger).toBe(built.triggers.webhook);
+
+    const converted = convertFlow(
+      {
+        name: "Events",
+        stableKey: "events",
+        onTrigger: reference,
+        onExecution: async () => ({ data: null }),
+      },
+      {},
+      "integration",
+    );
+    const [triggerStep] = converted.steps as Array<Record<string, unknown>>;
+    expect(triggerStep).toMatchObject({
+      action: { component: { key: "integration" }, key: "events_onTrigger" },
+      inputs: { secret: { type: "value", value: "s3cret" } },
+    });
+  });
+
+  it("become data sources hoisted onto the wrapper component", () => {
+    const converted = convertConfigVar(
+      "Projects",
+      client.dataSources.projects({
+        stableKey: "projects",
+        values: { query: { value: "active" } },
+      }),
+      "integration",
+      {},
+    );
+    expect(converted).toMatchObject({
+      dataType: "picklist",
+      dataSource: { component: { key: "integration" }, key: "projects" },
+      inputs: { query: { type: "value", value: "active" } },
+    });
+  });
+});
+
+describe("componentClient connections", () => {
+  it("reference the published component rather than carrying a copy", () => {
+    const configVar = client.connections.apiKey({
+      stableKey: "api-key",
+      values: { token: { value: "t" } },
+    });
+    expect(configVar.connection).toMatchObject({
+      kind: "connection",
+      component: { key: "acme", isPublic: false },
+      key: "apiKey",
+    });
+    expect(convertConfigVar("API key", configVar, "integration", {})).toMatchObject({
+      dataType: "connection",
+      connection: { component: { key: "acme", isPublic: false, version: "LATEST" }, key: "apiKey" },
+    });
+  });
+});
+
+describe("componentClient input", () => {
+  it("takes the object component() returns and refuses a copy that lost its definition", () => {
+    expect(() => componentClient({ ...built } as never)).toThrow("Spreading or serializing");
+  });
+
+  it("carries the definition invisibly to everything that publishes or loads the component", () => {
+    expect(built.definition.actions.echo.inputs.message.required).toBe(true);
+    expect(Object.keys(built)).not.toContain("definition");
+    expect(JSON.parse(JSON.stringify(built))).not.toHaveProperty("definition");
+  });
+});
+
+describe("createCNIContext", () => {
+  it("keeps the runner's non-enumerable _components on the context", () => {
+    const context = { globalDebug: false } as Record<string, unknown>;
+    const internal = { invoke: vi.fn() };
     Object.defineProperty(context, "_components", {
-      value: { invoke },
+      value: internal,
       configurable: false,
       enumerable: false,
       writable: false,
     });
-
-    const [onExecution] = Object.values(converted.actions);
-    const result = await onExecution.perform(context as never, { onTrigger: { results: {} } });
-
-    expect(result).toEqual({ data: { data: "platform" } });
-    expect(invoke).toHaveBeenCalledTimes(1);
+    const cniContext = createCNIContext(context as never, {});
+    expect((cniContext as Record<string, unknown>)._components).toBe(internal);
+    expect(Object.keys(cniContext)).not.toContain("_components");
   });
 });

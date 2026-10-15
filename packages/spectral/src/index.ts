@@ -11,7 +11,6 @@ export {
   type ComponentClientAction,
   type ComponentClientConnection,
   type ComponentClientDataSource,
-  type ComponentClientDescriptor,
   type ComponentClientTrigger,
   componentClient,
 } from "./serverTypes";
