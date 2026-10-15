@@ -14,10 +14,23 @@ const asyncHooks = typeof window === "undefined" ? require("node:async_hooks") :
 type InvocationContext =
   | { kind: "execution"; context: ActionContext }
   | { kind: "dataSource"; context: DataSourceContext };
-const actionContextStorage: AsyncLocalStorage<InvocationContext> | null = asyncHooks
-  ? new asyncHooks.AsyncLocalStorage()
-  : null;
-const integrationContextStorage = asyncHooks ? new asyncHooks.AsyncLocalStorage() : null;
+
+// Peer dependencies can still resolve to multiple copies in one bundle. Share stores
+// within the JS realm so every copy sees the same scope. These keys identify the
+// stored-value protocol; incompatible shapes must use a different key.
+const sharedStorage = globalThis as typeof globalThis & Record<symbol, unknown>;
+const getSharedContextStorage = <T>(name: string): AsyncLocalStorage<T> | null => {
+  if (!asyncHooks) return null;
+  const key = Symbol.for(name);
+  sharedStorage[key] ??= new asyncHooks.AsyncLocalStorage();
+  return sharedStorage[key] as AsyncLocalStorage<T>;
+};
+const actionContextStorage = getSharedContextStorage<InvocationContext>(
+  "@prismatic-io/spectral/action-context",
+);
+const integrationContextStorage = getSharedContextStorage<unknown>(
+  "@prismatic-io/spectral/integration-context",
+);
 
 export const runWithContext = <T>(context: ActionContext, fn: () => T): T => {
   if (!actionContextStorage) {
@@ -123,7 +136,7 @@ export const requireIntegrationContext = <
     );
   }
 
-  return context;
+  return context as T;
 };
 
 type GetUserDefinedKeyByComponentKey<

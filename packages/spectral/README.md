@@ -49,6 +49,10 @@ returned state merges over it. The bound trigger needs no manifest or supplement
 Keep Spectral as a peer dependency of the component's npm library and externalize it when
 building that library, so the final CNI bundle supplies the shared execution context. Keep
 the conventional `component(...)` export in the component's platform entry for Prism publishing.
+If multiple compatible Spectral copies are bundled, they share execution, configuration, and
+integration-construction scopes through global symbol-backed storage within the same JS realm.
+Every participating copy must support this shared-storage protocol; older copies with
+module-local storage cannot join it. Conventional low-code callbacks do not establish ambient scope.
 
 ### Connection and data-source config vars (prototype)
 
