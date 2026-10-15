@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   batchFlowTrigger,
   batchTrigger,
-  callableComponent,
+  type ComponentDefinition,
+  component,
   configPage,
   configVar,
   connection,
@@ -31,6 +32,10 @@ import {
   convertFlow,
   convertQueueConfig,
 } from "./convertIntegration";
+
+const callableComponent = <const TDefinition extends ComponentDefinition<boolean, string>>(
+  definition: TDefinition,
+) => component(definition, { callable: true });
 
 describe("convertFlow with polling triggers", () => {
   const baseFlowInput = {
@@ -1435,7 +1440,7 @@ describe("custom-trigger reference input values reach the trigger functions", ()
 
 describe("npm trigger references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `callableComponent(definition)` — its triggers are directly-callable
+  // `component(definition, { callable: true })` — its triggers are directly-callable
   // reference helpers, not manifest-registry lookups.
   const npmComponent = callableComponent({
     key: "acme-npm",
@@ -1686,7 +1691,7 @@ describe("npm trigger references", () => {
 
 describe("npm data source references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `callableComponent(definition)` — its data sources are directly-callable
+  // `component(definition, { callable: true })` — its data sources are directly-callable
   // reference helpers, not manifest-registry lookups.
   const npmComponent = callableComponent({
     key: "acme-npm",
@@ -1827,7 +1832,7 @@ describe("npm data source references", () => {
 
 describe("npm connection references", () => {
   // Stands in for an npm-imported `@prismatic-io/*` component built with
-  // `callableComponent(definition)` — its connections are directly-callable
+  // `component(definition, { callable: true })` — its connections are directly-callable
   // reference helpers, not manifest-registry lookups.
   const npmComponent = callableComponent({
     key: "acme-npm",

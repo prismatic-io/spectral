@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { callableComponent, input, trigger } from "..";
+import { type ComponentDefinition, component, input, trigger } from "..";
 import { isNpmTriggerReference } from "../types";
+
+const callableComponent = <const TDefinition extends ComponentDefinition<boolean, string>>(
+  definition: TDefinition,
+) => component(definition, { callable: true });
 
 const npmComponent = callableComponent({
   key: "acme-npm",
@@ -18,7 +22,7 @@ const npmComponent = callableComponent({
   },
 });
 
-describe("createCallableTrigger (via callableComponent(...))", () => {
+describe("createCallableTrigger (via the callable component() overload)", () => {
   it("returns a function, not the plain trigger object", () => {
     expect(typeof npmComponent.triggers.webhook).toBe("function");
   });

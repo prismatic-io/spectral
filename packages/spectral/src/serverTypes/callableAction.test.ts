@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   action,
-  callableComponent,
+  type ComponentDefinition,
   component,
   dynamicObjectInput,
   input,
@@ -10,6 +10,10 @@ import {
 import { ConnectionError, isUserError, UserError } from "../errors";
 import { runWithContext } from "./asyncContext";
 import { createCallableComponent } from "./callableAction";
+
+const callableComponent = <const TDefinition extends ComponentDefinition<boolean, string>>(
+  definition: TDefinition,
+) => component(definition, { callable: true });
 
 const rawEcho = component({
   key: "echo",
@@ -54,7 +58,7 @@ describe("component()", () => {
   });
 });
 
-describe("callableComponent(definition)", () => {
+describe("component(definition, { callable: true })", () => {
   const echoDefinition = {
     key: "echo",
     public: true as const,

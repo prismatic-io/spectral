@@ -114,10 +114,11 @@ export type CallableAction<TDefinition> =
  * callable (e.g. `slack.actions.postMessage({ ... })`), with no `.perform`
  * and no context argument required.
  *
- * Not part of `convertComponent`'s own behavior — `callableComponent()` calls
- * this on the converted component. `component()` keeps producing the exact
- * same plain `Action` shape it always has, for every consumer of the platform
- * bundle (`prism components:publish`, manifest generation, low-code).
+ * Not part of `convertComponent`'s own behavior — the callable overload of
+ * `component()` calls this on the converted component. The default overload
+ * keeps producing the exact same plain `Action` shape it always has, for every
+ * consumer of the platform bundle (`prism components:publish`, manifest
+ * generation, low-code).
  */
 /** A trigger reference helper, directly callable with its `values` (e.g.
  * `slack.triggers.webhook({ ... })`), produced by {@link createCallableTrigger}. */
@@ -141,7 +142,8 @@ export type CallableConnectionHelper = (
 
 /**
  * The npm-publishable form of a component, typed from its definition: what
- * `callableComponent(definition)` returns. Each action is a {@link CallableAction};
+ * `component(definition, { callable: true })` returns. Each action is a
+ * {@link CallableAction};
  * triggers, data sources and connections are reference helpers for an
  * integration's flows and config pages, keyed as the definition keys them (a
  * connection by its own `key`).

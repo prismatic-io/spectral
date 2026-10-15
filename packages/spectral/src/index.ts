@@ -623,12 +623,19 @@ export const userActivatedConnection = <T extends { stableKey: string }>(
  */
 export const componentManifest = <T extends ComponentManifest>(definition: T): T => definition;
 
+type ConvertedComponent = ReturnType<typeof convertComponent>;
+
 /**
  * This function creates a component object that can be
  * imported into the Prismatic API.
  *
+ * Pass `{ callable: true }` for the npm-publishable form: actions become directly callable,
+ * while triggers, data sources, and connections become code-native reference helpers. The
+ * default overload remains the erased platform shape consumed by publishing and the runner.
+ *
  * @param definition A ComponentDefinition type object, including display information, unique key, and a set of actions the component implements.
- * @returns This function returns a component object that has the shape the Prismatic API expects.
+ * @param options Selects the callable npm shape when `callable` is true.
+ * @returns The platform component by default, or its definition-typed callable npm form.
  * @see {@link https://prismatic.io/docs/custom-connectors/ | Custom Connectors}
  * @example
  * import { component } from "@prismatic-io/spectral";
@@ -648,51 +655,25 @@ export const componentManifest = <T extends ComponentManifest>(definition: T): T
  *   connections,
  * });
  */
-export const component = <TPublic extends boolean, TKey extends string>(
-  definition: ComponentDefinition<TPublic, TKey>,
-): ReturnType<typeof convertComponent> => convertComponent(definition);
-
-/**
- * This function builds the npm-publishable form of a component: the same
- * definition `component()` takes, but with each action directly callable
- * from a code-native integration's flow, and each trigger, data source and
- * connection exposed as a reference helper for the integration's flows and
- * config pages.
- *
- * It is the entry point for a component's npm build, alongside `component()`
- * for its platform build. The two are separate artifacts, so a component
- * ships two entry files rather than switching one on a build flag:
- *
- * @example
- * // src/index.ts — the bundle `prism components:publish` sends to the platform
- * export default component(definition);
- *
- * // src/npm.ts — the entry `tsconfig.npm.json` compiles for the npm package
- * export default callableComponent(definition);
- *
- * @example
- * import googleDrive from "@prismatic-io/google-drive";
- *
- * export const listFolders = flow({
- *   name: "List Folders",
- *   stableKey: "list-folders",
- *   onExecution: async (context) => {
- *     const result = await googleDrive.actions.listFolders({
- *       connection: context.configVars["Google Drive Connection"],
- *       driveId: "my-drive",
- *     });
- *     return { data: result.data };
- *   },
- * });
- *
- * @param definition A ComponentDefinition type object, the same one `component()` takes.
- * @returns The component's actions as callable functions typed from their definitions, and
- * its triggers, data sources and connections as reference helpers.
- */
-export const callableComponent = <const TDefinition extends ComponentDefinition<boolean, string>>(
+export function component<const TDefinition extends ComponentDefinition<boolean, string>>(
   definition: TDefinition,
-): CallableComponent<TDefinition> =>
-  createCallableComponent(convertComponent(definition)) as CallableComponent<TDefinition>;
+  options: { callable: true },
+): CallableComponent<TDefinition>;
+export function component<TPublic extends boolean, TKey extends string>(
+  definition: ComponentDefinition<TPublic, TKey>,
+  options?: { callable?: false },
+): ConvertedComponent;
+export function component<const TDefinition extends ComponentDefinition<boolean, string>>(
+  definition: TDefinition,
+  options: { callable: boolean },
+): ConvertedComponent | CallableComponent<TDefinition>;
+export function component(
+  definition: ComponentDefinition<boolean, string>,
+  options?: { callable?: boolean },
+): unknown {
+  const converted = convertComponent(definition);
+  return options?.callable ? createCallableComponent(converted) : converted;
+}
 
 /**
  * This function creates an action object that can be referenced
