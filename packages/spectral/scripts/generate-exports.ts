@@ -9,9 +9,11 @@
  * for `require` and under native ESM alike. Those entries are deprecated:
  * import from the public entry points instead.
  *
- * The map is derived from src/ (mirroring what tsc emits to dist/), so it can
- * be regenerated and checked without a build. `--check` exits 1 when
- * package.json is stale.
+ * That deprecated set is frozen in legacy-dist-modules.json: the modules that
+ * existed when `exports` was introduced. A module added since is reachable
+ * only through the public entry points, so new API never grows a `dist/`
+ * path that would then need deprecating. `--check` exits 1 when package.json
+ * is stale.
  */
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -38,6 +40,11 @@ const TYPES_VERSIONS = {
   },
 };
 
+/** The modules that had reachable `dist/` paths before `exports` existed. Frozen. */
+const LEGACY_MODULES = new Set<string>(
+  JSON.parse(readFileSync(join(import.meta.dir, "legacy-dist-modules.json"), "utf8")) as string[],
+);
+
 const emittedModules = (dir: string): string[] =>
   readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
@@ -50,6 +57,7 @@ const emittedModules = (dir: string): string[] =>
 export const generateExports = (): Record<string, unknown> => {
   const deprecated: Record<string, string> = {};
   for (const module of emittedModules(srcRoot).sort()) {
+    if (!LEGACY_MODULES.has(module)) continue;
     const target = `./dist/${module}.js`;
     deprecated[`./dist/${module}`] = target;
     deprecated[`./dist/${module}.js`] = target;
