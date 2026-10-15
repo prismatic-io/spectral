@@ -7,11 +7,13 @@ import { expectNotAssignable, expectType } from "tsd";
  * reaching the rest of the suite. The enabled branch is asserted against a
  * local stand-in that resolves the same way.
  */
-type Resolve<TFlags, TFlag extends string, TEnabled, TDisabled = {}> = TFlag extends keyof TFlags
-  ? TFlags[TFlag] extends true
-    ? TEnabled
-    : TDisabled
-  : TDisabled;
+type Resolve<
+  TFlags,
+  TFlag extends string,
+  TEnabled,
+  // biome-ignore lint/complexity/noBannedTypes: mirrors WithExperimentalFlag, where `{}` is the identity for intersection
+  TDisabled = {},
+> = TFlag extends keyof TFlags ? (TFlags[TFlag] extends true ? TEnabled : TDisabled) : TDisabled;
 
 interface OptedIn {
   someFlag: true;

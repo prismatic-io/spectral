@@ -1,6 +1,6 @@
-import { expectType } from "tsd";
-import { createClient, handleErrors, type HttpClient } from "@prismatic-io/spectral/http";
+import { createClient, type HttpClient, handleErrors } from "@prismatic-io/spectral/http";
 import { createConnection, invoke } from "@prismatic-io/spectral/testing";
+import { expectType } from "tsd";
 
 // The public subpaths resolve under `moduleResolution: "node"` (via typesVersions) with
 // the same types as the deprecated dist/ paths.
