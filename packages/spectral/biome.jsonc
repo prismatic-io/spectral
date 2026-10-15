@@ -2,6 +2,7 @@
   "root": false,
   "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
   "extends": ["../../biome.jsonc"],
+  "plugins": ["../../biome-plugins/no-constructor-name.grit"],
   "files": {
     "includes": ["!**/dist", "!**/node_modules", "!**/bin"]
   },
