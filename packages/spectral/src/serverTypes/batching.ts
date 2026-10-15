@@ -47,8 +47,15 @@ export const withPollingState =
   <TContext extends ActionContext, TRest extends unknown[], TReturn>(
     perform: (context: TContext & { polling: PollingState }, ...rest: TRest) => Promise<TReturn>,
   ) =>
-  (context: TContext, ...rest: TRest): Promise<TReturn> =>
-    perform({ ...context, polling: createPollingState(context) }, ...rest);
+  async (context: TContext, ...rest: TRest): Promise<TReturn> => {
+    // CNI adapters can prepare polling before establishing their execution scope.
+    // Preserve that context's identity; conventional components need no ambient scope.
+    const pollingContext =
+      "polling" in context
+        ? (context as TContext & { polling: PollingState })
+        : { ...context, polling: createPollingState(context) };
+    return await perform(pollingContext, ...rest);
+  };
 
 /**
  * Wraps a batched fire (returning `{ items, paginationState?, response?, branch?, polledNoChanges? }`) into a

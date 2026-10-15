@@ -1,5 +1,7 @@
+import type { AsyncLocalStorage } from "node:async_hooks";
 import type {
   ComponentRegistry,
+  DataSourceContext,
   Inputs,
   IntegrationDefinition,
   TriggerPayload,
@@ -9,14 +11,19 @@ import type { ActionContext } from "../types/ActionPerformFunction";
 
 // Only import async_hooks in Node.js environments
 const asyncHooks = typeof window === "undefined" ? require("node:async_hooks") : null;
-const actionContextStorage = asyncHooks ? new asyncHooks.AsyncLocalStorage() : null;
+type InvocationContext =
+  | { kind: "execution"; context: ActionContext }
+  | { kind: "dataSource"; context: DataSourceContext };
+const actionContextStorage: AsyncLocalStorage<InvocationContext> | null = asyncHooks
+  ? new asyncHooks.AsyncLocalStorage()
+  : null;
 const integrationContextStorage = asyncHooks ? new asyncHooks.AsyncLocalStorage() : null;
 
 export const runWithContext = <T>(context: ActionContext, fn: () => T): T => {
   if (!actionContextStorage) {
     return fn();
   }
-  return actionContextStorage.run(context, fn);
+  return actionContextStorage.run({ kind: "execution", context }, fn);
 };
 
 /** CNI execution boundary: bind and pass the same fully prepared context to the callback.
@@ -28,17 +35,37 @@ export const invokeWithContext = <TContext extends ActionContext, TArgs extends 
   ...args: TArgs
 ): TResult => runWithContext(context, () => callback(context, ...args));
 
-export function requireContext(): ActionContext {
-  const context = actionContextStorage.getStore();
+export const requireContext = (): ActionContext => {
+  const scope = actionContextStorage?.getStore();
 
-  if (!context) {
+  if (!scope) {
     throw new Error("ActionContext not found. Ensure this code is wrapped via runWithContext.");
   }
 
-  return context;
-}
+  if (scope.kind !== "execution") {
+    throw new Error(
+      "ActionContext is unavailable during configuration. Invoke a data source instead.",
+    );
+  }
 
-export function runWithIntegrationContext<
+  return scope.context;
+};
+
+/** Configuration callbacks supply the smaller context supported by data sources. */
+export const runWithDataSourceContext = <T>(context: DataSourceContext, fn: () => T): T =>
+  actionContextStorage ? actionContextStorage.run({ kind: "dataSource", context }, fn) : fn();
+
+export const requireDataSourceContext = (): DataSourceContext => {
+  const scope = actionContextStorage?.getStore();
+  if (!scope) {
+    throw new Error(
+      "DataSourceContext not found. Invoke within an execution or configuration callback.",
+    );
+  }
+  return scope.context;
+};
+
+export const runWithIntegrationContext = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
   TPayload extends TriggerPayload = TriggerPayload,
@@ -55,7 +82,10 @@ export function runWithIntegrationContext<
     TResult
   > = IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
   U = unknown,
->(context: T, fn: () => U): U {
+>(
+  context: T,
+  fn: () => U,
+): U => {
   if (!integrationContextStorage) {
     console.warn(
       "Creating integration without context. This may result in errors when generating component manifests.",
@@ -65,9 +95,9 @@ export function runWithIntegrationContext<
   }
 
   return integrationContextStorage.run(context, fn);
-}
+};
 
-export function requireIntegrationContext<
+export const requireIntegrationContext = <
   TInputs extends Inputs,
   TActionInputs extends Inputs,
   TPayload extends TriggerPayload = TriggerPayload,
@@ -83,8 +113,8 @@ export function requireIntegrationContext<
     TAllowsBranching,
     TResult
   > = IntegrationDefinition<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
->(): T {
-  const context = integrationContextStorage.getStore();
+>(): T => {
+  const context = integrationContextStorage?.getStore();
 
   if (!context) {
     console.trace();
@@ -94,7 +124,7 @@ export function requireIntegrationContext<
   }
 
   return context;
-}
+};
 
 type GetUserDefinedKeyByComponentKey<
   K extends string,

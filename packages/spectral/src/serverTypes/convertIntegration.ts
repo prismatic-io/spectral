@@ -73,7 +73,7 @@ import type {
   TriggerPayload,
   TriggerResult,
 } from ".";
-import { invokeWithContext } from "./asyncContext";
+import { invokeWithContext, runWithDataSourceContext } from "./asyncContext";
 import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./batching";
 import { type ConnectionNameMap, createConfigurationConnections } from "./configurationContext";
 import { createCNIContext, logDebugResults } from "./context";
@@ -2041,6 +2041,8 @@ const codeNativeIntegrationComponent = <
         ...result,
         [camelKey]: {
           ...dataSource,
+          perform: (context, params) =>
+            runWithDataSourceContext(context, () => dataSource.perform(context, params)),
           key: camelKey,
           display: {
             label: key,

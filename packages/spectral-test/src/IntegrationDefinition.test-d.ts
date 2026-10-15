@@ -6,8 +6,8 @@ import {
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
 
-// The platform-facing component shape, reached through the public helper rather than dist/.
-type Component = ReturnType<typeof component>;
+// The platform-facing shape excludes the component helper's private authoring metadata.
+type Component = Omit<ReturnType<typeof component>, symbol>;
 
 const basicDefinition = integration({
   name: "Basic Code Native Integration",
