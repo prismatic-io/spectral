@@ -204,6 +204,21 @@ export function componentClient<TDefinition extends ComponentDefinition<boolean,
 export function componentClient(
   definition: ComponentDefinition<boolean, string> | ComponentClientDescriptor,
 ): ComponentClient<ComponentDefinition<boolean, string>> {
+  // A converted component's members carry `inputs` as the platform's positional array; a client
+  // built from one would enumerate those as "0", "1" and drop every value the caller passes.
+  // Only the definition (or a descriptor generated from it) keeps inputs keyed.
+  const members = [
+    ...Object.values(definition.actions ?? {}),
+    ...Object.values(definition.triggers ?? {}),
+    ...Object.values(definition.dataSources ?? {}),
+    ...(definition.connections ?? []),
+  ];
+  if (members.some((member) => !member.inputs || Array.isArray(member.inputs))) {
+    throw new Error(
+      "componentClient() was given a converted component rather than its definition. Pass `component(...).definition`, or a descriptor generated from it.",
+    );
+  }
+
   const actions = Object.fromEntries(
     Object.entries(definition.actions ?? {}).map(([key, action]) => [
       key,

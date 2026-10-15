@@ -180,6 +180,16 @@ describe("component().definition", () => {
   });
 });
 
+describe("componentClient given the converted component", () => {
+  it("refuses it rather than silently dropping every value", () => {
+    const built = component(definition);
+    expect(() => componentClient(built as never)).toThrow(
+      "Pass `component(...).definition`, or a descriptor generated from it.",
+    );
+    expect(() => componentClient({ ...built } as never)).toThrow("converted component");
+  });
+});
+
 describe("componentClient inside a converted flow", () => {
   it("reaches the runner's non-enumerable _components through the ambient context", async () => {
     const client = componentClient(definition);
