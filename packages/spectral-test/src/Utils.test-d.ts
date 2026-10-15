@@ -1,3 +1,4 @@
+// biome-ignore lint/style/noRestrictedImports: Exact is an internal helper with no public entry point; this file tests it directly.
 import type { Exact } from "@prismatic-io/spectral/dist/types/utils";
 import { expectAssignable, expectNotAssignable } from "tsd";
 

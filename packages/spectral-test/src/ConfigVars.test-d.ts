@@ -6,13 +6,12 @@ import type {
   DataSourceConfigVar,
 } from "@prismatic-io/spectral";
 import { OAuth2Type } from "@prismatic-io/spectral";
-import type { ValueOf } from "@prismatic-io/spectral/dist/types/utils";
 import { expectAssignable, expectNotType } from "tsd";
 
-type RawConnectionElems = ValueOf<ConfigPages>["elements"];
+type RawConnectionElems = ConfigPages[keyof ConfigPages]["elements"];
 expectAssignable<"A Connection" | "Ref Connection">(null as unknown as keyof RawConnectionElems);
 
-type ConnectionElems = ValueOf<ConfigPages>["elements"];
+type ConnectionElems = ConfigPages[keyof ConfigPages]["elements"];
 expectAssignable<"A Connection" | "Ref Connection">(null as unknown as keyof ConnectionElems);
 
 expectAssignable<Connection>(null as unknown as ConfigVars["A Connection"]);
