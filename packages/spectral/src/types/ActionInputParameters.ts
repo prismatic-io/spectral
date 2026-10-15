@@ -5,7 +5,10 @@ import type {
   InputCleanFunction,
   InputFieldCollection,
   Inputs,
+  JSONForm,
   KeyValuePair,
+  ObjectFieldMap,
+  ObjectSelection,
   StructuredObjectInputField,
 } from "./Inputs";
 
@@ -84,9 +87,44 @@ type CallableInputValues<TInputs> = {
   [Property in OptionalCallableInputKey<TInputs>]?: CallableInputValue<TInputs[Property]>;
 };
 
-/** {@link InputValue} for a directly-callable action: containers resolve to
- * {@link CallableInputValues} of their children so optional children stay
- * optional; every other input resolves exactly as `InputValue` does. */
+/**
+ * What a caller may pass for one leaf input, before the component's cleaner runs. This is the
+ * caller's side of the contract, so it describes raw values: the platform hands a component
+ * strings for most inputs, so a `number` or `boolean` input also accepts the native value,
+ * which is serialized the way the platform would have. Inputs with structured values
+ * (`connection`, `conditional`, selections, forms) take those structures. A cleaned `data` or
+ * dynamic-selection input accepts anything, since only its cleaner knows.
+ */
+type CallableLeafValue<T> = T extends { type: "connection" }
+  ? Connection
+  : T extends { type: "conditional" }
+    ? ConditionalExpression
+    : T extends { type: "number" | "float" }
+      ? number | string
+      : T extends { type: "boolean" }
+        ? boolean | string
+        : T extends { type: "objectSelection" }
+          ? ObjectSelection
+          : T extends { type: "objectFieldMap" }
+            ? ObjectFieldMap
+            : T extends { type: "jsonForm" }
+              ? JSONForm
+              : T extends { type: "data" | "dynamicObjectSelection" | "dynamicFieldSelection" }
+                ? T extends { clean: InputCleanFunction<any> }
+                  ? unknown
+                  : string
+                : string;
+
+/** A leaf input's caller value with its collection applied: a `keyvaluelist` also accepts a
+ * plain record, which is normalized to key/value pairs at call time. */
+type CallableCollectionValue<T> = T extends { collection: "valuelist" }
+  ? CallableLeafValue<T>[]
+  : T extends { collection: "keyvaluelist" }
+    ? KeyValuePair<CallableLeafValue<T>>[] | Record<string, CallableLeafValue<T>>
+    : CallableLeafValue<T>;
+
+/** {@link CallableLeafValue} per input: containers resolve to {@link CallableInputValues} of
+ * their children so optional children stay optional. */
 type CallableInputValue<T> = T extends StructuredObjectInputField
   ? ExtractValue<CallableInputValues<T["inputs"]>, T["collection"]>
   : T extends DynamicObjectInputField
@@ -96,7 +134,7 @@ type CallableInputValue<T> = T extends StructuredObjectInputField
           values: CallableInputValues<T["configurations"][C]["inputs"]>;
         };
       }[keyof T["configurations"]]
-    : InputValue<T>;
+    : CallableCollectionValue<T>;
 
 /**
  * The values accepted by a directly-callable action (an action imported from an

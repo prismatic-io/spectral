@@ -73,6 +73,35 @@ describe("componentClient actions", () => {
     expect(perform.mock.calls[0][0]).toMatchObject({ globalDebug: false });
   });
 
+  it("hand a boolean input to perform as its serialized string, as the platform does", async () => {
+    const seen = vi.fn(async (_context: unknown, params: Record<string, unknown>) => ({
+      data: params,
+    }));
+    const flags = componentClient(
+      component({
+        key: "flags",
+        display: { label: "Flags", description: "Flags", iconPath: "icon.png" },
+        actions: {
+          set: action({
+            display: { label: "Set", description: "Set" },
+            inputs: {
+              enabled: input({ label: "Enabled", type: "boolean" }),
+              each: input({ label: "Each", type: "boolean", collection: "valuelist" }),
+              keyed: input({ label: "Keyed", type: "boolean", collection: "keyvaluelist" }),
+            },
+            perform: seen,
+          }),
+        },
+      }),
+    );
+    const result = await runWithContext({ globalDebug: false } as never, () =>
+      flags.actions.set({ enabled: true, each: [false, "true"], keyed: { a: false } }),
+    );
+    expect(result).toEqual({
+      data: { enabled: "true", each: ["false", "true"], keyed: [{ key: "a", value: "false" }] },
+    });
+  });
+
   it("fail clearly outside an execution", async () => {
     await expect(client.actions.echo({ message: "hi" })).rejects.toThrow("ActionContext not found");
   });

@@ -293,6 +293,46 @@ type CodeNativeTestContext<TConfigVars extends ConfigVarResultCollection> = Acti
   CodeNativeActionLogger
 >;
 
+/**
+ * The `context.components` a code-native test gets when it mocks none. Reading an action off
+ * a component on it throws an error that says which action is unmocked and how to mock it.
+ *
+ * Without this the read lands on `undefined` — a flow (or a manifest action's own `perform`,
+ * which runs here now that `invokeFlow` establishes the ambient context) would fail with
+ * "Cannot read properties of undefined (reading 'postMessage')" instead.
+ *
+ * Only the action read throws: a component read returns a stand-in, so inspecting the context
+ * (test matchers, serializers) doesn't trip it.
+ */
+const unmockedComponents = (): CodeNativeTestContext<ConfigVarResultCollection>["components"] => {
+  const passThrough = (target: object, property: string | symbol) =>
+    typeof property !== "string" || property in target;
+
+  const unmockedComponent = (componentKey: string) =>
+    new Proxy(
+      {},
+      {
+        get(target, property, receiver) {
+          if (passThrough(target, property)) {
+            return Reflect.get(target, property, receiver);
+          }
+          throw new Error(
+            `No mock is registered for component action "${componentKey}.${String(property)}" in this test context. Pass \`context.components\` (see \`createMockContextComponents\`) to mock the component actions this flow invokes.`,
+          );
+        },
+      },
+    );
+
+  return new Proxy({} as CodeNativeTestContext<ConfigVarResultCollection>["components"], {
+    get(target, property, receiver) {
+      if (passThrough(target, property)) {
+        return Reflect.get(target, property, receiver);
+      }
+      return unmockedComponent(property as string);
+    },
+  });
+};
+
 const createCodeNativeActionContext = <TConfigVars extends ConfigVarResultCollection>(
   context?: Partial<CodeNativeTestContext<TConfigVars>>,
 ): CodeNativeTestContext<TConfigVars> => {
@@ -301,6 +341,7 @@ const createCodeNativeActionContext = <TConfigVars extends ConfigVarResultCollec
   return {
     ...actionContext,
     logger: context?.logger ?? loggerMock(),
+    components: context?.components ?? unmockedComponents(),
   };
 };
 

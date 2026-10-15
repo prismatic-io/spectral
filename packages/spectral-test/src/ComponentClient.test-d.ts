@@ -87,3 +87,41 @@ expectError(client.connections.missing);
 
 // The client needs the object component() returns, not a plain definition.
 expectError(componentClient(built.definition));
+
+// Caller-side input values: what may be passed before the component's cleaner runs.
+const typed = component({
+  key: "typed-inputs",
+  display: { label: "Typed", description: "Typed", iconPath: "icon.png" },
+  actions: {
+    run: action({
+      display: { label: "Run", description: "Run" },
+      inputs: {
+        name: input({ label: "Name", type: "string" }),
+        enabled: input({ label: "Enabled", type: "boolean" }),
+        size: input({ label: "Size", type: "number" }),
+        tags: input({ label: "Tags", type: "string", collection: "valuelist" }),
+        headers: input({ label: "Headers", type: "string", collection: "keyvaluelist" }),
+        raw: input({ label: "Raw", type: "data" }),
+        parsed: input({ label: "Parsed", type: "data", clean: (value) => value }),
+        selection: input({ label: "Selection", type: "objectSelection" }),
+      },
+      perform: async () => ({ data: true }),
+    }),
+  },
+});
+const typedClient = componentClient(typed);
+typedClient.actions.run({
+  name: "n",
+  enabled: true,
+  size: 3,
+  tags: ["a"],
+  headers: { Authorization: "Bearer" },
+  raw: "{}",
+  parsed: { anything: 1 },
+  selection: [{ object: { key: "k" } }],
+});
+typedClient.actions.run({ enabled: "false", size: "3", headers: [{ key: "a", value: "b" }] });
+expectError(typedClient.actions.run({ name: 1 }));
+expectError(typedClient.actions.run({ enabled: 1 }));
+expectError(typedClient.actions.run({ raw: { notAString: true } }));
+expectError(typedClient.actions.run({ tags: "a" }));

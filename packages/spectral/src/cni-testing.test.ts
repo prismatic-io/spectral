@@ -12,13 +12,19 @@ import {
   type TriggerBaseResult,
   type TriggerPayload,
 } from ".";
+import { requireContext } from "./serverTypes";
 import {
   CONCURRENCY_LIMIT_MAX,
   CONCURRENCY_LIMIT_MIN,
   convertConfigVar,
   convertFlow,
 } from "./serverTypes/convertIntegration";
-import { connectionValue, defaultConnectionValueEnvironmentVariable, invokeFlow } from "./testing";
+import {
+  connectionValue,
+  createMockContextComponents,
+  defaultConnectionValueEnvironmentVariable,
+  invokeFlow,
+} from "./testing";
 
 describe("default onTrigger", () => {
   const basicFlow = flow({
@@ -41,6 +47,89 @@ describe("default onTrigger", () => {
       payload: { body: { data: testPayload } },
     });
     expect(result).toMatchObject({ data: testPayload });
+  });
+});
+
+describe("unmocked component actions", () => {
+  const registry = {
+    slack: {
+      key: "slack",
+      public: true,
+      signature: null,
+      actions: {
+        postMessage: {
+          perform: async () => ({}),
+          inputs: {},
+          examplePayload: { data: { ok: true } },
+        },
+      },
+      triggers: {},
+      dataSources: {},
+      connections: {},
+    },
+  };
+
+  const postingFlow = flow({
+    name: "Posting Flow",
+    stableKey: "posting-flow",
+    description: "Invokes a manifest component action",
+    onExecution: async (context) => ({
+      data: await context.components.slack.postMessage({ message: "hi" }),
+    }),
+  });
+
+  // The shape of an action in a generated component manifest: it resolves the ambient context
+  // itself, which `invokeFlow` establishes.
+  const manifestPostMessage = {
+    key: "postMessage",
+    perform: async (values: Record<string, unknown>) =>
+      requireContext().components.slack.postMessage({ ...values }),
+    inputs: {},
+  };
+
+  const manifestCallingFlow = flow({
+    name: "Manifest Calling Flow",
+    stableKey: "manifest-calling-flow",
+    description: "Invokes a manifest action's own perform",
+    onExecution: async () => ({ data: await manifestPostMessage.perform({ message: "hi" }) }),
+  });
+
+  it("names the unmocked action and how to mock it, rather than failing on undefined", async () => {
+    await expect(invokeFlow(postingFlow, {})).rejects.toThrow(
+      'No mock is registered for component action "slack.postMessage" in this test context. Pass `context.components` (see `createMockContextComponents`) to mock the component actions this flow invokes.',
+    );
+  });
+
+  it("does the same when the call comes from a manifest action's own perform", async () => {
+    await expect(invokeFlow(manifestCallingFlow, {})).rejects.toThrow(
+      'No mock is registered for component action "slack.postMessage"',
+    );
+  });
+
+  it("runs the mock when one is supplied", async () => {
+    const components = createMockContextComponents(registry);
+    const { result } = await invokeFlow(postingFlow, { context: { components } });
+    expect(result).toStrictEqual({ data: { data: { ok: true } } });
+
+    const viaManifest = await invokeFlow(manifestCallingFlow, { context: { components } });
+    expect(viaManifest.result).toStrictEqual({ data: { data: { ok: true } } });
+  });
+
+  it("still lets the context be inspected without tripping", async () => {
+    const inspectingFlow = flow({
+      name: "Inspecting Flow",
+      stableKey: "inspecting-flow",
+      description: "Looks at context.components without invoking anything",
+      onExecution: async (context) => ({
+        data: {
+          keys: Object.keys(context.components),
+          json: JSON.stringify(context.components),
+          hasSlack: "slack" in context.components,
+        },
+      }),
+    });
+    const { result } = await invokeFlow(inspectingFlow, {});
+    expect(result).toStrictEqual({ data: { keys: [], json: "{}", hasSlack: false } });
   });
 });
 

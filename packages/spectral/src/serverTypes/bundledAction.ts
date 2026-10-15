@@ -52,12 +52,35 @@ const withChildDefaults = (input: Input, value: unknown): unknown => {
   return value;
 };
 
+/** The platform hands a `boolean` input to `perform` as its serialized string, so a native
+ * boolean passed at call time is serialized the same way (per element for collections) before
+ * the component's cleaner sees it. */
+const serializeBooleans = (input: Input, value: unknown): unknown => {
+  if (input.type !== "boolean") {
+    return value;
+  }
+  const serialize = (entry: unknown) => (typeof entry === "boolean" ? String(entry) : entry);
+  if (input.collection === "valuelist") {
+    return Array.isArray(value) ? value.map(serialize) : value;
+  }
+  if (input.collection === "keyvaluelist") {
+    return Array.isArray(value)
+      ? value.map((entry) =>
+          isPlainObject(entry) && "value" in entry
+            ? { ...entry, value: serialize(entry.value) }
+            : entry,
+        )
+      : value;
+  }
+  return serialize(value);
+};
+
 const fillDefaults = (inputs: Input[], values: Record<string, unknown>): Record<string, unknown> =>
   inputs.reduce<Record<string, unknown>>((accumulator, input) => {
     const value = withChildDefaults(input, values[input.key] ?? input.default);
-    accumulator[input.key] = convertInputValue(
-      value,
-      input.collection as CollectionType | undefined,
+    accumulator[input.key] = serializeBooleans(
+      input,
+      convertInputValue(value, input.collection as CollectionType | undefined),
     );
     return accumulator;
   }, {});
