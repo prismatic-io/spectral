@@ -75,6 +75,7 @@ import type {
 } from ".";
 import { invokeWithContext, runWithDataSourceContext } from "./asyncContext";
 import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./batching";
+import { type BoundTrigger, getBoundTrigger, normalizeBoundTrigger } from "./boundTrigger";
 import { type ConnectionNameMap, createConfigurationConnections } from "./configurationContext";
 import { createCNIContext, logDebugResults } from "./context";
 import {
@@ -133,6 +134,7 @@ const normalizeBatchedFlow = <
 >(
   flow: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
 ): Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult> => {
+  flow = normalizeBoundTrigger(flow);
   const trigger =
     "trigger" in flow ? (flow.trigger as BatchTrigger<unknown> | undefined) : undefined;
   if (!trigger) {
@@ -803,6 +805,51 @@ const convertComponentRegistry = (
   return convertedRegistry;
 };
 
+// Branch metadata must name an input on the CNI's own trigger. All other bound inputs
+// stay inside the local invocation; the platform does not need their definitions or values.
+const boundBranchInput = (bound: BoundTrigger | undefined) => {
+  if (!bound || !("dynamicBranchInput" in bound.definition) || !bound.definition.dynamicBranchInput)
+    return undefined;
+  const key = bound.definition.dynamicBranchInput;
+  const definition = bound.definition.inputs[key];
+  if (!definition) throw new Error(`Dynamic branch input "${key}" is not defined on the trigger.`);
+  const binding = bound.bindings[key];
+  const expression = binding !== null && typeof binding === "object" ? binding : undefined;
+  if (expression && "configVar" in expression) {
+    return {
+      input: convertInput(key, definition),
+      value: { type: "configVar", value: expression.configVar },
+    };
+  }
+  const raw = expression && "value" in expression ? expression.value : binding;
+  const value =
+    raw === undefined ? ("default" in definition ? definition.default : undefined) : raw;
+  const serialize = (entry: unknown) => (typeof entry === "string" ? entry : JSON.stringify(entry));
+  const wireValue =
+    definition.collection === "keyvaluelist"
+      ? (Array.isArray(value)
+          ? value
+          : Object.entries((value ?? {}) as Record<string, unknown>).map(([key, value]) => ({
+              key,
+              value,
+            }))
+        ).map(({ key, value }) => ({
+          name: { type: "value", value: key },
+          type: "value",
+          value: serialize(value),
+        }))
+      : definition.collection === "valuelist"
+        ? (Array.isArray(value) ? value : []).map((entry) => ({
+            type: "value",
+            value: serialize(entry),
+          }))
+        : serialize(value ?? "");
+  return {
+    input: convertInput(key, definition),
+    value: { type: definition.collection ? "complex" : "value", value: wireValue },
+  };
+};
+
 /**
  * Create a reference to the private component built as part of this CNI.
  *
@@ -971,6 +1018,9 @@ export const convertFlow = <
     if (isComponentReference(flow.onTrigger)) {
       const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
       triggerStep.inputs = inputs;
+    } else {
+      const branch = boundBranchInput(getBoundTrigger(flow.onTrigger));
+      if (branch) triggerStep.inputs = { [branch.input.key]: branch.value };
     }
 
     triggerStep.action = {
@@ -1881,6 +1931,18 @@ const codeNativeIntegrationComponent = <
       triggerResolver?: WireResolver;
       onDeployResolver?: WireResolver;
     };
+    const bound = getBoundTrigger(onTrigger);
+    const branch = boundBranchInput(bound);
+    // Resolver callbacks enter independently of perform, so they need their own CNI scope.
+    const bindResolver = <TResult>(
+      fn: (context: ActionContext, result: { payload: TriggerPayload }) => TResult,
+    ) =>
+      bound
+        ? (context: ActionContext, result: { payload: TriggerPayload }) => {
+            const cniContext = createCNIContext(context, componentRegistry);
+            return invokeWithContext(cniContext, fn, result);
+          }
+        : fn;
     if (
       !flowUsesWrapperTrigger({
         onTrigger,
@@ -1962,16 +2024,41 @@ const codeNativeIntegrationComponent = <
         hasWebhookCreateFunction: !!webhookCreateFn,
         webhookDelete: webhookDeleteFn,
         hasWebhookDeleteFunction: !!webhookDeleteFn,
-        inputs: wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
-        scheduleSupport: triggerType === "polling" ? "required" : "valid",
-        synchronousResponseSupport: "valid",
+        inputs: branch
+          ? [branch.input]
+          : wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
+        scheduleSupport:
+          bound && "scheduleSupport" in bound.definition
+            ? bound.definition.scheduleSupport
+            : triggerType === "polling"
+              ? "required"
+              : "valid",
+        synchronousResponseSupport:
+          bound && "synchronousResponseSupport" in bound.definition
+            ? bound.definition.synchronousResponseSupport
+            : bound && triggerType === "polling"
+              ? "invalid"
+              : "valid",
+        ...(bound
+          ? pick(bound.definition, [
+              "allowsBranching",
+              "staticBranchNames",
+              "dynamicBranchInput",
+              "terminateExecution",
+              "breakLoop",
+            ])
+          : {}),
         isPollingTrigger: triggerType === "polling",
-        triggerResolverSupport: triggerResolver ? "valid" : "invalid",
+        triggerResolverSupport:
+          bound?.definition.triggerResolverSupport ?? (triggerResolver ? "valid" : "invalid"),
         // The authoritative batch size is stored on the flow (see convertFlow). We also
         // emit the single shared default on the synthesized trigger because component
         // publish validation requires `triggerResolverDefaultBatchSize` whenever resolver
         // support is active; both derive from the one `flow.batchConfig`.
-        ...(triggerResolver || onDeployResolver
+        ...(triggerResolver ||
+        onDeployResolver ||
+        bound?.definition.triggerResolverSupport === "valid" ||
+        bound?.definition.triggerResolverSupport === "required"
           ? {
               triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
               ...(batchConfig?.concurrentBatchLimit !== undefined
@@ -1985,13 +2072,13 @@ const codeNativeIntegrationComponent = <
           ? {
               ...(triggerResolver.resolveItems
                 ? {
-                    resolveTriggerItems: triggerResolver.resolveItems,
+                    resolveTriggerItems: bindResolver(triggerResolver.resolveItems),
                     hasResolveTriggerItems: true,
                   }
                 : {}),
               ...(triggerResolver.getNextPaginationState
                 ? {
-                    getNextPaginationState: triggerResolver.getNextPaginationState,
+                    getNextPaginationState: bindResolver(triggerResolver.getNextPaginationState),
                     hasGetNextDiscoveryState: true,
                   }
                 : {}),
@@ -2012,13 +2099,15 @@ const codeNativeIntegrationComponent = <
           ? {
               ...(onDeployResolver.resolveItems
                 ? {
-                    resolveOnDeployItems: onDeployResolver.resolveItems,
+                    resolveOnDeployItems: bindResolver(onDeployResolver.resolveItems),
                     hasResolveOnDeployItems: true,
                   }
                 : {}),
               ...(onDeployResolver.getNextPaginationState
                 ? {
-                    getOnDeployNextPaginationState: onDeployResolver.getNextPaginationState,
+                    getOnDeployNextPaginationState: bindResolver(
+                      onDeployResolver.getNextPaginationState,
+                    ),
                     hasGetOnDeployNextDiscoveryState: true,
                   }
                 : {}),

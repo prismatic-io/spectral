@@ -7,6 +7,7 @@ import {
   connectionConfigVar,
   type DataSourceResult,
   dataSource,
+  flow,
   input,
   OAuth2Type,
   oauth2Connection,
@@ -104,6 +105,30 @@ expectType<Promise<{ payload: TriggerPayload; instanceState: { query: string } }
 );
 expectError(callable.triggers.webhook.perform(payload));
 expectError(callable.triggers.webhook.perform(payload, { query: { parsed: "raw" } }));
+
+flow({
+  name: "Bundled webhook",
+  stableKey: "bundled-webhook",
+  onTrigger: callable.triggers.webhook({ query: { configVar: "Query" } }),
+  onExecution: async () => ({ data: true }),
+});
+callable.triggers.webhook({ query: "raw" });
+callable.triggers.webhook({ query: { value: "raw" } });
+expectError(callable.triggers.webhook());
+expectError(callable.triggers.webhook({ query: { parsed: "raw" } }));
+expectError(callable.triggers.webhook({ query: { value: { parsed: "raw" } } }));
+expectError(callable.triggers.webhook({ query: { configVar: 3 } }));
+expectError(callable.triggers.webhook({ missing: "raw" }));
+flow({
+  name: "Bundled polling",
+  stableKey: "bundled-polling",
+  schedule: { value: "*/5 * * * *" },
+  onTrigger: callable.triggers.poll({ query: "raw", watermark: { configVar: "Cursor" } }),
+  onExecution: async () => ({ data: true }),
+});
+expectError(callable.triggers.poll({ query: "raw" }));
+callable.triggers.batch({ query: "raw", start: { value: 1 } });
+expectError(callable.triggers.batch({ query: "raw" }));
 
 if (callable.triggers.webhook.onInstanceDeploy) {
   expectType<ReturnType<NonNullable<TriggerDefinition["onInstanceDeploy"]>>>(

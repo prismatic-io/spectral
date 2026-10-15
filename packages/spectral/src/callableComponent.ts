@@ -4,14 +4,17 @@ import {
   requireContext,
   requireDataSourceContext,
 } from "./serverTypes/asyncContext";
+import { type BoundTrigger, boundTriggerSymbol } from "./serverTypes/boundTrigger";
 import { cleanerFor } from "./serverTypes/convertComponent";
 import { cleanParams } from "./serverTypes/perform";
 import { createPollingState } from "./serverTypes/pollingState";
 import {
+  type ActionContext,
   type ActionDefinition,
   type ComponentDefinition,
   type ComponentHooks,
   type ConditionalExpression,
+  type ConfigVarExpression,
   type Connection,
   type ConnectionDefinition,
   InputFieldDefaultMap,
@@ -112,6 +115,29 @@ type InputArguments<TInputs extends Inputs> =
     ? [values?: CallableInputs<TInputs>]
     : [values: CallableInputs<TInputs>];
 
+/** Config-var references resolve at invocation; literal values remain pre-clean values. */
+type TriggerBindings<TInputs extends Inputs> = {
+  [K in keyof CallableInputs<TInputs>]:
+    | CallableInputs<TInputs>[K]
+    | { value: CallableInputs<TInputs>[K] }
+    | ConfigVarExpression;
+};
+
+type TriggerBindingArguments<TInputs extends Inputs> =
+  RequiredInputKeys<TInputs> extends never
+    ? [values?: TriggerBindings<TInputs>]
+    : [values: TriggerBindings<TInputs>];
+
+type TriggerFactory<TTrigger> = TTrigger extends {
+  perform: (context: any, payload: infer TPayload, ...args: any[]) => infer TResult;
+}
+  ? (
+      ...args: TriggerBindingArguments<
+        EntityInputs<TTrigger> & PollInputs<TTrigger> & DeployInputs<TTrigger>
+      >
+    ) => (context: ActionContext, payload: TPayload) => TResult
+  : never;
+
 type EntityInputs<TEntity> = [TEntity] extends [never]
   ? Record<never, never>
   : TEntity extends { inputs?: infer TInputs extends Inputs }
@@ -143,7 +169,7 @@ type CallableEvents<TEvents, TInputs extends Inputs> = {
     : TEvents[K];
 };
 
-type CallableTrigger<TTrigger> = {
+type CallableTrigger<TTrigger> = TriggerFactory<TTrigger> & {
   [K in keyof TTrigger]: K extends "perform" | "onDeployPerform"
     ? TTrigger[K] extends infer TPerform
       ? TPerform extends (context: any, payload: infer TPayload, ...args: any[]) => infer TResult
@@ -352,8 +378,7 @@ const callableTrigger = (
         }
       : {}),
   });
-  return {
-    ...trigger,
+  const calls = {
     perform: perform(trigger.perform, prepare),
     ...(trigger.onDeployPerform
       ? { onDeployPerform: perform(trigger.onDeployPerform, prepareDeploy) }
@@ -371,6 +396,65 @@ const callableTrigger = (
     ...(trigger.triggerResolver ? { triggerResolver: resolver(trigger.triggerResolver) } : {}),
     ...(trigger.onDeployResolver ? { onDeployResolver: resolver(trigger.onDeployResolver) } : {}),
   };
+  const factory = (bindings: Record<string, unknown> = {}) => {
+    const resolve = (context: ActionContext, definitions: Inputs) =>
+      Object.fromEntries(
+        Object.keys(definitions).map((key) => {
+          const binding = bindings[key];
+          if (isRecord(binding) && Object.hasOwn(binding, "configVar")) {
+            if (
+              typeof binding.configVar !== "string" ||
+              !Object.hasOwn(context.configVars, binding.configVar)
+            ) {
+              throw new Error(
+                `Missing config variable for trigger input "${key}": ${String(binding.configVar)}`,
+              );
+            }
+            return [key, context.configVars[binding.configVar]];
+          }
+          return [
+            key,
+            isRecord(binding) && Object.hasOwn(binding, "value") ? binding.value : binding,
+          ];
+        }),
+      );
+    const bindEvent =
+      (fn: NonNullable<typeof calls.onInstanceDeploy>) => (context: ActionContext) =>
+        invokeWithContext(context, (context) => fn(resolve(context, inputs)));
+    const bound = (context: ActionContext, payload: TriggerPayload) =>
+      invokeWithContext(context, (context) =>
+        calls.perform(payload, resolve(context, { ...pollAction?.inputs, ...inputs })),
+      );
+    const onDeployPerform = calls.onDeployPerform;
+    const metadata: BoundTrigger = {
+      definition: trigger,
+      bindings,
+      ...(calls.onInstanceDeploy ? { onInstanceDeploy: bindEvent(calls.onInstanceDeploy) } : {}),
+      ...(calls.onInstanceDelete ? { onInstanceDelete: bindEvent(calls.onInstanceDelete) } : {}),
+      ...(calls.webhookLifecycleHandlers
+        ? {
+            webhookLifecycleHandlers: {
+              create: bindEvent(calls.webhookLifecycleHandlers.create),
+              delete: bindEvent(calls.webhookLifecycleHandlers.delete),
+            },
+          }
+        : {}),
+      ...(onDeployPerform
+        ? {
+            onDeployTrigger: (context: ActionContext, payload: TriggerPayload) =>
+              invokeWithContext(context, (context) =>
+                onDeployPerform(
+                  payload,
+                  resolve(context, { ...inputs, ...trigger.onDeployResolver?.inputs }),
+                ),
+              ),
+          }
+        : {}),
+    };
+    Object.defineProperty(bound, boundTriggerSymbol, { value: metadata });
+    return bound;
+  };
+  return Object.assign(factory, trigger, calls);
 };
 
 type AuthoringOf<TSource> =

@@ -15,6 +15,41 @@ npm install @prismatic-io/spectral
 
 Please see our [documentation](https://prismatic.io/docs/custom-connectors/) on writing and publishing custom connectors for Prismatic's platform.
 
+### Bundled component triggers (prototype)
+
+A component package exposing `callableComponent(componentDefinition)` from its npm entry can
+be used directly as a CNI flow trigger:
+
+```typescript
+import slack from "@prismatic-io/slack";
+import { flow } from "@prismatic-io/spectral";
+
+export const slackFlow = flow({
+  name: "Slack events",
+  stableKey: "slack-events",
+  onTrigger: slack.triggers.webhook({
+    slackConnection: { configVar: "Org Slack Connection" },
+  }),
+  onExecution: async (context, params) => ({ data: params.onTrigger.results }),
+});
+```
+
+Config-var references resolve from each invocation's context, including reusable connections.
+Other inputs accept ordinary pre-clean values or `{ value: rawValue }`. Use the latter for a
+literal object containing a `configVar` or `value` property. Defaults and cleaners run inside
+the component call.
+
+Binding a trigger carries its lifecycle handlers, polling behavior, batch defaults, pagination
+resolvers, and initial-sync handler into the CNI's generated trigger. A polling flow still
+needs a `schedule`. For a component with a `triggerResolver`, set
+`runInitialSyncOnDeploy: true` to enable its initial sync; platform dispatch requires batching.
+If the flow also defines lifecycle handlers, the component handler runs first and the flow's
+returned state merges over it. The bound trigger needs no manifest or supplemental component.
+
+Keep Spectral as a peer dependency of the component's npm library and externalize it when
+building that library, so the final CNI bundle supplies the shared execution context. Keep
+the conventional `component(...)` export in the component's platform entry for Prism publishing.
+
 ## What is Prismatic?
 
 Prismatic is the leading embedded iPaaS, enabling B2B SaaS teams to ship product integrations faster and with less dev time. The only embedded iPaaS that empowers both developers and non-developers with tools for the complete integration lifecycle, Prismatic includes low-code and code-native building options, deployment and management tooling, and self-serve customer tools.
