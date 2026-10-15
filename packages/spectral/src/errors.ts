@@ -17,7 +17,7 @@ export class SpectralError extends Error {
   constructor(message: string) {
     super(message);
     this.isSpectralError = true;
-    this.name = this.constructor.name;
+    this.name = "SpectralError";
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -51,6 +51,7 @@ export class ConnectionError extends SpectralError {
 
   constructor(connection: Connection, message: string) {
     super(message);
+    this.name = "ConnectionError";
     this.connection = connection;
   }
 }

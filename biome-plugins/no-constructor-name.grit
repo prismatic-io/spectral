@@ -1,0 +1,10 @@
+// Forbid `this.constructor.name`. Consumers can bundle Spectral with
+// minification and no name preservation, so the class identifier is mangled at
+// runtime and leaks into logs (e.g. an error logs `name: "_h"`). Assign a
+// string literal to the class's `name` instead.
+`this.constructor.name` as $expr where {
+    register_diagnostic(
+        span = $expr,
+        message = "Avoid `this.constructor.name` in favor of static strings for names. Minification minifies the name."
+    )
+}
