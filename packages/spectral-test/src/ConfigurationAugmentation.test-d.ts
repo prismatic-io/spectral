@@ -11,6 +11,10 @@ import {
   organizationActivatedConnection,
   userActivatedConnection,
 } from "@prismatic-io/spectral";
+import type {
+  InvokeFlowConfiguration,
+  InvokeFlowOptions,
+} from "@prismatic-io/spectral/dist/testing";
 import { expectType } from "tsd";
 
 const definition = configuration({
@@ -72,3 +76,25 @@ flow({
     return { data: context.configuration };
   },
 });
+
+// invokeFlow takes the same configuration once the configuration is declared, and no
+// config vars.
+declare const invokeFlowOptions: InvokeFlowOptions;
+expectType<{ region?: string } | undefined>(invokeFlowOptions.configuration);
+expectType<undefined>(invokeFlowOptions.configVars);
+declare const invokeFlowConfiguration: InvokeFlowConfiguration;
+expectType<{ region?: string } | undefined>(invokeFlowConfiguration.configuration);
+expectType<{ locale?: string } | undefined>(invokeFlowConfiguration.userConfiguration);
+expectType<undefined>(invokeFlowConfiguration.configVars);
+export const invokeFlowConnections: InvokeFlowConfiguration["connections"] = {
+  instance: { airtable: { key: "airtable", fields: { apiKey: "key" } } },
+  userLevel: { airtable: { key: "airtable", fields: {}, token: { access_token: "token" } } },
+};
+export const undeclaredConnection: InvokeFlowConfiguration["connections"] = {
+  // @ts-expect-error only declared connection names are accepted after augmentation
+  userLevel: { warehouse: { key: "warehouse", fields: {} } },
+};
+export const missingKey: InvokeFlowConfiguration["connections"] = {
+  // @ts-expect-error a test connection names its connection type, as in configVars
+  instance: { airtable: { fields: {} } },
+};
