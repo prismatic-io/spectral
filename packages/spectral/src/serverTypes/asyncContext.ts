@@ -12,15 +12,21 @@ const asyncHooks = typeof window === "undefined" ? require("node:async_hooks") :
 const actionContextStorage = asyncHooks ? new asyncHooks.AsyncLocalStorage() : null;
 const integrationContextStorage = asyncHooks ? new asyncHooks.AsyncLocalStorage() : null;
 
-export function runWithContext<T>(
-  context: ActionContext,
-  fn: () => T | Promise<T>,
-): T | Promise<T> {
+export const runWithContext = <T>(context: ActionContext, fn: () => T): T => {
   if (!actionContextStorage) {
     return fn();
   }
   return actionContextStorage.run(context, fn);
-}
+};
+
+/** CNI execution boundary: bind and pass the same fully prepared context to the callback.
+ * Conventional component conversion must not use this adapter.
+ */
+export const invokeWithContext = <TContext extends ActionContext, TArgs extends unknown[], TResult>(
+  context: TContext,
+  callback: (context: TContext, ...args: TArgs) => TResult,
+  ...args: TArgs
+): TResult => runWithContext(context, () => callback(context, ...args));
 
 export function requireContext(): ActionContext {
   const context = actionContextStorage.getStore();

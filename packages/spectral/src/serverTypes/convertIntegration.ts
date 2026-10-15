@@ -73,7 +73,7 @@ import type {
   TriggerPayload,
   TriggerResult,
 } from ".";
-import { runWithContext } from "./asyncContext";
+import { invokeWithContext } from "./asyncContext";
 import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./batching";
 import { type ConnectionNameMap, createConfigurationConnections } from "./configurationContext";
 import { createCNIContext, logDebugResults } from "./context";
@@ -145,8 +145,20 @@ const normalizeBatchedFlow = <
 
   return {
     ...rest,
-    onTrigger: wrapBatchedFire(withPollingState(onTrigger)),
-    ...(onDeploy ? { onDeployTrigger: wrapBatchedFire(withPollingState(onDeploy)) } : {}),
+    onTrigger: wrapBatchedFire(
+      withPollingState((context, payload: TriggerPayload) =>
+        invokeWithContext(context, onTrigger, payload),
+      ),
+    ),
+    ...(onDeploy
+      ? {
+          onDeployTrigger: wrapBatchedFire(
+            withPollingState((context, payload: TriggerPayload) =>
+              invokeWithContext(context, onDeploy, payload),
+            ),
+          ),
+        }
+      : {}),
     triggerResolver: defaultBatchResolver,
     ...(onDeploy ? { onDeployResolver: defaultBatchResolver } : {}),
   } as unknown as Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>;
@@ -1726,8 +1738,7 @@ const generateTriggerEventWrapperFn = <
       const invokeTrigger: TriggerActionInvokeFunction = _components.invokeTrigger;
       const cniContext = createCNIContext(context, componentRegistry);
 
-      // Using runWithContext allows for component action invocation via manifest.
-      return await runWithContext(cniContext, async () => {
+      return await invokeWithContext(cniContext, async (cniContext) => {
         const invokeResponse =
           (await invokeTrigger(
             invokeTriggerComponentInput(componentRef, onTrigger, eventName),
@@ -1747,10 +1758,7 @@ const generateTriggerEventWrapperFn = <
   } else if (customFn) {
     return async (context, params) => {
       const cniContext = createCNIContext(context, componentRegistry);
-      // Using runWithContext allows for component action invocation via manifest.
-      return await runWithContext(cniContext, async () => {
-        return await customFn(cniContext, params);
-      });
+      return await invokeWithContext(cniContext, customFn, params);
     };
   } else {
     return;
@@ -1780,10 +1788,7 @@ const convertOnExecution =
         })
       : baseContext;
 
-    // Using runWithContext allows for component action invocation via manifest.
-    const result = await runWithContext(actionContext, async () => {
-      return await onExecution(actionContext, params);
-    });
+    const result = await invokeWithContext(actionContext, onExecution, params);
 
     logDebugResults(actionContext);
 

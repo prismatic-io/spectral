@@ -19,6 +19,7 @@ import type {
   TriggerPayload,
   TriggerResult,
 } from "./serverTypes";
+import { invokeWithContext } from "./serverTypes/asyncContext";
 import type {
   ActionContext,
   ActionDefinition,
@@ -623,6 +624,8 @@ const createScopedConnections = (
  * flow's `onTrigger` (if defined) followed by `onExecution`, and returns
  * the execution result. Accepts optional config variables, context overrides,
  * and a custom trigger payload.
+ * Both callbacks bind the test context so generated manifest helpers use the
+ * component mocks supplied through `options.context.components`.
  *
  * A flow of an integration with a `configuration` reads its values and
  * connections from the context, not from config variables. Once the
@@ -706,10 +709,11 @@ export const invokeFlow = async <
   };
 
   if ("onTrigger" in flow && typeof flow.onTrigger === "function") {
-    const triggerResult = await flow.onTrigger(
+    const triggerResult = await invokeWithContext(
       // A polling trigger's perform additionally expects the `polling` helpers, which this
       // tester does not simulate; the cast is narrowed to just that gap.
       realizedContext as typeof realizedContext & PollingContext<TActionInputs>,
+      flow.onTrigger.bind(flow),
       realizedPayload,
       params as ActionInputParameters<TInputs>,
     );
@@ -717,7 +721,8 @@ export const invokeFlow = async <
     params.onTrigger = { results: triggerResult?.payload };
   }
 
-  const result = await flow.onExecution(realizedContext, params);
+  // Bind the test context itself so manifest helpers use the supplied component mocks.
+  const result = await invokeWithContext(realizedContext, flow.onExecution.bind(flow), params);
 
   return {
     result,
