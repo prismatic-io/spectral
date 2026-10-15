@@ -50,6 +50,44 @@ Keep Spectral as a peer dependency of the component's npm library and externaliz
 building that library, so the final CNI bundle supplies the shared execution context. Keep
 the conventional `component(...)` export in the component's platform entry for Prism publishing.
 
+### Connection and data-source config vars (prototype)
+
+Connection factories declare an integration-specific slot backed by the published component's
+connection definition. They do not copy the connection into the CNI wrapper. The component must
+already be published; import resolves `LATEST` to a published version, or pass `version: 2` to
+select one explicitly. Reusable credentials remain available through the existing scoped
+connection helpers and can be passed to the same bundled actions and triggers.
+
+```typescript
+import slack from "@prismatic-io/slack";
+import { configPage } from "@prismatic-io/spectral";
+
+export const configPages = {
+  Credentials: configPage({
+    elements: {
+      "Slack Connection": slack.connections.oauth({ stableKey: "slack-connection" }),
+    },
+  }),
+  Channels: configPage({
+    elements: {
+      Channel: slack.dataSources.selectChannels({
+        stableKey: "slack-channel",
+        values: { connection: { configVar: "Slack Connection" } },
+      }),
+    },
+  }),
+};
+```
+
+Data-source factories infer the config-var type and bundle the data source and its
+`detailDataSource`, including selection inputs. Input defaults and cleaning run inside the
+call. Dependencies are emitted as platform expressions, so put their config vars on an earlier
+page. These callbacks require no published data source or supplemental component.
+
+For an in-process call, use `slack.dataSources.selectChannels.perform({ connection })`. Direct
+calls with raw inputs also remain supported; `.perform` is unambiguous when a data source itself
+has inputs named `stableKey` and `values`.
+
 ## What is Prismatic?
 
 Prismatic is the leading embedded iPaaS, enabling B2B SaaS teams to ship product integrations faster and with less dev time. The only embedded iPaaS that empowers both developers and non-developers with tools for the complete integration lifecycle, Prismatic includes low-code and code-native building options, deployment and management tooling, and self-serve customer tools.

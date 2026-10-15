@@ -1,12 +1,13 @@
 import {
   action,
   batchTrigger,
+  type ConnectionConfigVar,
   callableComponent,
   component,
   connection,
-  connectionConfigVar,
   type DataSourceResult,
   dataSource,
+  dataSourceConfigVar,
   flow,
   input,
   OAuth2Type,
@@ -164,15 +165,31 @@ if (callable.triggers.batch.triggerResolver?.resolveItems) {
 }
 
 expectType<"api">({} as keyof typeof callable.connections);
-expectType<typeof api>(callable.connections.api);
 expectError(callable.connections.missing);
-const configured = connectionConfigVar({
-  ...callable.connections.api,
-  dataType: "connection",
-  stableKey: "api-config",
+expectType<ConnectionConfigVar>(
+  callable.connections.api({
+    stableKey: "api-config",
+    values: { token: { value: "raw" } },
+    version: 2,
+  }),
+);
+expectError(callable.connections.api({}));
+expectError(callable.connections.api({ stableKey: "api", values: { missing: { value: "raw" } } }));
+expectError(callable.connections.api({ stableKey: "api", values: { token: { value: 123 } } }));
+const choicesConfig = callable.dataSources.choices({
+  stableKey: "choices",
+  values: { query: { configVar: "Query" } },
+  defaultValue: "one",
 });
-expectType<"password">(configured.inputs.token.type);
-expectType<true>(configured.inputs.token.required);
+dataSourceConfigVar(choicesConfig);
+expectType<"picklist">(choicesConfig.dataSourceType);
+expectError(callable.dataSources.choices({ stableKey: "choices", values: {} }));
+expectError(
+  callable.dataSources.choices({ stableKey: "choices", values: { query: { parsed: "cleaned" } } }),
+);
+expectType<Promise<DataSourceResult<"picklist">>>(
+  callable.dataSources.choices.perform({ query: "raw" }),
+);
 
 const noEntities = callableComponent(
   component({ key: "empty", display: { ...display, iconPath: "icon.png" } }),

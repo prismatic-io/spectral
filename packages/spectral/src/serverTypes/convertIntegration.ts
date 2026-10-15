@@ -76,6 +76,7 @@ import type {
 import { invokeWithContext, runWithDataSourceContext } from "./asyncContext";
 import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./batching";
 import { type BoundTrigger, getBoundTrigger, normalizeBoundTrigger } from "./boundTrigger";
+import { getBundledDataSource, getPublishedConnection } from "./callableConfigVar";
 import { type ConnectionNameMap, createConfigurationConnections } from "./configurationContext";
 import { createCNIContext, logDebugResults } from "./context";
 import {
@@ -666,6 +667,80 @@ const convertConfigVarPermissionAndVisibility = ({
   };
 };
 
+const convertReferenceInputs = (
+  inputDefinitions: Record<string, object>,
+  values: ComponentReference["values"],
+): Record<string, ServerInput> => {
+  return Object.entries(inputDefinitions).reduce((result, [key, input]) => {
+    const manifestEntryInput = input as { collection?: string; default?: unknown };
+    const isCollection = Boolean(manifestEntryInput.collection);
+    // Retrieve the input value or default to the manifest's default value
+
+    const value = values?.[key] ?? {
+      value: isCollection
+        ? manifestEntryInput.default === ""
+          ? []
+          : manifestEntryInput.default
+        : (manifestEntryInput.default ?? ""),
+    };
+
+    const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
+
+    if ("value" in value) {
+      const valueExpr =
+        manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
+          ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
+              name: { type: "value", value: k },
+              type: "value",
+              value: JSON.stringify(v),
+            }))
+          : manifestEntryInput.collection === "valuelist" && Array.isArray(value.value)
+            ? value.value.map((v) => ({ type: "value", value: v }))
+            : value.value;
+
+      const formattedValue =
+        type === "complex" || typeof valueExpr === "string" ? valueExpr : JSON.stringify(valueExpr);
+
+      const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
+        convertInputPermissionAndVisibility(
+          pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
+            permissionAndVisibilityType?: PermissionAndVisibilityType;
+            visibleToOrgDeployer?: boolean;
+          },
+        );
+
+      const { writeOnly } = pick(value, ["writeOnly"]) as {
+        writeOnly?: true;
+      };
+
+      if (writeOnly) {
+        meta.writeOnly = writeOnly;
+      }
+
+      return {
+        ...result,
+        [key]: { type: type, value: formattedValue, meta },
+      };
+    }
+
+    if ("configVar" in value) {
+      return {
+        ...result,
+        [key]: { type: "configVar", value: value.configVar },
+      };
+    }
+
+    if ("template" in value) {
+      return {
+        ...result,
+        [key]: { type: "template", value: value.template },
+      };
+    }
+
+    return result;
+  }, {});
+};
+
 const convertComponentReference = (
   componentReference: ComponentReference,
   componentRegistry: ComponentRegistry,
@@ -677,6 +752,12 @@ const convertComponentReference = (
   ref: ServerComponentReference;
   inputs: Record<string, ServerInput>;
 } => {
+  const published = getPublishedConnection(componentReference);
+  if (published)
+    return {
+      ref: { component: published.component, key: componentReference.key },
+      inputs: convertReferenceInputs(published.inputs, componentReference.values),
+    };
   const manifest = componentRegistry[componentReference.component];
 
   if (!manifest) {
@@ -703,78 +784,7 @@ const convertComponentReference = (
     key: manifestEntry.key ?? componentReference.key,
   };
 
-  const inputs = Object.entries(manifestEntry.inputs).reduce(
-    (result, [key, manifestEntryInput]) => {
-      const isCollection = Boolean(manifestEntryInput.collection);
-      // Retrieve the input value or default to the manifest's default value
-
-      const value = componentReference.values?.[key] ?? {
-        value: isCollection
-          ? manifestEntryInput.default === ""
-            ? []
-            : manifestEntryInput.default
-          : (manifestEntryInput.default ?? ""),
-      };
-
-      const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
-
-      if ("value" in value) {
-        const valueExpr =
-          manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
-            ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
-                name: { type: "value", value: k },
-                type: "value",
-                value: JSON.stringify(v),
-              }))
-            : manifestEntryInput.collection === "valuelist" && Array.isArray(value.value)
-              ? value.value.map((v) => ({ type: "value", value: v }))
-              : value.value;
-
-        const formattedValue =
-          type === "complex" || typeof valueExpr === "string"
-            ? valueExpr
-            : JSON.stringify(valueExpr);
-
-        const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
-          convertInputPermissionAndVisibility(
-            pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-              permissionAndVisibilityType?: PermissionAndVisibilityType;
-              visibleToOrgDeployer?: boolean;
-            },
-          );
-
-        const { writeOnly } = pick(value, ["writeOnly"]) as {
-          writeOnly?: true;
-        };
-
-        if (writeOnly) {
-          meta.writeOnly = writeOnly;
-        }
-
-        return {
-          ...result,
-          [key]: { type: type, value: formattedValue, meta },
-        };
-      }
-
-      if ("configVar" in value) {
-        return {
-          ...result,
-          [key]: { type: "configVar", value: value.configVar },
-        };
-      }
-
-      if ("template" in value) {
-        return {
-          ...result,
-          [key]: { type: "template", value: value.template },
-        };
-      }
-
-      return result;
-    },
-    {},
-  );
+  const inputs = convertReferenceInputs(manifestEntry.inputs, componentReference.values);
 
   return {
     ref,
@@ -1411,6 +1421,18 @@ export const convertConfigVar = (
       key: camelCase(key),
       component: codeNativeIntegrationComponentReference(referenceKey),
     };
+    const bundled = getBundledDataSource(configVar);
+    if (bundled) {
+      const bindings = Object.fromEntries(
+        Object.entries(bundled.values).map(([key, value]) => [
+          key,
+          value && typeof value === "object" && ("configVar" in value || "value" in value)
+            ? value
+            : { value },
+        ]),
+      ) as ComponentReference["values"];
+      result.inputs = { ...result.inputs, ...convertReferenceInputs(bundled.inputs, bindings) };
+    }
   }
 
   if (isDataSourceReferenceConfigVar(configVar)) {
@@ -2117,6 +2139,31 @@ const codeNativeIntegrationComponent = <
     };
   }, {});
 
+  const convertedBundledDataSources: Record<string, ServerDataSource> = {};
+  const addBundledDataSource = (
+    key: string,
+    source: { perform: (...args: any[]) => any; dataSourceType: any },
+  ) => {
+    if (
+      Object.hasOwn(convertedBundledDataSources, key) ||
+      Object.keys(configVars).some((name) => camelCase(name) === key && configVars[name] !== source)
+    )
+      throw new Error(`Bundled data source key collision: ${key}`);
+    const bundled = getBundledDataSource(source);
+    if (!bundled) throw new Error(`Missing bundled data source definition: ${key}`);
+    const detailKey = bundled.detail ? `${key}__detail` : undefined;
+    convertedBundledDataSources[key] = {
+      key,
+      dataSourceType: source.dataSourceType,
+      display: { label: key, description: key },
+      inputs: Object.entries(bundled.inputs).map(([key, input]) => convertInput(key, input)),
+      perform: (context, params) =>
+        runWithDataSourceContext(context, () => source.perform(context, params)),
+      ...(detailKey ? { detailDataSource: detailKey } : {}),
+    };
+    if (bundled.detail && detailKey) addBundledDataSource(detailKey, bundled.detail);
+  };
+
   const convertedDataSources = Object.entries(configVars).reduce<Record<string, ServerDataSource>>(
     (result, [key, configVar]) => {
       if (!isDataSourceDefinitionConfigVar(configVar)) {
@@ -2124,6 +2171,10 @@ const codeNativeIntegrationComponent = <
       }
 
       const camelKey = camelCase(key);
+      if (getBundledDataSource(configVar)) {
+        addBundledDataSource(camelKey, configVar);
+        return result;
+      }
       const dataSource = pick(configVar, ["perform", "dataSourceType"]);
 
       return {
@@ -2196,7 +2247,7 @@ const codeNativeIntegrationComponent = <
     connections: convertedConnections,
     actions: convertedActions,
     triggers: convertedTriggers,
-    dataSources: convertedDataSources,
+    dataSources: { ...convertedDataSources, ...convertedBundledDataSources },
   };
 };
 

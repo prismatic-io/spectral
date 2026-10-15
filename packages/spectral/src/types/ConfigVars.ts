@@ -129,7 +129,7 @@ interface ConfigVarInputVisibility {
 }
 
 /** Common attribute shared by all types of config variables. */
-type BaseConfigVar = {
+export type BaseConfigVar = {
   /** A unique, unchanging value that is used to maintain identity for the config variable even if the key changes. */
   stableKey: string;
   /** Description for this config variable. */

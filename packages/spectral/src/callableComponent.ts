@@ -5,33 +5,49 @@ import {
   requireDataSourceContext,
 } from "./serverTypes/asyncContext";
 import { type BoundTrigger, boundTriggerSymbol } from "./serverTypes/boundTrigger";
+import {
+  type BundledDataSource,
+  bundledDataSourceSymbol,
+  publishedConnectionSymbol,
+} from "./serverTypes/callableConfigVar";
 import { cleanerFor } from "./serverTypes/convertComponent";
 import { cleanParams } from "./serverTypes/perform";
 import { createPollingState } from "./serverTypes/pollingState";
 import {
   type ActionContext,
   type ActionDefinition,
+  type BaseConfigVar,
   type ComponentDefinition,
   type ComponentHooks,
   type ConditionalExpression,
   type ConfigVarExpression,
+  type ConfigVarVisibility,
   type Connection,
+  type ConnectionConfigVar,
   type ConnectionDefinition,
+  type DataSourceConfigVar,
+  type DataSourceDefinition,
+  type DataSourceType,
   InputFieldDefaultMap,
   type InputFieldDefinition,
   type Inputs,
   isPollingTriggerDefinition,
   type JSONForm,
   type KeyValuePair,
+  type OAuth2Config,
+  type OAuth2UrlOverrides,
   type ObjectFieldMap,
   type ObjectSelection,
+  type OnPremiseConnectionConfigTypeEnum,
+  type StandardConfigVar,
   type TriggerPayload,
 } from "./types";
 
 export type AuthoringDefinition = Pick<
   ComponentDefinition<boolean, string>,
   "actions" | "triggers" | "dataSources" | "connections" | "hooks"
->;
+> &
+  Partial<Pick<ComponentDefinition<boolean, string>, "key" | "public">>;
 
 /** Shared by separately bundled copies; never included in platform serialization. */
 export const authoringSymbol: unique symbol = Symbol.for("@prismatic-io/spectral/authoring/v1");
@@ -195,6 +211,45 @@ type CallableTrigger<TTrigger> = TriggerFactory<TTrigger> & {
           : TTrigger[K];
 };
 
+type DataSourceOptions<TSource extends { dataSourceType: DataSourceType }> = Omit<
+  Extract<DataSourceConfigVar, { dataSourceType: TSource["dataSourceType"] }>,
+  "perform" | "dataSourceType"
+> &
+  Pick<Extract<StandardConfigVar, { dataType: TSource["dataSourceType"] }>, "defaultValue"> & {
+    values: TriggerBindings<EntityInputs<TSource>>;
+  };
+
+type CallableDataSource<TSource> = TSource extends {
+  inputs: infer TInputs extends Inputs;
+  dataSourceType: DataSourceType;
+  perform: infer TPerform extends (...args: any[]) => any;
+}
+  ? {
+      (
+        options: DataSourceOptions<TSource>,
+      ): Extract<DataSourceConfigVar, { dataSourceType: TSource["dataSourceType"] }> & {
+        dataSourceType: TSource["dataSourceType"];
+      };
+      (...args: InputArguments<TInputs>): ReturnType<TPerform>;
+      perform: (...args: InputArguments<TInputs>) => ReturnType<TPerform>;
+    }
+  : never;
+
+type ConnectionOptions<TConnection> = BaseConfigVar & {
+  version?: number | "LATEST";
+  values?: {
+    [K in keyof EntityInputs<TConnection>]?: (
+      | { value: CallableInputValue<EntityInputs<TConnection>[K]> }
+      | ConfigVarExpression
+      | ConfigVarVisibility
+    ) &
+      ConfigVarVisibility & { writeOnly?: true };
+  };
+  template?: string;
+  onPremiseConnectionConfig?: OnPremiseConnectionConfigTypeEnum;
+  oauth2Config?: OAuth2Config & OAuth2UrlOverrides;
+};
+
 export type CallableComponent<TDefinition extends AuthoringDefinition> = {
   actions: {
     [K in keyof TDefinition["actions"]]: TDefinition["actions"][K] extends infer TAction extends
@@ -203,18 +258,17 @@ export type CallableComponent<TDefinition extends AuthoringDefinition> = {
       : never;
   };
   dataSources: {
-    [K in keyof TDefinition["dataSources"]]: TDefinition["dataSources"][K] extends {
-      inputs: infer TInputs extends Inputs;
-      perform: infer TPerform extends (...args: any[]) => any;
-    }
-      ? (...args: InputArguments<TInputs>) => ReturnType<TPerform>
-      : never;
+    [K in keyof TDefinition["dataSources"]]: CallableDataSource<TDefinition["dataSources"][K]>;
   };
   triggers: { [K in keyof TDefinition["triggers"]]: CallableTrigger<TDefinition["triggers"][K]> };
   connections: TDefinition extends {
     connections: infer TConnections extends ConnectionDefinition[];
   }
-    ? { [TConnection in TConnections[number] as TConnection["key"]]: TConnection }
+    ? {
+        [TConnection in TConnections[number] as TConnection["key"]]: (
+          options: ConnectionOptions<TConnection>,
+        ) => ConnectionConfigVar;
+      }
     : Record<never, never>;
 };
 
@@ -466,8 +520,8 @@ type AuthoringOf<TSource> =
 
 /**
  * Creates local calls from authored component entities. Triggers retain their metadata and
- * expose context-bound perform/lifecycle methods. Connections remain authoring definitions
- * for use with connectionConfigVar; reusable credentials are still managed by the platform.
+ * expose context-bound perform/lifecycle methods. Connection factories reference published
+ * components, while data-source factories build bundled configuration callbacks.
  */
 export const callableComponent = <
   TSource extends AuthoringCarrier<AuthoringDefinition> | AuthoringDefinition,
@@ -514,16 +568,97 @@ export const callableComponent = <
         ];
       }),
     );
-  const connections: Record<string, ConnectionDefinition> = {};
-  for (const connection of definition.connections ?? []) {
-    if (Object.hasOwn(connections, connection.key))
-      throw new Error(`Duplicate connection key: ${connection.key}`);
-    Object.defineProperty(connections, connection.key, { value: connection, enumerable: true });
-  }
+  const connections = Object.fromEntries(
+    (definition.connections ?? []).map((connection) => [
+      connection.key,
+      ({
+        version = "LATEST",
+        values = {},
+        template,
+        onPremiseConnectionConfig,
+        ...options
+      }: ConnectionOptions<typeof connection>) => {
+        if (!definition.key) throw new Error("Published connections require the component's key.");
+        const reference = {
+          component: definition.key,
+          key: connection.key,
+          values,
+          template,
+          onPremiseConnectionConfig,
+          [publishedConnectionSymbol]: {
+            component: { key: definition.key, isPublic: definition.public ?? false, version },
+            inputs: connection.inputs,
+          },
+        };
+        return { ...options, dataType: "connection", connection: reference };
+      },
+    ]),
+  );
+  if (Object.keys(connections).length !== (definition.connections ?? []).length)
+    throw new Error("Duplicate connection key");
+
+  const dataSourceCalls = calls(definition.dataSources ?? {}, requireDataSourceContext);
+  const configDataSource = (
+    key: string,
+    options: BaseConfigVar & { values: Record<string, unknown> },
+    ancestors: string[] = [],
+  ): DataSourceDefinition<Inputs, any, any> & { [bundledDataSourceSymbol]: BundledDataSource } => {
+    if (ancestors.includes(key))
+      throw new Error(`Circular detail data source: ${[...ancestors, key].join(" -> ")}`);
+    const source = definition.dataSources?.[key];
+    if (!source) throw new Error(`Unknown detail data source: ${key}`);
+    const { values, ...config } = options;
+    const { detailDataSource, ...entity } = source;
+    return {
+      ...entity,
+      ...config,
+      perform: async (context, params) => {
+        const resolved = Object.fromEntries(
+          Object.entries(values)
+            .filter(([key]) => key in source.inputs)
+            .map(([key, binding]) => {
+              if (isRecord(binding) && "configVar" in binding) {
+                const name = String(binding.configVar);
+                if (!(name in context.configVars))
+                  throw new Error(
+                    `Missing config variable for data source input "${key}": ${name}`,
+                  );
+                return [key, context.configVars[name]];
+              }
+              return [key, isRecord(binding) && "value" in binding ? binding.value : binding];
+            }),
+        );
+        return dataSourceCalls[key]({ ...resolved, ...params });
+      },
+      [bundledDataSourceSymbol]: {
+        inputs: source.inputs,
+        values,
+        ...(detailDataSource
+          ? { detail: configDataSource(detailDataSource, options, [...ancestors, key]) }
+          : {}),
+      },
+    };
+  };
+  const dataSources = Object.fromEntries(
+    Object.entries(dataSourceCalls).map(([key, perform]) => [
+      key,
+      Object.assign(
+        (values: Record<string, unknown> = {}) =>
+          typeof values.stableKey === "string" && isRecord(values.values)
+            ? configDataSource(key, {
+                ...values,
+                stableKey: values.stableKey,
+                values: values.values,
+              })
+            : perform(values),
+        { perform },
+      ),
+    ]),
+  );
   // Object.fromEntries erases keys and per-entity signatures; each wrapper preserves them.
   return {
     actions: calls(definition.actions ?? {}, requireContext),
-    dataSources: calls(definition.dataSources ?? {}, requireDataSourceContext),
+    dataSources,
     triggers: Object.fromEntries(
       Object.entries(definition.triggers ?? {}).map(([key, trigger]) => [
         key,

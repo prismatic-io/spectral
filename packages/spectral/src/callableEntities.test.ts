@@ -7,7 +7,6 @@ import {
   component,
   configPage,
   connection,
-  connectionConfigVar,
   dataSource,
   dataSourceConfigVar,
   flow,
@@ -471,7 +470,7 @@ describe("callable component entities", () => {
     expect(() => requireContext()).toThrow("ActionContext not found");
   });
 
-  it("retains keyed connection definitions for inline config while preserving traditional server entities", () => {
+  it("references published connections while preserving traditional server entities", () => {
     const api = connection({
       key: "api",
       display,
@@ -483,7 +482,7 @@ describe("callable component entities", () => {
       connections: [api],
     });
     const callable = callableComponent(server);
-    expect(callable.connections.api).toBe(api);
+    expect(callable.connections.api).toBeTypeOf("function");
     expect(Object.keys(callable.connections)).toEqual(["api"]);
     expect(Array.isArray(server.connections[0].inputs)).toBe(true);
     const cni = integration({
@@ -492,22 +491,16 @@ describe("callable component entities", () => {
       configPages: {
         Configuration: configPage({
           elements: {
-            Api: connectionConfigVar({
-              ...callable.connections.api,
-              stableKey: "api-config",
-              dataType: "connection",
-            }),
+            Api: callable.connections.api({ stableKey: "api-config" }),
           },
         }),
       },
     });
-    expect(cni.connections[0].inputs).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ key: "token", type: "password", required: true }),
-      ]),
-    );
+    expect(cni.connections).toEqual([]);
+    expect(cni.codeNativeIntegrationYAML).toContain("version: LATEST");
+    expect(cni.codeNativeIntegrationYAML).toContain("key: entities");
     expect(() => callableComponent({ connections: [api, api] })).toThrow(
-      "Duplicate connection key: api",
+      "Duplicate connection key",
     );
   });
 });
