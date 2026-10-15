@@ -6,15 +6,7 @@ import type {
   NpmDataSourceReferenceConfigVar,
 } from "../types";
 import type { CollectionType } from "../types/ConfigVars";
-import type {
-  Action,
-  AnyConnection,
-  AnyConvertedAction,
-  AnyDataSource,
-  AnyTrigger,
-  Component,
-  Input,
-} from ".";
+import type { Action, AnyConnection, AnyDataSource, AnyTrigger, Component, Input } from ".";
 import { performActionFunctionExecutor } from "./actionExecutor";
 import { requireContext } from "./asyncContext";
 import { type CallableConnectionConfigVar, createCallableConnection } from "./callableConnection";
@@ -97,17 +89,6 @@ export const createCallableAction = (action: Action): CallableAction => {
   return callable;
 };
 
-/** Maps a single already-converted action to its directly-callable form,
- * inferring the callable signature structurally off its own `perform` (the
- * `context` parameter is dropped; the rest is unchanged) — this doesn't need
- * the original `ActionDefinition`, since `createCallableComponent` only ever
- * has an already-converted `Component` to work from. */
-export type MakeCallable<TAction> = TAction extends {
-  perform: (context: never, params: infer TParams) => infer TReturn;
-}
-  ? (params: TParams) => TReturn
-  : TAction;
-
 /** The directly-callable form of an action, typed from the original
  * `ActionDefinition` rather than from the converted `perform`. Only the
  * definition still carries each input's `required` and `default`; the converted
@@ -116,8 +97,7 @@ export type MakeCallable<TAction> = TAction extends {
  * a `default`) be optional to the caller — see
  * {@link CallableActionInputParameters} — while the return type stays the
  * `perform`'s own. This is what `callableComponent(definition)` produces;
- * {@link MakeCallable} is the fallback for wrapping a component whose
- * definitions are no longer available. */
+ * definitions are still available to the public builder. */
 export type CallableConvertedAction<TDef> =
   TDef extends ActionDefinition<
     infer TInputs,
@@ -135,7 +115,7 @@ export type CallableConvertedAction<TDef> =
  *
  * Not part of `convertComponent`'s own unconditional behavior. The public
  * `callableComponent()` builder calls this for the npm artifact; `component()`
- * continues to produce the platform's plain `Action`/`ConvertedAction` shape.
+ * continues to produce the platform's erased `Action` shape.
  */
 /** A trigger reference helper, directly callable with its `values` (e.g.
  * `slack.triggers.webhook({ ... })`), produced by {@link createCallableTrigger}. */
@@ -157,14 +137,10 @@ export type CallableConnectionHelper = (
   configVar: CallableConnectionConfigVar,
 ) => NpmConnectionReferenceConfigVar;
 
-export const createCallableComponent = <
-  TComponent extends Component<any, any, any, any, any, any, Record<string, AnyConvertedAction>>,
->(
+export const createCallableComponent = <TComponent extends Component>(
   component: TComponent,
 ): Omit<TComponent, "actions" | "triggers" | "dataSources" | "connections"> & {
-  actions: {
-    [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]>;
-  };
+  actions: Record<string, CallableAction>;
   triggers: {
     [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
   };
@@ -215,9 +191,7 @@ export const createCallableComponent = <
     dataSources,
     connections,
   } as unknown as Omit<TComponent, "actions" | "triggers" | "dataSources" | "connections"> & {
-    actions: {
-      [K in keyof TComponent["actions"]]: MakeCallable<TComponent["actions"][K]>;
-    };
+    actions: Record<string, CallableAction>;
     triggers: {
       [K in keyof TComponent["triggers"]]: CallableTriggerHelper<TComponent["triggers"][K]>;
     };

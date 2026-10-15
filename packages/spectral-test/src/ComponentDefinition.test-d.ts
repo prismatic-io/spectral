@@ -7,7 +7,7 @@ import {
   input,
   structuredObjectInput,
 } from "@prismatic-io/spectral";
-import type { Component } from "@prismatic-io/spectral/dist/serverTypes";
+import type { Action, Component } from "@prismatic-io/spectral/dist/serverTypes";
 import { expectAssignable, expectError, expectType } from "tsd";
 
 const privateDefinition = component({
@@ -93,6 +93,13 @@ const plain = component({
   },
 });
 expectError(plain.actions.echo({ name: "Pat" }));
+
+// The platform representation is deliberately erased and remains assignable
+// to the public server types regardless of an action's authored input types.
+const erasedComponent: Component = plain;
+const erasedAction: Action = plain.actions.echo;
+expectType<Action>(erasedComponent.actions["echo" as string]);
+expectType<Action>(erasedAction);
 
 // Optional-ness applies recursively through structuredObject children and
 // dynamicObject configuration values.

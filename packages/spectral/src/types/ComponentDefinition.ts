@@ -20,11 +20,7 @@ export interface ComponentHooks {
 export type AnyActionDefinition = ActionDefinition<any, any, boolean, any>;
 
 /** Defines attributes of a component. */
-export type ComponentDefinition<
-  TPublic extends boolean,
-  TKey extends string,
-  TActions extends Record<string, AnyActionDefinition> = Record<string, AnyActionDefinition>,
-> = {
+export type ComponentDefinition<TPublic extends boolean, TKey extends string> = {
   /** Specifies a unique programmatic key for this component. */
   key: TKey;
   /**
@@ -39,7 +35,7 @@ export type ComponentDefinition<
    * Specifies the supported Actions of this component. See
    * https://prismatic.io/docs/custom-connectors/actions/
    */
-  actions?: TActions;
+  actions?: Record<string, AnyActionDefinition>;
   /**
    * Specifies the supported triggers of this component. See
    * https://prismatic.io/docs/custom-connectors/triggers/

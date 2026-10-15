@@ -9,7 +9,6 @@ import type {
   CallableConvertedAction,
   CallableDataSourceHelper,
   CallableTriggerHelper,
-  ConvertedAction,
   Component as ServerComponent,
 } from "./serverTypes";
 import { createCallableComponent, runWithIntegrationContext } from "./serverTypes";
@@ -658,20 +657,15 @@ export const componentManifest = <T extends ComponentManifest>(definition: T): T
  *   connections,
  * });
  */
-export const component = <
-  TPublic extends boolean,
-  TKey extends string,
-  TActions extends Record<string, AnyActionDefinition> = Record<string, AnyActionDefinition>,
->(
-  definition: ComponentDefinition<TPublic, TKey, TActions>,
+export const component = <TPublic extends boolean, TKey extends string>(
+  definition: ComponentDefinition<TPublic, TKey>,
 ): ServerComponent<
   Inputs,
   Inputs,
   ConfigVarResultCollection,
   TriggerPayload,
   boolean,
-  TriggerResult<boolean, TriggerPayload>,
-  { [K in keyof TActions]: ConvertedAction<TActions[K]> }
+  TriggerResult<boolean, TriggerPayload>
 > =>
   convertComponent(definition) as ServerComponent<
     Inputs,
@@ -679,8 +673,7 @@ export const component = <
     ConfigVarResultCollection,
     TriggerPayload,
     boolean,
-    TriggerResult<boolean, TriggerPayload>,
-    { [K in keyof TActions]: ConvertedAction<TActions[K]> }
+    TriggerResult<boolean, TriggerPayload>
   >;
 
 /**
@@ -693,7 +686,7 @@ export const callableComponent = <
   TKey extends string,
   TActions extends Record<string, AnyActionDefinition> = Record<string, AnyActionDefinition>,
 >(
-  definition: ComponentDefinition<TPublic, TKey, TActions>,
+  definition: ComponentDefinition<TPublic, TKey> & { actions?: TActions },
 ): Omit<
   ServerComponent<
     Inputs,
@@ -701,8 +694,7 @@ export const callableComponent = <
     ConfigVarResultCollection,
     TriggerPayload,
     boolean,
-    TriggerResult<boolean, TriggerPayload>,
-    { [K in keyof TActions]: ConvertedAction<TActions[K]> }
+    TriggerResult<boolean, TriggerPayload>
   >,
   "actions" | "triggers" | "dataSources" | "connections"
 > & {
@@ -723,8 +715,7 @@ export const callableComponent = <
     ConfigVarResultCollection,
     TriggerPayload,
     boolean,
-    TriggerResult<boolean, TriggerPayload>,
-    { [K in keyof TActions]: ConvertedAction<TActions[K]> }
+    TriggerResult<boolean, TriggerPayload>
   >;
 
   return createCallableComponent(converted) as never;

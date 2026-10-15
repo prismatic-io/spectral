@@ -11,7 +11,6 @@ import type {
   Action,
   ActionLogger,
   ActionLoggerFunction,
-  AnyConvertedAction,
   Component,
   ConnectionValue,
   DataSourceContext,
@@ -667,18 +666,13 @@ export class ComponentTestHarness<
     TAllowsBranching,
     TPayload
   >,
-  // The 7th argument is the loose `AnyConvertedAction` bound rather than
-  // `Record<string, Action>`, so a component whose actions carry their input
-  // types satisfies the constraint. `TComponent` is what actually carries those
-  // types through to `harness.component`.
   TComponent extends Component<
     TInputs,
     TActionInputs,
     TConfigVars,
     TPayload,
     TAllowsBranching,
-    TResult,
-    Record<string, AnyConvertedAction>
+    TResult
   > = Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
 > {
   component: TComponent;
@@ -847,18 +841,13 @@ export const createHarness = <
     TAllowsBranching,
     TPayload
   >,
-  // The 7th argument is the loose `AnyConvertedAction` bound rather than
-  // `Record<string, Action>`, so a component whose actions carry their input
-  // types satisfies the constraint. `TComponent` is what actually carries those
-  // types through to `harness.component`.
   TComponent extends Component<
     TInputs,
     TActionInputs,
     TConfigVars,
     TPayload,
     TAllowsBranching,
-    TResult,
-    Record<string, AnyConvertedAction>
+    TResult
   > = Component<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
 >(
   component: TComponent,
