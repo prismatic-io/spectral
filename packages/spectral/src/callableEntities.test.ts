@@ -416,6 +416,61 @@ describe("callable component entities", () => {
     expect(() => requireContext()).toThrow("ActionContext not found");
   });
 
+  it("isolates bundled batch polling contexts without changing the enclosing CNI context", async () => {
+    const inspect = callableComponent({
+      actions: {
+        current: action({ display, inputs: {}, perform: async (context) => ({ data: context }) }),
+      },
+    });
+    const batch = callableComponent({
+      triggers: {
+        batch: batchTrigger({
+          display,
+          inputs: {},
+          batchConfig: { batchSize: 1 },
+          perform: async (context) => {
+            await Promise.resolve();
+            expect((await inspect.actions.current()).data).toBe(context);
+            context.polling.setState({ execution: context.executionId });
+            return { items: [context.executionId] };
+          },
+          onDeploy: {
+            perform: async (context) => {
+              await Promise.resolve();
+              expect((await inspect.actions.current()).data).toBe(context);
+              throw new Error("initial sync failed");
+            },
+          },
+        }),
+      },
+    }).triggers.batch;
+    const cni = integration({
+      name: "Nested batch scope",
+      flows: [
+        flow({
+          name: "Nested",
+          stableKey: "nested",
+          onExecution: async (context) => {
+            const result = await batch.perform(payload);
+            expect(requireContext()).toBe(context);
+            expect(context).not.toHaveProperty("polling");
+            await expect(batch.onDeployPerform?.(payload)).rejects.toThrow("initial sync failed");
+            expect(requireContext()).toBe(context);
+            return { data: result?.payload.body.data };
+          },
+        }),
+      ],
+    });
+    const contexts = [contextFor("first"), contextFor("second")];
+    const perform = Object.values(cni.actions)[0].perform;
+    const results = await Promise.all(contexts.map((context) => perform(context, {})));
+    expect(results).toEqual([{ data: ["first"] }, { data: ["second"] }]);
+    expect(contexts.map((context) => context.instanceState)).toEqual(
+      ["first", "second"].map((execution) => ({ __prismaticInternal: { polling: { execution } } })),
+    );
+    expect(() => requireContext()).toThrow("ActionContext not found");
+  });
+
   it("retains keyed connection definitions for inline config while preserving traditional server entities", () => {
     const api = connection({
       key: "api",
