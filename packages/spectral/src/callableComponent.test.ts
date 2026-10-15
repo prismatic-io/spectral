@@ -18,7 +18,12 @@ describe("callableComponent", () => {
     expect(retained[authoringSymbol]).toBe(authored);
     expect(Object.keys(retained)).toEqual(["key", "actions"]);
     expect(JSON.stringify(retained)).toBe(before);
-    expect(callableComponent(retained)).toEqual({ actions: {} });
+    expect(callableComponent(retained)).toEqual({
+      actions: {},
+      dataSources: {},
+      triggers: {},
+      connections: {},
+    });
   });
 
   it("rejects converted actions when copying the component loses its authoring carrier", () => {

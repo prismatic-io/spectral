@@ -3,6 +3,7 @@ import type { HttpResponse } from "../types/HttpResponse";
 import type { PollingState } from "../types/PollingTriggerDefinition";
 import type { TriggerResolverBehavior } from "../types/TriggerDefinition";
 import type { TriggerPayload } from "../types/TriggerPayload";
+import { runWithContext } from "./asyncContext";
 import { createPollingState } from "./pollingState";
 
 /**
@@ -47,8 +48,10 @@ export const withPollingState =
   <TContext extends ActionContext, TRest extends unknown[], TReturn>(
     perform: (context: TContext & { polling: PollingState }, ...rest: TRest) => Promise<TReturn>,
   ) =>
-  (context: TContext, ...rest: TRest): Promise<TReturn> =>
-    perform({ ...context, polling: createPollingState(context) }, ...rest);
+  async (context: TContext, ...rest: TRest): Promise<TReturn> => {
+    const pollingContext = { ...context, polling: createPollingState(context) };
+    return await runWithContext(pollingContext, () => perform(pollingContext, ...rest));
+  };
 
 /**
  * Wraps a batched fire (returning `{ items, paginationState?, response?, branch?, polledNoChanges? }`) into a
