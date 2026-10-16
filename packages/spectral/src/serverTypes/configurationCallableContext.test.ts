@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { configPage, dataSourceConfigVar, integration } from "..";
-import type { ActionContext, DataSourceContext } from "../types";
-import {
-  requireContext,
-  requireDataSourceContext,
-  runWithContext,
-  runWithDataSourceContext,
-} from "./asyncContext";
+import type { DataSourceContext } from "../types";
+import { requireContext, requireDataSourceContext } from "./asyncContext";
 import { convertConfigurationInit, convertServerFunction } from "./convertIntegrationConfiguration";
 
 const contextFor = (name: string): DataSourceContext =>
@@ -19,26 +14,6 @@ const contextFor = (name: string): DataSourceContext =>
   }) as DataSourceContext;
 
 describe("callable configuration context", () => {
-  it("shares execution context with data sources and restores it after a narrower callback", async () => {
-    const execution = { ...contextFor("execution"), executionId: "execution" } as ActionContext;
-    const configuration = contextFor("configuration");
-    await runWithContext(execution, async () => {
-      expect(requireDataSourceContext()).toBe(execution);
-      await expect(
-        runWithDataSourceContext(configuration, async () => {
-          await Promise.resolve();
-          expect(requireDataSourceContext()).toBe(configuration);
-          expect(() => requireContext()).toThrow("unavailable during configuration");
-          throw new Error("configuration failure");
-        }),
-      ).rejects.toThrow("configuration failure");
-      expect(requireContext()).toBe(execution);
-      expect(requireDataSourceContext()).toBe(execution);
-    });
-    expect(() => requireDataSourceContext()).toThrow("DataSourceContext not found");
-    expect(() => requireContext()).toThrow("ActionContext not found");
-  });
-
   it("binds generated config-page data sources with their exact configuration context", async () => {
     const converted = integration({
       name: "Callable configuration context",

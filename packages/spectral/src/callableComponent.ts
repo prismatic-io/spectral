@@ -1,4 +1,5 @@
 import cloneDeep from "lodash/cloneDeep";
+import mapValues from "lodash/mapValues";
 import {
   invokeWithContext,
   requireContext,
@@ -289,73 +290,46 @@ const prepareValue = (input: InputFieldDefinition, supplied: unknown): unknown =
     value = Object.entries(value).map(([key, value]) => ({ key, value }));
   }
 
-  // An uncleaned boolean's authoring contract is its serialized string value. Accept
-  // native booleans at the call site without passing a boolean to a string-typed perform.
-  // Explicit cleaners still receive the original value and decide how to transform it.
-  if (input.type === "boolean" && !input.clean) {
-    const serialize = (entry: unknown) => (typeof entry === "boolean" ? String(entry) : entry);
-    if (input.collection === "valuelist") {
-      return Array.isArray(value) ? value.map(serialize) : value;
+  const prepare = (entry: unknown): unknown => {
+    // Without a custom cleaner, authored boolean inputs are serialized strings.
+    if (input.type === "boolean" && !input.clean) {
+      return typeof entry === "boolean" ? String(entry) : entry;
     }
+    if (input.type === "structuredObject") {
+      return isRecord(entry) ? prepareInputs(input.inputs, entry) : entry;
+    }
+    if (input.type === "dynamicObject" && isRecord(entry)) {
+      const configuration =
+        typeof entry.configuration === "string"
+          ? input.configurations[entry.configuration]
+          : undefined;
+      if (configuration && isRecord(entry.values)) {
+        return { ...entry, values: prepareInputs(configuration.inputs, entry.values) };
+      }
+    }
+    return entry;
+  };
+  if (input.type !== "structuredObject" && !(input.type === "boolean" && !input.clean)) {
+    return prepare(value);
+  }
+  if ("collection" in input && input.collection) {
+    if (!Array.isArray(value)) return value;
+    if (input.collection === "valuelist") return value.map(prepare);
     if (input.collection === "keyvaluelist") {
-      return Array.isArray(value)
-        ? value.map((entry) =>
-            isRecord(entry) && "value" in entry
-              ? { ...entry, value: serialize(entry.value) }
-              : entry,
-          )
-        : value;
-    }
-    return serialize(value);
-  }
-
-  if (input.type === "structuredObject") {
-    const prepareRecord = (entry: unknown) =>
-      isRecord(entry) ? prepareInputs(input.inputs, entry) : entry;
-    if (input.collection === "valuelist") {
-      return Array.isArray(value) ? value.map(prepareRecord) : value;
-    }
-    if (input.collection === "keyvaluelist") {
-      return Array.isArray(value)
-        ? value.map((entry) =>
-            isRecord(entry) && "value" in entry
-              ? { ...entry, value: prepareRecord(entry.value) }
-              : entry,
-          )
-        : value;
-    }
-    return prepareRecord(value === undefined ? {} : value);
-  }
-
-  if (input.type === "dynamicObject" && isRecord(value)) {
-    const configuration =
-      typeof value.configuration === "string"
-        ? input.configurations[value.configuration]
-        : undefined;
-    if (configuration && isRecord(value.values)) {
-      return { ...value, values: prepareInputs(configuration.inputs, value.values) };
+      return value.map((entry) =>
+        isRecord(entry) && "value" in entry ? { ...entry, value: prepare(entry.value) } : entry,
+      );
     }
   }
-  return value;
+  return prepare(input.type === "structuredObject" && value === undefined ? {} : value);
 };
 
-const prepareInputs = (
-  inputs: Inputs,
-  supplied: Record<string, unknown>,
-): Record<string, unknown> => {
-  return Object.fromEntries(
-    Object.entries(inputs).map(([key, definition]) => [
-      key,
-      prepareValue(definition, supplied[key]),
-    ]),
-  );
-};
+const prepareInputs = (inputs: Inputs, supplied: Record<string, unknown>) =>
+  mapValues(inputs, (input, key) => prepareValue(input, supplied[key]));
 
 /** Build a cleaner once, then apply defaults and cleaning only after invocation. */
 const prepareCall = (inputs: Inputs) => {
-  const cleaners = Object.fromEntries(
-    Object.entries(inputs).map(([key, input]) => [key, cleanerFor(input)]),
-  );
+  const cleaners = mapValues(inputs, cleanerFor);
   return (values: Record<string, unknown> = {}) =>
     cleanParams(prepareInputs(inputs, values), cleaners);
 };
@@ -554,20 +528,15 @@ export const callableComponent = <
       | NonNullable<AuthoringDefinition["dataSources"]>,
     getContext: typeof requireContext | typeof requireDataSourceContext,
   ) =>
-    Object.fromEntries(
-      Object.entries(entities).map(([key, entity]) => {
-        const prepare = prepareCall(entity.inputs);
-        return [
-          key,
-          async (values: Record<string, unknown> = {}) => {
-            const context = getContext();
-            return withErrorHook(definition.hooks, () =>
-              entity.perform(context as any, prepare(values)),
-            );
-          },
-        ];
-      }),
-    );
+    mapValues(entities, (entity) => {
+      const prepare = prepareCall(entity.inputs);
+      return async (values: Record<string, unknown> = {}) => {
+        const context = getContext();
+        return withErrorHook(definition.hooks, () =>
+          entity.perform(context as any, prepare(values)),
+        );
+      };
+    });
   const connections = Object.fromEntries(
     (definition.connections ?? []).map((connection) => [
       connection.key,
@@ -639,31 +608,25 @@ export const callableComponent = <
       },
     };
   };
-  const dataSources = Object.fromEntries(
-    Object.entries(dataSourceCalls).map(([key, perform]) => [
-      key,
-      Object.assign(
-        (values: Record<string, unknown> = {}) =>
-          typeof values.stableKey === "string" && isRecord(values.values)
-            ? configDataSource(key, {
-                ...values,
-                stableKey: values.stableKey,
-                values: values.values,
-              })
-            : perform(values),
-        { perform },
-      ),
-    ]),
+  const dataSources = mapValues(dataSourceCalls, (perform, key) =>
+    Object.assign(
+      (values: Record<string, unknown> = {}) =>
+        typeof values.stableKey === "string" && isRecord(values.values)
+          ? configDataSource(key, {
+              ...values,
+              stableKey: values.stableKey,
+              values: values.values,
+            })
+          : perform(values),
+      { perform },
+    ),
   );
-  // Object.fromEntries erases keys and per-entity signatures; each wrapper preserves them.
+  // Runtime iteration erases per-entity signatures; each wrapper preserves them.
   return {
     actions: calls(definition.actions ?? {}, requireContext),
     dataSources,
-    triggers: Object.fromEntries(
-      Object.entries(definition.triggers ?? {}).map(([key, trigger]) => [
-        key,
-        callableTrigger(trigger, definition.hooks),
-      ]),
+    triggers: mapValues(definition.triggers, (trigger) =>
+      callableTrigger(trigger, definition.hooks),
     ),
     connections,
   } as unknown as CallableComponent<AuthoringOf<TSource>>;
