@@ -73,8 +73,10 @@ import type {
   TriggerPayload,
   TriggerResult,
 } from ".";
-import { invokeWithContext } from "./asyncContext";
+import { invokeWithContext, runWithDataSourceContext } from "./asyncContext";
 import { defaultBatchResolver, withPollingState, wrapBatchedFire } from "./batching";
+import { type BoundTrigger, getBoundTrigger, normalizeBoundTrigger } from "./boundTrigger";
+import { getBundledDataSource, getPublishedConnection } from "./callableConfigVar";
 import { type ConnectionNameMap, createConfigurationConnections } from "./configurationContext";
 import { createCNIContext, logDebugResults } from "./context";
 import {
@@ -133,6 +135,7 @@ const normalizeBatchedFlow = <
 >(
   flow: Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult>,
 ): Flow<TInputs, TActionInputs, TPayload, TAllowsBranching, TResult> => {
+  flow = normalizeBoundTrigger(flow);
   const trigger =
     "trigger" in flow ? (flow.trigger as BatchTrigger<unknown> | undefined) : undefined;
   if (!trigger) {
@@ -664,6 +667,80 @@ const convertConfigVarPermissionAndVisibility = ({
   };
 };
 
+const convertReferenceInputs = (
+  inputDefinitions: Record<string, object>,
+  values: ComponentReference["values"],
+): Record<string, ServerInput> => {
+  return Object.entries(inputDefinitions).reduce((result, [key, input]) => {
+    const manifestEntryInput = input as { collection?: string; default?: unknown };
+    const isCollection = Boolean(manifestEntryInput.collection);
+    // Retrieve the input value or default to the manifest's default value
+
+    const value = values?.[key] ?? {
+      value: isCollection
+        ? manifestEntryInput.default === ""
+          ? []
+          : manifestEntryInput.default
+        : (manifestEntryInput.default ?? ""),
+    };
+
+    const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
+
+    if ("value" in value) {
+      const valueExpr =
+        manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
+          ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
+              name: { type: "value", value: k },
+              type: "value",
+              value: JSON.stringify(v),
+            }))
+          : manifestEntryInput.collection === "valuelist" && Array.isArray(value.value)
+            ? value.value.map((v) => ({ type: "value", value: v }))
+            : value.value;
+
+      const formattedValue =
+        type === "complex" || typeof valueExpr === "string" ? valueExpr : JSON.stringify(valueExpr);
+
+      const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
+        convertInputPermissionAndVisibility(
+          pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
+            permissionAndVisibilityType?: PermissionAndVisibilityType;
+            visibleToOrgDeployer?: boolean;
+          },
+        );
+
+      const { writeOnly } = pick(value, ["writeOnly"]) as {
+        writeOnly?: true;
+      };
+
+      if (writeOnly) {
+        meta.writeOnly = writeOnly;
+      }
+
+      return {
+        ...result,
+        [key]: { type: type, value: formattedValue, meta },
+      };
+    }
+
+    if ("configVar" in value) {
+      return {
+        ...result,
+        [key]: { type: "configVar", value: value.configVar },
+      };
+    }
+
+    if ("template" in value) {
+      return {
+        ...result,
+        [key]: { type: "template", value: value.template },
+      };
+    }
+
+    return result;
+  }, {});
+};
+
 const convertComponentReference = (
   componentReference: ComponentReference,
   componentRegistry: ComponentRegistry,
@@ -675,6 +752,12 @@ const convertComponentReference = (
   ref: ServerComponentReference;
   inputs: Record<string, ServerInput>;
 } => {
+  const published = getPublishedConnection(componentReference);
+  if (published)
+    return {
+      ref: { component: published.component, key: componentReference.key },
+      inputs: convertReferenceInputs(published.inputs, componentReference.values),
+    };
   const manifest = componentRegistry[componentReference.component];
 
   if (!manifest) {
@@ -701,78 +784,7 @@ const convertComponentReference = (
     key: manifestEntry.key ?? componentReference.key,
   };
 
-  const inputs = Object.entries(manifestEntry.inputs).reduce(
-    (result, [key, manifestEntryInput]) => {
-      const isCollection = Boolean(manifestEntryInput.collection);
-      // Retrieve the input value or default to the manifest's default value
-
-      const value = componentReference.values?.[key] ?? {
-        value: isCollection
-          ? manifestEntryInput.default === ""
-            ? []
-            : manifestEntryInput.default
-          : (manifestEntryInput.default ?? ""),
-      };
-
-      const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
-
-      if ("value" in value) {
-        const valueExpr =
-          manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
-            ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
-                name: { type: "value", value: k },
-                type: "value",
-                value: JSON.stringify(v),
-              }))
-            : manifestEntryInput.collection === "valuelist" && Array.isArray(value.value)
-              ? value.value.map((v) => ({ type: "value", value: v }))
-              : value.value;
-
-        const formattedValue =
-          type === "complex" || typeof valueExpr === "string"
-            ? valueExpr
-            : JSON.stringify(valueExpr);
-
-        const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
-          convertInputPermissionAndVisibility(
-            pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-              permissionAndVisibilityType?: PermissionAndVisibilityType;
-              visibleToOrgDeployer?: boolean;
-            },
-          );
-
-        const { writeOnly } = pick(value, ["writeOnly"]) as {
-          writeOnly?: true;
-        };
-
-        if (writeOnly) {
-          meta.writeOnly = writeOnly;
-        }
-
-        return {
-          ...result,
-          [key]: { type: type, value: formattedValue, meta },
-        };
-      }
-
-      if ("configVar" in value) {
-        return {
-          ...result,
-          [key]: { type: "configVar", value: value.configVar },
-        };
-      }
-
-      if ("template" in value) {
-        return {
-          ...result,
-          [key]: { type: "template", value: value.template },
-        };
-      }
-
-      return result;
-    },
-    {},
-  );
+  const inputs = convertReferenceInputs(manifestEntry.inputs, componentReference.values);
 
   return {
     ref,
@@ -801,6 +813,51 @@ const convertComponentRegistry = (
   }
 
   return convertedRegistry;
+};
+
+// Branch metadata must name an input on the CNI's own trigger. All other bound inputs
+// stay inside the local invocation; the platform does not need their definitions or values.
+const boundBranchInput = (bound: BoundTrigger | undefined) => {
+  if (!bound || !("dynamicBranchInput" in bound.definition) || !bound.definition.dynamicBranchInput)
+    return undefined;
+  const key = bound.definition.dynamicBranchInput;
+  const definition = bound.definition.inputs[key];
+  if (!definition) throw new Error(`Dynamic branch input "${key}" is not defined on the trigger.`);
+  const binding = bound.bindings[key];
+  const expression = binding !== null && typeof binding === "object" ? binding : undefined;
+  if (expression && "configVar" in expression) {
+    return {
+      input: convertInput(key, definition),
+      value: { type: "configVar", value: expression.configVar },
+    };
+  }
+  const raw = expression && "value" in expression ? expression.value : binding;
+  const value =
+    raw === undefined ? ("default" in definition ? definition.default : undefined) : raw;
+  const serialize = (entry: unknown) => (typeof entry === "string" ? entry : JSON.stringify(entry));
+  const wireValue =
+    definition.collection === "keyvaluelist"
+      ? (Array.isArray(value)
+          ? value
+          : Object.entries((value ?? {}) as Record<string, unknown>).map(([key, value]) => ({
+              key,
+              value,
+            }))
+        ).map(({ key, value }) => ({
+          name: { type: "value", value: key },
+          type: "value",
+          value: serialize(value),
+        }))
+      : definition.collection === "valuelist"
+        ? (Array.isArray(value) ? value : []).map((entry) => ({
+            type: "value",
+            value: serialize(entry),
+          }))
+        : serialize(value ?? "");
+  return {
+    input: convertInput(key, definition),
+    value: { type: definition.collection ? "complex" : "value", value: wireValue },
+  };
 };
 
 /**
@@ -971,6 +1028,9 @@ export const convertFlow = <
     if (isComponentReference(flow.onTrigger)) {
       const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
       triggerStep.inputs = inputs;
+    } else {
+      const branch = boundBranchInput(getBoundTrigger(flow.onTrigger));
+      if (branch) triggerStep.inputs = { [branch.input.key]: branch.value };
     }
 
     triggerStep.action = {
@@ -1361,6 +1421,18 @@ export const convertConfigVar = (
       key: camelCase(key),
       component: codeNativeIntegrationComponentReference(referenceKey),
     };
+    const bundled = getBundledDataSource(configVar);
+    if (bundled) {
+      const bindings = Object.fromEntries(
+        Object.entries(bundled.values).map(([key, value]) => [
+          key,
+          value && typeof value === "object" && ("configVar" in value || "value" in value)
+            ? value
+            : { value },
+        ]),
+      ) as ComponentReference["values"];
+      result.inputs = { ...result.inputs, ...convertReferenceInputs(bundled.inputs, bindings) };
+    }
   }
 
   if (isDataSourceReferenceConfigVar(configVar)) {
@@ -1881,6 +1953,18 @@ const codeNativeIntegrationComponent = <
       triggerResolver?: WireResolver;
       onDeployResolver?: WireResolver;
     };
+    const bound = getBoundTrigger(onTrigger);
+    const branch = boundBranchInput(bound);
+    // Resolver callbacks enter independently of perform, so they need their own CNI scope.
+    const bindResolver = <TResult>(
+      fn: (context: ActionContext, result: { payload: TriggerPayload }) => TResult,
+    ) =>
+      bound
+        ? (context: ActionContext, result: { payload: TriggerPayload }) => {
+            const cniContext = createCNIContext(context, componentRegistry);
+            return invokeWithContext(cniContext, fn, result);
+          }
+        : fn;
     if (
       !flowUsesWrapperTrigger({
         onTrigger,
@@ -1962,16 +2046,41 @@ const codeNativeIntegrationComponent = <
         hasWebhookCreateFunction: !!webhookCreateFn,
         webhookDelete: webhookDeleteFn,
         hasWebhookDeleteFunction: !!webhookDeleteFn,
-        inputs: wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
-        scheduleSupport: triggerType === "polling" ? "required" : "valid",
-        synchronousResponseSupport: "valid",
+        inputs: branch
+          ? [branch.input]
+          : wrapperTriggerInputsFromReference(onTrigger, componentRegistry),
+        scheduleSupport:
+          bound && "scheduleSupport" in bound.definition
+            ? bound.definition.scheduleSupport
+            : triggerType === "polling"
+              ? "required"
+              : "valid",
+        synchronousResponseSupport:
+          bound && "synchronousResponseSupport" in bound.definition
+            ? bound.definition.synchronousResponseSupport
+            : bound && triggerType === "polling"
+              ? "invalid"
+              : "valid",
+        ...(bound
+          ? pick(bound.definition, [
+              "allowsBranching",
+              "staticBranchNames",
+              "dynamicBranchInput",
+              "terminateExecution",
+              "breakLoop",
+            ])
+          : {}),
         isPollingTrigger: triggerType === "polling",
-        triggerResolverSupport: triggerResolver ? "valid" : "invalid",
+        triggerResolverSupport:
+          bound?.definition.triggerResolverSupport ?? (triggerResolver ? "valid" : "invalid"),
         // The authoritative batch size is stored on the flow (see convertFlow). We also
         // emit the single shared default on the synthesized trigger because component
         // publish validation requires `triggerResolverDefaultBatchSize` whenever resolver
         // support is active; both derive from the one `flow.batchConfig`.
-        ...(triggerResolver || onDeployResolver
+        ...(triggerResolver ||
+        onDeployResolver ||
+        bound?.definition.triggerResolverSupport === "valid" ||
+        bound?.definition.triggerResolverSupport === "required"
           ? {
               triggerResolverDefaultBatchSize: batchConfig?.batchSize ?? 1,
               ...(batchConfig?.concurrentBatchLimit !== undefined
@@ -1985,13 +2094,13 @@ const codeNativeIntegrationComponent = <
           ? {
               ...(triggerResolver.resolveItems
                 ? {
-                    resolveTriggerItems: triggerResolver.resolveItems,
+                    resolveTriggerItems: bindResolver(triggerResolver.resolveItems),
                     hasResolveTriggerItems: true,
                   }
                 : {}),
               ...(triggerResolver.getNextPaginationState
                 ? {
-                    getNextPaginationState: triggerResolver.getNextPaginationState,
+                    getNextPaginationState: bindResolver(triggerResolver.getNextPaginationState),
                     hasGetNextDiscoveryState: true,
                   }
                 : {}),
@@ -2012,13 +2121,15 @@ const codeNativeIntegrationComponent = <
           ? {
               ...(onDeployResolver.resolveItems
                 ? {
-                    resolveOnDeployItems: onDeployResolver.resolveItems,
+                    resolveOnDeployItems: bindResolver(onDeployResolver.resolveItems),
                     hasResolveOnDeployItems: true,
                   }
                 : {}),
               ...(onDeployResolver.getNextPaginationState
                 ? {
-                    getOnDeployNextPaginationState: onDeployResolver.getNextPaginationState,
+                    getOnDeployNextPaginationState: bindResolver(
+                      onDeployResolver.getNextPaginationState,
+                    ),
                     hasGetOnDeployNextDiscoveryState: true,
                   }
                 : {}),
@@ -2028,39 +2139,49 @@ const codeNativeIntegrationComponent = <
     };
   }, {});
 
-  const convertedDataSources = Object.entries(configVars).reduce<Record<string, ServerDataSource>>(
-    (result, [key, configVar]) => {
-      if (!isDataSourceDefinitionConfigVar(configVar)) {
-        return result;
-      }
-
-      const camelKey = camelCase(key);
-      const dataSource = pick(configVar, ["perform", "dataSourceType"]);
-
-      return {
-        ...result,
-        [camelKey]: {
-          ...dataSource,
-          key: camelKey,
-          display: {
-            label: key,
-            description: key,
-          },
-          inputs:
-            // Create placeholder inputs for each config variable dependency,so that
-            // the config wizard can detect if any changed and reset the data source.
-            isJsonFormDataSourceConfigVar(configVar) && configVar.dataSourceReset
-              ? (configVar.dataSourceReset.dependencies || []).map((dep, idx) => ({
-                  key: `input${idx}`,
-                  label: dep,
-                  type: "string",
-                }))
-              : [],
-        },
-      };
+  const convertedDataSources: Record<string, ServerDataSource> = {};
+  const addDataSource = (
+    key: string,
+    source: Pick<ServerDataSource, "perform" | "dataSourceType"> & {
+      dataSourceReset?: { dependencies?: string[] };
     },
-    {},
-  );
+    label = key,
+  ) => {
+    const bundled = getBundledDataSource(source);
+    if (
+      bundled &&
+      (Object.hasOwn(convertedDataSources, key) ||
+        Object.keys(configVars).some(
+          (name) => camelCase(name) === key && configVars[name] !== source,
+        ))
+    )
+      throw new Error(`Bundled data source key collision: ${key}`);
+    const detailKey = bundled?.detail ? `${key}__detail` : undefined;
+    // Placeholder inputs tell the wizard when JSON-form dependencies change.
+    const dependencies =
+      source.dataSourceType === "jsonForm" ? (source.dataSourceReset?.dependencies ?? []) : [];
+    if (bundled) label = key;
+    convertedDataSources[key] = {
+      key,
+      dataSourceType: source.dataSourceType,
+      display: { label, description: label },
+      inputs: bundled
+        ? Object.entries(bundled.inputs).map(([key, input]) => convertInput(key, input))
+        : dependencies.map((dep, idx) => ({ key: `input${idx}`, label: dep, type: "string" })),
+      perform: (context, params) =>
+        runWithDataSourceContext(context, () => source.perform(context, params)),
+      ...(detailKey ? { detailDataSource: detailKey } : {}),
+    };
+    if (bundled?.detail && detailKey) {
+      if (!getBundledDataSource(bundled.detail))
+        throw new Error(`Missing bundled data source definition: ${detailKey}`);
+      addDataSource(detailKey, bundled.detail);
+    }
+  };
+
+  for (const [key, configVar] of Object.entries(configVars)) {
+    if (isDataSourceDefinitionConfigVar(configVar)) addDataSource(camelCase(key), configVar, key);
+  }
 
   const convertedConnections = Object.entries(configVars).reduce<ServerConnection[]>(
     (result, [key, configVar]) => {

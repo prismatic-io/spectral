@@ -4,7 +4,16 @@
  * that can run on the Prismatic platform.
  */
 
+import {
+  type AuthoringCarrier,
+  type AuthoringDefinition,
+  retainAuthoring,
+} from "./callableComponent";
 import { runWithIntegrationContext } from "./serverTypes";
+
+export type { CallableComponent, CallableInputs } from "./callableComponent";
+export { callableComponent } from "./callableComponent";
+
 import {
   defaultBatchResolver,
   withPolledResultType,
@@ -667,9 +676,14 @@ export const componentManifest = <T extends ComponentManifest>(definition: T): T
  *   connections,
  * });
  */
-export const component = <TPublic extends boolean, TKey extends string>(
-  definition: ComponentDefinition<TPublic, TKey>,
-): ReturnType<typeof convertComponent> => convertComponent(definition);
+export const component = <
+  TPublic extends boolean,
+  TKey extends string,
+  TDefinition extends AuthoringDefinition = AuthoringDefinition,
+>(
+  definition: ComponentDefinition<TPublic, TKey> & TDefinition,
+): ReturnType<typeof convertComponent> & AuthoringCarrier<TDefinition> =>
+  retainAuthoring(convertComponent(definition), definition);
 
 /**
  * This function creates an action object that can be referenced
@@ -988,7 +1002,7 @@ export const pollingTrigger = <
 export const dataSource = <
   TInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection,
-  TDataSourceType extends DataSourceType,
+  const TDataSourceType extends DataSourceType,
 >(
   definition: DataSourceDefinition<TInputs, TConfigVars, TDataSourceType>,
 ): DataSourceDefinition<TInputs, TConfigVars, TDataSourceType> => definition;
@@ -1159,9 +1173,9 @@ export const dynamicObjectInput = <
  *   },
  * });
  */
-export const connection = <T extends DefaultConnectionDefinition>(
-  definition: Exact<DefaultConnectionDefinition, T>,
-): T => definition;
+export const connection = <T extends DefaultConnectionDefinition, TKey extends string = string>(
+  definition: T & Exact<DefaultConnectionDefinition, T> & { key: TKey },
+): T & { key: TKey } => definition;
 
 /**
  * This function creates an on-prem connection for a code-native integration or custom component.
@@ -1208,9 +1222,12 @@ export const connection = <T extends DefaultConnectionDefinition>(
  *   },
  * });
  */
-export const onPremConnection = <T extends OnPremConnectionDefinition>(
-  definition: Exact<OnPremConnectionDefinition, T>,
-): T => definition;
+export const onPremConnection = <
+  T extends OnPremConnectionDefinition,
+  TKey extends string = string,
+>(
+  definition: T & Exact<OnPremConnectionDefinition, T> & { key: TKey },
+): T & { key: TKey } => definition;
 
 /**
  * This function creates an OAuth 2.0 connection for a code-native integration or custom component.
@@ -1265,14 +1282,19 @@ export const onPremConnection = <T extends OnPremConnectionDefinition>(
  *   },
  * });
  */
-export const oauth2Connection = <T extends OAuth2ConnectionDefinition>(
-  definition: Exact<OAuth2ConnectionDefinition, T> &
-    (T extends { oauth2Config?: infer TConfig }
+export const oauth2Connection = <
+  T extends OAuth2ConnectionDefinition,
+  TKey extends string = string,
+>(
+  definition: T &
+    Exact<OAuth2ConnectionDefinition, T> & { key: TKey } & (T extends {
+      oauth2Config?: infer TConfig;
+    }
       ? {
           oauth2Config?: TConfig extends OAuth2Config ? Exact<OAuth2Config, TConfig> : never;
         }
       : object),
-): T => definition;
+): T & { key: TKey } => definition;
 
 /**
  * Register multiple component manifests for a code-native integration.
