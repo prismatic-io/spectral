@@ -2139,70 +2139,49 @@ const codeNativeIntegrationComponent = <
     };
   }, {});
 
-  const convertedBundledDataSources: Record<string, ServerDataSource> = {};
-  const addBundledDataSource = (
+  const convertedDataSources: Record<string, ServerDataSource> = {};
+  const addDataSource = (
     key: string,
-    source: { perform: (...args: any[]) => any; dataSourceType: any },
+    source: Pick<ServerDataSource, "perform" | "dataSourceType"> & {
+      dataSourceReset?: { dependencies?: string[] };
+    },
+    label = key,
   ) => {
+    const bundled = getBundledDataSource(source);
     if (
-      Object.hasOwn(convertedBundledDataSources, key) ||
-      Object.keys(configVars).some((name) => camelCase(name) === key && configVars[name] !== source)
+      bundled &&
+      (Object.hasOwn(convertedDataSources, key) ||
+        Object.keys(configVars).some(
+          (name) => camelCase(name) === key && configVars[name] !== source,
+        ))
     )
       throw new Error(`Bundled data source key collision: ${key}`);
-    const bundled = getBundledDataSource(source);
-    if (!bundled) throw new Error(`Missing bundled data source definition: ${key}`);
-    const detailKey = bundled.detail ? `${key}__detail` : undefined;
-    convertedBundledDataSources[key] = {
+    const detailKey = bundled?.detail ? `${key}__detail` : undefined;
+    // Placeholder inputs tell the wizard when JSON-form dependencies change.
+    const dependencies =
+      source.dataSourceType === "jsonForm" ? (source.dataSourceReset?.dependencies ?? []) : [];
+    if (bundled) label = key;
+    convertedDataSources[key] = {
       key,
       dataSourceType: source.dataSourceType,
-      display: { label: key, description: key },
-      inputs: Object.entries(bundled.inputs).map(([key, input]) => convertInput(key, input)),
+      display: { label, description: label },
+      inputs: bundled
+        ? Object.entries(bundled.inputs).map(([key, input]) => convertInput(key, input))
+        : dependencies.map((dep, idx) => ({ key: `input${idx}`, label: dep, type: "string" })),
       perform: (context, params) =>
         runWithDataSourceContext(context, () => source.perform(context, params)),
       ...(detailKey ? { detailDataSource: detailKey } : {}),
     };
-    if (bundled.detail && detailKey) addBundledDataSource(detailKey, bundled.detail);
+    if (bundled?.detail && detailKey) {
+      if (!getBundledDataSource(bundled.detail))
+        throw new Error(`Missing bundled data source definition: ${detailKey}`);
+      addDataSource(detailKey, bundled.detail);
+    }
   };
 
-  const convertedDataSources = Object.entries(configVars).reduce<Record<string, ServerDataSource>>(
-    (result, [key, configVar]) => {
-      if (!isDataSourceDefinitionConfigVar(configVar)) {
-        return result;
-      }
-
-      const camelKey = camelCase(key);
-      if (getBundledDataSource(configVar)) {
-        addBundledDataSource(camelKey, configVar);
-        return result;
-      }
-      const dataSource = pick(configVar, ["perform", "dataSourceType"]);
-
-      return {
-        ...result,
-        [camelKey]: {
-          ...dataSource,
-          perform: (context, params) =>
-            runWithDataSourceContext(context, () => dataSource.perform(context, params)),
-          key: camelKey,
-          display: {
-            label: key,
-            description: key,
-          },
-          inputs:
-            // Create placeholder inputs for each config variable dependency,so that
-            // the config wizard can detect if any changed and reset the data source.
-            isJsonFormDataSourceConfigVar(configVar) && configVar.dataSourceReset
-              ? (configVar.dataSourceReset.dependencies || []).map((dep, idx) => ({
-                  key: `input${idx}`,
-                  label: dep,
-                  type: "string",
-                }))
-              : [],
-        },
-      };
-    },
-    {},
-  );
+  for (const [key, configVar] of Object.entries(configVars)) {
+    if (isDataSourceDefinitionConfigVar(configVar)) addDataSource(camelCase(key), configVar, key);
+  }
 
   const convertedConnections = Object.entries(configVars).reduce<ServerConnection[]>(
     (result, [key, configVar]) => {
@@ -2247,7 +2226,7 @@ const codeNativeIntegrationComponent = <
     connections: convertedConnections,
     actions: convertedActions,
     triggers: convertedTriggers,
-    dataSources: { ...convertedDataSources, ...convertedBundledDataSources },
+    dataSources: convertedDataSources,
   };
 };
 

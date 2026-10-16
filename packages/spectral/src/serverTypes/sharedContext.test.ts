@@ -52,6 +52,7 @@ describe("context shared between independent Spectral copies", () => {
     const outer = { executionId: "outer" } as ActionContext;
     const configuration = { configVars: {} } as DataSourceContext;
     await first.runWithContext(outer, async () => {
+      expect(first.requireDataSourceContext()).toBe(outer);
       await expect(
         second.runWithDataSourceContext(configuration, async () => {
           await Promise.resolve();
@@ -63,6 +64,7 @@ describe("context shared between independent Spectral copies", () => {
         }),
       ).rejects.toThrow("configuration failure");
       expect(second.requireContext()).toBe(outer);
+      expect(second.requireDataSourceContext()).toBe(outer);
     });
     expect(() => second.requireDataSourceContext()).toThrow("DataSourceContext not found");
   });

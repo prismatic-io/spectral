@@ -202,7 +202,11 @@ describe("bundled component trigger bindings", () => {
     expect(() => requireContext()).toThrow("ActionContext not found");
   });
 
-  it("infers polling semantics, requires a schedule, and preserves polling state and results", async () => {
+  it.each([
+    undefined,
+    true,
+    false,
+  ])("infers polling semantics, requires a schedule, and preserves state and results (%s)", async (polledNoChanges) => {
     const callable = callableComponent({
       triggers: {
         poll: pollingTrigger({
@@ -210,8 +214,15 @@ describe("bundled component trigger bindings", () => {
           inputs: { cursor: input({ type: "string", label: "Cursor", default: "first" }) },
           perform: async (context, receivedPayload, params) => {
             expect(requireContext()).toBe(context);
+            await Promise.resolve();
             context.polling.setState({ cursor: params.cursor });
-            return { payload: receivedPayload, polledNoChanges: true };
+            return polledNoChanges === undefined
+              ? undefined
+              : {
+                  payload: receivedPayload,
+                  polledNoChanges,
+                  instanceState: { preserved: true },
+                };
           },
         }),
       },
@@ -223,10 +234,16 @@ describe("bundled component trigger bindings", () => {
     expect(wire.isPollingTrigger).toBe(true);
     expect(wire.scheduleSupport).toBe("required");
     const context = contextFor();
-    await expect(wire.perform(context, payload, {})).resolves.toMatchObject({
-      resultType: "polled_no_changes",
-      payload,
-    });
+    await expect(wire.perform(context, payload, {})).resolves.toEqual(
+      polledNoChanges === undefined
+        ? undefined
+        : {
+            payload,
+            instanceState: { preserved: true },
+            resultType: polledNoChanges ? "polled_no_changes" : "completed",
+          },
+    );
+    expect(() => requireContext()).toThrow("ActionContext not found");
     expect(context.instanceState).toEqual({
       __prismaticInternal: { polling: { cursor: "first" } },
     });

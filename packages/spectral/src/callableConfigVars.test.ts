@@ -6,6 +6,7 @@ import {
   configPage,
   connection,
   dataSource,
+  dataSourceConfigVar,
   input,
   integration,
 } from ".";
@@ -14,7 +15,7 @@ import type { DataSourceContext } from "./types";
 
 const display = { label: "Factory", description: "Configuration factory" };
 const context = {
-  configVars: { Connection: { fields: { token: "fixture" } }, Query: " raw " },
+  configVars: { Connection: { fields: { token: "fixture" } }, Query: " raw ", Parent: "filter" },
 } as unknown as DataSourceContext;
 
 describe("callable config-var factories", () => {
@@ -22,19 +23,16 @@ describe("callable config-var factories", () => {
     "LATEST",
     2,
   ] as const)("references the published connection at %s without creating an inline connection", (version) => {
-    const fixture = callableComponent(
-      component({
-        key: "published",
-        public: true,
-        display,
-        connections: [
-          connection({
-            key: "api",
-            display,
-            inputs: { token: input({ label: "Token", type: "password" }) },
-          }),
-        ],
-      }),
+    const api = connection({
+      key: "api",
+      display,
+      inputs: { token: input({ label: "Token", type: "password" }) },
+    });
+    const server = component({ key: "published", public: true, display, connections: [api] });
+    const fixture = callableComponent(server);
+    expect(Array.isArray(server.connections[0].inputs)).toBe(true);
+    expect(() => callableComponent({ connections: [api, api] })).toThrow(
+      "Duplicate connection key",
     );
     const cni = integration({
       name: "Connection",
@@ -79,7 +77,7 @@ describe("callable config-var factories", () => {
       dataSources: {
         objects: dataSource({
           display,
-          inputs,
+          inputs: { ...inputs, filter: input({ label: "Filter", type: "string" }) },
           dataSourceType: "objectSelection",
           detailDataSource: "details",
           perform: async (ctx, params) => {
@@ -105,21 +103,37 @@ describe("callable config-var factories", () => {
         }),
       },
     });
+    const ordinary = {
+      ...dataSourceConfigVar({
+        stableKey: "ordinary",
+        dataSourceType: "jsonForm",
+        perform: async () => ({ result: { schema: {}, uiSchema: { type: "VerticalLayout" } } }),
+      }),
+      dataSourceReset: { mode: "always" as const, dependencies: ["Query"] },
+    };
     const cni = integration({
       name: "Data source factory",
       flows: [],
       configPages: {
         Configuration: configPage({
           elements: {
+            "Ordinary Form": ordinary,
             Objects: fixture.dataSources.objects({
               stableKey: "objects",
-              values: { connection: { configVar: "Connection" }, query: { configVar: "Query" } },
+              values: {
+                connection: { configVar: "Connection" },
+                query: { configVar: "Query" },
+                filter: { configVar: "Parent" },
+              },
             }),
           },
         }),
       },
     });
-    expect(Object.keys(cni.dataSources)).toEqual(["objects", "objects__detail"]);
+    expect(cni.dataSources.ordinaryForm).toMatchObject({
+      display: { label: "Ordinary Form" },
+      inputs: [{ key: "input0", label: "Query", type: "string" }],
+    });
     expect(cni.dataSources.objects.detailDataSource).toBe("objects__detail");
     expect(cni.dataSources.objects__detail.inputs).toEqual(
       expect.arrayContaining([
@@ -127,18 +141,47 @@ describe("callable config-var factories", () => {
       ]),
     );
     const definition = parse(cni.codeNativeIntegrationYAML ?? "");
-    expect(definition.requiredConfigVars[0].inputs).toMatchObject({
+    const objects = definition.requiredConfigVars.find(
+      (item: { key: string }) => item.key === "Objects",
+    );
+    expect(objects.inputs).toMatchObject({
       connection: { type: "configVar", value: "Connection" },
       query: { type: "configVar", value: "Query" },
     });
-    expect(definition.requiredConfigVars[0].dataSource.component.key).toBe(cni.key);
+    expect(objects.dataSource.component.key).toBe(cni.key);
     await expect(cni.dataSources.objects.perform(context, {})).resolves.toEqual({
       result: [{ object: { key: "raw" } }],
     });
     await expect(
-      cni.dataSources.objects__detail.perform(context, { selected: "chosen" }),
-    ).resolves.toEqual({ result: "raw:chosen" });
+      cni.dataSources.objects__detail.perform(
+        { ...context, configVars: { Connection: context.configVars.Connection, Query: " raw " } },
+        { selected: "chosen", query: " override " },
+      ),
+    ).resolves.toEqual({ result: "override:chosen" });
     expect(clean).toHaveBeenCalledTimes(2);
+    await expect(
+      cni.dataSources.objects.perform({ ...context, configVars: {} }, {}),
+    ).rejects.toThrow("Missing config variable for data source input");
+    expect(() =>
+      integration({
+        name: "Colliding data sources",
+        flows: [],
+        configPages: {
+          Configuration: configPage({
+            elements: {
+              "Ordinary Form": ordinary,
+              "ordinary-form": fixture.dataSources.objects({
+                stableKey: "collision",
+                values: {
+                  connection: { configVar: "Connection" },
+                  query: "query",
+                },
+              }),
+            },
+          }),
+        },
+      }),
+    ).toThrow("Bundled data source key collision");
     expect(() => requireDataSourceContext()).toThrow("DataSourceContext not found");
   });
 
