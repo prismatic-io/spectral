@@ -8,7 +8,7 @@ export const publishedConnectionSymbol = Symbol.for(
 export const bundledDataSourceSymbol = Symbol.for("@prismatic-io/spectral/bundledDataSource/v1");
 
 export interface PublishedConnection {
-  component: Extract<ComponentReference["component"], { version: number | "LATEST" }>;
+  component: Extract<ComponentReference["component"], { signature: string }>;
   inputs: Inputs;
 }
 
