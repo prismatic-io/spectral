@@ -170,9 +170,12 @@ expectType<ConnectionConfigVar>(
   callable.connections.api({
     stableKey: "api-config",
     values: { token: { value: "raw" } },
-    version: 2,
   }),
 );
+expectError(callable.connections.api({ stableKey: "api", version: 2 }));
+expectError(callable.connections.api({ stableKey: "api", version: "LATEST" }));
+const versionedConnectionOptions = { stableKey: "api", version: 2 };
+expectError(callable.connections.api(versionedConnectionOptions));
 expectError(callable.connections.api({}));
 expectError(callable.connections.api({ stableKey: "api", values: { missing: { value: "raw" } } }));
 expectError(callable.connections.api({ stableKey: "api", values: { token: { value: 123 } } }));

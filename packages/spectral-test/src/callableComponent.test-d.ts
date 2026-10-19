@@ -34,6 +34,7 @@ const authored = component({
   actions: { list },
 });
 const callable = callableComponent(authored);
+expectError(callableComponent(authored, { signature: "a".repeat(40) }));
 expectType<Promise<{ data: { total: number } }>>(
   callable.actions.list({ connection, query: "raw" }),
 );

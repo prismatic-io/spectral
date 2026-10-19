@@ -14,15 +14,13 @@ import { requireDataSourceContext } from "./serverTypes/asyncContext";
 import type { DataSourceContext } from "./types";
 
 const display = { label: "Factory", description: "Configuration factory" };
+const signature = "__PRISMATIC_COMPONENT_SELF__";
 const context = {
   configVars: { Connection: { fields: { token: "fixture" } }, Query: " raw ", Parent: "filter" },
 } as unknown as DataSourceContext;
 
 describe("callable config-var factories", () => {
-  it.each([
-    "LATEST",
-    2,
-  ] as const)("references the published connection at %s without creating an inline connection", (version) => {
+  it("references its own published component without creating an inline connection", () => {
     const api = connection({
       key: "api",
       display,
@@ -42,7 +40,6 @@ describe("callable config-var factories", () => {
           elements: {
             Connection: fixture.connections.api({
               stableKey: "connection",
-              version,
               values: { token: { value: "default", writeOnly: true } },
             }),
           },
@@ -52,8 +49,36 @@ describe("callable config-var factories", () => {
     expect(cni.connections).toEqual([]);
     const definition = parse(cni.codeNativeIntegrationYAML ?? "");
     expect(definition.requiredConfigVars[0]).toMatchObject({
-      connection: { key: "api", component: { key: "published", version, isPublic: true } },
+      connection: {
+        key: "api",
+        component: { key: "published", signature, isPublic: true },
+      },
       inputs: { token: { type: "value", value: "default", meta: { writeOnly: true } } },
+    });
+  });
+
+  it.each([2, "LATEST", undefined])("ignores an explicit version override (%s)", (version) => {
+    const fixture = callableComponent(
+      component({
+        key: "published",
+        display,
+        connections: [connection({ key: "api", display, inputs: {} })],
+      }),
+    );
+    const options = { stableKey: "connection", version };
+    const config = fixture.connections.api(options as any);
+    expect(config).not.toHaveProperty("version");
+    expect(options).toHaveProperty("version", version);
+    const cni = integration({
+      name: "Connection override",
+      flows: [],
+      configPages: { Configuration: configPage({ elements: { Connection: config } }) },
+    });
+    const definition = parse(cni.codeNativeIntegrationYAML ?? "");
+    expect(definition.requiredConfigVars[0].connection.component).toEqual({
+      key: "published",
+      isPublic: false,
+      signature,
     });
   });
 

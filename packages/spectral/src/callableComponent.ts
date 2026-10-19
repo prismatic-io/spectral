@@ -237,7 +237,8 @@ type CallableDataSource<TSource> = TSource extends {
   : never;
 
 type ConnectionOptions<TConnection> = BaseConfigVar & {
-  version?: number | "LATEST";
+  /** Callable connections always reference their own package's artifact signature. */
+  version?: never;
   values?: {
     [K in keyof EntityInputs<TConnection>]?: (
       | { value: CallableInputValue<EntityInputs<TConnection>[K]> }
@@ -496,6 +497,7 @@ type AuthoringOf<TSource> =
  * Creates local calls from authored component entities. Triggers retain their metadata and
  * expose context-bound perform/lifecycle methods. Connection factories reference published
  * components, while data-source factories build bundled configuration callbacks.
+ * Prism resolves the reserved self signature to the packaged component artifact at publication.
  */
 export const callableComponent = <
   TSource extends AuthoringCarrier<AuthoringDefinition> | AuthoringDefinition,
@@ -541,12 +543,13 @@ export const callableComponent = <
     (definition.connections ?? []).map((connection) => [
       connection.key,
       ({
-        version = "LATEST",
         values = {},
         template,
         onPremiseConnectionConfig,
         ...options
       }: ConnectionOptions<typeof connection>) => {
+        // Discard overrides supplied by callers that bypass the type restriction.
+        delete options.version;
         if (!definition.key) throw new Error("Published connections require the component's key.");
         const reference = {
           component: definition.key,
@@ -555,7 +558,11 @@ export const callableComponent = <
           template,
           onPremiseConnectionConfig,
           [publishedConnectionSymbol]: {
-            component: { key: definition.key, isPublic: definition.public ?? false, version },
+            component: {
+              key: definition.key,
+              isPublic: definition.public ?? false,
+              signature: "__PRISMATIC_COMPONENT_SELF__",
+            },
             inputs: connection.inputs,
           },
         };
