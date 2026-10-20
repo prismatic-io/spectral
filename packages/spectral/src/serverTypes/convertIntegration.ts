@@ -46,6 +46,7 @@ import {
   type PollingTriggerPerformFunction,
   type PollingTriggerType,
   type QueueConfig,
+  type RetryConfig,
   type StandardQueueConfig,
   type StandardTriggerType,
   type TriggerEventFunctionReturn,
@@ -102,6 +103,41 @@ import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } fr
 
 export const CONCURRENCY_LIMIT_MAX = 15;
 export const CONCURRENCY_LIMIT_MIN = 2;
+export const MAX_FLOW_RETRY_ATTEMPTS = 10;
+export const MAX_FLOW_RETRY_ATTEMPT_DELAY_MIN = 60;
+export const MAX_BATCH_RETRY_ATTEMPTS = 3;
+export const MAX_BATCH_RETRY_ATTEMPT_DELAY_MIN = 15;
+
+interface RetryConfigLimits {
+  maxAttempts: number;
+  maxDelayMinutes: number;
+  subject: string;
+}
+
+const validateRetryConfig = (
+  flowName: string,
+  retryConfig: RetryConfig,
+  limits: RetryConfigLimits,
+): void => {
+  if (
+    !Number.isInteger(retryConfig.maxAttempts) ||
+    retryConfig.maxAttempts < 0 ||
+    retryConfig.maxAttempts > limits.maxAttempts
+  ) {
+    throw new Error(
+      `${flowName} has an invalid retryConfig maxAttempts of ${retryConfig.maxAttempts}. ${limits.subject} support between 0 and ${limits.maxAttempts} retry attempts.`,
+    );
+  }
+  if (
+    !Number.isInteger(retryConfig.delayMinutes) ||
+    retryConfig.delayMinutes < 0 ||
+    retryConfig.delayMinutes > limits.maxDelayMinutes
+  ) {
+    throw new Error(
+      `${flowName} has an invalid retryConfig delayMinutes of ${retryConfig.delayMinutes}. ${limits.subject} support retry delays between 0 and ${limits.maxDelayMinutes} minutes.`,
+    );
+  }
+};
 
 /**
  * The wire-shape resolver synthesized by {@link normalizeBatchedFlow} and read by the trigger
@@ -1113,6 +1149,23 @@ export const convertFlow = <
   const triggerResolver = "triggerResolver" in flow ? flow.triggerResolver : undefined;
   const onDeployResolver = "onDeployResolver" in flow ? flow.onDeployResolver : undefined;
   const batchConfig = "batchConfig" in flow ? flow.batchConfig : undefined;
+  if (flow.retryConfig) {
+    validateRetryConfig(
+      flow.name,
+      flow.retryConfig,
+      batchConfig
+        ? {
+            maxAttempts: MAX_BATCH_RETRY_ATTEMPTS,
+            maxDelayMinutes: MAX_BATCH_RETRY_ATTEMPT_DELAY_MIN,
+            subject: "Batched flows",
+          }
+        : {
+            maxAttempts: MAX_FLOW_RETRY_ATTEMPTS,
+            maxDelayMinutes: MAX_FLOW_RETRY_ATTEMPT_DELAY_MIN,
+            subject: "Flows",
+          },
+    );
+  }
   // CNI authors referencing an existing component's batching trigger opt the initial
   // on-deploy sync in/out with this flow-level flag (default off). A `batchFlowTrigger`
   // flow instead drives the on-deploy fire structurally (presence of `onDeploy`), so the

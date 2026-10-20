@@ -293,6 +293,11 @@ interface BatchFields<TItem, TPaginationState extends Record<string, unknown>> {
    */
   batchConfig: BatchConfig;
   /**
+   * Retry configuration applied independently to each failed batch, not to the full flow
+   * execution. Batched flows support up to 3 retry attempts and a delay of up to 15 minutes.
+   */
+  retryConfig?: BatchRetryConfig;
+  /**
    * The batched trigger for this flow, built with {@link batchFlowTrigger}. Its fires
    * (`onTrigger`/`onDeploy`) return `{ items, paginationState? }`. Required when `batchConfig`
    * is set.
@@ -307,6 +312,8 @@ interface BatchFields<TItem, TPaginationState extends Record<string, unknown>> {
 interface NonBatchFields {
   /** `batchConfig` requires a batched `trigger`; see {@link BatchFields}. */
   batchConfig?: never;
+  /** Retry configuration for a non-batched flow. */
+  retryConfig?: RetryConfig;
   /** A batched `trigger` requires `batchConfig`; see {@link BatchFields}. */
   trigger?: never;
 }
@@ -343,8 +350,6 @@ interface FlowBase<TTriggerPayload extends TriggerPayload = TriggerPayload, TIte
   runInitialSyncOnDeploy?: boolean;
   /** Value that specifies whether this flow is an AI agent flow on the integrations MCP server. @default `false` */
   isAgentFlow?: boolean;
-  /** Retry Configuration for this flow. */
-  retryConfig?: RetryConfig;
   /** Queue Configuration for this flow. */
   queueConfig?: QueueConfig;
   /**
@@ -622,6 +627,17 @@ export type RetryConfig = {
   usesExponentialBackoff: boolean;
   /** Name of the field in the data payload returned by the flow's trigger to use as a Unique Request ID for retry request cancellation. */
   uniqueRequestIdField?: string;
+};
+
+/**
+ * Defines retry configuration applied independently to each failed batch in a batched flow.
+ * These settings retry the individual batch rather than the full flow execution.
+ */
+export type BatchRetryConfig = Omit<RetryConfig, "maxAttempts" | "delayMinutes"> & {
+  /** The maximum number of retry attempts. Must be between 0 and 3. */
+  maxAttempts: number;
+  /** The delay in minutes to wait between retry attempts. Must be between 0 and 15. */
+  delayMinutes: number;
 };
 
 /** Defines attributes of a queue configuration used by a flow of an integration. */

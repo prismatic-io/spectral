@@ -214,6 +214,92 @@ describe("convertFlow with polling triggers", () => {
     );
   });
 
+  it.each([
+    {
+      retryConfig: { maxAttempts: 4, delayMinutes: 1, usesExponentialBackoff: false },
+      message: /invalid retryConfig maxAttempts of 4/,
+    },
+    {
+      retryConfig: { maxAttempts: 3, delayMinutes: 16, usesExponentialBackoff: false },
+      message: /invalid retryConfig delayMinutes of 16/,
+    },
+    {
+      retryConfig: { maxAttempts: 2.5, delayMinutes: 1, usesExponentialBackoff: false },
+      message: /invalid retryConfig maxAttempts of 2.5/,
+    },
+    {
+      retryConfig: { maxAttempts: 3, delayMinutes: Number.NaN, usesExponentialBackoff: false },
+      message: /invalid retryConfig delayMinutes of NaN/,
+    },
+  ])("rejects retryConfig outside the batch runtime limits", ({ retryConfig, message }) => {
+    const invalidFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+      }),
+      retryConfig,
+    });
+
+    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(message);
+  });
+
+  it("accepts retryConfig at the batch runtime limits", () => {
+    const batchedFlow = flow({
+      ...baseFlowInput,
+      batchConfig: { batchSize: 10 },
+      trigger: batchFlowTrigger({
+        onTrigger: async () => ({ items: [1, 2, 3] }),
+      }),
+      retryConfig: { maxAttempts: 3, delayMinutes: 15, usesExponentialBackoff: true },
+    });
+
+    expect(convertFlow(batchedFlow, {}, "test-ref").retryConfig).toEqual({
+      maxAttempts: 3,
+      delayMinutes: 15,
+      usesExponentialBackoff: true,
+    });
+  });
+
+  it.each([
+    {
+      retryConfig: { maxAttempts: 11, delayMinutes: 1, usesExponentialBackoff: false },
+      message: /invalid retryConfig maxAttempts of 11/,
+    },
+    {
+      retryConfig: { maxAttempts: 10, delayMinutes: 61, usesExponentialBackoff: false },
+      message: /invalid retryConfig delayMinutes of 61/,
+    },
+    {
+      retryConfig: { maxAttempts: 2.5, delayMinutes: 1, usesExponentialBackoff: false },
+      message: /invalid retryConfig maxAttempts of 2.5/,
+    },
+    {
+      retryConfig: { maxAttempts: 10, delayMinutes: Number.NaN, usesExponentialBackoff: false },
+      message: /invalid retryConfig delayMinutes of NaN/,
+    },
+  ])("rejects retryConfig outside the flow runtime limits", ({ retryConfig, message }) => {
+    const invalidFlow = flow({
+      ...baseFlowInput,
+      retryConfig,
+    });
+
+    expect(() => convertFlow(invalidFlow, {}, "test-ref")).toThrow(message);
+  });
+
+  it("accepts retryConfig at the flow runtime limits", () => {
+    const retryingFlow = flow({
+      ...baseFlowInput,
+      retryConfig: { maxAttempts: 10, delayMinutes: 60, usesExponentialBackoff: true },
+    });
+
+    expect(convertFlow(retryingFlow, {}, "test-ref").retryConfig).toEqual({
+      maxAttempts: 10,
+      delayMinutes: 60,
+      usesExponentialBackoff: true,
+    });
+  });
+
   it("synthesizes the default resolveItems and getNextPaginationState on the trigger", () => {
     const batchedFlow = flow({
       ...baseFlowInput,
