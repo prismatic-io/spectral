@@ -50,7 +50,7 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
 
-      - uses: jdx/mise-action@v5.0.1
+      - uses: jdx/mise-action@v5.1.1
 
       - run: mise run install
 
@@ -89,7 +89,7 @@ jobs:
         with:
           ref: ${{ needs.release.outputs.tag }}
 
-      - uses: jdx/mise-action@v5.0.1
+      - uses: jdx/mise-action@v5.1.1
 
       - run: mise run install
 
