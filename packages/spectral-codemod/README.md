@@ -17,7 +17,7 @@ npx @prismatic-io/spectral-codemod@latest <codemod> --target-spectral <version> 
 ```
 
 Each codemod has the spectral version it migrates to, as in
-`v10.0.0/integration-configuration`. Name the codemod with its version, or name it alone
+`v10.36.0/integration-configuration`. Name the codemod with its version, or name it alone
 and pass the spectral version to migrate to with `--target-spectral`. The latest version of
 the codemod at or below that spectral version runs. A preview release, such as
 `10.26.2-preview.1`, is below its release. You must give the version in one of the two
@@ -32,8 +32,8 @@ and the test files that import one of those, compiled with the options of the ne
 
 ```sh
 npx @prismatic-io/spectral-codemod@latest --list                          # available codemods
-npx @prismatic-io/spectral-codemod@latest v10.0.0/integration-configuration --dry-run   # report without writing
-npx @prismatic-io/spectral-codemod@latest integration-configuration --target-spectral 10.3.1   # v10.0.0
+npx @prismatic-io/spectral-codemod@latest v10.36.0/integration-configuration --dry-run   # report without writing
+npx @prismatic-io/spectral-codemod@latest integration-configuration --target-spectral 10.36.2   # v10.36.0
 ```
 
 Commit or stash your work first, then review the diff the codemod leaves behind. When a
@@ -41,7 +41,7 @@ project holds more than one integration, pass the file of the one to migrate as 
 
 ## Codemods
 
-### `v10.0.0/integration-configuration`
+### `v10.36.0/integration-configuration`
 
 Replaces an integration's config wizard with an integration `configuration`. The codemod
 finds the project's single `integration()` call, ignoring calls in test files, and:
@@ -206,6 +206,6 @@ are not carried into the schema.
 A codemod is a `Codemod` from `src/codemod.ts`: the spectral `version` it migrates to, a
 `name` shared by each version of the migration, a `description`, and a
 `transform(project)` that edits a [ts-morph](https://ts-morph.com) `Project` and returns
-the files it changed. The `version` is a release, such as `10.0.0`, and the codemod lives
+the files it changed. The `version` is a release, such as `10.36.0`, and the codemod lives
 in `src/codemods/v<version>/`. Wrap a file-level transform with `eachFile`. Add the codemod
 to `src/codemods/index.ts` and give it a test built on `applyCodemod` from `src/testing.ts`.

@@ -1,5 +1,5 @@
 import { type Codemod, codemodId } from "../codemod";
-import integrationConfiguration from "./v10.0.0/integrationConfiguration";
+import integrationConfiguration from "./v10.36.0/integrationConfiguration";
 
 const all: Codemod[] = [integrationConfiguration];
 
@@ -52,7 +52,7 @@ const compareVersions = (a: Codemod, b: Codemod): number => {
 
 /**
  * The codemod `requested` names. A versioned name, such as
- * `v10.0.0/integration-configuration`, names one codemod. A bare name, such as
+ * `v10.36.0/integration-configuration`, names one codemod. A bare name, such as
  * `integration-configuration`, names the latest version of that migration at or below
  * `targetSpectral`, and needs it. Throws when no single codemod is named.
  */

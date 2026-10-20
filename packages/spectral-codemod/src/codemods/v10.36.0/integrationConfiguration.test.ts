@@ -126,7 +126,7 @@ export default integration({
 });
 `;
 
-describe("v10.0.0/integration-configuration", () => {
+describe("v10.36.0/integration-configuration", () => {
   it("rewrites the integration file and declares server functions beside their data sources", () => {
     const { files, changed } = run({
       "src/index.ts": INDEX,
@@ -955,7 +955,7 @@ export default integration({ name: "${name}", flows: [] });
       [
         "Found 2 integration() calls: /src/a.ts:2, /src/b.ts:2.",
         "Pass the file of the integration to migrate as the path, for example:",
-        "  spectral-codemod v10.0.0/integration-configuration /src/a.ts",
+        "  spectral-codemod v10.36.0/integration-configuration /src/a.ts",
       ].join("\n"),
     );
   });

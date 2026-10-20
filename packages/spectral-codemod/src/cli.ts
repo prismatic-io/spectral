@@ -8,12 +8,12 @@ const USAGE = `Usage: spectral-codemod v<version>/<codemod> [path] [--dry-run]
        spectral-codemod --list
 
 Applies a migration to the project at <path> (default: the current directory).
-Name the codemod with its version, such as v10.0.0/integration-configuration, or
+Name the codemod with its version, such as v10.36.0/integration-configuration, or
 name it alone and pass the spectral version to migrate to. The latest version of
 the codemod at or below that version runs.
 
 Options:
-  --target-spectral <version>  The spectral version to migrate to, such as 10.3.1.
+  --target-spectral <version>  The spectral version to migrate to, such as 10.36.2.
   --dry-run                    Report the files that would change without writing them.
   --list                       Print the available codemods.
   --help                       Print this message.`;

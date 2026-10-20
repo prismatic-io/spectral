@@ -96,7 +96,7 @@ const CONNECTION_WRAPPERS = new Set([
  * `ui` metadata.
  */
 const codemod = defineCodemod({
-  version: "10.0.0",
+  version: "10.36.0",
   name: "integration-configuration",
   description:
     "Migrate configPages, userLevelConfigPages, and scopedConfigVars to an integration configuration",

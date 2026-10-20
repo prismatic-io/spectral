@@ -28,7 +28,7 @@ const schemaOf = (index: string): string =>
     index.indexOf("export const configurationSchema"),
   );
 
-describe("v10.0.0/integration-configuration flow schedules", () => {
+describe("v10.36.0/integration-configuration flow schedules", () => {
   it("takes a flow's config var schedule from the deploying user", () => {
     const { files, changed } = run({
       "src/index.ts": INDEX,

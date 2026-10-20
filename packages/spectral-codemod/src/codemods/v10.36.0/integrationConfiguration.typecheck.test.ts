@@ -171,7 +171,7 @@ const typecheck = (files: Record<string, string>): string[] => {
     );
 };
 
-describe("v10.0.0/integration-configuration output", () => {
+describe("v10.36.0/integration-configuration output", () => {
   it("type checks against the spectral in this repository", () => {
     expect(
       typecheck({ "configPages.ts": CONFIG_PAGES, "flows.ts": FLOWS, "index.ts": INDEX }),
