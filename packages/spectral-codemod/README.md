@@ -5,7 +5,7 @@
 
 Codemods that migrate Prismatic connectors and code-native integrations across
 [`@prismatic-io/spectral`](../spectral) releases. Each codemod is a named rule that
-rewrites your source files in place.
+rewrites source or project files in place.
 
 ## Usage
 
@@ -203,7 +203,12 @@ are not carried into the schema.
 
 ## Writing a codemod
 
-A codemod is a `Codemod` from `src/codemod.ts`: the spectral `version` it migrates to, a
+For project files, implement `ProjectCodemod.plan(files)`: read with
+`await files.read(path)`, validate, and return `{ path, content }` edits. Paths must
+stay within the target directory. The runner writes changed files; `--dry-run`
+previews them.
+
+A source codemod is a `SourceCodemod` from `src/codemod.ts`: the spectral `version` it migrates to, a
 `name` shared by each version of the migration, a `description`, and a
 `transform(project)` that edits a [ts-morph](https://ts-morph.com) `Project` and returns
 the files it changed. The `version` is a release, such as `10.36.0`, and the codemod lives
