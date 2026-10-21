@@ -127,8 +127,8 @@ export default integration({
 `;
 
 describe("v10.36.0/integration-configuration", () => {
-  it("rewrites the integration file and declares server functions beside their data sources", () => {
-    const { files, changed } = run({
+  it("rewrites the integration file and declares server functions beside their data sources", async () => {
+    const { files, changed } = await run({
       "src/index.ts": INDEX,
       "src/configPages.ts": CONFIG_PAGES,
       "src/flows.ts": "export default [];",
@@ -327,8 +327,8 @@ describe("v10.36.0/integration-configuration", () => {
     `);
   });
 
-  it("migrates flow reads and connection references, and drops the page augmentation", () => {
-    const { files, changed } = run({
+  it("migrates flow reads and connection references, and drops the page augmentation", async () => {
+    const { files, changed } = await run({
       "src/index.ts": INDEX,
       "src/configPages.ts": `${CONFIG_PAGES}
 declare module "@prismatic-io/spectral" {
@@ -405,8 +405,8 @@ export default [
     `);
   });
 
-  it("passes a flow test's config vars to invokeFlow as configuration and connections", () => {
-    const { files, changed } = run({
+  it("passes a flow test's config vars to invokeFlow as configuration and connections", async () => {
+    const { files, changed } = await run({
       "src/index.ts": INDEX,
       "src/configPages.ts": CONFIG_PAGES,
       "src/flows.test.ts": `
@@ -480,8 +480,8 @@ it("syncs", async () => {
     `);
   });
 
-  it("hoists inline pages so the configuration can reference them", () => {
-    const { files } = run({
+  it("hoists inline pages so the configuration can reference them", async () => {
+    const { files } = await run({
       "src/index.ts": `
 import { configPage, configVar, connectionConfigVar, integration } from "@prismatic-io/spectral";
 
@@ -565,8 +565,8 @@ export default integration({
     `);
   });
 
-  it("follows an aliased pages identifier and an element declared elsewhere", () => {
-    const { files } = run({
+  it("follows an aliased pages identifier and an element declared elsewhere", async () => {
+    const { files } = await run({
       "src/vars.ts": `
 import { configVar } from "@prismatic-io/spectral";
 export const count = configVar({ stableKey: "count", dataType: "number" });
@@ -586,8 +586,8 @@ export const acme = integration({ name: "Aliased", configPages: pages });
     expect(files["src/index.ts"]).not.toContain("configPages: pages");
   });
 
-  it("gives a scope that only holds scoped connections an empty schema", () => {
-    const { files } = run({
+  it("gives a scope that only holds scoped connections an empty schema", async () => {
+    const { files } = await run({
       "src/index.ts": `
 import { integration, organizationActivatedConnection, userActivatedConnection } from "@prismatic-io/spectral";
 
@@ -621,8 +621,8 @@ export const userConfigurationSchema = z.object({});`);
   },`);
   });
 
-  it("adds a TODO to a perform whose body is written on one line", () => {
-    const { files } = run({
+  it("adds a TODO to a perform whose body is written on one line", async () => {
+    const { files } = await run({
       "src/index.ts": `
 import { configPage, dataSourceConfigVar, integration } from "@prismatic-io/spectral";
 
@@ -649,8 +649,8 @@ export default integration({
   },`);
   });
 
-  it("follows spread pages and elements", () => {
-    const { files } = run({
+  it("follows spread pages and elements", async () => {
+    const { files } = await run({
       "src/connectionPages.ts": `
 import { configPage, connectionConfigVar } from "@prismatic-io/spectral";
 
@@ -692,8 +692,8 @@ export default integration({
     },`);
   });
 
-  it("fails on a spread it cannot resolve rather than drop what it holds", () => {
-    expect(() =>
+  it("fails on a spread it cannot resolve rather than drop what it holds", async () => {
+    await expect(
       run({
         "src/index.ts": `
 import { integration } from "@prismatic-io/spectral";
@@ -702,11 +702,11 @@ import { makePages } from "./pages";
 export default integration({ name: "Opaque", configPages: { ...makePages() } });
 `,
       }),
-    ).toThrow("index.ts:5: could not resolve ...makePages() to an object literal.");
+    ).rejects.toThrow("index.ts:5: could not resolve ...makePages() to an object literal.");
   });
 
-  it("fails when the definition spreads in its config pages", () => {
-    expect(() =>
+  it("fails when the definition spreads in its config pages", async () => {
+    await expect(
       run({
         "src/index.ts": `
 import { configPage, configVar, integration } from "@prismatic-io/spectral";
@@ -718,11 +718,13 @@ const shared = {
 export default integration({ name: "Shared", ...shared });
 `,
       }),
-    ).toThrow("move configPages, userLevelConfigPages, and scopedConfigVars out of ...shared");
+    ).rejects.toThrow(
+      "move configPages, userLevelConfigPages, and scopedConfigVars out of ...shared",
+    );
   });
 
-  it("proposes the saved configuration from init, flagging collections stored as strings", () => {
-    const { files } = run({
+  it("proposes the saved configuration from init, flagging collections stored as strings", async () => {
+    const { files } = await run({
       "src/index.ts": `
 import { configPage, configVar, integration } from "@prismatic-io/spectral";
 
@@ -755,8 +757,8 @@ export default integration({
   },`);
   });
 
-  it("proposes the saved user configuration from init when there is a user level", () => {
-    const { files } = run({
+  it("proposes the saved user configuration from init when there is a user level", async () => {
+    const { files } = await run({
       "src/index.ts": `
 import { configPage, configVar, integration, userLevelConfigPage } from "@prismatic-io/spectral";
 
@@ -783,8 +785,8 @@ export default integration({
   it.each([
     ['import * as z from "zod";'],
     ['import { z } from "zod/v4";'],
-  ])("uses zod as the file already imports it: %s", (zodImport) => {
-    const { files } = run({
+  ])("uses zod as the file already imports it: %s", async (zodImport) => {
+    const { files } = await run({
       "src/index.ts": `
 import { configPage, configVar, integration } from "@prismatic-io/spectral";
 ${zodImport}
@@ -804,8 +806,8 @@ export default integration({
     expect(imports).toEqual([zodImport]);
   });
 
-  it("adds a value import beside a type-only one", () => {
-    const { files } = run({
+  it("adds a value import beside a type-only one", async () => {
+    const { files } = await run({
       "src/index.ts": `
 import type { ConfigPage } from "@prismatic-io/spectral";
 import { configPage, configVar, integration } from "@prismatic-io/spectral";
@@ -826,8 +828,8 @@ export default integration({ name: "Types", configPages: { Page: page } });
     );
   });
 
-  it("resolves a computed element key to the constant it names", () => {
-    const { files } = run({
+  it("resolves a computed element key to the constant it names", async () => {
+    const { files } = await run({
       "src/index.ts": `
 import { configPage, configVar, connectionConfigVar, integration } from "@prismatic-io/spectral";
 
@@ -856,8 +858,8 @@ export default integration({
     );
   });
 
-  it("fails on a computed element key that is not a constant", () => {
-    expect(() =>
+  it("fails on a computed element key that is not a constant", async () => {
+    await expect(
       run({
         "src/index.ts": `
 import { configPage, configVar, integration } from "@prismatic-io/spectral";
@@ -871,11 +873,11 @@ export default integration({
 });
 `,
       }),
-    ).toThrow('could not resolve the computed key [keyFor("region")] to a string.');
+    ).rejects.toThrow('could not resolve the computed key [keyFor("region")] to a string.');
   });
 
-  it("renames what it declares and imports when the author already uses the name", () => {
-    const { files } = run({
+  it("renames what it declares and imports when the author already uses the name", async () => {
+    const { files } = await run({
       "src/settings.ts": "export const configuration = { zone: 1 };",
       "src/rpc.ts": "export const serverFunction = { schema: 2 };",
       "src/index.ts": `
@@ -925,8 +927,8 @@ export default integration({
     expect(output).toContain("  configuration: integrationConfiguration2");
   });
 
-  it("ignores an integration() call in a test file", () => {
-    const { changed } = run({
+  it("ignores an integration() call in a test file", async () => {
+    const { changed } = await run({
       "src/index.ts": `
 import { configPage, configVar, integration } from "@prismatic-io/spectral";
 
@@ -947,11 +949,11 @@ export const fixture = integration({ name: "Fixture", flows: [] });
     expect(changed).toEqual(["src/index.ts"]);
   });
 
-  it("names each integration() call and the path to pass when there are several", () => {
+  it("names each integration() call and the path to pass when there are several", async () => {
     const source = (name: string) => `import { integration } from "@prismatic-io/spectral";
 export default integration({ name: "${name}", flows: [] });
 `;
-    expect(() => run({ "src/a.ts": source("A"), "src/b.ts": source("B") })).toThrow(
+    await expect(run({ "src/a.ts": source("A"), "src/b.ts": source("B") })).rejects.toThrow(
       [
         "Found 2 integration() calls: /src/a.ts:2, /src/b.ts:2.",
         "Pass the file of the integration to migrate as the path, for example:",
@@ -960,8 +962,8 @@ export default integration({ name: "${name}", flows: [] });
     );
   });
 
-  it("skips a page property that declares nothing", () => {
-    const { files } = run({
+  it("skips a page property that declares nothing", async () => {
+    const { files } = await run({
       "src/index.ts": `
 import { configPage, configVar, integration } from "@prismatic-io/spectral";
 
@@ -981,8 +983,8 @@ export default integration({
     expect(files["src/index.ts"]).toContain("  configuration: integrationConfiguration");
   });
 
-  it("follows a constant dataType and flags one it cannot read", () => {
-    const { files } = run({
+  it("follows a constant dataType and flags one it cannot read", async () => {
+    const { files } = await run({
       "src/index.ts": `
 import { configPage, configVar, integration } from "@prismatic-io/spectral";
 import { pickType } from "./types";
@@ -1013,8 +1015,8 @@ export default integration({
     ['name: "x", configPages, flows'],
     ['name: "x",\n  // The config wizard.\n  configPages,\n  flows,'],
     ['name: "x",\n  configPages, // The config wizard.\n  flows,'],
-  ])("writes one property per line and drops a removed property's comments: %j", (body) => {
-    const { files } = run({
+  ])("writes one property per line and drops a removed property's comments: %j", async (body) => {
+    const { files } = await run({
       "src/index.ts": `
 import { configPage, configVar, integration } from "@prismatic-io/spectral";
 
@@ -1036,8 +1038,8 @@ export default integration({
 `);
   });
 
-  it("keeps the comments of the properties it keeps", () => {
-    const { files } = run({
+  it("keeps the comments of the properties it keeps", async () => {
+    const { files } = await run({
       "src/index.ts": `
 import { configPage, configVar, integration } from "@prismatic-io/spectral";
 
@@ -1066,24 +1068,24 @@ export default integration({ // The only integration.
 `);
   });
 
-  it("fails when the project has no integration() call", () => {
-    expect(() => run({ "src/index.ts": "export const x = 1;" })).toThrow(
+  it("fails when the project has no integration() call", async () => {
+    await expect(run({ "src/index.ts": "export const x = 1;" })).rejects.toThrow(
       "No integration() call imported from @prismatic-io/spectral was found.",
     );
   });
 
-  it("fails when the integration declares no config pages", () => {
-    expect(() =>
+  it("fails when the integration declares no config pages", async () => {
+    await expect(
       run({
         "src/index.ts": `import { integration } from "@prismatic-io/spectral";
 export default integration({ name: "Bare", flows: [] });`,
       }),
-    ).toThrow("declares no configPages to migrate");
-    expect(() =>
+    ).rejects.toThrow("declares no configPages to migrate");
+    await expect(
       run({
         "src/index.ts": `import { integration } from "@prismatic-io/spectral";
 export default integration({ name: "Undefined", flows: [], configPages: undefined });`,
       }),
-    ).toThrow("declares no configPages to migrate");
+    ).rejects.toThrow("declares no configPages to migrate");
   });
 });

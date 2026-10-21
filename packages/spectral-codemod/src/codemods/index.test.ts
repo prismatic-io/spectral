@@ -3,7 +3,7 @@ import { type Codemod, codemodId, defineCodemod } from "../codemod";
 import { codemods, resolveCodemod } from ".";
 
 const fake = (version: string, name = "migrate"): Codemod =>
-  defineCodemod({ version, name, description: "", transform: () => [] });
+  defineCodemod({ version, name, description: "", transform: async () => [] });
 
 const available = [
   fake("10.0.0"),

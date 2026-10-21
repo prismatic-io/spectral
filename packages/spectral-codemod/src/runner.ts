@@ -1,4 +1,5 @@
-import { existsSync, statSync } from "fs";
+import { existsSync } from "node:fs";
+import { stat } from "node:fs/promises";
 import { dirname, join, resolve } from "path";
 import { Project } from "ts-morph";
 import type { Codemod } from "./codemod";
@@ -43,8 +44,8 @@ export const runCodemod = async (
     throw new Error(`Path not found: ${target}`);
   }
 
-  const project = createProject(target);
-  const changed = codemod.transform(project).map((file) => file.getFilePath());
+  const project = await createProject(target);
+  const changed = (await codemod.transform(project)).map((file) => file.getFilePath());
 
   if (!options.dryRun) {
     await project.save();
@@ -56,8 +57,8 @@ export const runCodemod = async (
   return { changed, scanned };
 };
 
-const createProject = (target: string): Project => {
-  if (statSync(target).isFile()) {
+const createProject = async (target: string): Promise<Project> => {
+  if ((await stat(target)).isFile()) {
     if (target.endsWith("tsconfig.json")) {
       return new Project({ tsConfigFilePath: target });
     }

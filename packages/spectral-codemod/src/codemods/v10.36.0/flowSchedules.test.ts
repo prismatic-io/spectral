@@ -29,8 +29,8 @@ const schemaOf = (index: string): string =>
   );
 
 describe("v10.36.0/integration-configuration flow schedules", () => {
-  it("takes a flow's config var schedule from the deploying user", () => {
-    const { files, changed } = run({
+  it("takes a flow's config var schedule from the deploying user", async () => {
+    const { files, changed } = await run({
       "src/index.ts": INDEX,
       "src/flows.ts": `
 import { flow } from "@prismatic-io/spectral";
@@ -62,8 +62,8 @@ export default [
     );
   });
 
-  it("rewrites a schedule declared apart from its polling flow", () => {
-    const { files } = run({
+  it("rewrites a schedule declared apart from its polling flow", async () => {
+    const { files } = await run({
       "src/index.ts": INDEX,
       "src/flows.ts": `
 import { flow } from "@prismatic-io/spectral";
@@ -87,8 +87,8 @@ export default [
     expect(files["src/flows.ts"]).toContain("    schedule: syncSchedule,");
   });
 
-  it("flags flows that shared one schedule config var", () => {
-    const { files } = run({
+  it("flags flows that shared one schedule config var", async () => {
+    const { files } = await run({
       "src/index.ts": INDEX,
       "src/flows.ts": `
 export default [
@@ -114,8 +114,8 @@ export default [
     expect(files["src/flows.ts"].split(todo)).toHaveLength(3);
   });
 
-  it("keeps a schedule config var that a flow also reads", () => {
-    const { files } = run({
+  it("keeps a schedule config var that a flow also reads", async () => {
+    const { files } = await run({
       "src/index.ts": INDEX,
       "src/flows.ts": `
 import { flow } from "@prismatic-io/spectral";
@@ -136,8 +136,8 @@ export default [
     expect(schemaOf(files["src/index.ts"])).toContain(`"Sync Schedule": z.object(`);
   });
 
-  it("flags a schedule that reads a config var the integration does not declare", () => {
-    const { files } = run({
+  it("flags a schedule that reads a config var the integration does not declare", async () => {
+    const { files } = await run({
       "src/index.ts": INDEX,
       "src/flows.ts": `
 import { flow } from "@prismatic-io/spectral";
@@ -160,8 +160,8 @@ export default [
     schedule: { configVar: "Missing Schedule" },`);
   });
 
-  it("leaves a schedule input of a component trigger alone", () => {
-    const { files } = run({
+  it("leaves a schedule input of a component trigger alone", async () => {
+    const { files } = await run({
       "src/index.ts": INDEX,
       "src/flows.ts": `
 import { flow } from "@prismatic-io/spectral";
@@ -187,8 +187,8 @@ export default [
     expect(schemaOf(files["src/index.ts"])).toContain(`"Sync Schedule": z.object(`);
   });
 
-  it("drops a flow test's value for a schedule the deploying user now supplies", () => {
-    const { files } = run({
+  it("drops a flow test's value for a schedule the deploying user now supplies", async () => {
+    const { files } = await run({
       "src/index.ts": INDEX,
       "src/flows.ts": `
 import { flow } from "@prismatic-io/spectral";
