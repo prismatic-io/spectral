@@ -7,6 +7,10 @@
 
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import { localMock } from "./localMock";
+import { CallableMocks, type FunctionMock } from "./testingMocks";
+
+export type { FunctionMock } from "./testingMocks";
+
 import type {
   ActionLogger,
   Component,
@@ -18,7 +22,12 @@ import type {
   TriggerPayload,
   TriggerResult,
 } from "./serverTypes";
-import { invokeWithContext } from "./serverTypes/asyncContext";
+import {
+  invokeWithContext,
+  runWithCallableMocks,
+  runWithDataSourceContext,
+} from "./serverTypes/asyncContext";
+import { normalizeBoundTrigger } from "./serverTypes/boundTrigger";
 import type {
   ActionContext,
   ActionDefinition,
@@ -902,7 +911,8 @@ export class ComponentTestHarness<
  *   expect(result.payload).toBeDefined();
  * });
  */
-export const createHarness = <
+export function createHarness<TFlow extends HarnessFlow>(flow: TFlow): FlowTestHarness<TFlow>;
+export function createHarness<
   TInputs extends Inputs,
   TActionInputs extends Inputs,
   TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
@@ -930,9 +940,98 @@ export const createHarness = <
   TAllowsBranching,
   TResult,
   TComponent
-> => {
-  return new ComponentTestHarness(component);
+>;
+export function createHarness(
+  subject: HarnessFlow | Component<any, any, any, any, any, any>,
+): FlowTestHarness<HarnessFlow> | ComponentTestHarness<any, any, any, any, any, any> {
+  if ("onExecution" in subject && typeof subject.onExecution === "function") {
+    return new FlowTestHarness(subject as HarnessFlow);
+  }
+  return new ComponentTestHarness(subject as Component<any, any, any, any, any, any>);
+}
+
+/** Flow inputs are erased here; each flow retains its own onExecution return type. */
+type HarnessFlow = Flow<any, any, any, any, any, any, any, any>;
+type HarnessFunction = (...args: any[]) => any;
+
+const flowTestContext = (options: InvokeFlowOptions) => {
+  const { configVars, configuration, userConfiguration, connections, context } =
+    options as InvokeFlowOptions & { configVars?: TestConfigVarValues } & Omit<
+        InvokeFlowConfiguration,
+        "configVars"
+      >;
+  return createCodeNativeActionContext({
+    ...(configuration !== undefined ? { configuration } : {}),
+    ...(userConfiguration !== undefined ? { userConfiguration } : {}),
+    ...(connections ? { connections: createScopedConnections(connections) } : {}),
+    ...context,
+    configVars: createConfigVars(configVars),
+  });
 };
+
+/** Runs CNI logic with automatic, invocation-scoped mocks of local callable dependencies. */
+export class FlowTestHarness<TFlow extends HarnessFlow> {
+  private readonly mocks = new CallableMocks();
+  constructor(readonly flow: TFlow) {}
+
+  /** Returns the same typed mock before or after execution. No registration is necessary. */
+  mock<T extends HarnessFunction>(callable: T): FunctionMock<T> {
+    return this.mocks.mock(callable);
+  }
+
+  private async scoped<T>(callback: () => T): Promise<Awaited<T>> {
+    await this.mocks.initialize();
+
+    return await runWithCallableMocks(this.mocks.dispatch, callback);
+  }
+
+  /** Runs onTrigger then onExecution. Examples seed mocks; missing examples return undefined. */
+  run(
+    options: InvokeFlowOptions = {},
+  ): Promise<InvokeReturn<Awaited<ReturnType<TFlow["onExecution"]>>, CodeNativeActionLogger>> {
+    if (normalizeBoundTrigger(this.flow).batchConfig) {
+      throw new Error(
+        "The flow harness does not simulate batch discovery. Use invoke() to test individual callbacks.",
+      );
+    }
+    return this.scoped(() => invokeFlow(this.flow, options)) as Promise<
+      InvokeReturn<Awaited<ReturnType<TFlow["onExecution"]>>, CodeNativeActionLogger>
+    >;
+  }
+
+  /** Exercises an application helper or individual callback in a CNI execution context. */
+  invoke<T>(
+    callback: (context: ReturnType<typeof flowTestContext>) => T,
+    options: InvokeFlowOptions = {},
+  ): Promise<Awaited<T>> {
+    const context = flowTestContext(options);
+    return this.scoped(() => invokeWithContext(context, callback));
+  }
+
+  /** Exercises a configuration callback with the smaller data-source context. */
+  configuration<T>(
+    callback: (context: DataSourceContext) => T,
+    context?: Partial<DataSourceContext>,
+  ): Promise<Awaited<T>> {
+    const realized = createDataSourceContext(context);
+
+    return this.scoped(() => runWithDataSourceContext(realized, () => callback(realized)));
+  }
+
+  onInstanceDeploy(options: InvokeFlowOptions = {}) {
+    return this.invoke(
+      (context) => normalizeBoundTrigger(this.flow).onInstanceDeploy?.(context, {}),
+      options,
+    );
+  }
+
+  onInstanceDelete(options: InvokeFlowOptions = {}) {
+    return this.invoke(
+      (context) => normalizeBoundTrigger(this.flow).onInstanceDelete?.(context, {}),
+      options,
+    );
+  }
+}
 
 export default {
   loggerMock,

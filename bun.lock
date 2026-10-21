@@ -51,7 +51,7 @@
     },
     "packages/spectral": {
       "name": "@prismatic-io/spectral",
-      "version": "10.36.1",
+      "version": "10.36.2",
       "bin": {
         "component-manifest": "bin/component-manifest.js",
         "cni-component-manifest": "bin/cni-component-manifest.js",
@@ -87,10 +87,18 @@
         "typescript": "6.0.3",
         "vitest": "^5.0.3",
       },
+      "peerDependencies": {
+        "@jest/globals": ">=29",
+        "vitest": ">=4",
+      },
+      "optionalPeers": [
+        "@jest/globals",
+        "vitest",
+      ],
     },
     "packages/spectral-codemod": {
       "name": "@prismatic-io/spectral-codemod",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "bin": {
         "spectral-codemod": "bin/spectral-codemod.js",
       },
