@@ -6,10 +6,9 @@
  */
 
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
-import { fn, spyOn } from "jest-mock";
+import { localMock } from "./localMock";
 import type {
   ActionLogger,
-  ActionLoggerFunction,
   Component,
   ConnectionValue,
   DataSourceContext,
@@ -115,10 +114,11 @@ export const connectionValue = (
 };
 
 /**
- * Pre-built mock of ActionLogger. All log methods (`info`, `warn`, `error`, etc.)
- * are Jest spies, so you can assert that your actions log the expected messages.
+ * Creates an isolated mock ActionLogger with assertion-compatible spies.
+ * Use each method's mockClear/mockReset for cleanup; runner-wide cleanup is not
+ * supported. Log methods do not modify or forward to the global console.
  *
- * @returns A mock `ActionLogger` with Jest spy methods.
+ * @returns A mock `ActionLogger` with assertion-compatible spy methods.
  * @see {@link https://prismatic.io/docs/custom-connectors/unit-testing/#verifying-correct-logging-in-action-tests | Verifying Logging}
  * @example
  * import { testing } from "@prismatic-io/spectral";
@@ -128,15 +128,15 @@ export const connectionValue = (
  * expect(logger.info).toHaveBeenCalledWith("Processing started");
  */
 export const loggerMock = (): CodeNativeActionLogger => ({
-  metric: console.log as ActionLoggerFunction,
-  trace: spyOn(console, "trace") as unknown as ActionLoggerFunction,
-  debug: spyOn(console, "debug") as unknown as ActionLoggerFunction,
-  info: spyOn(console, "info") as unknown as ActionLoggerFunction,
-  log: spyOn(console, "log") as unknown as ActionLoggerFunction,
-  warn: spyOn(console, "warn") as unknown as ActionLoggerFunction,
-  error: spyOn(console, "error") as unknown as ActionLoggerFunction,
-  section: fn() as unknown as CodeNativeActionLogger["section"],
-  sectionEnd: fn() as unknown as CodeNativeActionLogger["sectionEnd"],
+  metric: localMock(),
+  trace: localMock(),
+  debug: localMock(),
+  info: localMock(),
+  log: localMock(),
+  warn: localMock(),
+  error: localMock(),
+  section: localMock(),
+  sectionEnd: localMock(),
 });
 
 async function invokeFlowTest(
