@@ -66,4 +66,29 @@ exports.packagedContract = ({ test, expect }, load) => {
     expect(await harness.onInstanceDelete()).toBeUndefined();
     expect(harness.mock(crm.triggers.webhook.onInstanceDelete)).toHaveBeenCalledTimes(1);
   });
+  test("discovers batches through packaged callable mocks, including initial sync", async () => {
+    const { crm } = await load();
+    const harness = createHarness(
+      flow({
+        name: "Batch",
+        stableKey: "batch",
+        onTrigger: crm.triggers.batch(),
+        onExecution: async (_context, params) => ({ data: params.onTrigger.results.body.data }),
+      }),
+    );
+
+    const payload = defaultTriggerPayload();
+    harness.mock(crm.triggers.batch.perform).mockResolvedValue({ payload });
+    harness.mock(crm.triggers.batch.triggerResolver.resolveItems).mockReturnValue([1, 2, 3]);
+    harness.mock(crm.triggers.batch.triggerResolver.getNextPaginationState).mockReturnValue(null);
+
+    expect((await harness.run()).results).toEqual([{ data: [1, 2] }, { data: [3] }]);
+    harness.mock(crm.triggers.batch.onDeployPerform).mockResolvedValue({ payload });
+    harness.mock(crm.triggers.batch.onDeployResolver.resolveItems).mockReturnValue(["initial"]);
+    harness.mock(crm.triggers.batch.onDeployResolver.getNextPaginationState).mockReturnValue(null);
+
+    expect((await harness.initialSync()).results).toEqual([{ data: ["initial"] }]);
+    expect(harness.mock(crm.triggers.batch.triggerResolver.resolveItems)).toHaveBeenCalledTimes(1);
+    expect(harness.mock(crm.triggers.batch.onDeployResolver.resolveItems)).toHaveBeenCalledTimes(1);
+  });
 };

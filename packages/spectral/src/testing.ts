@@ -6,6 +6,7 @@
  */
 
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
+import cloneDeep from "lodash/cloneDeep";
 import { localMock } from "./localMock";
 import { CallableMocks, type FunctionMock } from "./testingMocks";
 
@@ -19,7 +20,6 @@ import type {
   DataSourceResult,
   Input,
   ActionPerformReturn as ServerActionPerformReturn,
-  TriggerPayload,
   TriggerResult,
 } from "./serverTypes";
 import {
@@ -27,7 +27,8 @@ import {
   runWithCallableMocks,
   runWithDataSourceContext,
 } from "./serverTypes/asyncContext";
-import { normalizeBoundTrigger } from "./serverTypes/boundTrigger";
+import { getBoundTrigger, normalizeBoundTrigger } from "./serverTypes/boundTrigger";
+import { createPollingState } from "./serverTypes/pollingState";
 import type {
   ActionContext,
   ActionDefinition,
@@ -50,6 +51,7 @@ import type {
   PollingContext,
   TriggerDefinition,
   TriggerEventFunctionReturn,
+  TriggerPayload,
 } from "./types";
 
 /**
@@ -969,9 +971,31 @@ const flowTestContext = (options: InvokeFlowOptions) => {
   });
 };
 
+export type FlowHarnessRunOptions = InvokeFlowOptions & {
+  /** Maximum discovery pages per run; defaults to 100. */
+  maxPages?: number;
+  /** Local batch workers; defaults to 1 and is capped by concurrentBatchLimit. */
+  concurrency?: number;
+};
+
+/** Narrow status before reading the single-execution result. Batch results retain dispatch order. */
+export type FlowHarnessRunResult<T> = {
+  loggerMock: CodeNativeActionLogger;
+  pages: number;
+  results: T[];
+} & (
+  | { status: "completed"; result: T }
+  | { status: "batched"; result: undefined }
+  | { status: "skipped"; reason: "polledNoChanges"; result: undefined }
+);
+
 /** Runs CNI logic with automatic, invocation-scoped mocks of local callable dependencies. */
 export class FlowTestHarness<TFlow extends HarnessFlow> {
   private readonly mocks = new CallableMocks();
+
+  /** In-memory instance state shared by runs; explicit context.instanceState takes precedence. */
+  readonly instanceState: Record<string, unknown> = {};
+
   constructor(readonly flow: TFlow) {}
 
   /** Returns the same typed mock before or after execution. No registration is necessary. */
@@ -985,18 +1009,196 @@ export class FlowTestHarness<TFlow extends HarnessFlow> {
     return await runWithCallableMocks(this.mocks.dispatch, callback);
   }
 
-  /** Runs onTrigger then onExecution. Examples seed mocks; missing examples return undefined. */
-  run(
-    options: InvokeFlowOptions = {},
-  ): Promise<InvokeReturn<Awaited<ReturnType<TFlow["onExecution"]>>, CodeNativeActionLogger>> {
-    if (normalizeBoundTrigger(this.flow).batchConfig) {
-      throw new Error(
-        "The flow harness does not simulate batch discovery. Use invoke() to test individual callbacks.",
-      );
-    }
-    return this.scoped(() => invokeFlow(this.flow, options)) as Promise<
-      InvokeReturn<Awaited<ReturnType<TFlow["onExecution"]>>, CodeNativeActionLogger>
-    >;
+  /** Runs one poll or webhook, including pagination and batch dispatch when configured. */
+  run(options: FlowHarnessRunOptions = {}) {
+    return this.execute(options, false);
+  }
+
+  /** Explicitly runs initial-sync discovery and execution, independently of deploy lifecycle. */
+  initialSync(options: FlowHarnessRunOptions = {}) {
+    return this.execute(options, true);
+  }
+
+  private execute(
+    options: FlowHarnessRunOptions,
+    initialSync: boolean,
+  ): Promise<FlowHarnessRunResult<Awaited<ReturnType<TFlow["onExecution"]>>>> {
+    return this.scoped(async () => {
+      type Result = Awaited<ReturnType<TFlow["onExecution"]>>;
+      const flow = normalizeBoundTrigger(this.flow);
+      const bound = getBoundTrigger(flow.onTrigger);
+      const batch = flow.batchConfig;
+      const positiveInteger = (value: number, name: string) => {
+        if (!Number.isSafeInteger(value) || value < 1) {
+          throw new Error(`${name} must be a positive safe integer.`);
+        }
+
+        return value;
+      };
+
+      const maxPages = positiveInteger(options.maxPages ?? 100, "maxPages");
+      let concurrency = positiveInteger(options.concurrency ?? 1, "concurrency");
+      if (batch) {
+        positiveInteger(batch.batchSize, "batchSize");
+        if (batch.concurrentBatchLimit !== undefined) {
+          concurrency = Math.min(
+            concurrency,
+            positiveInteger(batch.concurrentBatchLimit, "concurrentBatchLimit"),
+          );
+        }
+      }
+
+      const contextOptions = {
+        ...options,
+        context: {
+          instanceState: this.instanceState,
+          ...options.context,
+          batch: batch
+            ? { enabled: true as const, batchSize: batch.batchSize }
+            : { enabled: false as const },
+        },
+      };
+
+      const context = flowTestContext(contextOptions);
+      const discoveryContext = { ...context, polling: createPollingState(context) };
+      let payload: TriggerPayload = { ...defaultTriggerPayload(), ...cloneDeep(options.payload) };
+      const results: Result[] = [];
+      let pages = 0;
+      const report = () => ({ loggerMock: context.logger, pages, results });
+      const resolverKey = initialSync ? "onDeployResolver" : "triggerResolver";
+
+      // Bound metadata must supply callable adapters. Never execute original component resolvers.
+      const resolver = bound ? bound[resolverKey] : (flow as any)[resolverKey];
+      const localBatchTrigger = "trigger" in flow ? flow.trigger : undefined;
+      const fire = initialSync
+        ? (localBatchTrigger?.onDeploy ?? flow.onDeployTrigger)
+        : (localBatchTrigger?.onTrigger ?? flow.onTrigger);
+      if (initialSync && typeof fire !== "function") {
+        throw new Error("This flow has no initial-sync trigger.");
+      }
+
+      if (fire !== undefined && typeof fire !== "function") {
+        throw new Error(
+          "The flow harness requires a local trigger, not a platform trigger reference.",
+        );
+      }
+
+      if (batch && typeof fire !== "function") {
+        throw new Error("Batch discovery requires a trigger.");
+      }
+
+      if (batch && bound && !resolver) {
+        throw new Error(
+          `Bound callable ${resolverKey} is unavailable. Rebuild the component with this SDK; original component callbacks will not be executed.`,
+        );
+      }
+
+      const executePayload = async (executionPayload: TriggerPayload) => {
+        const executionContext = flowTestContext({
+          ...contextOptions,
+          context: { ...contextOptions.context, logger: context.logger, executionState: {} },
+        });
+
+        return (await invokeWithContext(executionContext, flow.onExecution.bind(flow), {
+          onTrigger: { results: executionPayload },
+        })) as Result;
+      };
+
+      while (true) {
+        if (pages >= maxPages) {
+          throw new Error(
+            `Batch discovery exceeded maxPages (${maxPages}). Check pagination mocks or increase maxPages.`,
+          );
+        }
+        pages++;
+        const returned =
+          typeof fire === "function"
+            ? ((await invokeWithContext(
+                discoveryContext,
+                fire.bind(flow) as any,
+                payload,
+                {},
+              )) as any)
+            : { payload };
+        if (pages === 1 && returned?.polledNoChanges === true) {
+          return { ...report(), status: "skipped", reason: "polledNoChanges", result: undefined };
+        }
+
+        if (!batch) {
+          const result = (await invokeWithContext(context, flow.onExecution.bind(flow), {
+            onTrigger: { results: returned?.payload },
+          })) as Result;
+          results.push(result);
+
+          return { ...report(), status: "completed", result };
+        }
+
+        if (!returned || (!localBatchTrigger && !returned.payload)) {
+          throw new Error(
+            `Batch ${initialSync ? "onDeployPerform" : "perform"} returned no payload. Configure its callable mock.`,
+          );
+        }
+
+        const items = localBatchTrigger
+          ? returned.items
+          : resolver?.resolveItems
+            ? await invokeWithContext(discoveryContext, resolver.resolveItems, returned)
+            : undefined;
+        if (!Array.isArray(items)) {
+          throw new Error(
+            `Batch ${resolverKey}.resolveItems must return an array. Configure its callable mock when using a component trigger.`,
+          );
+        }
+
+        const next = localBatchTrigger
+          ? (returned.paginationState ?? null)
+          : resolver?.getNextPaginationState
+            ? await invokeWithContext(discoveryContext, resolver.getNextPaginationState, returned)
+            : null;
+        if (next !== null && (typeof next !== "object" || Array.isArray(next))) {
+          throw new Error(
+            `Batch ${resolverKey}.getNextPaginationState must return an object or null. Configure its callable mock.`,
+          );
+        }
+
+        const pagePayload = localBatchTrigger ? payload : returned.payload;
+        const batches: TriggerPayload[] = [];
+        for (let index = 0; index < items.length; index += batch.batchSize) {
+          batches.push({
+            ...cloneDeep(pagePayload),
+            body: {
+              ...cloneDeep(pagePayload.body),
+              data: cloneDeep(
+                batch.batchSize === 1 ? items[index] : items.slice(index, index + batch.batchSize),
+              ),
+            },
+          });
+        }
+
+        let index = 0;
+        let failed = false;
+        const pageResults: Result[] = new Array(batches.length);
+        const workers = Array.from({ length: Math.min(concurrency, batches.length) }, async () => {
+          while (!failed && index < batches.length) {
+            const current = index++;
+            try {
+              pageResults[current] = await executePayload(batches[current]);
+            } catch (error) {
+              failed = true;
+              throw error;
+            }
+          }
+        });
+
+        // Drain in-flight work before leaving the mock scope, including on failure.
+        const settled = await Promise.allSettled(workers);
+        const failure = settled.find((entry) => entry.status === "rejected");
+        if (failure?.status === "rejected") throw failure.reason;
+        results.push(...pageResults);
+        if (next === null) return { ...report(), status: "batched", result: undefined };
+        payload = { ...payload, paginationState: cloneDeep(next) };
+      }
+    });
   }
 
   /** Exercises an application helper or individual callback in a CNI execution context. */
@@ -1004,7 +1206,11 @@ export class FlowTestHarness<TFlow extends HarnessFlow> {
     callback: (context: ReturnType<typeof flowTestContext>) => T,
     options: InvokeFlowOptions = {},
   ): Promise<Awaited<T>> {
-    const context = flowTestContext(options);
+    const context = flowTestContext({
+      ...options,
+      context: { instanceState: this.instanceState, ...options.context },
+    });
+
     return this.scoped(() => invokeWithContext(context, callback));
   }
 

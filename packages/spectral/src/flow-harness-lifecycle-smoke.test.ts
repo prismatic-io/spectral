@@ -371,9 +371,8 @@ describe("CNI lifecycle and configuration smoke scenarios", () => {
     expect(await harness.onInstanceDelete()).toBeUndefined();
   });
 
-  it("rejects bound batch triggers rather than silently skipping batch orchestration", async () => {
-    const { crm, tested } = setup();
+  it("diagnoses missing bound batch trigger mocks", async ({ scenario: { crm, tested } }) => {
     const harness = createHarness({ ...tested, onTrigger: crm.triggers.initial() });
-    await expect(async () => harness.run()).rejects.toThrow("does not simulate batch discovery");
+    await expect(async () => harness.run()).rejects.toThrow("returned no payload");
   });
 });
