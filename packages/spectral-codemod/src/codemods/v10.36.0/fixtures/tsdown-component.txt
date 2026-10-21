@@ -1,0 +1,25 @@
+import { defineConfig } from "tsdown";
+
+export default defineConfig([
+  {
+    entry: { index: "src/index.ts" },
+    format: "cjs",
+    outDir: "dist",
+    platform: "node",
+    target: "node22",
+    clean: true,
+    minify: true,
+    dts: false,
+    checks: { legacyCjs: false },
+    deps: {
+      alwaysBundle: () => true,
+      onlyBundle: false,
+    },
+    outExtensions: () => ({ js: ".js" }),
+    outputOptions: { exports: "named", codeSplitting: false },
+    loader: {
+      ".md": "text",
+    },
+    copy: [{ from: "assets/**/*", to: "dist", flatten: false }],
+  },
+]);

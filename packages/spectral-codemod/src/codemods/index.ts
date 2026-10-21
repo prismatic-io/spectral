@@ -1,7 +1,8 @@
 import { type Codemod, codemodId } from "../codemod";
+import callableComponentPackaging from "./v10.36.0/callableComponentPackaging";
 import integrationConfiguration from "./v10.36.0/integrationConfiguration";
 
-const all: Codemod[] = [integrationConfiguration];
+const all: Codemod[] = [integrationConfiguration, callableComponentPackaging];
 
 /** Every shipped codemod, keyed by its versioned name. */
 export const codemods: ReadonlyMap<string, Codemod> = new Map(
