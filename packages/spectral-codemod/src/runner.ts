@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
-import { stat } from "node:fs/promises";
-import { dirname, join, resolve } from "path";
+import { lstat, mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "path";
 import { Project } from "ts-morph";
-import type { Codemod } from "./codemod";
+import type { Codemod, ProjectCodemod } from "./codemod";
 
 export interface RunOptions {
   /** A project directory, a tsconfig.json, or a single source file. Defaults to the working directory. */
@@ -14,7 +14,7 @@ export interface RunOptions {
 export interface RunResult {
   /** Absolute path of every file the codemod changed. */
   changed: string[];
-  /** Number of source files the codemod inspected. */
+  /** Number of source files inspected, or files read by a project migration. */
   scanned: number;
 }
 
@@ -44,6 +44,8 @@ export const runCodemod = async (
     throw new Error(`Path not found: ${target}`);
   }
 
+  if ("plan" in codemod) return runProjectCodemod(codemod, target, options.dryRun);
+
   const project = await createProject(target);
   const changed = (await codemod.transform(project)).map((file) => file.getFilePath());
 
@@ -55,6 +57,72 @@ export const runCodemod = async (
     .getSourceFiles()
     .filter((file) => !file.isInNodeModules() && !file.isDeclarationFile()).length;
   return { changed, scanned };
+};
+
+/** Project migrations stage every edit before touching disk, including in dry-run mode. */
+const runProjectCodemod = async (
+  codemod: ProjectCodemod,
+  target: string,
+  dryRun = false,
+): Promise<RunResult> => {
+  if (!(await stat(target)).isDirectory()) {
+    throw new Error(`${codemod.name} requires a project directory.`);
+  }
+  const root = await realpath(target);
+  const inside = (path: string) => {
+    const rel = relative(root, path);
+    return rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+  };
+  const resolveFile = async (path: string) => {
+    const absolute = resolve(root, path);
+    if (isAbsolute(path) || !inside(absolute) || absolute === root) {
+      throw new Error(`Project file must be inside the project directory: ${path}`);
+    }
+    let ancestor = absolute;
+    while (
+      !(await lstat(ancestor).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return undefined;
+        throw error;
+      }))
+    )
+      ancestor = dirname(ancestor);
+    const canonical = resolve(await realpath(ancestor), relative(ancestor, absolute));
+    if (!inside(canonical) || canonical === root) {
+      throw new Error(`Project file resolves outside the project directory: ${path}`);
+    }
+    return canonical;
+  };
+  const scanned = new Set<string>();
+  const read = async (path: string) => {
+    const absolute = await resolveFile(path);
+    if (!existsSync(absolute)) return undefined;
+    scanned.add(absolute);
+    return readFile(absolute, "utf8");
+  };
+  const plan = await codemod.plan({ read });
+  // Validate the entire plan, including no-ops and paths aliased by symlinks.
+  const destinations = await Promise.all(plan.map((edit) => resolveFile(edit.path)));
+  const uniqueDestinations = new Set(destinations);
+  if (uniqueDestinations.size !== destinations.length)
+    throw new Error("Duplicate project file edits.");
+  for (const destination of destinations) {
+    for (let parent = dirname(destination); parent !== root; parent = dirname(parent)) {
+      if (uniqueDestinations.has(parent)) {
+        throw new Error(`Conflicting project file edits: ${parent} is a parent of ${destination}.`);
+      }
+    }
+  }
+  const originals = await Promise.all(plan.map((edit) => read(edit.path)));
+  const edits = plan.flatMap((edit, index) =>
+    originals[index] === edit.content ? [] : [{ ...edit, absolute: destinations[index] }],
+  );
+  if (!dryRun) {
+    for (const edit of edits) {
+      await mkdir(dirname(edit.absolute), { recursive: true });
+      await writeFile(edit.absolute, edit.content);
+    }
+  }
+  return { changed: edits.map((edit) => edit.absolute), scanned: scanned.size };
 };
 
 const createProject = async (target: string): Promise<Project> => {

@@ -1,5 +1,5 @@
 import { Project } from "ts-morph";
-import type { Codemod } from "./codemod";
+import type { SourceCodemod } from "./codemod";
 
 export interface AppliedCodemod {
   /** Every file in the project after the codemod ran, keyed by path. */
@@ -10,7 +10,7 @@ export interface AppliedCodemod {
 
 /** Applies a codemod to an in-memory project built from `files`, keyed by path. */
 export const applyCodemod = async (
-  codemod: Codemod,
+  codemod: SourceCodemod,
   files: Record<string, string>,
 ): Promise<AppliedCodemod> => {
   const project = new Project({ useInMemoryFileSystem: true });
@@ -32,7 +32,7 @@ export const applyCodemod = async (
 
 /** Applies a codemod to a single in-memory file and returns its resulting text. */
 export const applyCodemodToSource = async (
-  codemod: Codemod,
+  codemod: SourceCodemod,
   source: string,
 ): Promise<{ code: string; changed: boolean }> => {
   const { files, changed } = await applyCodemod(codemod, { "index.ts": source });

@@ -1,20 +1,39 @@
 import type { Project, SourceFile } from "ts-morph";
 
 /**
- * A named source migration. `transform` edits the project in place through ts-morph
- * and returns the files it changed; the runner saves only those.
+ * Metadata shared by source transforms and project-file migrations.
  */
-export interface Codemod {
+interface CodemodMetadata {
   /** The spectral release the codemod migrates a project to, such as `10.36.0`. */
   version: string;
   /** The name of the migration, shared by each of its versions, such as `integration-configuration`. */
   name: string;
   /** One line shown by `--list`. */
   description: string;
+}
+
+export interface SourceCodemod extends CodemodMetadata {
   transform(project: Project): Promise<SourceFile[]>;
 }
 
-export const defineCodemod = (codemod: Codemod): Codemod => codemod;
+export interface ProjectFiles {
+  /** Read a UTF-8 file relative to the project root; missing files return undefined. */
+  read(path: string): Promise<string | undefined>;
+}
+
+export interface FileEdit {
+  path: string;
+  content: string;
+}
+
+export interface ProjectCodemod extends CodemodMetadata {
+  /** Validate and plan all edits without writing. Paths are relative to the project root. */
+  plan(files: ProjectFiles): Promise<FileEdit[]>;
+}
+
+export type Codemod = SourceCodemod | ProjectCodemod;
+
+export const defineCodemod = <T extends Codemod>(codemod: T): T => codemod;
 
 /** The versioned name given on the command line, such as `v10.36.0/integration-configuration`. */
 export const codemodId = (codemod: Codemod): string => `v${codemod.version}/${codemod.name}`;
