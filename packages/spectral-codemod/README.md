@@ -41,6 +41,36 @@ project holds more than one integration, pass the file of the one to migrate as 
 
 ## Codemods
 
+### `v10.36.0/callable-component-packaging`
+
+Adds a callable npm package alongside the component's platform build. Run from
+the component's project directory:
+
+```sh
+npx @prismatic-io/spectral-codemod@latest callable-component-packaging --target-spectral 10.36.1 . --dry-run
+```
+
+Remove `--dry-run` to apply. The codemod validates these prerequisites before writing:
+
+- tsdown `>=0.22.3`, Spectral `>=10.36.0`, TypeScript, and `tsconfig.json`.
+  Declared dependency ranges must exclude older releases; dependencies are not upgraded.
+- `src/index.ts` default-exports Spectral's `component()`.
+- One static `defineConfig` tsdown config builds `src/index.ts` into a self-contained
+  CommonJS `dist/index.js`. Supported loaders and copy rules are Markdown text and
+  `assets/**/*`; custom settings or conflicting builds require manual changes.
+- A CommonJS package with no conflicting entry points and a build script of
+  `tsdown` or `npm run typecheck && tsdown`.
+
+The codemod adds `npm-dist/index.cjs` and its declarations, configures package
+exports and artifact inclusion, and sets `prismatic.component` to `./dist/index.js`.
+It moves Spectral to peer and development dependencies and appends `npm run build`
+to `prepare`. Existing exports, ignore rules, and publishing settings are preserved.
+Running it again makes no changes.
+
+After applying, reinstall dependencies to update the lockfile, run your tests, and
+run `npm pack`. Consumers need Spectral installed and use the package's default
+export to access callable components.
+
 ### `v10.36.0/integration-configuration`
 
 Replaces an integration's config wizard with an integration `configuration`. The codemod
