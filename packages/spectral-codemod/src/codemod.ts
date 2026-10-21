@@ -11,7 +11,7 @@ export interface Codemod {
   name: string;
   /** One line shown by `--list`. */
   description: string;
-  transform(project: Project): SourceFile[];
+  transform(project: Project): Promise<SourceFile[]>;
 }
 
 export const defineCodemod = (codemod: Codemod): Codemod => codemod;
@@ -21,6 +21,12 @@ export const codemodId = (codemod: Codemod): string => `v${codemod.version}/${co
 
 /** Lifts a file-level transform, which reports whether it changed the file, to a project transform. */
 export const eachFile =
-  (transform: (file: SourceFile) => boolean) =>
-  (project: Project): SourceFile[] =>
-    project.getSourceFiles().filter((file) => transform(file));
+  (transform: (file: SourceFile) => boolean | Promise<boolean>) =>
+  async (project: Project): Promise<SourceFile[]> => {
+    const changed: SourceFile[] = [];
+    // Transforms share a mutable project, so preserve file order and await each edit.
+    for (const file of project.getSourceFiles()) {
+      if (await transform(file)) changed.push(file);
+    }
+    return changed;
+  };

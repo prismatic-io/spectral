@@ -9,12 +9,17 @@ export interface AppliedCodemod {
 }
 
 /** Applies a codemod to an in-memory project built from `files`, keyed by path. */
-export const applyCodemod = (codemod: Codemod, files: Record<string, string>): AppliedCodemod => {
+export const applyCodemod = async (
+  codemod: Codemod,
+  files: Record<string, string>,
+): Promise<AppliedCodemod> => {
   const project = new Project({ useInMemoryFileSystem: true });
   for (const [path, text] of Object.entries(files)) {
     project.createSourceFile(path, text);
   }
-  const changed = codemod.transform(project).map((file) => file.getFilePath().replace(/^\//, ""));
+  const changed = (await codemod.transform(project)).map((file) =>
+    file.getFilePath().replace(/^\//, ""),
+  );
   return {
     files: Object.fromEntries(
       project
@@ -26,10 +31,10 @@ export const applyCodemod = (codemod: Codemod, files: Record<string, string>): A
 };
 
 /** Applies a codemod to a single in-memory file and returns its resulting text. */
-export const applyCodemodToSource = (
+export const applyCodemodToSource = async (
   codemod: Codemod,
   source: string,
-): { code: string; changed: boolean } => {
-  const { files, changed } = applyCodemod(codemod, { "index.ts": source });
+): Promise<{ code: string; changed: boolean }> => {
+  const { files, changed } = await applyCodemod(codemod, { "index.ts": source });
   return { code: files["index.ts"], changed: changed.length > 0 };
 };

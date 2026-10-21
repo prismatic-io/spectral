@@ -209,3 +209,6 @@ A codemod is a `Codemod` from `src/codemod.ts`: the spectral `version` it migrat
 the files it changed. The `version` is a release, such as `10.36.0`, and the codemod lives
 in `src/codemods/v<version>/`. Wrap a file-level transform with `eachFile`. Add the codemod
 to `src/codemods/index.ts` and give it a test built on `applyCodemod` from `src/testing.ts`.
+
+Transforms return `Promise<SourceFile[]>`. `eachFile` awaits callbacks sequentially.
+In tests, await `applyCodemod` or `applyCodemodToSource`.

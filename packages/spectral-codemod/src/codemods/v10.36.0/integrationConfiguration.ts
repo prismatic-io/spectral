@@ -100,7 +100,7 @@ const codemod = defineCodemod({
   name: "integration-configuration",
   description:
     "Migrate configPages, userLevelConfigPages, and scopedConfigVars to an integration configuration",
-  transform(project) {
+  async transform(project) {
     const call = findIntegrationCall(project);
     const file = call.getSourceFile();
     const definition = resolveObjectLiteral(call.getArguments()[0]);

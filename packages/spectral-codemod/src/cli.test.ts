@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
@@ -80,9 +80,9 @@ describe("main", () => {
     [["v10.36.0/integration-configuration"]],
     [["integration-configuration", "--target-spectral", "10.36.2"]],
   ])("runs a codemod against a path and reports the changed files: %j", async (args) => {
-    const dir = mkdtempSync(join(tmpdir(), "spectral-codemod-cli-"));
+    const dir = await mkdtemp(join(tmpdir(), "spectral-codemod-cli-"));
     try {
-      writeFileSync(
+      await writeFile(
         join(dir, "index.ts"),
         `import { configVar, integration } from "@prismatic-io/spectral";
 export default integration({
@@ -97,9 +97,9 @@ export default integration({
 
       expect(out[0]).toBe("v10.36.0/integration-configuration: scanned 1 files, changed 1");
       expect(out[1]).toContain("index.ts");
-      expect(readFileSync(join(dir, "index.ts"), "utf8")).toContain("name: z.string(),");
+      expect(await readFile(join(dir, "index.ts"), "utf8")).toContain("name: z.string(),");
     } finally {
-      rmSync(dir, { recursive: true, force: true });
+      await rm(dir, { recursive: true, force: true });
     }
   });
 });

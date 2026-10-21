@@ -138,7 +138,7 @@ export default integration({
 `;
 
 /** Runs the codemod over `files` and returns the diagnostics in them, against this repository's spectral. */
-const typecheck = (files: Record<string, string>): string[] => {
+const typecheck = async (files: Record<string, string>): Promise<string[]> => {
   const project = new Project({
     compilerOptions: {
       strict: true,
@@ -160,7 +160,7 @@ const typecheck = (files: Record<string, string>): string[] => {
     project.createSourceFile(resolve(ROOT, name), text);
   }
 
-  integrationConfiguration.transform(project);
+  await integrationConfiguration.transform(project);
 
   return project
     .getPreEmitDiagnostics()
@@ -172,14 +172,14 @@ const typecheck = (files: Record<string, string>): string[] => {
 };
 
 describe("v10.36.0/integration-configuration output", () => {
-  it("type checks against the spectral in this repository", () => {
+  it("type checks against the spectral in this repository", async () => {
     expect(
-      typecheck({ "configPages.ts": CONFIG_PAGES, "flows.ts": FLOWS, "index.ts": INDEX }),
+      await typecheck({ "configPages.ts": CONFIG_PAGES, "flows.ts": FLOWS, "index.ts": INDEX }),
     ).toEqual([]);
   }, 60_000);
 
-  it("passes a flow test's config vars to invokeFlow, and flags the ones it cannot", () => {
-    const diagnostics = typecheck({
+  it("passes a flow test's config vars to invokeFlow, and flags the ones it cannot", async () => {
+    const diagnostics = await typecheck({
       "configPages.ts": CONFIG_PAGES,
       "flows.ts": FLOWS,
       "index.ts": INDEX,
@@ -207,8 +207,8 @@ export const run = async () => {
     expect(diagnostics[0]).toContain("configVars: sharedConfigVars");
   }, 60_000);
 
-  it("types a flow's user-level value read by the user-level schema", () => {
-    const diagnostics = typecheck({
+  it("types a flow's user-level value read by the user-level schema", async () => {
+    const diagnostics = await typecheck({
       "index.ts": `
 import { configVar, flow, integration, userLevelConfigPage } from "@prismatic-io/spectral";
 
@@ -241,9 +241,9 @@ export default integration({
     );
   }, 60_000);
 
-  it("compiles when the author already uses every name it declares and imports", () => {
+  it("compiles when the author already uses every name it declares and imports", async () => {
     expect(
-      typecheck({
+      await typecheck({
         "settings.ts": "export const configuration = { zone: 1 };",
         "rpc.ts": "export const serverFunction = { schema: 2 };",
         "index.ts": `
@@ -279,9 +279,9 @@ export default integration({
     ).toEqual([]);
   }, 60_000);
 
-  it("leaves the reads of hoisted inline pages for the author to delete with them", () => {
+  it("leaves the reads of hoisted inline pages for the author to delete with them", async () => {
     expect(
-      typecheck({
+      await typecheck({
         "index.ts": `
 import { configPage, configVar, dataSourceConfigVar, integration } from "@prismatic-io/spectral";
 
@@ -306,8 +306,8 @@ export default integration({
     ).toEqual([]);
   }, 60_000);
 
-  it("leaves each configVars read it cannot convert for the compiler to flag", () => {
-    const diagnostics = typecheck({
+  it("leaves each configVars read it cannot convert for the compiler to flag", async () => {
+    const diagnostics = await typecheck({
       "index.ts": `
 import { configPage, dataSourceConfigVar, integration } from "@prismatic-io/spectral";
 
