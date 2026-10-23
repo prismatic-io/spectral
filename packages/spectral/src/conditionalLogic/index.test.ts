@@ -53,6 +53,11 @@ describe("evaluate", () => {
     .filter((v) => Number.isNaN(Number.parseInt(v, 10)));
   const integerOnlyString = fc.string().filter((v) => !Number.isNaN(Number.parseInt(v, 10)));
 
+  test("invalid dates do not compare equal, even to themselves", () => {
+    const invalid = new Date(Number.NaN);
+    expect(evaluate([BinaryOperator.dateTimeSame, invalid, invalid])).toBe(false);
+  });
+
   describe("true expressions", () => {
     const simpleTrueExpression = fc.oneof(
       // equal
@@ -211,7 +216,9 @@ describe("evaluate", () => {
           ([left, right]): ConditionalExpression => [BinaryOperator.dateTimeBefore, left, right],
         ),
       // dateTimeSame
-      fc.date().map((left): ConditionalExpression => [BinaryOperator.dateTimeSame, left, left]),
+      fc
+        .date({ noInvalidDate: true })
+        .map((left): ConditionalExpression => [BinaryOperator.dateTimeSame, left, left]),
       fc
         .tuple(equivalentDates(), equivalentDates())
         .map(([left, right]): ConditionalExpression => [BinaryOperator.dateTimeSame, left, right]),
