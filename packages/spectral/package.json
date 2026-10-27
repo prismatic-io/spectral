@@ -289,22 +289,22 @@
     "safe-stable-stringify": "^2.5.0",
     "valid-url": "1.0.9",
     "yaml": "^2.9.1",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
     "@fast-check/vitest": "^0.5.0",
     "@types/ejs": "3.1.5",
-    "@types/lodash": "^4.17.25",
-    "@types/node": "^26.6.4",
+    "@types/lodash": "^4.17.26",
+    "@types/node": "^26.6.5",
     "@types/prettier": "^3.0.0",
     "@types/sax": "^1.2.7",
     "@types/valid-url": "^1.0.7",
-    "@vitest/ui": "^5.0.3",
+    "@vitest/ui": "^5.0.4",
     "copyfiles": "2.4.1",
     "fast-check": "^4.10.2",
     "jest": "^30",
     "typescript": "6.0.3",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.4"
   }
 }
