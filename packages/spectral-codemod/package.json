@@ -45,10 +45,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
-    "@types/node": "26.6.4",
+    "@types/node": "26.6.5",
     "@types/semver": "^7.8.0",
-    "tsdown": "0.22.3",
+    "tsdown": "0.23.1",
     "typescript": "^6",
-    "vitest": "^4.1.10"
+    "vitest": "^5.0.4"
   }
 }
