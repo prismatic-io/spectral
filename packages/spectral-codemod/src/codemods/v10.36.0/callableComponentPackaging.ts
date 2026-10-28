@@ -1,5 +1,12 @@
 import { intersects, minVersion, subset, validRange } from "semver";
-import { Node, type ObjectLiteralExpression, Project, type SourceFile, SyntaxKind } from "ts-morph";
+import {
+  Node,
+  type ObjectLiteralExpression,
+  Project,
+  type SourceFile,
+  SyntaxKind,
+  ts,
+} from "ts-morph";
 import { defineCodemod, type ProjectFiles } from "../../codemod";
 
 const SPECTRAL = "@prismatic-io/spectral";
@@ -209,7 +216,8 @@ const configureBuild = (source: SourceFile): void => {
     deps: { alwaysBundle: () => true, onlyBundle: false },
     outputOptions: { exports: "named", codeSplitting: false },
     loader: { ".md": "text" },
-    copy: [{ from: "assets/**/*", to: "dist", flatten: false }]
+    copy: [{ from: "assets/**/*", to: "dist", flatten: false }],
+    flatCopy: [{ from: "assets/*", to: "dist" }]
   };`,
   );
   const reference = probe
@@ -224,12 +232,20 @@ const configureBuild = (source: SourceFile): void => {
       );
     }
   }
+  // Prism scaffolds before 2026-10-15 copy assets/* flattened into dist, which copies the
+  // same files as assets/**/* unless assets has subdirectories.
   for (const key of ["loader", "copy"]) {
     const actual = property(platform, key);
-    const expectedValue = property(reference, key);
-    if (actual && expectedValue && syntax(actual) !== syntax(expectedValue)) {
+    const expectedValues = [property(reference, key)];
+    if (key === "copy") expectedValues.push(property(reference, "flatCopy"));
+    if (
+      actual &&
+      !expectedValues.some(
+        (expectedValue) => expectedValue && syntax(actual) === syntax(expectedValue),
+      )
+    ) {
       fail(
-        `Unsupported platform ${key}; only Markdown text loading and assets/**/* copying are supported.`,
+        `Unsupported platform ${key}; only Markdown text loading and assets/**/* or assets/* copying are supported.`,
       );
     }
   }
@@ -291,9 +307,11 @@ const configurePackage = (originalPackage: string) => {
   if (pkg.peerDependenciesMeta?.[SPECTRAL]?.optional)
     fail("Spectral must be a required peer dependency.");
   const scripts = record(pkg.scripts ?? {}, "scripts");
-  if (scripts.build !== "tsdown" && scripts.build !== "npm run typecheck && tsdown") {
+  // Steps such as typechecking or linting may run first; tsdown must run last, unchanged,
+  // so that it builds both outputs.
+  if (typeof scripts.build !== "string" || !/(?:^|&&\s*)tsdown\s*$/.test(scripts.build)) {
     fail(
-      'Expected a build script of "tsdown" or "npm run typecheck && tsdown". Custom build commands need manual configuration.',
+      'Expected a build script that ends with "tsdown", such as "tsdown" or "npm run typecheck && tsdown". Custom build commands need manual configuration.',
     );
   }
   if (
@@ -351,6 +369,46 @@ const configurePackage = (originalPackage: string) => {
   return pkg;
 };
 
+const DIST_LINE = /^\/?dist(?:\/(?:\*\*)?)?$/;
+const NPM_DIST_LINE = /^\/?npm-dist(?:\/(?:\*\*)?)?$/;
+
+/** Ignores npm-dist beside dist, in the same style; a project that keeps dist keeps npm-dist. */
+const ignoreNpmDist = (gitignore: string): string => {
+  const lines = gitignore.split("\n");
+  if (lines.some((line) => NPM_DIST_LINE.test(line.trim()))) return gitignore;
+  const dist = lines.findIndex((line) => DIST_LINE.test(line.trim()));
+  if (dist === -1) return gitignore;
+  lines.splice(dist + 1, 0, lines[dist].replace("dist", "npm-dist"));
+  return lines.join("\n");
+};
+
+/**
+ * Excludes npm-dist from Biome beside its dist exclusion, in the same style, so a build that
+ * runs Biome does not check generated declarations. A config that does not exclude dist is
+ * left alone. Edits the text so comments and formatting survive.
+ */
+const excludeNpmDistFromBiome = (text: string): string => {
+  const { config } = ts.parseConfigFileTextToJson("biome.json", text);
+  const files = config?.files;
+  const entries: unknown[] = [
+    ...(Array.isArray(files?.includes) ? files.includes : []),
+    ...(Array.isArray(files?.ignore) ? files.ignore : []),
+  ];
+  const patterns = entries.filter((entry): entry is string => typeof entry === "string");
+  if (patterns.some((pattern) => pattern.includes("npm-dist"))) return text;
+  const dist = patterns.find((pattern) => /^!*(?:\*\*\/)?dist(?:\/\*\*)?$/.test(pattern));
+  if (!dist) return text;
+  const quoted = JSON.stringify(dist);
+  const at = text.indexOf(quoted);
+  if (at === -1) return text;
+  const lineStart = text.lastIndexOf("\n", at) + 1;
+  const ownLine = /^\s*$/.test(text.slice(lineStart, at));
+  const separator = ownLine ? `\n${text.slice(lineStart, at)}` : " ";
+  const npmDist = JSON.stringify(dist.replace(/dist(?=(?:\/\*\*)?$)/, "npm-dist"));
+  const end = at + quoted.length;
+  return `${text.slice(0, end)},${separator}${npmDist}${text.slice(end)}`;
+};
+
 export default defineCodemod({
   version: "10.36.0",
   name: "callable-component-packaging",
@@ -385,8 +443,18 @@ export default defineCodemod({
       { path: config.path, content: source.getFullText() },
       { path: "package.json", content },
     ];
+    const gitignore = await files.read(".gitignore");
+    if (gitignore !== undefined && ignoreNpmDist(gitignore) !== gitignore) {
+      edits.push({ path: ".gitignore", content: ignoreNpmDist(gitignore) });
+    }
+    for (const path of ["biome.json", "biome.jsonc"]) {
+      const biome = await files.read(path);
+      if (biome !== undefined && excludeNpmDistFromBiome(biome) !== biome) {
+        edits.push({ path, content: excludeNpmDistFromBiome(biome) });
+      }
+    }
     if (pkg.files === undefined) {
-      const ignore = (await files.read(".npmignore")) ?? (await files.read(".gitignore"));
+      const ignore = (await files.read(".npmignore")) ?? gitignore;
       const includeBuilds =
         "# Include generated component artifacts.\n!dist/\n!dist/**\n!npm-dist/\n!npm-dist/**\n";
       if (ignore !== undefined && !ignore.endsWith(includeBuilds)) {

@@ -1,0 +1,43 @@
+import { Node, SyntaxKind } from "ts-morph";
+import { defineCodemod, eachFile } from "../../codemod";
+
+/** Soft-deprecated dist paths and the public entry points that resolve to the same module. */
+const ENTRY_POINTS: Record<string, string> = {
+  "@prismatic-io/spectral/dist": "@prismatic-io/spectral",
+  "@prismatic-io/spectral/dist/index": "@prismatic-io/spectral",
+  "@prismatic-io/spectral/dist/clients/http": "@prismatic-io/spectral/http",
+  "@prismatic-io/spectral/dist/clients/http/index": "@prismatic-io/spectral/http",
+  "@prismatic-io/spectral/dist/testing": "@prismatic-io/spectral/testing",
+};
+
+const entryPointFor = (specifier: string): string | undefined =>
+  ENTRY_POINTS[specifier.replace(/\.js$/, "")];
+
+/**
+ * Whether a string names a module: an import or export source, an `import("...")` type, or
+ * the first argument of a call such as `require`, dynamic `import`, or `vi.mock`.
+ */
+const namesModule = (node: Node): boolean => {
+  const parent = node.getParent();
+  if (!parent) return false;
+  if (Node.isImportDeclaration(parent) || Node.isExportDeclaration(parent)) return true;
+  if (Node.isLiteralTypeNode(parent)) return Node.isImportTypeNode(parent.getParent());
+  return Node.isCallExpression(parent) && parent.getArguments()[0] === node;
+};
+
+export default defineCodemod({
+  version: "10.35.1",
+  name: "public-entry-points",
+  description: "Import Spectral from its public entry points instead of dist/ paths",
+  transform: eachFile((file) => {
+    let changed = false;
+    for (const literal of file.getDescendantsOfKind(SyntaxKind.StringLiteral)) {
+      const entryPoint = entryPointFor(literal.getLiteralValue());
+      if (entryPoint && namesModule(literal)) {
+        literal.setLiteralValue(entryPoint);
+        changed = true;
+      }
+    }
+    return changed;
+  }),
+});
