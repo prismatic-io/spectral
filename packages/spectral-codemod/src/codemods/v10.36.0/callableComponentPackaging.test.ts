@@ -142,6 +142,67 @@ describe("callable-component-packaging", async () => {
   });
 
   it.each([
+    "npm run typecheck && tsdown",
+    "npm run format && npm run lint && tsdown",
+  ])("accepts a build script of %s and keeps it", async (build) => {
+    const files = fixture();
+    changePackage(files, (pkg) => {
+      pkg.scripts.build = build;
+    });
+    expect(JSON.parse((await apply(files))["package.json"]).scripts.build).toBe(build);
+  });
+
+  it("accepts the flattened assets/* copy of earlier Prism scaffolds without rewriting it", async () => {
+    const legacy = config.replace(
+      'copy: [{ from: "assets/**/*", to: "dist", flatten: false }]',
+      'copy: [{ from: "assets/*", to: "dist" }]',
+    );
+    const after = await apply({ ...fixture(), "tsdown.config.mts": legacy });
+    expect(after["tsdown.config.mts"]).toContain('copy: [{ from: "assets/*", to: "dist" }]');
+    expect(after["tsdown.config.mts"]).toContain(
+      'copy: [{ from: "assets/**/*", to: "npm-dist", flatten: false }]',
+    );
+  });
+
+  it.each([
+    ["dist/\nnode_modules\n", "dist/\nnpm-dist/\nnode_modules\n"],
+    ["/dist\n", "/dist\n/npm-dist\n"],
+    ["node_modules\n", "node_modules\n"],
+    ["dist\nnpm-dist/\n", "dist\nnpm-dist/\n"],
+  ])("ignores npm-dist beside dist in .gitignore %j", async (gitignore, expected) => {
+    const after = await apply({ ...fixture(), ".gitignore": gitignore });
+    expect(after[".gitignore"]).toBe(expected);
+    expect(await apply(after)).toEqual(after);
+  });
+
+  it.each([
+    [
+      "biome.json",
+      '{\n  "files": { "includes": ["**", "!**/dist", "!**/node_modules"] }\n}\n',
+      '{\n  "files": { "includes": ["**", "!**/dist", "!**/npm-dist", "!**/node_modules"] }\n}\n',
+    ],
+    [
+      "biome.jsonc",
+      '{\n  // Generated output\n  "files": {\n    "includes": [\n      "**",\n      "!**/dist/**"\n    ]\n  }\n}\n',
+      '{\n  // Generated output\n  "files": {\n    "includes": [\n      "**",\n      "!**/dist/**",\n      "!**/npm-dist/**"\n    ]\n  }\n}\n',
+    ],
+    [
+      "biome.json",
+      '{ "files": { "ignore": ["dist", "coverage"] } }\n',
+      '{ "files": { "ignore": ["dist", "npm-dist", "coverage"] } }\n',
+    ],
+    [
+      "biome.json",
+      '{ "files": { "includes": ["src/**"] } }\n',
+      '{ "files": { "includes": ["src/**"] } }\n',
+    ],
+  ])("excludes npm-dist beside dist in %s", async (path, biome, expected) => {
+    const after = await apply({ ...fixture(), [path]: biome });
+    expect(after[path]).toBe(expected);
+    expect(await apply(after)).toEqual(after);
+  });
+
+  it.each([
     "^10.35.0",
     "*",
     "latest",
@@ -182,6 +243,20 @@ describe("callable-component-packaging", async () => {
       "custom build",
       (pkg: any) => {
         pkg.scripts.build = "webpack";
+      },
+      "build script",
+    ],
+    [
+      "build that runs after tsdown",
+      (pkg: any) => {
+        pkg.scripts.build = "tsdown && node scripts/postbuild.js";
+      },
+      "build script",
+    ],
+    [
+      "tsdown with arguments",
+      (pkg: any) => {
+        pkg.scripts.build = "tsdown --watch";
       },
       "build script",
     ],

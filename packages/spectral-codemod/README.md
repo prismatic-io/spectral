@@ -57,19 +57,40 @@ Remove `--dry-run` to apply. The codemod validates these prerequisites before wr
 - `src/index.ts` default-exports Spectral's `component()`.
 - One static `defineConfig` tsdown config builds `src/index.ts` into a self-contained
   CommonJS `dist/index.js`. Supported loaders and copy rules are Markdown text and
-  `assets/**/*`; custom settings or conflicting builds require manual changes.
-- A CommonJS package with no conflicting entry points and a build script of
-  `tsdown` or `npm run typecheck && tsdown`.
+  `assets/**/*`, or the flattened `assets/*` that Prism scaffolded before October 2026;
+  custom settings or conflicting builds require manual changes.
+- A CommonJS package with no conflicting entry points and a build script that ends with
+  `tsdown`, such as `tsdown` or `npm run lint && tsdown`.
 
 The codemod adds `npm-dist/index.cjs` and its declarations, configures package
 exports and artifact inclusion, and sets `prismatic.component` to `./dist/index.js`.
 It moves Spectral to peer and development dependencies and appends `npm run build`
 to `prepare`. Existing exports, ignore rules, and publishing settings are preserved.
-Running it again makes no changes.
+Wherever `.gitignore` or a Biome config excludes `dist`, it excludes `npm-dist` beside
+it, in the same style. Running it again makes no changes.
 
 After applying, reinstall dependencies to update the lockfile, run your tests, and
 run `npm pack`. Consumers need Spectral installed and use the package's default
 export to access callable components.
+
+### `v10.35.1/public-entry-points`
+
+Moves imports of Spectral's soft-deprecated `dist/` paths to the public entry points
+that resolve to the same modules:
+
+| From | To |
+| --- | --- |
+| `@prismatic-io/spectral/dist`, `@prismatic-io/spectral/dist/index` | `@prismatic-io/spectral` |
+| `@prismatic-io/spectral/dist/clients/http`, `@prismatic-io/spectral/dist/clients/http/index` | `@prismatic-io/spectral/http` |
+| `@prismatic-io/spectral/dist/testing` | `@prismatic-io/spectral/testing` |
+
+Paths with a `.js` extension are moved too. It rewrites import and export sources,
+`import()` types, and the first argument of calls such as `require`, dynamic `import`,
+and `vi.mock`. Other `dist/` paths have no public entry point and stay as they are.
+
+```sh
+npx @prismatic-io/spectral-codemod@latest v10.35.1/public-entry-points . --dry-run
+```
 
 ### `v10.36.0/integration-configuration`
 
