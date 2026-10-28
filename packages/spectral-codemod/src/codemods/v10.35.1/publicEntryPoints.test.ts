@@ -32,6 +32,16 @@ vi.mock("@prismatic-io/spectral/http", () => ({}));
 `);
   });
 
+  it("leaves call arguments that share a name with an Object.prototype member", async () => {
+    const source = `parse("toString");
+parse("constructor");
+parse("__proto__");
+`;
+    const { files, changed } = await run(source);
+    expect(changed).toEqual([]);
+    expect(files["src/index.ts"]).toBe(source);
+  });
+
   it("leaves dist paths without a public entry point, and strings that name no module", async () => {
     const source = `import { ActionContext } from "@prismatic-io/spectral/dist/types";
 const label = "@prismatic-io/spectral/dist";
