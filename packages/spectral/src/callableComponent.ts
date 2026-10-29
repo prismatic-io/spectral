@@ -479,8 +479,39 @@ const callableTrigger = (
         calls.perform(payload, resolve(context, { ...pollAction?.inputs, ...inputs })),
       );
     const onDeployPerform = calls.onDeployPerform;
+    const bindResolver = (callbacks: {
+      resolveItems?: (result: any) => any;
+      getNextPaginationState?: (result: any) => any;
+    }): NonNullable<BoundTrigger["triggerResolver"]> => ({
+      ...(callbacks.resolveItems
+        ? {
+            resolveItems: (context: ActionContext, result: any) =>
+              invokeWithContext(context, () => callbacks.resolveItems?.(result)),
+          }
+        : {}),
+      ...(callbacks.getNextPaginationState
+        ? {
+            getNextPaginationState: (context: ActionContext, result: any) =>
+              invokeWithContext(context, () => callbacks.getNextPaginationState?.(result)),
+          }
+        : {}),
+    });
     const metadata: BoundTrigger = {
       definition: trigger,
+      ...(calls.triggerResolver
+        ? {
+            triggerResolver: bindResolver(
+              calls.triggerResolver as Parameters<typeof bindResolver>[0],
+            ),
+          }
+        : {}),
+      ...(calls.onDeployResolver
+        ? {
+            onDeployResolver: bindResolver(
+              calls.onDeployResolver as Parameters<typeof bindResolver>[0],
+            ),
+          }
+        : {}),
       bindings,
       ...(calls.onInstanceDeploy ? { onInstanceDeploy: bindEvent(calls.onInstanceDeploy) } : {}),
       ...(calls.onInstanceDelete ? { onInstanceDelete: bindEvent(calls.onInstanceDelete) } : {}),

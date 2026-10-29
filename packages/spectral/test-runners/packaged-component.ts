@@ -1,6 +1,7 @@
 // Deliberately bundles its own SDK copy, like a published component artifact.
 import {
   action,
+  batchTrigger,
   callableComponent,
   component,
   connection,
@@ -43,6 +44,14 @@ export const definition = component({
     }),
   },
   triggers: {
+    batch: batchTrigger({
+      display,
+      inputs: {},
+      scheduleSupport: "valid",
+      batchConfig: { batchSize: 2 },
+      perform: forbidden,
+      onDeploy: { inputs: {}, perform: forbidden },
+    }),
     webhook: trigger({
       display,
       inputs: {},

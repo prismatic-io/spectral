@@ -287,7 +287,7 @@ describe("CNI harness", () => {
   });
 });
 
-test("rejects bound batch discovery until simulation is supported", async () => {
+test("diagnoses missing bound batch trigger mocks", async () => {
   const calls = callableComponent({
     triggers: {
       batch: batchTrigger({
@@ -308,5 +308,5 @@ test("rejects bound batch discovery until simulation is supported", async () => 
     }),
   );
 
-  await expect(async () => harness.run()).rejects.toThrow("does not simulate batch discovery");
+  await expect(async () => harness.run()).rejects.toThrow("returned no payload");
 });
