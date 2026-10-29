@@ -2,16 +2,16 @@ import { Node, SyntaxKind } from "ts-morph";
 import { defineCodemod, eachFile } from "../../codemod";
 
 /** Soft-deprecated dist paths and the public entry points that resolve to the same module. */
-const ENTRY_POINTS: Record<string, string> = {
-  "@prismatic-io/spectral/dist": "@prismatic-io/spectral",
-  "@prismatic-io/spectral/dist/index": "@prismatic-io/spectral",
-  "@prismatic-io/spectral/dist/clients/http": "@prismatic-io/spectral/http",
-  "@prismatic-io/spectral/dist/clients/http/index": "@prismatic-io/spectral/http",
-  "@prismatic-io/spectral/dist/testing": "@prismatic-io/spectral/testing",
-};
+const ENTRY_POINTS = new Map([
+  ["@prismatic-io/spectral/dist", "@prismatic-io/spectral"],
+  ["@prismatic-io/spectral/dist/index", "@prismatic-io/spectral"],
+  ["@prismatic-io/spectral/dist/clients/http", "@prismatic-io/spectral/http"],
+  ["@prismatic-io/spectral/dist/clients/http/index", "@prismatic-io/spectral/http"],
+  ["@prismatic-io/spectral/dist/testing", "@prismatic-io/spectral/testing"],
+]);
 
 const entryPointFor = (specifier: string): string | undefined =>
-  ENTRY_POINTS[specifier.replace(/\.js$/, "")];
+  ENTRY_POINTS.get(specifier.replace(/\.js$/, ""));
 
 /**
  * Whether a string names a module: an import or export source, an `import("...")` type, or
