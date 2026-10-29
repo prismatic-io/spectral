@@ -89,7 +89,7 @@ that resolve to the same modules:
 | `@prismatic-io/spectral/dist/clients/http`, `@prismatic-io/spectral/dist/clients/http/index` | `@prismatic-io/spectral/http` |
 | `@prismatic-io/spectral/dist/testing` | `@prismatic-io/spectral/testing` |
 
-Paths with a `.js` extension are moved too. It rewrites import and export sources,
+Paths with a `.js` extension or a trailing slash are moved too. It rewrites import and export sources,
 `import()` types, and the first argument of calls such as `require`, dynamic `import`,
 and `vi.mock`. Other `dist/` paths have no public entry point and stay as they are; the
 codemod warns about each one, naming the file that imports it.

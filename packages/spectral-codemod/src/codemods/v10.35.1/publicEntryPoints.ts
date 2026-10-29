@@ -10,8 +10,13 @@ const ENTRY_POINTS = new Map([
   ["@prismatic-io/spectral/dist/testing", "@prismatic-io/spectral/testing"],
 ]);
 
+/**
+ * The entry point for a dist path, with or without a `.js` extension or a trailing slash.
+ * Node once resolved `@prismatic-io/spectral/dist/` through the folder, but spectral's
+ * exports list no such path.
+ */
 const entryPointFor = (specifier: string): string | undefined =>
-  ENTRY_POINTS.get(specifier.replace(/\.js$/, ""));
+  ENTRY_POINTS.get(specifier.replace(/\/+$/, "").replace(/\.js$/, ""));
 
 const DIST_PATH = /^@prismatic-io\/spectral\/dist(?:\/|$)/;
 
