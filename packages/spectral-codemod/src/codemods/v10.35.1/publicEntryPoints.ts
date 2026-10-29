@@ -13,6 +13,8 @@ const ENTRY_POINTS = new Map([
 const entryPointFor = (specifier: string): string | undefined =>
   ENTRY_POINTS.get(specifier.replace(/\.js$/, ""));
 
+const DIST_PATH = /^@prismatic-io\/spectral\/dist(?:\/|$)/;
+
 /**
  * Whether a string names a module: an import or export source, an `import("...")` type, or
  * the first argument of a call such as `require`, dynamic `import`, or `vi.mock`.
@@ -29,14 +31,25 @@ export default defineCodemod({
   version: "10.35.1",
   name: "public-entry-points",
   description: "Import Spectral from its public entry points instead of dist/ paths",
-  transform: eachFile((file) => {
+  transform: eachFile((file, context) => {
     let changed = false;
+    const unmoved = new Set<string>();
     for (const literal of file.getDescendantsOfKind(SyntaxKind.StringLiteral)) {
-      const entryPoint = entryPointFor(literal.getLiteralValue());
-      if (entryPoint && namesModule(literal)) {
+      const specifier = literal.getLiteralValue();
+      if (!DIST_PATH.test(specifier) || !namesModule(literal)) continue;
+      const entryPoint = entryPointFor(specifier);
+      if (entryPoint) {
         literal.setLiteralValue(entryPoint);
         changed = true;
+      } else {
+        unmoved.add(specifier);
       }
+    }
+    for (const specifier of unmoved) {
+      context.warn(
+        `${specifier} has no public entry point, so it stays as it is. Spectral's dist/ paths are deprecated; move off it by hand.`,
+        file.getFilePath(),
+      );
     }
     return changed;
   }),

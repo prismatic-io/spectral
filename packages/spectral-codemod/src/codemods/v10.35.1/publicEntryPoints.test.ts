@@ -51,4 +51,45 @@ log("x", "@prismatic-io/spectral/dist/testing");
     expect(changed).toEqual([]);
     expect(files["src/index.ts"]).toBe(source);
   });
+
+  it("warns once per file for each dist path it leaves", async () => {
+    const { files, warnings } = await applyCodemod(publicEntryPoints, {
+      "src/index.ts": `import { component } from "@prismatic-io/spectral/dist";
+import { convertInput } from "@prismatic-io/spectral/dist/serverTypes/convertComponent";
+import type { Input } from "@prismatic-io/spectral/dist/serverTypes/convertComponent.js";
+const label = "@prismatic-io/spectral/dist/types";
+`,
+      "src/inputs.test.ts": `const { convertInput } = require("@prismatic-io/spectral/dist/serverTypes/convertComponent");
+`,
+      "src/other.ts": `import { other } from "@prismatic-io/spectral-other/dist/types";
+`,
+    });
+    expect(files["src/index.ts"]).toContain('from "@prismatic-io/spectral";');
+    expect(warnings).toEqual([
+      {
+        message:
+          "@prismatic-io/spectral/dist/serverTypes/convertComponent has no public entry point, so it stays as it is. Spectral's dist/ paths are deprecated; move off it by hand.",
+        file: "src/index.ts",
+      },
+      {
+        message: expect.stringMatching(
+          /^@prismatic-io\/spectral\/dist\/serverTypes\/convertComponent\.js has/,
+        ),
+        file: "src/index.ts",
+      },
+      {
+        message: expect.stringMatching(
+          /^@prismatic-io\/spectral\/dist\/serverTypes\/convertComponent has/,
+        ),
+        file: "src/inputs.test.ts",
+      },
+    ]);
+  });
+
+  it("does not warn when every dist path moves", async () => {
+    const { warnings } = await run(
+      `import { invoke } from "@prismatic-io/spectral/dist/testing";\n`,
+    );
+    expect(warnings).toEqual([]);
+  });
 });

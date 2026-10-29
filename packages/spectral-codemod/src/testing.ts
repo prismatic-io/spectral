@@ -1,11 +1,14 @@
 import { Project } from "ts-morph";
 import type { SourceCodemod } from "./codemod";
+import type { RunWarning } from "./runner";
 
 export interface AppliedCodemod {
   /** Every file in the project after the codemod ran, keyed by path. */
   files: Record<string, string>;
   /** Paths of the files the codemod reported as changed. */
   changed: string[];
+  /** The codemod's warnings, with files keyed as in `files`. */
+  warnings: RunWarning[];
 }
 
 /** Applies a codemod to an in-memory project built from `files`, keyed by path. */
@@ -17,7 +20,12 @@ export const applyCodemod = async (
   for (const [path, text] of Object.entries(files)) {
     project.createSourceFile(path, text);
   }
-  const changed = (await codemod.transform(project)).map((file) =>
+  const warnings: RunWarning[] = [];
+  const context = {
+    warn: (message: string, file?: string) =>
+      warnings.push(file === undefined ? { message } : { message, file: file.replace(/^\//, "") }),
+  };
+  const changed = (await codemod.transform(project, context)).map((file) =>
     file.getFilePath().replace(/^\//, ""),
   );
   return {
@@ -27,6 +35,7 @@ export const applyCodemod = async (
         .map((file) => [file.getFilePath().replace(/^\//, ""), file.getFullText()]),
     ),
     changed,
+    warnings,
   };
 };
 

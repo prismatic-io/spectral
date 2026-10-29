@@ -12,8 +12,21 @@ interface CodemodMetadata {
   description: string;
 }
 
+/**
+ * What a codemod is given besides the files it edits. Callers always pass one, so no
+ * warning goes unseen.
+ */
+export interface CodemodContext {
+  /**
+   * Reports something the codemod left for a person to handle. A warning does not stop
+   * the run. `file` is the file it concerns: an absolute path for a source codemod, or a
+   * path relative to the project root for a project migration.
+   */
+  warn(message: string, file?: string): void;
+}
+
 export interface SourceCodemod extends CodemodMetadata {
-  transform(project: Project): Promise<SourceFile[]>;
+  transform(project: Project, context: CodemodContext): Promise<SourceFile[]>;
 }
 
 export interface ProjectFiles {
@@ -28,7 +41,7 @@ export interface FileEdit {
 
 export interface ProjectCodemod extends CodemodMetadata {
   /** Validate and plan all edits without writing. Paths are relative to the project root. */
-  plan(files: ProjectFiles): Promise<FileEdit[]>;
+  plan(files: ProjectFiles, context: CodemodContext): Promise<FileEdit[]>;
 }
 
 export type Codemod = SourceCodemod | ProjectCodemod;
@@ -40,12 +53,12 @@ export const codemodId = (codemod: Codemod): string => `v${codemod.version}/${co
 
 /** Lifts a file-level transform, which reports whether it changed the file, to a project transform. */
 export const eachFile =
-  (transform: (file: SourceFile) => boolean | Promise<boolean>) =>
-  async (project: Project): Promise<SourceFile[]> => {
+  (transform: (file: SourceFile, context: CodemodContext) => boolean | Promise<boolean>) =>
+  async (project: Project, context: CodemodContext): Promise<SourceFile[]> => {
     const changed: SourceFile[] = [];
     // Transforms share a mutable project, so preserve file order and await each edit.
     for (const file of project.getSourceFiles()) {
-      if (await transform(file)) changed.push(file);
+      if (await transform(file, context)) changed.push(file);
     }
     return changed;
   };
