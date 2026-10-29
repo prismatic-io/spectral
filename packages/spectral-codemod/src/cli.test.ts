@@ -36,11 +36,11 @@ describe("parseArgs", () => {
 
   it("needs a version after --target-spectral", () => {
     expect(() => parseArgs(["integration-configuration", "--target-spectral"])).toThrow(
-      "--target-spectral needs a spectral version.",
+      '--target-spectral needs a spectral version or "latest".',
     );
     expect(() =>
       parseArgs(["integration-configuration", "--target-spectral", "--dry-run"]),
-    ).toThrow("--target-spectral needs a spectral version.");
+    ).toThrow('--target-spectral needs a spectral version or "latest".');
   });
 
   it("rejects unknown options and extra positionals", () => {
@@ -79,6 +79,8 @@ describe("main", () => {
   it.each([
     [["v10.36.0/integration-configuration"]],
     [["integration-configuration", "--target-spectral", "10.36.2"]],
+    [["integration-configuration", "--target-spectral", "latest"]],
+    [["integration-configuration", "--target-spectral=latest"]],
   ])("runs a codemod against a path and reports the changed files: %j", async (args) => {
     const dir = await mkdtemp(join(tmpdir(), "spectral-codemod-cli-"));
     try {

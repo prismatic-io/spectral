@@ -56,7 +56,8 @@ const compareVersions = (a: Codemod, b: Codemod): number => {
  * The codemod `requested` names. A versioned name, such as
  * `v10.36.0/integration-configuration`, names one codemod. A bare name, such as
  * `integration-configuration`, names the latest version of that migration at or below
- * `targetSpectral`, and needs it. Throws when no single codemod is named.
+ * `targetSpectral`, or the newest bundled version when the target is `latest`.
+ * Throws when no single codemod is named.
  */
 export const resolveCodemod = (
   requested: string,
@@ -83,13 +84,16 @@ export const resolveCodemod = (
   }
   if (targetSpectral === undefined) {
     throw new Error(
-      `"${requested}" does not name a version. Pass a versioned codemod, such as "${codemodId(versions[versions.length - 1])}", or the spectral version to migrate to with --target-spectral <version>.`,
+      `"${requested}" does not name a version. Pass a versioned codemod, such as "${codemodId(versions[versions.length - 1])}", or the spectral version to migrate to with --target-spectral <version|latest>.`,
     );
+  }
+  if (targetSpectral === "latest") {
+    return versions[versions.length - 1];
   }
   const target = parseVersion(targetSpectral);
   if (!target) {
     throw new Error(
-      `--target-spectral takes a spectral version, such as 10.3.1. "${targetSpectral}" is not one.`,
+      `--target-spectral takes a spectral version, such as 10.3.1, or "latest". "${targetSpectral}" is not one.`,
     );
   }
   const applicable = versions.filter((mod) => appliesTo(versionOf(mod), target));
