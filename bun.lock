@@ -87,6 +87,14 @@
         "typescript": "6.0.3",
         "vitest": "^5.0.4",
       },
+      "peerDependencies": {
+        "@jest/globals": ">=29",
+        "vitest": ">=4",
+      },
+      "optionalPeers": [
+        "@jest/globals",
+        "vitest",
+      ],
     },
     "packages/spectral-codemod": {
       "name": "@prismatic-io/spectral-codemod",

@@ -8,6 +8,8 @@ type AnyFunction = (...args: any[]) => any;
 // is left for Node or Bun to resolve.
 const requireRunner = (name: string): any => createRequire(__filename)(name);
 
+export const pendingImplementations = new WeakMap<object, () => AnyFunction[]>();
+
 let invocationOrder = 0;
 
 /** Small local spy for isolated test loggers. */
@@ -123,5 +125,7 @@ export const localMock = (initial?: AnyFunction): any => {
       state = value;
     },
   });
+  pendingImplementations.set(mock, () => once);
+
   return mock;
 };
