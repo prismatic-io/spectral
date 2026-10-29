@@ -1,5 +1,6 @@
 export {
   type Codemod,
+  type CodemodContext,
   codemodId,
   defineCodemod,
   type FileEdit,
@@ -8,4 +9,4 @@ export {
   type SourceCodemod,
 } from "./codemod";
 export { codemods, resolveCodemod } from "./codemods";
-export { type RunOptions, type RunResult, runCodemod } from "./runner";
+export { type RunOptions, type RunResult, type RunWarning, runCodemod } from "./runner";

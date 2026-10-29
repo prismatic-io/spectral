@@ -363,6 +363,61 @@ describe("callable-component-packaging", async () => {
     expect((await runCodemod(codemod, { path: dir })).changed).toEqual([]);
   });
 
+  it("warns about dependencies npm cannot install from the published package", async () => {
+    const files = fixture();
+    changePackage(files, (pkg) => {
+      pkg.dependencies["shared-utils"] = "file:../shared-utils";
+      pkg.dependencies.linked = "link:../linked";
+      pkg.peerDependencies = { portal: "portal:../portal" };
+      pkg.devDependencies["test-utils"] = "file:../test-utils";
+      pkg.dependencies.remote = "github:acme/remote";
+    });
+    const warnings: { message: string; file?: string }[] = [];
+    await codemod.plan(
+      { read: async (path) => files[path] },
+      { warn: (message, file) => warnings.push({ message, file }) },
+    );
+    expect(warnings).toEqual([
+      {
+        message:
+          'dependencies has shared-utils at "file:../shared-utils", which npm cannot install from the published package. Publish shared-utils and depend on its version, or bundle it into the npm build with deps.alwaysBundle in the tsdown config.',
+        file: "package.json",
+      },
+      {
+        message: expect.stringMatching(/^dependencies has linked at "link:\.\.\/linked"/),
+        file: "package.json",
+      },
+      {
+        message: expect.stringMatching(/^peerDependencies has portal at "portal:\.\.\/portal"/),
+        file: "package.json",
+      },
+    ]);
+  });
+
+  it("reports warnings through the runner and the CLI", async () => {
+    const files = fixture();
+    changePackage(files, (pkg) => {
+      pkg.dependencies["shared-utils"] = "file:../shared-utils";
+    });
+    const dir = await onDisk(files);
+    const { warnings } = await runCodemod(codemod, { path: dir, dryRun: true });
+    expect(warnings).toEqual([
+      { message: expect.stringContaining("shared-utils"), file: join(dir, "package.json") },
+    ]);
+    const errors: string[] = [];
+    expect(
+      await main(["v10.36.0/callable-component-packaging", dir, "--dry-run"], {
+        log: () => {},
+        error: (line) => errors.push(line),
+      }),
+    ).toBe(0);
+    expect(errors).toEqual([
+      expect.stringMatching(
+        /^warning: .*package\.json: dependencies has shared-utils at "file:\.\.\/shared-utils"/,
+      ),
+    ]);
+  });
+
   it("is available through the CLI", async () => {
     const dir = await onDisk(fixture());
     const output: string[] = [];

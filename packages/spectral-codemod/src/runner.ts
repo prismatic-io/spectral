@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { lstat, mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "path";
 import { Project } from "ts-morph";
-import type { Codemod, ProjectCodemod } from "./codemod";
+import type { Codemod, CodemodContext, ProjectCodemod } from "./codemod";
 
 export interface RunOptions {
   /** A project directory, a tsconfig.json, or a single source file. Defaults to the working directory. */
@@ -16,7 +16,27 @@ export interface RunResult {
   changed: string[];
   /** Number of source files inspected, or files read by a project migration. */
   scanned: number;
+  /** What the codemod left for a person to handle, in the order it reported them. */
+  warnings: RunWarning[];
 }
+
+export interface RunWarning {
+  message: string;
+  /** Absolute path of the file the warning concerns, if it concerns one. */
+  file?: string;
+}
+
+/** Collects a codemod's warnings, resolving their files against `root`. */
+const collectWarnings = (root: string): { context: CodemodContext; warnings: RunWarning[] } => {
+  const warnings: RunWarning[] = [];
+  return {
+    warnings,
+    context: {
+      warn: (message, file) =>
+        warnings.push(file === undefined ? { message } : { message, file: resolve(root, file) }),
+    },
+  };
+};
 
 const SOURCE_GLOBS = ["**/*.ts", "**/*.tsx", "!**/node_modules/**", "!**/dist/**"];
 const TEST_GLOBS = [
@@ -47,7 +67,8 @@ export const runCodemod = async (
   if ("plan" in codemod) return runProjectCodemod(codemod, target, options.dryRun);
 
   const project = await createProject(target);
-  const changed = (await codemod.transform(project)).map((file) => file.getFilePath());
+  const { context, warnings } = collectWarnings(target);
+  const changed = (await codemod.transform(project, context)).map((file) => file.getFilePath());
 
   if (!options.dryRun) {
     await project.save();
@@ -56,7 +77,7 @@ export const runCodemod = async (
   const scanned = project
     .getSourceFiles()
     .filter((file) => !file.isInNodeModules() && !file.isDeclarationFile()).length;
-  return { changed, scanned };
+  return { changed, scanned, warnings };
 };
 
 /** Project migrations stage every edit before touching disk, including in dry-run mode. */
@@ -99,7 +120,8 @@ const runProjectCodemod = async (
     scanned.add(absolute);
     return readFile(absolute, "utf8");
   };
-  const plan = await codemod.plan({ read });
+  const { context, warnings } = collectWarnings(root);
+  const plan = await codemod.plan({ read }, context);
   // Validate the entire plan, including no-ops and paths aliased by symlinks.
   const destinations = await Promise.all(plan.map((edit) => resolveFile(edit.path)));
   const uniqueDestinations = new Set(destinations);
@@ -122,7 +144,7 @@ const runProjectCodemod = async (
       await writeFile(edit.absolute, edit.content);
     }
   }
-  return { changed: edits.map((edit) => edit.absolute), scanned: scanned.size };
+  return { changed: edits.map((edit) => edit.absolute), scanned: scanned.size, warnings };
 };
 
 const createProject = async (target: string): Promise<Project> => {

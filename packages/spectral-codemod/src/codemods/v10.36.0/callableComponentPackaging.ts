@@ -7,7 +7,7 @@ import {
   SyntaxKind,
   ts,
 } from "ts-morph";
-import { defineCodemod, type ProjectFiles } from "../../codemod";
+import { type CodemodContext, defineCodemod, type ProjectFiles } from "../../codemod";
 
 const SPECTRAL = "@prismatic-io/spectral";
 const CONFIG_NAMES = [
@@ -283,7 +283,10 @@ const configureBuild = (source: SourceFile): void => {
   else argument.replaceWithText(`[${argument.getText()},\n${NPM_BUILD}]`);
 };
 
-const configurePackage = (originalPackage: string) => {
+/** Dependency protocols that point at the author's disk, which npm cannot install for a consumer. */
+const LOCAL_DEPENDENCY = /^(?:file|link|portal):/;
+
+const configurePackage = (originalPackage: string, context?: CodemodContext) => {
   const pkg = record(JSON.parse(originalPackage), "package.json");
   if (pkg.type === "module")
     fail('The platform dist/index.js artifact requires a CommonJS package (no "type": "module").');
@@ -306,6 +309,17 @@ const configurePackage = (originalPackage: string) => {
   }
   if (pkg.peerDependenciesMeta?.[SPECTRAL]?.optional)
     fail("Spectral must be a required peer dependency.");
+  // The platform build bundles every dependency, so a local one only breaks the npm package.
+  for (const group of ["dependencies", "optionalDependencies", "peerDependencies"]) {
+    for (const [name, range] of Object.entries(record(pkg[group] ?? {}, group))) {
+      if (typeof range === "string" && LOCAL_DEPENDENCY.test(range)) {
+        context?.warn(
+          `${group} has ${name} at "${range}", which npm cannot install from the published package. Publish ${name} and depend on its version, or bundle it into the npm build with deps.alwaysBundle in the tsdown config.`,
+          "package.json",
+        );
+      }
+    }
+  }
   const scripts = record(pkg.scripts ?? {}, "scripts");
   // Steps such as typechecking or linting may run first; tsdown must run last, unchanged,
   // so that it builds both outputs.
@@ -413,9 +427,9 @@ export default defineCodemod({
   version: "10.36.0",
   name: "callable-component-packaging",
   description: "Add npm packaging for callable components",
-  plan: async (files: ProjectFiles) => {
+  plan: async (files: ProjectFiles, context?: CodemodContext) => {
     const originalPackage = await required(files, "package.json");
-    const pkg = configurePackage(originalPackage);
+    const pkg = configurePackage(originalPackage, context);
     const configs = (
       await Promise.all(
         CONFIG_NAMES.map(async (path) => {

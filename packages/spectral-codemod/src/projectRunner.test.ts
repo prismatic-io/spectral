@@ -43,6 +43,19 @@ describe("project migrations", () => {
     expect((await runCodemod(mod, { path: dir })).changed).toEqual([]);
   });
 
+  it("reports warnings with their files resolved against the project", async () => {
+    const dir = await scratch();
+    const mod = migration(async (_files, context) => {
+      context?.warn("check this", "config/build.ts");
+      context?.warn("check the project");
+      return [];
+    });
+    expect((await runCodemod(mod, { path: dir })).warnings).toEqual([
+      { message: "check this", file: join(dir, "config/build.ts") },
+      { message: "check the project" },
+    ]);
+  });
+
   it("does not write earlier edits when a later destination is invalid", async () => {
     const dir = await scratch();
     const mod = migration(async () => [

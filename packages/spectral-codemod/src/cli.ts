@@ -108,5 +108,8 @@ export const main = async (
   for (const file of result.changed) {
     io.log(`  ${displayPath(file)}`);
   }
+  for (const { message, file } of result.warnings) {
+    io.error(`warning: ${file === undefined ? "" : `${displayPath(file)}: `}${message}`);
+  }
   return 0;
 };

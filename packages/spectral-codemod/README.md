@@ -36,7 +36,8 @@ npx @prismatic-io/spectral-codemod@latest v10.36.0/integration-configuration --d
 npx @prismatic-io/spectral-codemod@latest integration-configuration --target-spectral 10.36.2   # v10.36.0
 ```
 
-Commit or stash your work first, then review the diff the codemod leaves behind. When a
+Commit or stash your work first, then review the diff the codemod leaves behind, and
+the warnings it prints for what it left for you to handle. When a
 project holds more than one integration, pass the file of the one to migrate as the path.
 
 ## Codemods
@@ -69,6 +70,11 @@ to `prepare`. Existing exports, ignore rules, and publishing settings are preser
 Wherever `.gitignore` or a Biome config excludes `dist`, it excludes `npm-dist` beside
 it, in the same style. Running it again makes no changes.
 
+It warns about dependencies, optional dependencies and peer dependencies declared with
+`file:`, `link:` or `portal:`: npm cannot install them from the published package. Publish
+them and depend on their versions, or bundle them into the npm build with
+`deps.alwaysBundle` in the tsdown config.
+
 After applying, reinstall dependencies to update the lockfile, run your tests, and
 run `npm pack`. Consumers need Spectral installed and use the package's default
 export to access callable components.
@@ -86,7 +92,8 @@ that resolve to the same modules:
 
 Paths with a `.js` extension are moved too. It rewrites import and export sources,
 `import()` types, and the first argument of calls such as `require`, dynamic `import`,
-and `vi.mock`. Other `dist/` paths have no public entry point and stay as they are.
+and `vi.mock`. Other `dist/` paths have no public entry point and stay as they are; the
+codemod warns about each one, naming the file that imports it.
 
 ```sh
 npx @prismatic-io/spectral-codemod@latest v10.35.1/public-entry-points . --dry-run
@@ -258,6 +265,11 @@ For project files, implement `ProjectCodemod.plan(files)`: read with
 `await files.read(path)`, validate, and return `{ path, content }` edits. Paths must
 stay within the target directory. The runner writes changed files; `--dry-run`
 previews them.
+
+Either kind of codemod may take a second argument, a `CodemodContext`. Call
+`context?.warn(message, file)` to report something left for a person to handle, such as
+code the codemod cannot migrate; the run carries on, and the CLI prints the warnings after
+the changed files.
 
 A source codemod is a `SourceCodemod` from `src/codemod.ts`: the spectral `version` it migrates to, a
 `name` shared by each version of the migration, a `description`, and a
