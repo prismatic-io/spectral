@@ -1,6 +1,6 @@
 {
   "name": "@prismatic-io/spectral-codemod",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Codemods that migrate Prismatic connectors and code-native integrations across @prismatic-io/spectral releases",
   "keywords": [
     "prismatic",
