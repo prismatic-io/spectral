@@ -3,20 +3,18 @@ import { type Codemod, codemodId } from "./codemod";
 import { codemods, resolveCodemod } from "./codemods";
 import { runCodemod } from "./runner";
 
-const USAGE = `Usage: spectral-codemod v<version>/<codemod> [path] [--dry-run]
-       spectral-codemod <codemod> --target-spectral <version> [path] [--dry-run]
+const USAGE = `Usage: spectral-codemod <codemod> --target-spectral latest [path] [--dry-run]
        spectral-codemod --list
 
-Applies a migration to the project at <path> (default: the current directory).
-Name the codemod with its version, such as v10.36.0/integration-configuration, or
-name it alone and pass the spectral version to migrate to. The latest version of
-the codemod at or below that version runs.
+Run a named codemod's newest bundled version. Path defaults to the current directory.
+Use --list to find available codemods.
+For a specific release, pass --target-spectral <version> or v<version>/<codemod>.
 
 Options:
-  --target-spectral <version>  The spectral version to migrate to, such as 10.36.2.
-  --dry-run                    Report the files that would change without writing them.
-  --list                       Print the available codemods.
-  --help                       Print this message.`;
+  --target-spectral <version|latest>  A spectral version or the newest bundled codemod.
+  --dry-run                         Preview changes.
+  --list                            List available codemods.
+  --help                            Show help.`;
 
 const TARGET_SPECTRAL = "--target-spectral";
 
@@ -37,7 +35,7 @@ export const parseArgs = (argv: string[]): ParsedArgs => {
     if (arg === TARGET_SPECTRAL || arg.startsWith(`${TARGET_SPECTRAL}=`)) {
       const value = arg === TARGET_SPECTRAL ? argv[++index] : arg.slice(TARGET_SPECTRAL.length + 1);
       if (!value || value.startsWith("-")) {
-        throw new Error(`${TARGET_SPECTRAL} needs a spectral version.\n\n${USAGE}`);
+        throw new Error(`${TARGET_SPECTRAL} needs a spectral version or "latest".\n\n${USAGE}`);
       }
       parsed.targetSpectral = value;
     } else if (arg === "--dry-run") {

@@ -9,19 +9,19 @@ rewrites source or project files in place.
 
 ## Usage
 
-Run the latest published codemods without installing anything:
+List available codemods, then preview one using `latest`:
 
 ```sh
-npx @prismatic-io/spectral-codemod@latest v<version>/<codemod> [path]
-npx @prismatic-io/spectral-codemod@latest <codemod> --target-spectral <version> [path]
+npx @prismatic-io/spectral-codemod@latest --list
+npx @prismatic-io/spectral-codemod@latest integration-configuration --target-spectral latest --dry-run
 ```
 
-Each codemod has the spectral version it migrates to, as in
-`v10.36.0/integration-configuration`. Name the codemod with its version, or name it alone
-and pass the spectral version to migrate to with `--target-spectral`. The latest version of
-the codemod at or below that spectral version runs. A preview release, such as
-`10.26.2-preview.1`, is below its release. You must give the version in one of the two
-ways, and not in both.
+Use the codemod's name without its `v<version>/` prefix. `latest` selects its newest
+bundled version. Remove `--dry-run` to apply.
+
+For a specific release, use `--target-spectral <version>` to select the newest
+applicable codemod, or use its full versioned name, such as
+`v10.36.0/integration-configuration`, without `--target-spectral`.
 
 `path` is a project directory, a `tsconfig.json`, or a single source file. It defaults
 to the current directory. A directory with a `tsconfig.json` contributes the files that
@@ -30,25 +30,19 @@ except `node_modules` and `dist`. A source file contributes itself, the files it
 and the test files that import one of those, compiled with the options of the nearest
 `tsconfig.json`.
 
-```sh
-npx @prismatic-io/spectral-codemod@latest --list                          # available codemods
-npx @prismatic-io/spectral-codemod@latest v10.36.0/integration-configuration --dry-run   # report without writing
-npx @prismatic-io/spectral-codemod@latest integration-configuration --target-spectral 10.36.2   # v10.36.0
-```
-
 Commit or stash your work first, then review the diff the codemod leaves behind, and
 the warnings it prints for what it left for you to handle. When a
 project holds more than one integration, pass the file of the one to migrate as the path.
 
 ## Codemods
 
-### `v10.36.0/callable-component-packaging`
+### `callable-component-packaging`
 
 Adds a callable npm package alongside the component's platform build. Run from
 the component's project directory:
 
 ```sh
-npx @prismatic-io/spectral-codemod@latest callable-component-packaging --target-spectral 10.36.1 . --dry-run
+npx @prismatic-io/spectral-codemod@latest callable-component-packaging --target-spectral latest . --dry-run
 ```
 
 Remove `--dry-run` to apply. The codemod validates these prerequisites before writing:
@@ -78,7 +72,7 @@ After applying, reinstall dependencies to update the lockfile, run your tests, a
 run `npm pack`. Consumers need Spectral installed and use the package's default
 export to access callable components.
 
-### `v10.35.1/public-entry-points`
+### `public-entry-points`
 
 Moves imports of Spectral's soft-deprecated `dist/` paths to the public entry points
 that resolve to the same modules:
@@ -95,10 +89,10 @@ and `vi.mock`. Other `dist/` paths have no public entry point and stay as they a
 codemod warns about each one, naming the file that imports it.
 
 ```sh
-npx @prismatic-io/spectral-codemod@latest v10.35.1/public-entry-points . --dry-run
+npx @prismatic-io/spectral-codemod@latest public-entry-points --target-spectral latest . --dry-run
 ```
 
-### `v10.36.0/integration-configuration`
+### `integration-configuration`
 
 Replaces an integration's config wizard with an integration `configuration`. The codemod
 finds the project's single `integration()` call, ignoring calls in test files, and:

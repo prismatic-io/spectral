@@ -31,6 +31,21 @@ describe("resolveCodemod", () => {
     expect(resolved("migrate", target)).toBe(expected);
   });
 
+  it("selects the newest bundled version of the named codemod", () => {
+    expect(resolved("migrate", "latest")).toBe("v11.0.0/migrate");
+    expect(resolved("other", "latest")).toBe("v1.0.0/other");
+    expect(codemodId(resolveCodemod("migrate", "latest", [fake("10.10.0"), fake("10.9.0")]))).toBe(
+      "v10.10.0/migrate",
+    );
+  });
+
+  it("rejects latest for unknown and versioned codemod names", () => {
+    expect(() => resolved("nope", "latest")).toThrow('Unknown codemod "nope".');
+    expect(() => resolved("v10.0.0/migrate", "latest")).toThrow(
+      '"v10.0.0/migrate" names its version, so it takes no --target-spectral.',
+    );
+  });
+
   it("counts a preview release as below its release", () => {
     expect(resolved("migrate", "10.10.0-preview.2")).toBe("v10.9.0/migrate");
   });
@@ -43,7 +58,7 @@ describe("resolveCodemod", () => {
 
   it("needs a target for a codemod named without its version", () => {
     expect(() => resolved("migrate")).toThrow(
-      '"migrate" does not name a version. Pass a versioned codemod, such as "v11.0.0/migrate", or the spectral version to migrate to with --target-spectral <version>.',
+      '"migrate" does not name a version. Pass a versioned codemod, such as "v11.0.0/migrate", or the spectral version to migrate to with --target-spectral <version|latest>.',
     );
   });
 
@@ -55,7 +70,7 @@ describe("resolveCodemod", () => {
 
   it("refuses a target that is not a version", () => {
     expect(() => resolved("migrate", "^10.3.1")).toThrow(
-      '--target-spectral takes a spectral version, such as 10.3.1. "^10.3.1" is not one.',
+      '--target-spectral takes a spectral version, such as 10.3.1, or "latest". "^10.3.1" is not one.',
     );
   });
 
