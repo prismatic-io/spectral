@@ -3,6 +3,8 @@ type AnyFunction = (...args: any[]) => any;
 // Keep Bun's optional assertion adapter external when bundling Spectral.
 const requireRunner = (name: string): any => require(name);
 
+export const pendingImplementations = new WeakMap<object, () => AnyFunction[]>();
+
 let invocationOrder = 0;
 
 /** Small local spy for isolated test loggers. */
@@ -118,5 +120,7 @@ export const localMock = (initial?: AnyFunction): any => {
       state = value;
     },
   });
+  pendingImplementations.set(mock, () => once);
+
   return mock;
 };

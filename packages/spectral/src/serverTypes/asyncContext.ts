@@ -32,6 +32,22 @@ const integrationContextStorage = getSharedContextStorage<unknown>(
   "@prismatic-io/spectral/integration-context",
 );
 
+/** Optional callable dispatch, shared across SDK copies without importing testing code. */
+export interface CallableMockTarget {
+  owner: object;
+  method: string;
+  examplePayload?: unknown;
+}
+export type CallableMockDispatcher = (target: CallableMockTarget, args: unknown[]) => unknown;
+const callableMockStorage = getSharedContextStorage<CallableMockDispatcher>(
+  "@prismatic-io/spectral/callable-mocks/v1",
+);
+export const getCallableMockDispatcher = () => callableMockStorage?.getStore();
+export const runWithCallableMocks = <T>(dispatcher: CallableMockDispatcher, fn: () => T): T => {
+  if (!callableMockStorage) throw new Error("Callable mocking requires Node.js or Bun.");
+  return callableMockStorage.run(dispatcher, fn);
+};
+
 export const runWithContext = <T>(context: ActionContext, fn: () => T): T => {
   if (!actionContextStorage) {
     return fn();

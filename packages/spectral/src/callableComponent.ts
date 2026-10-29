@@ -11,6 +11,11 @@ import {
   bundledDataSourceSymbol,
   publishedConnectionSymbol,
 } from "./serverTypes/callableConfigVar";
+import {
+  identifyDataSourceAlias,
+  instrumentEntityCalls,
+  instrumentTriggerCalls,
+} from "./serverTypes/callableInstrumentation";
 import { cleanerFor } from "./serverTypes/convertComponent";
 import { cleanParams } from "./serverTypes/perform";
 import { createPollingState } from "./serverTypes/pollingState";
@@ -348,7 +353,9 @@ const withErrorHook = async <T>(
 
 const callableTrigger = (
   trigger: NonNullable<AuthoringDefinition["triggers"]>[string],
-  hooks?: ComponentHooks,
+  hooks: ComponentHooks | undefined,
+  owner: object,
+  key: string,
 ) => {
   const inputs = trigger.inputs ?? {};
   const batched = Boolean(trigger.batchConfig);
@@ -425,6 +432,7 @@ const callableTrigger = (
     ...(trigger.triggerResolver ? { triggerResolver: resolver(trigger.triggerResolver) } : {}),
     ...(trigger.onDeployResolver ? { onDeployResolver: resolver(trigger.onDeployResolver) } : {}),
   };
+  instrumentTriggerCalls(calls, owner, key, trigger.examplePayload);
   const factory = (bindings: Record<string, unknown> = {}) => {
     const resolve = (context: ActionContext, definitions: Inputs) =>
       Object.fromEntries(
@@ -573,7 +581,12 @@ export const callableComponent = <
   if (Object.keys(connections).length !== (definition.connections ?? []).length)
     throw new Error("Duplicate connection key");
 
-  const dataSourceCalls = calls(definition.dataSources ?? {}, requireDataSourceContext);
+  const dataSourceCalls = instrumentEntityCalls(
+    calls(definition.dataSources ?? {}, requireDataSourceContext),
+    definition,
+    definition.dataSources ?? {},
+    "dataSources",
+  );
   const configDataSource = (
     key: string,
     options: BaseConfigVar & { values: Record<string, unknown> },
@@ -616,24 +629,34 @@ export const callableComponent = <
     };
   };
   const dataSources = mapValues(dataSourceCalls, (perform, key) =>
-    Object.assign(
-      (values: Record<string, unknown> = {}) =>
-        typeof values.stableKey === "string" && isRecord(values.values)
-          ? configDataSource(key, {
-              ...values,
-              stableKey: values.stableKey,
-              values: values.values,
-            })
-          : perform(values),
-      { perform },
+    identifyDataSourceAlias(
+      Object.assign(
+        (...args: [values?: Record<string, unknown>]) => {
+          const [values = {}] = args;
+          return typeof values.stableKey === "string" && isRecord(values.values)
+            ? configDataSource(key, {
+                ...values,
+                stableKey: values.stableKey,
+                values: values.values,
+              })
+            : perform(...args);
+        },
+        { perform },
+      ),
+      perform,
     ),
   );
   // Runtime iteration erases per-entity signatures; each wrapper preserves them.
   return {
-    actions: calls(definition.actions ?? {}, requireContext),
+    actions: instrumentEntityCalls(
+      calls(definition.actions ?? {}, requireContext),
+      definition,
+      definition.actions ?? {},
+      "actions",
+    ),
     dataSources,
-    triggers: mapValues(definition.triggers, (trigger) =>
-      callableTrigger(trigger, definition.hooks),
+    triggers: mapValues(definition.triggers, (trigger, key) =>
+      callableTrigger(trigger, definition.hooks, definition, key),
     ),
     connections,
   } as unknown as CallableComponent<AuthoringOf<TSource>>;
