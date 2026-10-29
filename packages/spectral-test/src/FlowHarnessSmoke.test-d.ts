@@ -10,7 +10,19 @@ const harness = createHarness(
   }),
 );
 
-harness.run().then(({ result }) => {
-  expectType<{ data: { count: number } }>(result);
-  expectError(result.data.missing);
+harness.run().then((run) => {
+  expectType<{ data: { count: number } }[]>(run.results);
+  if (run.status === "completed") {
+    expectType<{ data: { count: number } }>(run.result);
+    expectError(run.result.data.missing);
+  } else {
+    expectType<undefined>(run.result);
+  }
 });
+expectType<
+  Promise<
+    import("@prismatic-io/spectral/testing").FlowHarnessRunResult<{ data: { count: number } }>
+  >
+>(harness.initialSync());
+expectError(harness.run({ maxPages: "100" }));
+expectError(harness.run({ concurrency: "2" }));

@@ -12,6 +12,9 @@ const normalizedFlowSymbol = Symbol("normalizedBoundTriggerFlow");
 export interface BoundTrigger {
   definition: ComponentTrigger;
   bindings: Record<string, unknown>;
+  /** Execution adapters preserve callable interception for discovery callbacks. */
+  triggerResolver?: TriggerDefinition["triggerResolver"];
+  onDeployResolver?: TriggerDefinition["onDeployResolver"];
   onInstanceDeploy?: ComponentTrigger["onInstanceDeploy"];
   onInstanceDelete?: ComponentTrigger["onInstanceDelete"];
   webhookLifecycleHandlers?: TriggerDefinition["webhookLifecycleHandlers"];
