@@ -71,9 +71,8 @@ Wherever `.gitignore` or a Biome config excludes `dist`, it excludes `npm-dist` 
 it, in the same style. Running it again makes no changes.
 
 It warns about dependencies, optional dependencies and peer dependencies declared with
-`file:`, `link:` or `portal:`: npm cannot install them from the published package. Publish
-them and depend on their versions, or bundle them into the npm build with
-`deps.alwaysBundle` in the tsdown config.
+`file:`, `link:` or `portal:`: npm cannot install them from the published package, so
+bundle them into the npm build with `deps.alwaysBundle` in the tsdown config.
 
 After applying, reinstall dependencies to update the lockfile, run your tests, and
 run `npm pack`. Consumers need Spectral installed and use the package's default
@@ -266,10 +265,10 @@ For project files, implement `ProjectCodemod.plan(files)`: read with
 stay within the target directory. The runner writes changed files; `--dry-run`
 previews them.
 
-Either kind of codemod may take a second argument, a `CodemodContext`. Call
-`context?.warn(message, file)` to report something left for a person to handle, such as
+Either kind of codemod is given a second argument, a `CodemodContext`. Call
+`context.warn(message, file)` to report something left for a person to handle, such as
 code the codemod cannot migrate; the run carries on, and the CLI prints the warnings after
-the changed files.
+the changed files. Calling a codemod directly means passing a context too.
 
 A source codemod is a `SourceCodemod` from `src/codemod.ts`: the spectral `version` it migrates to, a
 `name` shared by each version of the migration, a `description`, and a

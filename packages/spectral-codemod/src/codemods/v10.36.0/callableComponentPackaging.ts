@@ -286,7 +286,7 @@ const configureBuild = (source: SourceFile): void => {
 /** Dependency protocols that point at the author's disk, which npm cannot install for a consumer. */
 const LOCAL_DEPENDENCY = /^(?:file|link|portal):/;
 
-const configurePackage = (originalPackage: string, context?: CodemodContext) => {
+const configurePackage = (originalPackage: string, context: CodemodContext) => {
   const pkg = record(JSON.parse(originalPackage), "package.json");
   if (pkg.type === "module")
     fail('The platform dist/index.js artifact requires a CommonJS package (no "type": "module").');
@@ -313,8 +313,8 @@ const configurePackage = (originalPackage: string, context?: CodemodContext) => 
   for (const group of ["dependencies", "optionalDependencies", "peerDependencies"]) {
     for (const [name, range] of Object.entries(record(pkg[group] ?? {}, group))) {
       if (typeof range === "string" && LOCAL_DEPENDENCY.test(range)) {
-        context?.warn(
-          `${group} has ${name} at "${range}", which npm cannot install from the published package. Publish ${name} and depend on its version, or bundle it into the npm build with deps.alwaysBundle in the tsdown config.`,
+        context.warn(
+          `${group} has ${name} at "${range}", which npm cannot install from the published package; bundle it into the npm build with deps.alwaysBundle in the tsdown config.`,
           "package.json",
         );
       }
@@ -427,7 +427,7 @@ export default defineCodemod({
   version: "10.36.0",
   name: "callable-component-packaging",
   description: "Add npm packaging for callable components",
-  plan: async (files: ProjectFiles, context?: CodemodContext) => {
+  plan: async (files: ProjectFiles, context: CodemodContext) => {
     const originalPackage = await required(files, "package.json");
     const pkg = configurePackage(originalPackage, context);
     const configs = (

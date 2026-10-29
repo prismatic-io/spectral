@@ -49,10 +49,9 @@ const fixture = () => ({
 const apply = async (files: Record<string, string>) => ({
   ...files,
   ...Object.fromEntries(
-    (await codemod.plan({ read: async (path) => files[path] })).map(({ path, content }) => [
-      path,
-      content,
-    ]),
+    (await codemod.plan({ read: async (path) => files[path] }, { warn: () => {} })).map(
+      ({ path, content }) => [path, content],
+    ),
   ),
 });
 const changePackage = (files: Record<string, string>, change: (pkg: any) => void) => {
@@ -364,7 +363,7 @@ describe("callable-component-packaging", async () => {
   });
 
   it("warns about dependencies npm cannot install from the published package", async () => {
-    const files = fixture();
+    const files: Record<string, string> = fixture();
     changePackage(files, (pkg) => {
       pkg.dependencies["shared-utils"] = "file:../shared-utils";
       pkg.dependencies.linked = "link:../linked";
@@ -380,7 +379,7 @@ describe("callable-component-packaging", async () => {
     expect(warnings).toEqual([
       {
         message:
-          'dependencies has shared-utils at "file:../shared-utils", which npm cannot install from the published package. Publish shared-utils and depend on its version, or bundle it into the npm build with deps.alwaysBundle in the tsdown config.',
+          'dependencies has shared-utils at "file:../shared-utils", which npm cannot install from the published package; bundle it into the npm build with deps.alwaysBundle in the tsdown config.',
         file: "package.json",
       },
       {

@@ -46,8 +46,8 @@ describe("project migrations", () => {
   it("reports warnings with their files resolved against the project", async () => {
     const dir = await scratch();
     const mod = migration(async (_files, context) => {
-      context?.warn("check this", "config/build.ts");
-      context?.warn("check the project");
+      context.warn("check this", "config/build.ts");
+      context.warn("check the project");
       return [];
     });
     expect((await runCodemod(mod, { path: dir })).warnings).toEqual([

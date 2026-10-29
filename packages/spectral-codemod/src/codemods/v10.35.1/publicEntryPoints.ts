@@ -46,7 +46,7 @@ export default defineCodemod({
       }
     }
     for (const specifier of unmoved) {
-      context?.warn(
+      context.warn(
         `${specifier} has no public entry point, so it stays as it is. Spectral's dist/ paths are deprecated; move off it by hand.`,
         file.getFilePath(),
       );
