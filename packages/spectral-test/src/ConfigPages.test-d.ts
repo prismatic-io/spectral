@@ -6,7 +6,7 @@ import {
   type TriggerEventFunctionReturn,
   type TriggerPayload,
 } from "@prismatic-io/spectral";
-import { expectAssignable } from "tsd";
+import { expectAssignable, expectType } from "tsd";
 
 import { componentRegistry, configPages } from "./testData.test-d";
 
@@ -27,6 +27,9 @@ const basicFlow = flow({
     expectAssignable<string>(context.configVars["Ref String Data Source"]);
     expectAssignable<ObjectSelection>(context.configVars["Object Selection Data Source"]);
     expectAssignable<string>(context.configVars["Fourth Page String"]);
+    // A packaged component's picklist holds one value unless it declares a collection.
+    expectType<string>(context.configVars["Packaged Picklist"]);
+    expectType<string[]>(context.configVars["Packaged Picklist List"]);
 
     expectAssignable<Record<string, unknown>>(params);
 

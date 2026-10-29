@@ -1,9 +1,12 @@
 import {
   type ConfigVarResultCollection,
+  callableComponent,
+  component,
   componentManifest,
   configPage,
   configVar,
   connectionConfigVar,
+  dataSource,
   dataSourceConfigVar,
   input,
   type JSONForm,
@@ -13,6 +16,22 @@ import {
   userActivatedConnection,
 } from "@prismatic-io/spectral";
 import { expectAssignable } from "tsd";
+
+/** A packaged component's picklist, as its npm package exposes it. */
+const packaged = callableComponent(
+  component({
+    key: "packaged",
+    display: { label: "Packaged", description: "Packaged", iconPath: "icon.png" },
+    dataSources: {
+      regions: dataSource({
+        display: { label: "Regions", description: "Regions" },
+        dataSourceType: "picklist",
+        inputs: {},
+        perform: async () => ({ result: ["us-east-1"] }),
+      }),
+    },
+  }),
+);
 
 export const configPages = {
   "First Page": configPage({
@@ -126,6 +145,15 @@ export const configPages = {
       "Fourth Page String": configVar({
         stableKey: "fourth-page-string",
         dataType: "string",
+      }),
+      "Packaged Picklist": packaged.dataSources.regions({
+        stableKey: "packaged-picklist",
+        values: {},
+      }),
+      "Packaged Picklist List": packaged.dataSources.regions({
+        stableKey: "packaged-picklist-list",
+        values: {},
+        collectionType: "valuelist",
       }),
     },
   }),
