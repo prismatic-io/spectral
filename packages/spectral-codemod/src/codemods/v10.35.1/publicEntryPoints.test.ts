@@ -21,6 +21,22 @@ type Http = import("@prismatic-io/spectral/http").HttpClient;
 `);
   });
 
+  it("moves paths written with a trailing slash", async () => {
+    const { files, changed, warnings } =
+      await run(`import { util } from "@prismatic-io/spectral/dist/";
+import { inputs } from "@prismatic-io/spectral/dist/clients/http/";
+const testing = require("@prismatic-io/spectral/dist/testing/");
+type Http = import("@prismatic-io/spectral/dist/clients/http/index/").HttpClient;
+`);
+    expect(changed).toEqual(["src/index.ts"]);
+    expect(warnings).toEqual([]);
+    expect(files["src/index.ts"]).toBe(`import { util } from "@prismatic-io/spectral";
+import { inputs } from "@prismatic-io/spectral/http";
+const testing = require("@prismatic-io/spectral/testing");
+type Http = import("@prismatic-io/spectral/http").HttpClient;
+`);
+  });
+
   it("moves require, dynamic import, and mock paths", async () => {
     const { files } = await run(`const spectral = require("@prismatic-io/spectral/dist");
 const testing = await import("@prismatic-io/spectral/dist/testing");
