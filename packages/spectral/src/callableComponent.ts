@@ -18,6 +18,7 @@ import {
   type ActionContext,
   type ActionDefinition,
   type BaseConfigVar,
+  type CollectionType,
   type ComponentDefinition,
   type ComponentHooks,
   type ConditionalExpression,
@@ -220,17 +221,32 @@ type DataSourceOptions<TSource extends { dataSourceType: DataSourceType }> = Omi
     values: TriggerBindings<EntityInputs<TSource>>;
   };
 
+/**
+ * The config variable a callable data source returns. Its `collectionType` is the one the
+ * caller gave, or absent, as a `dataSourceConfigVar` written out by hand would be: a
+ * config variable's runtime value is a single value unless it declares a collection, so an
+ * optional `collectionType` of any kind would type a picklist's value as every list form.
+ */
+type CallableDataSourceConfigVar<
+  TSource extends { dataSourceType: DataSourceType },
+  TCollection extends CollectionType | undefined,
+> = (Extract<DataSourceConfigVar, { dataSourceType: TSource["dataSourceType"] }> extends infer T
+  ? T extends unknown
+    ? Omit<T, "collectionType">
+    : never
+  : never) & {
+  dataSourceType: TSource["dataSourceType"];
+} & ([TCollection] extends [CollectionType] ? { collectionType: TCollection } : unknown);
+
 type CallableDataSource<TSource> = TSource extends {
   inputs: infer TInputs extends Inputs;
   dataSourceType: DataSourceType;
   perform: infer TPerform extends (...args: any[]) => any;
 }
   ? {
-      (
-        options: DataSourceOptions<TSource>,
-      ): Extract<DataSourceConfigVar, { dataSourceType: TSource["dataSourceType"] }> & {
-        dataSourceType: TSource["dataSourceType"];
-      };
+      <TCollection extends CollectionType | undefined = undefined>(
+        options: DataSourceOptions<TSource> & { collectionType?: TCollection },
+      ): CallableDataSourceConfigVar<TSource, TCollection>;
       (...args: InputArguments<TInputs>): ReturnType<TPerform>;
       perform: (...args: InputArguments<TInputs>) => ReturnType<TPerform>;
     }
