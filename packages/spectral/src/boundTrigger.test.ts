@@ -312,6 +312,7 @@ describe("bundled component trigger bindings", () => {
       convertFlow({ ...definition, runInitialSyncOnDeploy: false }, {}, "local-cni")
         .triggerResolver,
     ).toMatchObject({ runInitialSyncOnDeploy: false });
+    expect(serialized.runInitialSyncOnDeploy).toBeUndefined();
     expect(serialized.supplementalComponents).toEqual([]);
     expect(wire.triggerResolverDefaultBatchSize).toBe(3);
     expect(wire.triggerResolverDefaultConcurrentBatchLimit).toBe(2);

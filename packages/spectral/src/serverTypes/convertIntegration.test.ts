@@ -146,6 +146,8 @@ describe("convertFlow with polling triggers", () => {
       enabled: true,
       runInitialSyncOnDeploy: true,
     });
+    // The platform accepts the flag only inside triggerResolver.
+    expect(result.runInitialSyncOnDeploy).toBeUndefined();
   });
 
   it("preserves an explicit initial-sync opt-out on a batched flow", () => {
