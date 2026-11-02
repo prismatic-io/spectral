@@ -2,11 +2,11 @@ import { createRequire } from "node:module";
 
 type AnyFunction = (...args: any[]) => any;
 
-// Keep Bun's optional assertion adapter external when bundling Spectral. A `require`
+// Keep optional test-runner modules external when bundling Spectral. A `require`
 // call with a computed name makes webpack warn ("the request of a dependency is an
 // expression") in every bundle that includes Spectral; a require made by createRequire
 // is left for Node or Bun to resolve.
-const requireRunner = (name: string): any => createRequire(__filename)(name);
+export const requireRunner = (name: string): any => createRequire(__filename)(name);
 
 export const pendingImplementations = new WeakMap<object, () => AnyFunction[]>();
 

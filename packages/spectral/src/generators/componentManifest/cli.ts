@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { isObjectWithOneTruthyKey, isObjectWithTruthyKeys } from "../../util";
 import { createFlagHelpText } from "../utils/createFlagHelpText";
@@ -111,7 +112,7 @@ export const runMain = async (process: NodeJS.Process) => {
     process.exit(1);
   }
 
-  const component = require(componentDistDir).default;
+  const component = createRequire(__filename)(componentDistDir).default;
 
   if (
     !component ||

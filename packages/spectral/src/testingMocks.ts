@@ -1,12 +1,9 @@
 import cloneDeepWith from "lodash/cloneDeepWith";
-import { localMock, pendingImplementations } from "./localMock";
+import { localMock, pendingImplementations, requireRunner } from "./localMock";
 import type { CallableMockTarget } from "./serverTypes/asyncContext";
 import { getCallableMockTarget } from "./serverTypes/callableMock";
 
 type AnyFunction = (...args: any[]) => any;
-
-// Keep optional runner modules external when the SDK is bundled into a component.
-const requireRunner = (name: string): any => require(name);
 
 /** Runner-independent declarations; no Jest, Vitest, or Bun types reach consumers. */
 export interface FunctionMock<T extends AnyFunction> {
