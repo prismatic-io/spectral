@@ -1,4 +1,4 @@
-import type { DataSourceDefinition, Inputs } from "../types";
+import type { ConnectionInput, DataSourceDefinition, Inputs } from "../types";
 import type { ComponentReference } from "./integration";
 
 /** Declaration metadata only; never serialized into the platform component. */
@@ -9,7 +9,7 @@ export const bundledDataSourceSymbol = Symbol.for("@prismatic-io/spectral/bundle
 
 export interface PublishedConnection {
   component: Extract<ComponentReference["component"], { signature: string }>;
-  inputs: Inputs;
+  inputs: Record<string, ConnectionInput>;
 }
 
 export interface BundledDataSource {

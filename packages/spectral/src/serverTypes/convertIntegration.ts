@@ -753,11 +753,16 @@ const convertComponentReference = (
   inputs: Record<string, ServerInput>;
 } => {
   const published = getPublishedConnection(componentReference);
-  if (published)
+  if (published) {
+    // Hidden inputs are not part of the published connection, as in a component manifest.
+    const shownInputs = Object.fromEntries(
+      Object.entries(published.inputs).filter(([, input]) => input.shown !== false),
+    );
     return {
       ref: { component: published.component, key: componentReference.key },
-      inputs: convertReferenceInputs(published.inputs, componentReference.values),
+      inputs: convertReferenceInputs(shownInputs, componentReference.values),
     };
+  }
   const manifest = componentRegistry[componentReference.component];
 
   if (!manifest) {
