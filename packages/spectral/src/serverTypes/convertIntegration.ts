@@ -1029,8 +1029,16 @@ export const convertFlow = <
       const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
       triggerStep.inputs = inputs;
     } else {
-      const branch = boundBranchInput(getBoundTrigger(flow.onTrigger));
+      const bound = getBoundTrigger(flow.onTrigger);
+      const branch = boundBranchInput(bound);
       if (branch) triggerStep.inputs = { [branch.input.key]: branch.value };
+      // The runner ends a flow whose trigger returns a branch the trigger step does not
+      // declare. A branch with no steps continues to the next step, onExecution.
+      if (bound?.definition.allowsBranching) {
+        const staticBranchNames =
+          "staticBranchNames" in bound.definition ? (bound.definition.staticBranchNames ?? []) : [];
+        triggerStep.branches = staticBranchNames.map((name) => ({ name, steps: [] }));
+      }
     }
 
     triggerStep.action = {

@@ -376,6 +376,43 @@ describe("bundled component trigger bindings", () => {
     ).resolves.toMatchObject({ instanceState: { start: 9 } });
   });
 
+  it("declares an empty branch per static branch so the flow continues to onExecution", () => {
+    const callable = callableComponent({
+      triggers: {
+        webhook: trigger({
+          display,
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          allowsBranching: true,
+          staticBranchNames: ["Notification", "Verification Request"],
+          inputs: {},
+          perform: async (_context, receivedPayload) => ({
+            payload: receivedPayload,
+            branch: "Notification",
+          }),
+        }),
+        plain: trigger({
+          display,
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          inputs: {},
+          perform: async (_context, receivedPayload) => ({ payload: receivedPayload }),
+        }),
+      },
+    });
+    const triggerStep = (onTrigger: ReturnType<typeof callable.triggers.plain>) =>
+      convertFlow(flow({ ...baseFlow, onTrigger }), {}, "local-cni").steps.find(
+        (step: { isTrigger?: boolean }) => step.isTrigger,
+      );
+    expect(triggerStep(callable.triggers.webhook())).toMatchObject({
+      branches: [
+        { name: "Notification", steps: [] },
+        { name: "Verification Request", steps: [] },
+      ],
+    });
+    expect(triggerStep(callable.triggers.plain())).not.toHaveProperty("branches");
+  });
+
   it.each([
     "record",
     "array",
@@ -422,6 +459,7 @@ describe("bundled component trigger bindings", () => {
       expect.arrayContaining([
         expect.objectContaining({
           isTrigger: true,
+          branches: [{ name: "Else", steps: [] }],
           inputs: {
             branches:
               kind === "configVar"
