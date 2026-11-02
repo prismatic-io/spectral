@@ -1124,10 +1124,12 @@ export const convertFlow = <
   // synthesized trigger below. On the flow wire we emit only `triggerResolver`, the single
   // config the platform reads (`trigger_resolver_batch_size` / `trigger_resolver_enabled`)
   // and shares between the normal and on-deploy fires. `batchConfig`/`onDeployResolver` are
-  // author-side only — clear them out of the `{ ...flow }` spread.
+  // author-side only — clear them out of the `{ ...flow }` spread. `runInitialSyncOnDeploy`
+  // belongs inside `triggerResolver`; the platform rejects it on the flow itself.
   result.triggerResolver = undefined;
   result.onDeployResolver = undefined;
   result.batchConfig = undefined;
+  result.runInitialSyncOnDeploy = undefined;
 
   if (triggerResolver || onDeployResolver) {
     if (!batchConfig) {
