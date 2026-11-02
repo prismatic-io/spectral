@@ -111,6 +111,7 @@ export const runMain = async (process: NodeJS.Process) => {
     process.exit(1);
   }
 
+  // biome-ignore lint/plugin/no-computed-module-request: a CLI that is never bundled, loading the built component
   const component = require(componentDistDir).default;
 
   if (

@@ -7,6 +7,7 @@ export async function loadRunner(): Promise<(implementation?: (...args: any[]) =
   const name = process.env.VITEST ? "vitest" : process.versions.bun ? "bun:test" : undefined;
   if (!name)
     throw new Error("CNI callable mocks require an active Vitest, Jest, or Bun test runner.");
+  // biome-ignore lint/plugin/no-computed-module-request: webpackIgnore keeps webpack from resolving it
   const runner = await import(/* webpackIgnore: true */ name);
 
   return name === "vitest" ? runner.vi.fn : runner.mock;

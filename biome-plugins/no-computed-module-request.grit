@@ -1,0 +1,16 @@
+// Forbid `require` and `import()` with a computed module name. webpack cannot
+// resolve such a request, so every webpack bundle that includes Spectral warns
+// that "the request of a dependency is an expression". Load an optional module
+// with `createRequire(__filename)(name)` (see localMock.ts), or give an
+// `import()` that must stay native a `/* webpackIgnore: true */` comment and
+// suppress this rule there.
+or {
+    `require($request)`,
+    `import($request)`
+} as $call where {
+    $request <: not string(),
+    register_diagnostic(
+        span = $call,
+        message = "webpack warns about a module request it cannot resolve. Use createRequire, or an import() with a webpackIgnore comment."
+    )
+}
