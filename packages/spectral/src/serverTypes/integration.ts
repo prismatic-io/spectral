@@ -1,3 +1,5 @@
+import type { StepErrorConfig } from "../types";
+
 export const DefinitionVersion = 7;
 
 export type ComponentReference =
@@ -33,6 +35,19 @@ export type Input =
       value: string | Input | Input[];
       meta?: Record<string, unknown>;
     };
+
+/** A step of a flow in the integration definition. */
+export interface Step {
+  name: string;
+  stableKey: string;
+  description: string;
+  isTrigger?: boolean;
+  action?: ComponentReference;
+  inputs?: Record<string, Input>;
+  branches?: { name: string; steps: Step[] }[];
+  schedule?: Record<string, unknown>;
+  errorConfig?: Partial<StepErrorConfig>;
+}
 
 export interface ConnectionRequiredConfigVariable {
   key: string;

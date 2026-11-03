@@ -96,6 +96,7 @@ import {
   type DefaultRequiredConfigVariable as ServerDefaultRequiredConfigVariable,
   type Input as ServerInput,
   type RequiredConfigVariable as ServerRequiredConfigVariable,
+  type Step as ServerStep,
 } from "./integration";
 import { createCNIComponentRefPerform, createCNIPerform, createCNIPollingPerform } from "./perform";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
@@ -1087,7 +1088,7 @@ export const convertFlow = <
 
   let publicSupplementalComponent: "webhook" | "schedule" | undefined;
 
-  const triggerStep: Record<string, unknown> = {
+  const triggerStep: ServerStep = {
     name: "On Trigger",
     stableKey: `${flow.stableKey}-onTrigger`,
     description: "The function that will be executed by the flow to return an HTTP response.",
@@ -1203,9 +1204,7 @@ export const convertFlow = <
         ? {
             dedupeIdField: {
               type: "reference",
-              value: `${
-                triggerStep.name ? camelCase(triggerStep.name as string) : "onTrigger"
-              }.results.${queueConfig.dedupeIdField}`,
+              value: `${camelCase(triggerStep.name)}.results.${queueConfig.dedupeIdField}`,
             },
           }
         : {}),
@@ -1264,7 +1263,7 @@ export const convertFlow = <
     };
   }
 
-  const actionStep: Record<string, unknown> = {
+  const actionStep: ServerStep = {
     action: {
       key: flowFunctionKey(flow.name, "onExecution"),
       component: codeNativeIntegrationComponentReference(referenceKey),
