@@ -668,6 +668,18 @@ const convertConfigVarPermissionAndVisibility = ({
   };
 };
 
+const isObject = (value: unknown): value is object => typeof value === "object" && value !== null;
+
+/**
+ * A bound data source value as a component reference value: a config variable, a value
+ * expression, or a plain value to wrap as one.
+ */
+const toReferenceValue = (binding: unknown): { configVar: string } | { value: unknown } => {
+  if (isObject(binding) && "configVar" in binding) return { configVar: String(binding.configVar) };
+  if (isObject(binding) && "value" in binding) return { value: binding.value };
+  return { value: binding };
+};
+
 const convertReferenceInputs = (
   inputDefinitions: Record<string, object>,
   values: ComponentReference["values"],
@@ -1517,14 +1529,7 @@ export const convertConfigVar = (
     const bundled = getBundledDataSource(configVar);
     if (bundled) {
       const bindings: ComponentReference["values"] = Object.fromEntries(
-        Object.entries(bundled.values).map(([key, value]) => [
-          key,
-          typeof value === "object" && value !== null && "configVar" in value
-            ? { configVar: String(value.configVar) }
-            : typeof value === "object" && value !== null && "value" in value
-              ? { value: value.value }
-              : { value },
-        ]),
+        Object.entries(bundled.values).map(([key, value]) => [key, toReferenceValue(value)]),
       );
       result.inputs = { ...result.inputs, ...convertReferenceInputs(bundled.inputs, bindings) };
     }
