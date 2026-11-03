@@ -703,19 +703,15 @@ const convertReferenceInputs = (
         type === "complex" || typeof valueExpr === "string" ? valueExpr : JSON.stringify(valueExpr);
 
       const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
-        convertInputPermissionAndVisibility(
-          pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-            permissionAndVisibilityType?: PermissionAndVisibilityType;
-            visibleToOrgDeployer?: boolean;
-          },
-        );
+        convertInputPermissionAndVisibility({
+          permissionAndVisibilityType:
+            "permissionAndVisibilityType" in value ? value.permissionAndVisibilityType : undefined,
+          visibleToOrgDeployer:
+            "visibleToOrgDeployer" in value ? value.visibleToOrgDeployer : undefined,
+        });
 
-      const { writeOnly } = pick(value, ["writeOnly"]) as {
-        writeOnly?: true;
-      };
-
-      if (writeOnly) {
-        meta.writeOnly = writeOnly;
+      if ("writeOnly" in value && value.writeOnly) {
+        meta.writeOnly = value.writeOnly;
       }
 
       return {
@@ -1376,12 +1372,7 @@ export const convertConfigVar = (
         }
 
         const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
-          convertInputPermissionAndVisibility(
-            pick(input, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-              permissionAndVisibilityType?: PermissionAndVisibilityType;
-              visibleToOrgDeployer?: boolean;
-            },
-          );
+          convertInputPermissionAndVisibility(input);
 
         if (input.writeOnly) {
           meta.writeOnly = input.writeOnly;
