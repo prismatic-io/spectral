@@ -187,7 +187,7 @@ export type ActionContext<
  * Configuration supplied to execution contexts, typed by the integration's
  * `IntegrationDefinitionConfiguration` augmentation when declared.
  */
-export interface IntegrationConfigurationContext {
+export type IntegrationConfigurationContext = {
   /** The value of the instance configuration, supplied already parsed. */
   configuration?: ConfiguredValue;
   /** The value of the user-level configuration, supplied already parsed. */
@@ -196,4 +196,4 @@ export interface IntegrationConfigurationContext {
   connections?: {
     [TScope in keyof ConfiguredConnections]?: Partial<ConfiguredConnections[TScope]>;
   };
-}
+};

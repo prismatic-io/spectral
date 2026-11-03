@@ -4,7 +4,7 @@ import type {
   ConfiguredValue,
   IntegrationConfigurationContext,
 } from "@prismatic-io/spectral";
-import { expectType } from "tsd";
+import { expectAssignable, expectType } from "tsd";
 
 /**
  * Configuration is available without augmenting Experimental. Other tests augment
@@ -21,3 +21,6 @@ declare const context: ActionContext;
 expectType<ConfiguredValue | undefined>(context.configuration);
 expectType<ConfiguredUserValue | undefined>(context.userConfiguration);
 expectType<IntegrationConfigurationContext["connections"]>(context.connections);
+
+// A context still passes where code accepts any string-keyed object, as before configuration.
+expectAssignable<{ [key: string]: unknown }>(context);
