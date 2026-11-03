@@ -923,10 +923,12 @@ const boundBranchInput = (
     definition.collection === "keyvaluelist"
       ? (Array.isArray(value)
           ? value
-          : Object.entries((value ?? {}) as Record<string, unknown>).map(([key, value]) => ({
-              key,
-              value,
-            }))
+          : Object.entries(typeof value === "object" && value !== null ? value : {}).map(
+              ([key, value]) => ({
+                key,
+                value,
+              }),
+            )
         ).map<ServerInput>(({ key, value }) => ({
           // The backend requires branch names to be plain strings, not expressions.
           name: key,
@@ -1033,20 +1035,17 @@ const convertFlowSchemas = (
   flowKey: string,
   schemas: Record<string, FlowDefinitionFlowSchema>,
 ): Record<string, FlowSchema> => {
-  return Object.entries(schemas).reduce(
-    (acc, [key, value]) => {
-      acc[key] = {
-        title: value.title || `${flowKey}-${key}`,
-        type: "object",
-        $comment: value.$comment,
-        properties: value.properties,
-        $schema: value.$schema || DEFAULT_JSON_SCHEMA_VERSION,
-        ...(value.required?.length ? { required: value.required } : {}),
-      };
-      return acc;
-    },
-    {} as Record<string, FlowSchema>,
-  );
+  return Object.entries(schemas).reduce<Record<string, FlowSchema>>((acc, [key, value]) => {
+    acc[key] = {
+      title: value.title || `${flowKey}-${key}`,
+      type: "object",
+      $comment: value.$comment,
+      properties: value.properties,
+      $schema: value.$schema || DEFAULT_JSON_SCHEMA_VERSION,
+      ...(value.required?.length ? { required: value.required } : {}),
+    };
+    return acc;
+  }, {});
 };
 
 /** Converts a Flow into the structure necessary for YAML generation. */
@@ -1517,14 +1516,16 @@ export const convertConfigVar = (
     };
     const bundled = getBundledDataSource(configVar);
     if (bundled) {
-      const bindings = Object.fromEntries(
+      const bindings: ComponentReference["values"] = Object.fromEntries(
         Object.entries(bundled.values).map(([key, value]) => [
           key,
-          value && typeof value === "object" && ("configVar" in value || "value" in value)
-            ? value
-            : { value },
+          typeof value === "object" && value !== null && "configVar" in value
+            ? { configVar: String(value.configVar) }
+            : typeof value === "object" && value !== null && "value" in value
+              ? { value: value.value }
+              : { value },
         ]),
-      ) as ComponentReference["values"];
+      );
       result.inputs = { ...result.inputs, ...convertReferenceInputs(bundled.inputs, bindings) };
     }
   }
@@ -1943,14 +1944,12 @@ const convertOnExecution =
     // The runner supplies `configuration` already parsed. An unconfigured
     // instance gets `{}` so a flow reading into it sees `undefined` for the
     // field rather than throwing. Connections are rekeyed to the author's names.
-    const configVars = baseContext.configVars as unknown as Record<string, unknown>;
     const actionContext = connectionNames
       ? Object.assign(baseContext, {
-          configuration:
-            (baseContext as unknown as { configuration?: unknown }).configuration ?? {},
+          configuration: "configuration" in baseContext ? (baseContext.configuration ?? {}) : {},
           userConfiguration:
-            (baseContext as unknown as { userConfiguration?: unknown }).userConfiguration ?? {},
-          connections: createConfigurationConnections(connectionNames, configVars),
+            "userConfiguration" in baseContext ? (baseContext.userConfiguration ?? {}) : {},
+          connections: createConfigurationConnections(connectionNames, baseContext.configVars),
         })
       : baseContext;
 
