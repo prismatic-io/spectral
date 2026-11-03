@@ -817,6 +817,36 @@ const convertComponentRegistry = (
 
 // Branch metadata must name an input on the CNI's own trigger. All other bound inputs
 // stay inside the local invocation; the platform does not need their definitions or values.
+/** The manifest entry for a referenced trigger. */
+const manifestTrigger = (reference: ComponentReference, componentRegistry: ComponentRegistry) =>
+  componentRegistry[reference.component]?.triggers[reference.key];
+
+/**
+ * A referenced trigger's branching, for the trigger generated in its place. The trigger step
+ * declares the referenced trigger's branches, so the generated trigger must allow them.
+ */
+const manifestTriggerBranching = (
+  reference: ComponentReference,
+  componentRegistry: ComponentRegistry,
+) => {
+  const trigger = manifestTrigger(reference, componentRegistry);
+  return trigger?.allowsBranching
+    ? { allowsBranching: true, staticBranchNames: [...(trigger.staticBranchNames ?? [])] }
+    : {};
+};
+
+/**
+ * An empty branch for each static branch of a trigger that branches. The runner ends a flow
+ * whose trigger returns a branch the trigger step does not declare. A branch with no steps,
+ * or one the step has not declared once it declares any, continues to the next step.
+ */
+const emptyTriggerBranches = (
+  trigger: { allowsBranching?: boolean; staticBranchNames?: readonly string[] } | undefined,
+) =>
+  trigger?.allowsBranching
+    ? (trigger.staticBranchNames ?? []).map((name) => ({ name, steps: [] }))
+    : undefined;
+
 const boundBranchInput = (bound: BoundTrigger | undefined) => {
   if (!bound || !("dynamicBranchInput" in bound.definition) || !bound.definition.dynamicBranchInput)
     return undefined;
@@ -1015,6 +1045,8 @@ export const convertFlow = <
     );
     triggerStep.action = ref;
     triggerStep.inputs = inputs;
+    const branches = emptyTriggerBranches(manifestTrigger(flow.onTrigger, componentRegistry));
+    if (branches) triggerStep.branches = branches;
   } else if (useWrapperTrigger) {
     if (!flow.onTrigger) {
       publicSupplementalComponent = flow.schedule ? "schedule" : "webhook";
@@ -1028,17 +1060,14 @@ export const convertFlow = <
     if (isComponentReference(flow.onTrigger)) {
       const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
       triggerStep.inputs = inputs;
+      const branches = emptyTriggerBranches(manifestTrigger(flow.onTrigger, componentRegistry));
+      if (branches) triggerStep.branches = branches;
     } else {
       const bound = getBoundTrigger(flow.onTrigger);
       const branch = boundBranchInput(bound);
       if (branch) triggerStep.inputs = { [branch.input.key]: branch.value };
-      // The runner ends a flow whose trigger returns a branch the trigger step does not
-      // declare. A branch with no steps continues to the next step, onExecution.
-      if (bound?.definition.allowsBranching) {
-        const staticBranchNames =
-          "staticBranchNames" in bound.definition ? (bound.definition.staticBranchNames ?? []) : [];
-        triggerStep.branches = staticBranchNames.map((name) => ({ name, steps: [] }));
-      }
+      const branches = emptyTriggerBranches(bound?.definition);
+      if (branches) triggerStep.branches = branches;
     }
 
     triggerStep.action = {
@@ -2079,7 +2108,9 @@ const codeNativeIntegrationComponent = <
               "terminateExecution",
               "breakLoop",
             ])
-          : {}),
+          : isComponentReference(onTrigger)
+            ? manifestTriggerBranching(onTrigger, componentRegistry)
+            : {}),
         isPollingTrigger: triggerType === "polling",
         triggerResolverSupport:
           bound?.definition.triggerResolverSupport ?? (triggerResolver ? "valid" : "invalid"),

@@ -1439,3 +1439,75 @@ describe("custom-trigger reference input values reach the trigger functions", ()
     expect(inputKeys).toEqual(expect.arrayContaining(["inputOne", "inputTwo"]));
   });
 });
+
+describe("manifest triggers that branch", () => {
+  const registry = {
+    "acme-component": {
+      key: "acme-component",
+      public: true,
+      signature: "sig-123",
+      actions: {},
+      triggers: {
+        webhook: {
+          key: "webhook",
+          inputs: {},
+          allowsBranching: true,
+          staticBranchNames: ["Notification", "Verification Request"],
+        },
+        plain: { key: "plain", inputs: {} },
+      },
+      dataSources: {},
+      connections: {},
+    },
+  } as unknown as Parameters<typeof convertFlow>[1];
+
+  const branches = [
+    { name: "Notification", steps: [] },
+    { name: "Verification Request", steps: [] },
+  ];
+
+  const referenceFlow = (key: string, onInstanceDeploy?: () => Promise<object>) =>
+    flow({
+      name: "Webhook",
+      stableKey: "webhook",
+      description: "References a manifest trigger",
+      onInstanceDeploy,
+      onTrigger: { component: "acme-component", key, values: {} } as unknown as TriggerReference,
+      onExecution: async () => ({ data: null }),
+    });
+
+  const triggerStep = (definition: ReturnType<typeof referenceFlow>) =>
+    (convertFlow(definition, registry, "test-ref").steps as Array<Record<string, unknown>>)[0];
+
+  it("declares an empty branch per static branch so the flow continues to onExecution", () => {
+    expect(triggerStep(referenceFlow("webhook"))).toMatchObject({ branches });
+    expect(triggerStep(referenceFlow("plain"))).not.toHaveProperty("branches");
+  });
+
+  it("lets the generated trigger branch when the flow wraps the reference", () => {
+    const definition = referenceFlow("webhook", async () => ({}));
+    expect(triggerStep(definition)).toMatchObject({ branches });
+
+    const cni = integration({
+      name: "Manifest branching",
+      flows: [definition],
+      componentRegistry: registry as never,
+    });
+    expect(Object.values(cni.triggers)[0]).toMatchObject({
+      allowsBranching: true,
+      staticBranchNames: ["Notification", "Verification Request"],
+    });
+  });
+
+  it("leaves a wrapped trigger that does not branch as it was", () => {
+    const definition = referenceFlow("plain", async () => ({}));
+    expect(triggerStep(definition)).not.toHaveProperty("branches");
+
+    const cni = integration({
+      name: "Manifest branching",
+      flows: [definition],
+      componentRegistry: registry as never,
+    });
+    expect(Object.values(cni.triggers)[0]).not.toHaveProperty("allowsBranching");
+  });
+});

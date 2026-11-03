@@ -23,7 +23,11 @@ export const <%= trigger.import %> = {
   ): Promise<TReturn> => Promise.resolve<TReturn>({} as TReturn),
   inputs: {
     <%- include('../partials/inputs.ejs', { inputs: trigger.inputs, helpers }) -%>
-  }
+  },
+<% if (trigger.allowsBranching) { -%>
+  allowsBranching: true,
+  staticBranchNames: <%- JSON.stringify(trigger.staticBranchNames) %>,
+<% } -%>
 } as const;
 
 /**

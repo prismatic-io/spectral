@@ -191,6 +191,8 @@ export const fetchComponentDataForManifest = async <
             description: node.description,
           },
           inputs: transformInputNodes(node.inputs.nodes),
+          allowsBranching: node.allowsBranching,
+          staticBranchNames: node.staticBranchNames ?? [],
         };
       } else if (node.isDataSource) {
         dataSources[node.key] = {
@@ -397,6 +399,8 @@ async function getComponentActions(componentId: string, prismaticUrl: string, ac
               examplePayload
               examplePerformSafety
               performSafety
+              allowsBranching
+              staticBranchNames
             }
             pageInfo {
               hasNextPage
