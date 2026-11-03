@@ -862,6 +862,9 @@ const manifestTriggerBranching = (
  * names its dynamic branch input gives on the step. The runner ends a flow whose trigger
  * returns a branch the trigger step does not declare, and publishing rejects a dynamic branch
  * name the step does not declare. A branch with no steps continues to the next step.
+ *
+ * Throws when the dynamic branch input is bound to a config variable, because its branch names
+ * are then unknown until deploy and publishing requires them in the integration.
  */
 const emptyTriggerBranches = (
   trigger:
@@ -872,11 +875,17 @@ const emptyTriggerBranches = (
       }
     | undefined,
   stepInputs: Record<string, unknown> | undefined,
+  flowName: string,
 ) => {
   if (!trigger?.allowsBranching) return undefined;
   const dynamicInput = trigger.dynamicBranchInput
     ? (stepInputs?.[trigger.dynamicBranchInput] as { type?: string; value?: unknown } | undefined)
     : undefined;
+  if (dynamicInput?.type === "configVar") {
+    throw new Error(
+      `The trigger of flow "${flowName}" branches on its "${trigger.dynamicBranchInput}" input, which is bound to a config variable. Publishing requires the branch names in the integration, so give "${trigger.dynamicBranchInput}" a value in code instead.`,
+    );
+  }
   const dynamicNames =
     dynamicInput?.type === "complex" && Array.isArray(dynamicInput.value)
       ? dynamicInput.value
@@ -1088,7 +1097,7 @@ export const convertFlow = <
     triggerStep.action = ref;
     const stepInputs = withPlainBranchNames(inputs, trigger);
     triggerStep.inputs = stepInputs;
-    const branches = emptyTriggerBranches(trigger, stepInputs);
+    const branches = emptyTriggerBranches(trigger, stepInputs, flow.name);
     if (branches) triggerStep.branches = branches;
   } else if (useWrapperTrigger) {
     if (!flow.onTrigger) {
@@ -1105,7 +1114,7 @@ export const convertFlow = <
       const trigger = manifestTrigger(flow.onTrigger, componentRegistry);
       const stepInputs = withPlainBranchNames(inputs, trigger);
       triggerStep.inputs = stepInputs;
-      const branches = emptyTriggerBranches(trigger, stepInputs);
+      const branches = emptyTriggerBranches(trigger, stepInputs, flow.name);
       if (branches) triggerStep.branches = branches;
     } else {
       const bound = getBoundTrigger(flow.onTrigger);
@@ -1114,6 +1123,7 @@ export const convertFlow = <
       const branches = emptyTriggerBranches(
         bound?.definition,
         triggerStep.inputs as Record<string, unknown> | undefined,
+        flow.name,
       );
       if (branches) triggerStep.branches = branches;
     }

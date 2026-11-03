@@ -1535,6 +1535,18 @@ describe("manifest triggers that branch", () => {
     });
   });
 
+  it.each([
+    ["referenced directly", undefined],
+    ["wrapped", async () => ({})],
+  ] as const)("rejects a dynamic branch input bound to a config variable when %s", (_, onInstanceDeploy) => {
+    const definition = referenceFlow("routed", onInstanceDeploy, {
+      routes: { configVar: "Routes" },
+    });
+    expect(() => convertFlow(definition, registry, "test-ref")).toThrow(
+      /"routes" input, which is bound to a config variable/,
+    );
+  });
+
   it("lets the generated trigger branch on the referenced trigger's dynamic branch input", () => {
     const cni = integration({
       name: "Manifest branching",
