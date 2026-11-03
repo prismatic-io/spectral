@@ -376,10 +376,46 @@ describe("bundled component trigger bindings", () => {
     ).resolves.toMatchObject({ instanceState: { start: 9 } });
   });
 
+  it("declares an empty branch per static branch so the flow continues to onExecution", () => {
+    const callable = callableComponent({
+      triggers: {
+        webhook: trigger({
+          display,
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          allowsBranching: true,
+          staticBranchNames: ["Notification", "Verification Request"],
+          inputs: {},
+          perform: async (_context, receivedPayload) => ({
+            payload: receivedPayload,
+            branch: "Notification",
+          }),
+        }),
+        plain: trigger({
+          display,
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          inputs: {},
+          perform: async (_context, receivedPayload) => ({ payload: receivedPayload }),
+        }),
+      },
+    });
+    const triggerStep = (onTrigger: ReturnType<typeof callable.triggers.plain>) =>
+      convertFlow(flow({ ...baseFlow, onTrigger }), {}, "local-cni").steps.find(
+        (step: { isTrigger?: boolean }) => step.isTrigger,
+      );
+    expect(triggerStep(callable.triggers.webhook())).toMatchObject({
+      branches: [
+        { name: "Notification", steps: [] },
+        { name: "Verification Request", steps: [] },
+      ],
+    });
+    expect(triggerStep(callable.triggers.plain())).not.toHaveProperty("branches");
+  });
+
   it.each([
     "record",
     "array",
-    "configVar",
   ] as const)("retains dynamic branch metadata and results with %s bindings without supplemental components", async (kind) => {
     const callable = callableComponent({
       triggers: {
@@ -402,8 +438,7 @@ describe("bundled component trigger bindings", () => {
       },
     });
     const branches = [{ key: "Ready", value: "go" }];
-    const binding =
-      kind === "record" ? { Ready: "go" } : kind === "array" ? branches : { configVar: "Branches" };
+    const binding = kind === "record" ? { Ready: "go" } : branches;
     const definition = flow({
       ...baseFlow,
       onTrigger: callable.triggers.webhook({ branches: binding, privateInput: "local-only" }),
@@ -422,16 +457,15 @@ describe("bundled component trigger bindings", () => {
       expect.arrayContaining([
         expect.objectContaining({
           isTrigger: true,
+          branches: [
+            { name: "Else", steps: [] },
+            { name: "Ready", steps: [] },
+          ],
           inputs: {
-            branches:
-              kind === "configVar"
-                ? { type: "configVar", value: "Branches" }
-                : {
-                    type: "complex",
-                    value: [
-                      { name: { type: "value", value: "Ready" }, type: "value", value: "go" },
-                    ],
-                  },
+            branches: {
+              type: "complex",
+              value: [{ name: "Ready", type: "value", value: "go" }],
+            },
           },
         }),
       ]),
@@ -443,6 +477,35 @@ describe("bundled component trigger bindings", () => {
       payload,
     });
     expect(cni.codeNativeIntegrationYAML).not.toContain("local-only");
+  });
+
+  it("rejects a dynamic branch input bound to a config variable", () => {
+    const callable = callableComponent({
+      triggers: {
+        webhook: trigger({
+          display,
+          scheduleSupport: "invalid",
+          synchronousResponseSupport: "valid",
+          allowsBranching: true,
+          staticBranchNames: ["Else"],
+          dynamicBranchInput: "branches",
+          inputs: {
+            branches: input({ type: "string", label: "Branches", collection: "keyvaluelist" }),
+          },
+          perform: async (_context, receivedPayload) => ({
+            payload: receivedPayload,
+            branch: "Else",
+          }),
+        }),
+      },
+    });
+    const definition = flow({
+      ...baseFlow,
+      onTrigger: callable.triggers.webhook({ branches: { configVar: "Branches" } }),
+    });
+    expect(() => convertFlow(definition, {}, "local-cni")).toThrow(
+      /"branches" input, which is bound to a config variable/,
+    );
   });
 
   it("rejects dynamic branching metadata that names a missing trigger input", () => {

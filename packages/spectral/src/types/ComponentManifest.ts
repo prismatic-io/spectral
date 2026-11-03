@@ -37,6 +37,10 @@ export interface ComponentManifestTrigger {
   key?: string;
   perform: (values: any) => Promise<unknown>;
   inputs: Record<string, BaseInput>;
+  /** Manifests generated before these were added leave them out. */
+  allowsBranching?: boolean;
+  staticBranchNames?: readonly string[];
+  dynamicBranchInput?: string;
 }
 
 export interface ComponentManifestDataSource {

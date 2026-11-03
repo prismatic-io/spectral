@@ -39,6 +39,9 @@ export interface ActionNode {
   examplePayload: string | null;
   examplePerformSafety: PerformSafety | null;
   performSafety: PerformSafety | null;
+  allowsBranching: boolean;
+  staticBranchNames: string[] | null;
+  dynamicBranchInput: string | null;
 }
 
 export interface ConnectionNode {
@@ -83,7 +86,7 @@ export type FormattedTrigger<
   >,
 > = Pick<
   Trigger<TInputs, TActionInputs, TConfigVars, TPayload, TAllowsBranching, TResult>,
-  "key" | "display" | "inputs"
+  "key" | "display" | "inputs" | "allowsBranching" | "staticBranchNames" | "dynamicBranchInput"
 >;
 export type FormattedDataSource = Pick<
   DataSource,

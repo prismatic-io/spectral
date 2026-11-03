@@ -91,6 +91,9 @@ export const createTriggers = async <
           inputs,
           componentKey: component.key,
           componentIsPublic: Boolean(component.public),
+          allowsBranching: Boolean(trigger.allowsBranching),
+          staticBranchNames: trigger.staticBranchNames ?? [],
+          dynamicBranchInput: trigger.dynamicBranchInput,
         },
         dryRun,
         imports,
@@ -149,6 +152,9 @@ interface RenderTriggerProps {
     inputs: Input[];
     componentKey: string;
     componentIsPublic: boolean;
+    allowsBranching: boolean;
+    staticBranchNames: string[];
+    dynamicBranchInput?: string;
   };
   dryRun: boolean;
   imports: Imports;

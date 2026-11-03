@@ -30,7 +30,21 @@ const component = {
       inputs: manifestTestInputs,
     },
   },
-  triggers: {},
+  triggers: {
+    onEvent: {
+      key: "onEvent",
+      display: { label: "On Event", description: "Runs when an event occurs" },
+      inputs: [],
+    },
+    onWebhook: {
+      key: "onWebhook",
+      display: { label: "On Webhook", description: "Runs when a webhook arrives" },
+      inputs: [],
+      allowsBranching: true,
+      staticBranchNames: ["Notification", "Verification Request"],
+      dynamicBranchInput: "routes",
+    },
+  },
   dataSources: {},
   connections: [],
 } as unknown as Component;
@@ -126,5 +140,17 @@ describe("component-manifest filesystem behavior", () => {
     expect(action).not.toContain("default: undefined");
     expect(action).not.toContain("dynamicSelection");
     expect(action).not.toContain("dynamicField");
+  });
+
+  test("records the static branches of a trigger that branches", async () => {
+    await run(false);
+
+    const triggersDir = path.join(destinationDir, "src", "triggers");
+    expect(await readFile(path.join(triggersDir, "onWebhook.ts"), "utf8")).toContain(
+      'allowsBranching: true,\n  staticBranchNames: ["Notification", "Verification Request"],\n  dynamicBranchInput: "routes",',
+    );
+    expect(await readFile(path.join(triggersDir, "onEvent.ts"), "utf8")).not.toContain(
+      "allowsBranching",
+    );
   });
 });

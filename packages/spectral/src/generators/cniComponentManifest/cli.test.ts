@@ -83,6 +83,17 @@ const component: Awaited<ReturnType<CniComponentManifestModule["fetchComponentDa
         },
         inputs: [],
       },
+      onWebhook: {
+        key: "onWebhook",
+        display: {
+          label: "On Webhook",
+          description: "Runs when a webhook arrives",
+        },
+        inputs: [],
+        allowsBranching: true,
+        staticBranchNames: ["Notification", "Verification Request"],
+        dynamicBranchInput: "routes",
+      },
     },
     dataSources: {
       selectItem: {
@@ -210,6 +221,18 @@ describe("cni-component-manifest filesystem behavior", () => {
 
     expect(await snapshotDirectory(workingDir)).toEqual(before);
     await expectPathNotToExist(destinationDir);
+  });
+
+  test("records the static branches of a trigger that branches", async () => {
+    await run();
+
+    const triggersDir = path.join(workingDir, "src", "manifests", component.key, "triggers");
+    expect(await readFile(path.join(triggersDir, "onWebhook.ts"), "utf8")).toContain(
+      'allowsBranching: true,\n  staticBranchNames: ["Notification", "Verification Request"],\n  dynamicBranchInput: "routes",',
+    );
+    expect(await readFile(path.join(triggersDir, "onEvent.ts"), "utf8")).not.toContain(
+      "allowsBranching",
+    );
   });
 
   test("replaces stale files and generates a manifest outside dry-run mode", async () => {
