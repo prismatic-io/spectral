@@ -363,7 +363,12 @@ const configurePackage = (originalPackage: string, context: CodemodContext) => {
     fail("scripts.prepare must be a string.");
   pkg.main = PACKAGE_ENTRY.default;
   pkg.types = PACKAGE_ENTRY.types;
-  pkg.exports = { ...exports, ".": PACKAGE_ENTRY };
+  // Tools read a package's version and metadata by importing its package.json.
+  pkg.exports = {
+    ...exports,
+    ".": PACKAGE_ENTRY,
+    "./package.json": exports["./package.json"] ?? "./package.json",
+  };
   if (pkg.files !== undefined) pkg.files = [...new Set([...pkg.files, "npm-dist", "dist"])];
   pkg.prismatic = { ...prismatic, component: "./dist/index.js" };
   pkg.devDependencies = { ...devDependencies, [SPECTRAL]: spectral };

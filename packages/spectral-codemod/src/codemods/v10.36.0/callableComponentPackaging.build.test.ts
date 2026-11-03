@@ -163,6 +163,7 @@ const callable = require("callable-packaging-fixture");
 const { flow } = require("@prismatic-io/spectral");
 const { invokeFlow } = require("@prismatic-io/spectral/testing");
 assert.equal(require("callable-packaging-fixture/helpers").marker, "preserved");
+assert.equal(require("callable-packaging-fixture/package.json").version, "1.0.0");
 assert.equal(require("./node_modules/callable-packaging-fixture/dist/index.js").default.key, "packaging-fixture");
 (async () => {
   const esm = await import("callable-packaging-fixture");

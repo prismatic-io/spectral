@@ -84,7 +84,10 @@ describe("callable-component-packaging", async () => {
       private: true,
       main: "./npm-dist/index.cjs",
       types: "./npm-dist/index.d.cts",
-      exports: { ".": { types: "./npm-dist/index.d.cts", default: "./npm-dist/index.cjs" } },
+      exports: {
+        ".": { types: "./npm-dist/index.d.cts", default: "./npm-dist/index.cjs" },
+        "./package.json": "./package.json",
+      },
       prismatic: { component: "./dist/index.js" },
       peerDependencies: { "@prismatic-io/spectral": "^10.36.0" },
       devDependencies: { "@prismatic-io/spectral": "^10.36.0", tsdown: "0.22.3" },
@@ -121,6 +124,15 @@ describe("callable-component-packaging", async () => {
     expect(await apply(after)).toEqual(after);
   });
 
+  it("keeps a package.json export the package already has", async () => {
+    const files = fixture();
+    changePackage(files, (pkg) => {
+      pkg.exports = { "./package.json": { default: "./package.json" } };
+    });
+    const pkg = JSON.parse((await apply(files))["package.json"]);
+    expect(pkg.exports["./package.json"]).toEqual({ default: "./package.json" });
+  });
+
   it("preserves subpath exports, required peers, registry settings, and a build prepare script", async () => {
     const files = fixture();
     changePackage(files, (pkg) => {
@@ -134,6 +146,7 @@ describe("callable-component-packaging", async () => {
     const pkg = JSON.parse((await apply(files))["package.json"]);
     expect(pkg).not.toHaveProperty("private");
     expect(pkg.exports["./helpers"]).toBe("./helpers.js");
+    expect(pkg.exports["./package.json"]).toBe("./package.json");
     expect(pkg.peerDependencies).toEqual({ "@prismatic-io/spectral": ">=10.36.0 <11", other: "*" });
     expect(pkg.publishConfig.registry).toBe("https://registry.example.com");
     expect(pkg.scripts.prepare).toBe("npm run build");
