@@ -830,13 +830,14 @@ const withPlainBranchNames = (
   trigger: { dynamicBranchInput?: string } | undefined,
 ): Record<string, ServerInput> => {
   const key = trigger?.dynamicBranchInput;
-  const input = key ? (inputs[key] as unknown as { type?: string; value?: unknown }) : undefined;
+  const input = key ? inputs[key] : undefined;
   if (!key || input?.type !== "complex" || !Array.isArray(input.value)) return inputs;
-  const value = input.value.map((entry: { name?: unknown }) => {
-    const name = entry.name as { type?: string; value?: unknown } | undefined;
-    return name?.type === "value" ? { ...entry, name: name.value } : entry;
-  });
-  return { ...inputs, [key]: { ...input, value } as unknown as ServerInput };
+  const value = input.value.map((entry) =>
+    typeof entry.name === "object" && entry.name.type === "value"
+      ? { ...entry, name: entry.name.value }
+      : entry,
+  );
+  return { ...inputs, [key]: { ...input, value } };
 };
 
 /**
@@ -874,12 +875,12 @@ const emptyTriggerBranches = (
         dynamicBranchInput?: string;
       }
     | undefined,
-  stepInputs: Record<string, unknown> | undefined,
+  stepInputs: Record<string, ServerInput> | undefined,
   flowName: string,
 ) => {
   if (!trigger?.allowsBranching) return undefined;
   const dynamicInput = trigger.dynamicBranchInput
-    ? (stepInputs?.[trigger.dynamicBranchInput] as { type?: string; value?: unknown } | undefined)
+    ? stepInputs?.[trigger.dynamicBranchInput]
     : undefined;
   if (dynamicInput?.type === "configVar") {
     throw new Error(
@@ -888,15 +889,15 @@ const emptyTriggerBranches = (
   }
   const dynamicNames =
     dynamicInput?.type === "complex" && Array.isArray(dynamicInput.value)
-      ? dynamicInput.value
-          .map((entry: { name?: unknown }) => entry.name)
-          .filter((name): name is string => typeof name === "string")
+      ? dynamicInput.value.flatMap((entry) => (typeof entry.name === "string" ? [entry.name] : []))
       : [];
   const names = [...new Set([...(trigger.staticBranchNames ?? []), ...dynamicNames])];
   return names.map((name) => ({ name, steps: [] }));
 };
 
-const boundBranchInput = (bound: BoundTrigger | undefined) => {
+const boundBranchInput = (
+  bound: BoundTrigger | undefined,
+): { input: ReturnType<typeof convertInput>; value: ServerInput } | undefined => {
   if (!bound || !("dynamicBranchInput" in bound.definition) || !bound.definition.dynamicBranchInput)
     return undefined;
   const key = bound.definition.dynamicBranchInput;
@@ -907,14 +908,14 @@ const boundBranchInput = (bound: BoundTrigger | undefined) => {
   if (expression && "configVar" in expression) {
     return {
       input: convertInput(key, definition),
-      value: { type: "configVar", value: expression.configVar },
+      value: { type: "configVar", value: String(expression.configVar) },
     };
   }
   const raw = expression && "value" in expression ? expression.value : binding;
   const value =
     raw === undefined ? ("default" in definition ? definition.default : undefined) : raw;
   const serialize = (entry: unknown) => (typeof entry === "string" ? entry : JSON.stringify(entry));
-  const wireValue =
+  const entries =
     definition.collection === "keyvaluelist"
       ? (Array.isArray(value)
           ? value
@@ -922,21 +923,23 @@ const boundBranchInput = (bound: BoundTrigger | undefined) => {
               key,
               value,
             }))
-        ).map(({ key, value }) => ({
+        ).map<ServerInput>(({ key, value }) => ({
           // The backend requires branch names to be plain strings, not expressions.
           name: key,
           type: "value",
           value: serialize(value),
         }))
       : definition.collection === "valuelist"
-        ? (Array.isArray(value) ? value : []).map((entry) => ({
+        ? (Array.isArray(value) ? value : []).map<ServerInput>((entry) => ({
             type: "value",
             value: serialize(entry),
           }))
-        : serialize(value ?? "");
+        : undefined;
   return {
     input: convertInput(key, definition),
-    value: { type: definition.collection ? "complex" : "value", value: wireValue },
+    value: entries
+      ? { type: "complex", value: entries }
+      : { type: "value", value: serialize(value ?? "") },
   };
 };
 
@@ -1119,12 +1122,9 @@ export const convertFlow = <
     } else {
       const bound = getBoundTrigger(flow.onTrigger);
       const branch = boundBranchInput(bound);
-      if (branch) triggerStep.inputs = { [branch.input.key]: branch.value };
-      const branches = emptyTriggerBranches(
-        bound?.definition,
-        triggerStep.inputs as Record<string, unknown> | undefined,
-        flow.name,
-      );
+      const stepInputs = branch ? { [branch.input.key]: branch.value } : undefined;
+      if (stepInputs) triggerStep.inputs = stepInputs;
+      const branches = emptyTriggerBranches(bound?.definition, stepInputs, flow.name);
       if (branches) triggerStep.branches = branches;
     }
 

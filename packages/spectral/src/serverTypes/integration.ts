@@ -30,7 +30,7 @@ export type Input =
   | {
       name?: string | Input;
       type: "complex";
-      value: string | Input;
+      value: string | Input | Input[];
       meta?: Record<string, unknown>;
     };
 
