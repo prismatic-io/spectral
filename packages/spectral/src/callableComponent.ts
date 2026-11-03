@@ -72,6 +72,25 @@ export const retainAuthoring = <TTarget extends object, TDefinition extends Auth
   return target as TTarget & AuthoringCarrier<TDefinition>;
 };
 
+/** Type-only: never set at runtime. */
+declare const connectionKeySymbol: unique symbol;
+
+/**
+ * A connection that remembers its literal key for the callable package's `connections`, while
+ * its `key` stays a `string`, so code such as `keys.includes(connection.key)` still compiles.
+ */
+export type KeyedConnection<TConnection, TKey extends string> = Omit<TConnection, "key"> & {
+  key: string;
+  readonly [connectionKeySymbol]?: TKey;
+};
+
+/** The literal key a connection helper recorded, or the connection's `key` type otherwise. */
+type ConnectionKey<TConnection extends ConnectionDefinition> = TConnection extends {
+  readonly [connectionKeySymbol]?: infer TKey extends string;
+}
+  ? TKey
+  : TConnection["key"];
+
 type CollectionValue<TInput, TValue> = TInput extends { collection: "valuelist" }
   ? TValue[]
   : TInput extends { collection: "keyvaluelist" }
@@ -288,7 +307,7 @@ export type CallableComponent<TDefinition extends AuthoringDefinition> = {
     connections: infer TConnections extends ConnectionDefinition[];
   }
     ? {
-        [TConnection in TConnections[number] as TConnection["key"]]: (
+        [TConnection in TConnections[number] as ConnectionKey<TConnection>]: (
           options: ConnectionOptions<TConnection>,
         ) => ConnectionConfigVar;
       }

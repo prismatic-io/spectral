@@ -1,6 +1,7 @@
 import {
   action,
   batchTrigger,
+  type Connection,
   type ConnectionConfigVar,
   callableComponent,
   component,
@@ -33,7 +34,9 @@ const api = connection({
   display,
   inputs: { token: input({ type: "password", label: "Token", required: true }) },
 });
-expectType<"api">(api.key);
+// The key stays a string, as before callable packages, so checks against a connection's key compile.
+expectType<string>(api.key);
+expectType<boolean>([api].map((c) => c.key).includes({} as Connection["key"]));
 const directConnection = callableComponent({ connections: [api] });
 expectType<"api">({} as keyof typeof directConnection.connections);
 const standaloneDataSource = dataSource({
@@ -210,7 +213,7 @@ const mutableApi = connection({
 mutableApi.display.label = "After";
 mutableApi.inputs.token.default = "after";
 mutableApi.inputs.token = { type: "password", label: "Updated", default: "updated" };
-expectType<"mutableApi">(mutableApi.key);
+expectType<string>(mutableApi.key);
 
 const mutableOnPrem = onPremConnection({
   key: "mutableOnPrem",
@@ -222,7 +225,7 @@ const mutableOnPrem = onPremConnection({
 });
 mutableOnPrem.display.label = "After";
 mutableOnPrem.inputs.host.default = "after";
-expectType<"mutableOnPrem">(mutableOnPrem.key);
+expectType<string>(mutableOnPrem.key);
 
 const mutableOAuth = oauth2Connection({
   key: "mutableOAuth",
@@ -237,4 +240,4 @@ const mutableOAuth = oauth2Connection({
 });
 mutableOAuth.display.label = "After";
 mutableOAuth.inputs.tokenUrl.default = "https://after.example/token";
-expectType<"mutableOAuth">(mutableOAuth.key);
+expectType<string>(mutableOAuth.key);
