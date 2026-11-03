@@ -1513,12 +1513,16 @@ describe("manifest triggers that branch", () => {
   it.each([
     ["referenced directly", undefined],
     ["wrapped", async () => ({})],
-  ] as const)("writes dynamic branch names as plain strings when %s", (_, onInstanceDeploy) => {
+  ] as const)("declares dynamic branch names as plain strings when %s", (_, onInstanceDeploy) => {
     const definition = referenceFlow("routed", onInstanceDeploy, {
       routes: { value: { Alpha: "a", Beta: "b" } },
     });
     expect(triggerStep(definition)).toMatchObject({
-      branches: [{ name: "Other", steps: [] }],
+      branches: [
+        { name: "Other", steps: [] },
+        { name: "Alpha", steps: [] },
+        { name: "Beta", steps: [] },
+      ],
       inputs: {
         routes: {
           type: "complex",

@@ -858,16 +858,34 @@ const manifestTriggerBranching = (
 };
 
 /**
- * An empty branch for each static branch of a trigger that branches. The runner ends a flow
- * whose trigger returns a branch the trigger step does not declare. A branch with no steps,
- * or one the step has not declared once it declares any, continues to the next step.
+ * An empty branch for each branch of a trigger that branches: its static branches, then the
+ * names its dynamic branch input gives on the step. The runner ends a flow whose trigger
+ * returns a branch the trigger step does not declare, and publishing rejects a dynamic branch
+ * name the step does not declare. A branch with no steps continues to the next step.
  */
 const emptyTriggerBranches = (
-  trigger: { allowsBranching?: boolean; staticBranchNames?: readonly string[] } | undefined,
-) =>
-  trigger?.allowsBranching
-    ? (trigger.staticBranchNames ?? []).map((name) => ({ name, steps: [] }))
+  trigger:
+    | {
+        allowsBranching?: boolean;
+        staticBranchNames?: readonly string[];
+        dynamicBranchInput?: string;
+      }
+    | undefined,
+  stepInputs: Record<string, unknown> | undefined,
+) => {
+  if (!trigger?.allowsBranching) return undefined;
+  const dynamicInput = trigger.dynamicBranchInput
+    ? (stepInputs?.[trigger.dynamicBranchInput] as { type?: string; value?: unknown } | undefined)
     : undefined;
+  const dynamicNames =
+    dynamicInput?.type === "complex" && Array.isArray(dynamicInput.value)
+      ? dynamicInput.value
+          .map((entry: { name?: unknown }) => entry.name)
+          .filter((name): name is string => typeof name === "string")
+      : [];
+  const names = [...new Set([...(trigger.staticBranchNames ?? []), ...dynamicNames])];
+  return names.map((name) => ({ name, steps: [] }));
+};
 
 const boundBranchInput = (bound: BoundTrigger | undefined) => {
   if (!bound || !("dynamicBranchInput" in bound.definition) || !bound.definition.dynamicBranchInput)
@@ -1068,8 +1086,9 @@ export const convertFlow = <
     );
     const trigger = manifestTrigger(flow.onTrigger, componentRegistry);
     triggerStep.action = ref;
-    triggerStep.inputs = withPlainBranchNames(inputs, trigger);
-    const branches = emptyTriggerBranches(trigger);
+    const stepInputs = withPlainBranchNames(inputs, trigger);
+    triggerStep.inputs = stepInputs;
+    const branches = emptyTriggerBranches(trigger, stepInputs);
     if (branches) triggerStep.branches = branches;
   } else if (useWrapperTrigger) {
     if (!flow.onTrigger) {
@@ -1084,14 +1103,18 @@ export const convertFlow = <
     if (isComponentReference(flow.onTrigger)) {
       const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
       const trigger = manifestTrigger(flow.onTrigger, componentRegistry);
-      triggerStep.inputs = withPlainBranchNames(inputs, trigger);
-      const branches = emptyTriggerBranches(trigger);
+      const stepInputs = withPlainBranchNames(inputs, trigger);
+      triggerStep.inputs = stepInputs;
+      const branches = emptyTriggerBranches(trigger, stepInputs);
       if (branches) triggerStep.branches = branches;
     } else {
       const bound = getBoundTrigger(flow.onTrigger);
       const branch = boundBranchInput(bound);
       if (branch) triggerStep.inputs = { [branch.input.key]: branch.value };
-      const branches = emptyTriggerBranches(bound?.definition);
+      const branches = emptyTriggerBranches(
+        bound?.definition,
+        triggerStep.inputs as Record<string, unknown> | undefined,
+      );
       if (branches) triggerStep.branches = branches;
     }
 

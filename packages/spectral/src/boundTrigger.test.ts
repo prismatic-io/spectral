@@ -459,7 +459,13 @@ describe("bundled component trigger bindings", () => {
       expect.arrayContaining([
         expect.objectContaining({
           isTrigger: true,
-          branches: [{ name: "Else", steps: [] }],
+          branches:
+            kind === "configVar"
+              ? [{ name: "Else", steps: [] }]
+              : [
+                  { name: "Else", steps: [] },
+                  { name: "Ready", steps: [] },
+                ],
           inputs: {
             branches:
               kind === "configVar"
