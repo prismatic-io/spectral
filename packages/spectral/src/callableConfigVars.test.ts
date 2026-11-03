@@ -57,6 +57,46 @@ describe("callable config-var factories", () => {
     });
   });
 
+  it("leaves hidden connection inputs out of the definition", () => {
+    const fixture = callableComponent(
+      component({
+        key: "published",
+        display,
+        connections: [
+          connection({
+            key: "api",
+            display,
+            inputs: {
+              token: input({ label: "Token", type: "password" }),
+              authorizeUrl: input({
+                label: "Authorize URL",
+                type: "string",
+                default: "https://example.com/authorize",
+                shown: false,
+              }),
+            },
+          }),
+        ],
+      }),
+    );
+    const cni = integration({
+      name: "Hidden inputs",
+      flows: [],
+      configPages: {
+        Configuration: configPage({
+          elements: {
+            Connection: fixture.connections.api({
+              stableKey: "connection",
+              values: { token: { value: "default" } },
+            }),
+          },
+        }),
+      },
+    });
+    const definition = parse(cni.codeNativeIntegrationYAML ?? "");
+    expect(Object.keys(definition.requiredConfigVars[0].inputs)).toEqual(["token"]);
+  });
+
   it.each([2, "LATEST", undefined])("ignores an explicit version override (%s)", (version) => {
     const fixture = callableComponent(
       component({
