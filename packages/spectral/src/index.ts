@@ -7,6 +7,7 @@
 import {
   type AuthoringCarrier,
   type AuthoringDefinition,
+  type KeyedConnection,
   retainAuthoring,
 } from "./callableComponent";
 import { runWithIntegrationContext } from "./serverTypes";
@@ -1175,7 +1176,7 @@ export const dynamicObjectInput = <
  */
 export const connection = <T extends DefaultConnectionDefinition, TKey extends string = string>(
   definition: T & Exact<DefaultConnectionDefinition, T> & { key: TKey },
-): T & { key: TKey } => definition;
+): KeyedConnection<T, TKey> => definition;
 
 /**
  * This function creates an on-prem connection for a code-native integration or custom component.
@@ -1227,7 +1228,7 @@ export const onPremConnection = <
   TKey extends string = string,
 >(
   definition: T & Exact<OnPremConnectionDefinition, T> & { key: TKey },
-): T & { key: TKey } => definition;
+): KeyedConnection<T, TKey> => definition;
 
 /**
  * This function creates an OAuth 2.0 connection for a code-native integration or custom component.
@@ -1294,7 +1295,7 @@ export const oauth2Connection = <
           oauth2Config?: TConfig extends OAuth2Config ? Exact<OAuth2Config, TConfig> : never;
         }
       : object),
-): T & { key: TKey } => definition;
+): KeyedConnection<T, TKey> => definition;
 
 /**
  * Register multiple component manifests for a code-native integration.
