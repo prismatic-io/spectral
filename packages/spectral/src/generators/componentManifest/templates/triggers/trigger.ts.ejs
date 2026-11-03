@@ -27,6 +27,9 @@ export const <%= trigger.import %> = {
 <% if (trigger.allowsBranching) { -%>
   allowsBranching: true,
   staticBranchNames: <%- JSON.stringify(trigger.staticBranchNames) %>,
+<% if (trigger.dynamicBranchInput) { -%>
+  dynamicBranchInput: <%- JSON.stringify(trigger.dynamicBranchInput) %>,
+<% } -%>
 <% } -%>
 } as const;
 

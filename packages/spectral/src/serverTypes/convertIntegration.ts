@@ -822,6 +822,24 @@ const manifestTrigger = (reference: ComponentReference, componentRegistry: Compo
   componentRegistry[reference.component]?.triggers[reference.key];
 
 /**
+ * A referenced trigger's inputs with its dynamic branch input's names as plain strings, which
+ * the backend requires of a step that declares branches.
+ */
+const withPlainBranchNames = (
+  inputs: Record<string, ServerInput>,
+  trigger: { dynamicBranchInput?: string } | undefined,
+): Record<string, ServerInput> => {
+  const key = trigger?.dynamicBranchInput;
+  const input = key ? (inputs[key] as unknown as { type?: string; value?: unknown }) : undefined;
+  if (!key || input?.type !== "complex" || !Array.isArray(input.value)) return inputs;
+  const value = input.value.map((entry: { name?: unknown }) => {
+    const name = entry.name as { type?: string; value?: unknown } | undefined;
+    return name?.type === "value" ? { ...entry, name: name.value } : entry;
+  });
+  return { ...inputs, [key]: { ...input, value } as unknown as ServerInput };
+};
+
+/**
  * A referenced trigger's branching, for the trigger generated in its place. The trigger step
  * declares the referenced trigger's branches, so the generated trigger must allow them.
  */
@@ -831,7 +849,11 @@ const manifestTriggerBranching = (
 ) => {
   const trigger = manifestTrigger(reference, componentRegistry);
   return trigger?.allowsBranching
-    ? { allowsBranching: true, staticBranchNames: [...(trigger.staticBranchNames ?? [])] }
+    ? {
+        allowsBranching: true,
+        staticBranchNames: [...(trigger.staticBranchNames ?? [])],
+        ...(trigger.dynamicBranchInput ? { dynamicBranchInput: trigger.dynamicBranchInput } : {}),
+      }
     : {};
 };
 
@@ -874,7 +896,8 @@ const boundBranchInput = (bound: BoundTrigger | undefined) => {
               value,
             }))
         ).map(({ key, value }) => ({
-          name: { type: "value", value: key },
+          // The backend requires branch names to be plain strings, not expressions.
+          name: key,
           type: "value",
           value: serialize(value),
         }))
@@ -1043,9 +1066,10 @@ export const convertFlow = <
       componentRegistry,
       "triggers",
     );
+    const trigger = manifestTrigger(flow.onTrigger, componentRegistry);
     triggerStep.action = ref;
-    triggerStep.inputs = inputs;
-    const branches = emptyTriggerBranches(manifestTrigger(flow.onTrigger, componentRegistry));
+    triggerStep.inputs = withPlainBranchNames(inputs, trigger);
+    const branches = emptyTriggerBranches(trigger);
     if (branches) triggerStep.branches = branches;
   } else if (useWrapperTrigger) {
     if (!flow.onTrigger) {
@@ -1059,8 +1083,9 @@ export const convertFlow = <
     // to the referenced trigger via invokeTrigger).
     if (isComponentReference(flow.onTrigger)) {
       const { inputs } = convertComponentReference(flow.onTrigger, componentRegistry, "triggers");
-      triggerStep.inputs = inputs;
-      const branches = emptyTriggerBranches(manifestTrigger(flow.onTrigger, componentRegistry));
+      const trigger = manifestTrigger(flow.onTrigger, componentRegistry);
+      triggerStep.inputs = withPlainBranchNames(inputs, trigger);
+      const branches = emptyTriggerBranches(trigger);
       if (branches) triggerStep.branches = branches;
     } else {
       const bound = getBoundTrigger(flow.onTrigger);

@@ -1455,6 +1455,13 @@ describe("manifest triggers that branch", () => {
           staticBranchNames: ["Notification", "Verification Request"],
         },
         plain: { key: "plain", inputs: {} },
+        routed: {
+          key: "routed",
+          inputs: { routes: { inputType: "string", collection: "keyvaluelist" } },
+          allowsBranching: true,
+          staticBranchNames: ["Other"],
+          dynamicBranchInput: "routes",
+        },
       },
       dataSources: {},
       connections: {},
@@ -1466,13 +1473,17 @@ describe("manifest triggers that branch", () => {
     { name: "Verification Request", steps: [] },
   ];
 
-  const referenceFlow = (key: string, onInstanceDeploy?: () => Promise<object>) =>
+  const referenceFlow = (
+    key: string,
+    onInstanceDeploy?: () => Promise<object>,
+    values: Record<string, unknown> = {},
+  ) =>
     flow({
       name: "Webhook",
       stableKey: "webhook",
       description: "References a manifest trigger",
       onInstanceDeploy,
-      onTrigger: { component: "acme-component", key, values: {} } as unknown as TriggerReference,
+      onTrigger: { component: "acme-component", key, values } as unknown as TriggerReference,
       onExecution: async () => ({ data: null }),
     });
 
@@ -1496,6 +1507,40 @@ describe("manifest triggers that branch", () => {
     expect(Object.values(cni.triggers)[0]).toMatchObject({
       allowsBranching: true,
       staticBranchNames: ["Notification", "Verification Request"],
+    });
+  });
+
+  it.each([
+    ["referenced directly", undefined],
+    ["wrapped", async () => ({})],
+  ] as const)("writes dynamic branch names as plain strings when %s", (_, onInstanceDeploy) => {
+    const definition = referenceFlow("routed", onInstanceDeploy, {
+      routes: { value: { Alpha: "a", Beta: "b" } },
+    });
+    expect(triggerStep(definition)).toMatchObject({
+      branches: [{ name: "Other", steps: [] }],
+      inputs: {
+        routes: {
+          type: "complex",
+          value: [
+            { name: "Alpha", type: "value", value: '"a"' },
+            { name: "Beta", type: "value", value: '"b"' },
+          ],
+        },
+      },
+    });
+  });
+
+  it("lets the generated trigger branch on the referenced trigger's dynamic branch input", () => {
+    const cni = integration({
+      name: "Manifest branching",
+      flows: [referenceFlow("routed", async () => ({}))],
+      componentRegistry: registry as never,
+    });
+    expect(Object.values(cni.triggers)[0]).toMatchObject({
+      allowsBranching: true,
+      staticBranchNames: ["Other"],
+      dynamicBranchInput: "routes",
     });
   });
 

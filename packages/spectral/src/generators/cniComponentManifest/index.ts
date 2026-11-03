@@ -193,6 +193,7 @@ export const fetchComponentDataForManifest = async <
           inputs: transformInputNodes(node.inputs.nodes),
           allowsBranching: node.allowsBranching,
           staticBranchNames: node.staticBranchNames ?? [],
+          dynamicBranchInput: node.dynamicBranchInput ?? undefined,
         };
       } else if (node.isDataSource) {
         dataSources[node.key] = {
@@ -401,6 +402,7 @@ async function getComponentActions(componentId: string, prismaticUrl: string, ac
               performSafety
               allowsBranching
               staticBranchNames
+              dynamicBranchInput
             }
             pageInfo {
               hasNextPage

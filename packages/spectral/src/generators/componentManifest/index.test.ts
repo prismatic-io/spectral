@@ -42,6 +42,7 @@ const component = {
       inputs: [],
       allowsBranching: true,
       staticBranchNames: ["Notification", "Verification Request"],
+      dynamicBranchInput: "routes",
     },
   },
   dataSources: {},
@@ -146,7 +147,7 @@ describe("component-manifest filesystem behavior", () => {
 
     const triggersDir = path.join(destinationDir, "src", "triggers");
     expect(await readFile(path.join(triggersDir, "onWebhook.ts"), "utf8")).toContain(
-      'allowsBranching: true,\n  staticBranchNames: ["Notification", "Verification Request"],',
+      'allowsBranching: true,\n  staticBranchNames: ["Notification", "Verification Request"],\n  dynamicBranchInput: "routes",',
     );
     expect(await readFile(path.join(triggersDir, "onEvent.ts"), "utf8")).not.toContain(
       "allowsBranching",

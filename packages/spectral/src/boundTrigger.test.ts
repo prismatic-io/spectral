@@ -466,9 +466,7 @@ describe("bundled component trigger bindings", () => {
                 ? { type: "configVar", value: "Branches" }
                 : {
                     type: "complex",
-                    value: [
-                      { name: { type: "value", value: "Ready" }, type: "value", value: "go" },
-                    ],
+                    value: [{ name: "Ready", type: "value", value: "go" }],
                   },
           },
         }),
