@@ -741,6 +741,12 @@ const convertReferenceInputs = (
   }, {});
 };
 
+/** The inputs that are not hidden. A component manifest leaves hidden inputs out the same way. */
+const getShownInputs = <TInput extends { shown?: boolean }>(
+  inputs: Record<string, TInput>,
+): Record<string, TInput> =>
+  Object.fromEntries(Object.entries(inputs).filter(([, input]) => input.shown !== false));
+
 const convertComponentReference = (
   componentReference: ComponentReference,
   componentRegistry: ComponentRegistry,
@@ -754,13 +760,9 @@ const convertComponentReference = (
 } => {
   const published = getPublishedConnection(componentReference);
   if (published) {
-    // Hidden inputs are not part of the published connection, as in a component manifest.
-    const shownInputs = Object.fromEntries(
-      Object.entries(published.inputs).filter(([, input]) => input.shown !== false),
-    );
     return {
       ref: { component: published.component, key: componentReference.key },
-      inputs: convertReferenceInputs(shownInputs, componentReference.values),
+      inputs: convertReferenceInputs(getShownInputs(published.inputs), componentReference.values),
     };
   }
   const manifest = componentRegistry[componentReference.component];
