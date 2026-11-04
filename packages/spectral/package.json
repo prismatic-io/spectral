@@ -20,6 +20,10 @@
       "types": "./dist/testing.d.ts",
       "default": "./dist/testing.js"
     },
+    "./tsdown": {
+      "types": "./dist/tsdown.d.ts",
+      "default": "./dist/tsdown.js"
+    },
     "./package.json": "./package.json",
     "./dist/clients/http/index": "./dist/clients/http/index.js",
     "./dist/clients/http/index.js": "./dist/clients/http/index.js",
@@ -238,6 +242,9 @@
       ],
       "testing": [
         "dist/testing.d.ts"
+      ],
+      "tsdown": [
+        "dist/tsdown.d.ts"
       ]
     }
   },

@@ -22,6 +22,7 @@ import { handleErrors as handleErrorsDeep } from "@prismatic-io/spectral/dist/cl
 import * as testingDeep from "@prismatic-io/spectral/dist/testing";
 import { createClient, handleErrors } from "@prismatic-io/spectral/http";
 import { createConnection, invoke, invokeFlow } from "@prismatic-io/spectral/testing";
+import { callableEntryHooks } from "@prismatic-io/spectral/tsdown";
 
 for (const [name, value] of Object.entries({
   component,
@@ -30,6 +31,7 @@ for (const [name, value] of Object.entries({
   createConnection,
   invoke,
   requireContext,
+  callableEntryHooks,
   requireIntegrationContext,
   findUserDefinedComponentKey,
   "conditionalLogic.isEqual": conditionalLogic.isEqual,
