@@ -124,6 +124,10 @@ export default component({
       );
       await runCodemod(codemod, { path: producer });
       if (entryHooks) {
+        // The linked workspace spectral exports the hooks whatever version it declares.
+        const manifest = join(producer, "package.json");
+        const declared = (await readFile(manifest, "utf8")).replaceAll('"^10.36.0"', '"^10.39.0"');
+        await writeFile(manifest, declared);
         await runCodemod(callableEntryHooks, { path: producer });
         expect(await readFile(join(producer, "tsdown.config.mts"), "utf8")).toContain(
           "hooks: callableEntryHooks(),",

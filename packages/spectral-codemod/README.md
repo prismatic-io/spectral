@@ -86,8 +86,10 @@ import { callableEntryHooks } from "@prismatic-io/spectral/tsdown";
 
 It recognizes the build `callable-component-packaging` writes and the one Prism
 scaffolds, and drops the `node:fs/promises` imports only the hooks used. It warns about
-a callable build that differs from both and leaves it as it is. Spectral exports the
-hooks from 10.39.0, so the project needs that release or later.
+a callable build that differs from both and leaves it as it is, and likewise when the
+config already binds `callableEntryHooks` to something else. Spectral exports the hooks
+from 10.39.0, so the codemod refuses a project whose declared spectral ranges allow an
+older release: raise them and reinstall first.
 
 ```sh
 npx @prismatic-io/spectral-codemod@latest callable-entry-hooks --target-spectral latest . --dry-run

@@ -25,10 +25,21 @@ export default defineConfig([
 ]);
 `;
 
-const run = async (config: string) => {
+const packageJson = (spectral: Record<string, string> = { devDependencies: "^10.39.0" }) =>
+  JSON.stringify(
+    Object.fromEntries(
+      Object.entries(spectral).map(([field, range]) => [
+        field,
+        { "@prismatic-io/spectral": range },
+      ]),
+    ),
+  );
+
+const run = async (config: string, pkg = packageJson()) => {
   const warnings: RunWarning[] = [];
+  const files: Record<string, string> = { "tsdown.config.mts": config, "package.json": pkg };
   const edits = await codemod.plan(
-    { read: async (path) => (path === "tsdown.config.mts" ? config : undefined) },
+    { read: async (path) => files[path] },
     { warn: (message, file) => warnings.push({ message, file }) },
   );
   return { config: edits[0]?.content, edits, warnings };
@@ -67,6 +78,60 @@ describe("v10.39.0/callable-entry-hooks", () => {
   it("leaves a config that already uses the hooks", async () => {
     const { config: once } = await run(configWith(NPM_BUILD));
     expect((await run(once as string)).edits).toEqual([]);
+  });
+
+  it.each([
+    ["an older dev dependency", { devDependencies: "^10.36.0" }],
+    ["an older peer range", { devDependencies: "^10.39.0", peerDependencies: ">=10.36.0" }],
+    ["a tag", { devDependencies: "latest" }],
+    ["no spectral dependency", {}],
+  ])("refuses a project whose spectral allows releases without the hooks: %s", async (_, spectral) => {
+    await expect(run(configWith(NPM_BUILD), packageJson(spectral))).rejects.toThrow(
+      /^callable-entry-hooks: /,
+    );
+  });
+
+  it("names the range to raise when spectral is too old", async () => {
+    await expect(
+      run(configWith(NPM_BUILD), packageJson({ peerDependencies: "^10.36.0" })),
+    ).rejects.toThrow(
+      'peerDependencies must declare @prismatic-io/spectral at 10.39.0 or later, which exports @prismatic-io/spectral/tsdown; found "^10.36.0". Raise it to ^10.39.0',
+    );
+  });
+
+  it("does not check spectral when there is nothing to rewrite", async () => {
+    const { edits } = await run(
+      configWith(PLATFORM_BUILD),
+      packageJson({ devDependencies: "^10.36.0" }),
+    );
+    expect(edits).toEqual([]);
+  });
+
+  it("warns instead of declaring callableEntryHooks twice", async () => {
+    const config = configWith(NPM_BUILD, 'import { callableEntryHooks } from "./local-build";\n');
+    const { edits, warnings } = await run(config);
+    expect(edits).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        message: expect.stringMatching(/^callableEntryHooks is already bound from \.\/local-build/),
+        file: "tsdown.config.mts",
+      },
+    ]);
+  });
+
+  it("warns when the build calls a callableEntryHooks that is not spectral's", async () => {
+    const { config } = await run(configWith(NPM_BUILD));
+    const local = (config as string).replace("@prismatic-io/spectral/tsdown", "./local-build");
+    const { edits, warnings } = await run(local);
+    expect(edits).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        message: expect.stringMatching(
+          /bound from \.\/local-build, not imported from @prismatic-io\/spectral\/tsdown/,
+        ),
+        file: "tsdown.config.mts",
+      },
+    ]);
   });
 
   it("leaves a project without a callable npm build", async () => {

@@ -107,7 +107,15 @@ describe("callable-component-packaging", async () => {
 
   it("accepts a callable build that uses spectral's callableEntryHooks", async () => {
     const [edit] = await callableEntryHooks.plan(
-      { read: async (path) => (path === "tsdown.config.mts" ? packagedConfig : undefined) },
+      {
+        read: async (path) =>
+          ({
+            "tsdown.config.mts": packagedConfig,
+            "package.json": JSON.stringify({
+              devDependencies: { "@prismatic-io/spectral": "^10.39.0" },
+            }),
+          })[path],
+      },
       { warn: () => {} },
     );
     const files = { ...fixture(), "tsdown.config.mts": edit.content };
