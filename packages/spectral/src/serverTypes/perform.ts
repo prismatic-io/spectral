@@ -276,7 +276,7 @@ export const createCNIPollingPerform = <
 interface CreateCNIComponentRefPerform {
   componentRef: ServerComponentReference;
   componentRegistry: ComponentRegistry;
-  onTrigger: TriggerReference;
+  onTrigger: TriggerReference | undefined;
 }
 
 export const createCNIComponentRefPerform = <

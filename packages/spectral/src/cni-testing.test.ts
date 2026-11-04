@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   configPage,
   configVar,
@@ -18,7 +18,13 @@ import {
   convertConfigVar,
   convertFlow,
 } from "./serverTypes/convertIntegration";
-import { connectionValue, defaultConnectionValueEnvironmentVariable, invokeFlow } from "./testing";
+import {
+  connectionValue,
+  defaultConnectionValueEnvironmentVariable,
+  defaultTriggerPayload,
+  invokeFlow,
+} from "./testing";
+import type { ActionContext } from "./types";
 
 describe("default onTrigger", () => {
   const basicFlow = flow({
@@ -666,5 +672,74 @@ describe("test convert CNI component", () => {
 
     // Check everything else
     expect(convertedIntegration).toMatchObject(expected);
+  });
+});
+
+describe("flow with trigger lifecycle functions and no onTrigger", () => {
+  const invokeTrigger = vi.fn(async () => ({ payload: defaultTriggerPayload() }));
+  const context = {
+    executionId: "execution",
+    instanceState: {},
+    configVars: {},
+    _components: { invokeTrigger },
+  } as unknown as ActionContext;
+  const onInstanceDeploy = vi.fn(async () => ({ instanceState: { deployed: true } }));
+  const createWebhook = vi.fn(async () => ({}));
+
+  const converted = (schedule?: { value: string }) =>
+    integration({
+      name: "Lifecycle integration",
+      flows: [
+        flow({
+          name: "Lifecycle flow",
+          stableKey: "lifecycle-flow",
+          schedule,
+          onInstanceDeploy,
+          webhookLifecycleHandlers: { create: createWebhook, delete: async () => ({}) },
+          onExecution: async () => ({ data: null }),
+        }),
+      ],
+    });
+
+  it("wraps the default webhook trigger with the flow's lifecycle functions", async () => {
+    const trigger = converted().triggers.lifecycleFlow_onTrigger;
+    expect(trigger).toMatchObject({
+      hasOnInstanceDeploy: true,
+      hasWebhookCreateFunction: true,
+      hasWebhookDeleteFunction: true,
+    });
+
+    const payload = defaultTriggerPayload();
+    await trigger.perform(context, payload, {});
+    expect(invokeTrigger).toHaveBeenLastCalledWith(
+      {
+        component: { key: "webhook-triggers", version: "LATEST", isPublic: true },
+        key: "webhook",
+        triggerEventFunctionName: "perform",
+      },
+      expect.anything(),
+      payload,
+      {},
+    );
+
+    invokeTrigger.mockResolvedValueOnce(null as never);
+    expect(await trigger.onInstanceDeploy?.(context, {})).toEqual({
+      instanceState: { deployed: true },
+    });
+    expect(onInstanceDeploy).toHaveBeenCalledOnce();
+  });
+
+  it("wraps the default schedule trigger when the flow has a schedule", async () => {
+    const trigger = converted({ value: "0 * * * *" }).triggers.lifecycleFlow_onTrigger;
+    await trigger.perform(context, defaultTriggerPayload(), {});
+    expect(invokeTrigger).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        component: { key: "schedule-triggers", version: "LATEST", isPublic: true },
+        key: "schedule",
+      }),
+      expect.anything(),
+      expect.anything(),
+      {},
+    );
   });
 });

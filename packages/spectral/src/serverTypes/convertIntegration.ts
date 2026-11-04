@@ -1695,7 +1695,7 @@ interface GenerateTriggerPerformFn<
 
 interface GenerateComponentRefTriggerPerformFn {
   componentRef: ServerComponentReference;
-  onTrigger: TriggerReference;
+  onTrigger: TriggerReference | undefined;
   componentRegistry: ComponentRegistry;
   triggerType: ComponentRefTrigger;
 }
@@ -1785,7 +1785,8 @@ function validateTriggerPerformConfig<
     >
   | GenerateComponentRefTriggerPerformFn {
   const { componentRef, onTrigger, componentRegistry, triggerType } = params;
-  if (componentRef && onTrigger && typeof onTrigger !== "function") {
+  // Without an onTrigger, componentRef is the default webhook or schedule trigger.
+  if (componentRef && typeof onTrigger !== "function") {
     return {
       componentRef,
       onTrigger,
