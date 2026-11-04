@@ -12,7 +12,7 @@ import {
 } from "./callableComponent";
 import { runWithIntegrationContext } from "./serverTypes";
 
-export type { CallableComponent, CallableInputs } from "./callableComponent";
+export type { CallableComponent, CallableInputs, KeyedConnection } from "./callableComponent";
 export { callableComponent } from "./callableComponent";
 
 import {

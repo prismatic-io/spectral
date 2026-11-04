@@ -29,13 +29,15 @@
     "format": "biome check --write --unsafe .",
     "check": "biome check .",
     "tsd": "tsd --typings ../spectral/dist/index.d.ts",
-    "test:esm": "node scripts/esm-smoke.mjs"
+    "test:esm": "node scripts/esm-smoke.mjs",
+    "test:declarations": "tsc -p scripts/declarations"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
     "@prismatic-io/spectral": "*",
     "@types/node": "26.6.5",
     "tsd": "^0.33.0",
+    "typescript": "6.0.3",
     "zod": "^4.6.7"
   },
   "tsd": {
