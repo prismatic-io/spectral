@@ -62,6 +62,14 @@ describe("createActions outputSchema emission", () => {
     expect(rendered).toContain("id:");
   });
 
+  test("types outputSchema as OutputSchema so a large schema is not inferred as a literal", async () => {
+    const rendered = await render({
+      outputSchema: { type: "actionOutput", schema: { type: "object" } },
+    });
+    expect(rendered).toContain('import type { OutputSchema } from "@prismatic-io/spectral";');
+    expect(rendered).toMatch(/\} as OutputSchema,/);
+  });
+
   test("emits a branchingOutput outputSchema keyed by branchSchemas", async () => {
     const outputSchema: OutputSchema = {
       type: "branchingOutput",
@@ -81,5 +89,6 @@ describe("createActions outputSchema emission", () => {
   test("omits outputSchema when the action declares none", async () => {
     const rendered = await render();
     expect(rendered).not.toContain("outputSchema:");
+    expect(rendered).not.toContain("OutputSchema");
   });
 });

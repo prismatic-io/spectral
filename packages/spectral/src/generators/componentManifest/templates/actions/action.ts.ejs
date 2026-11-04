@@ -1,6 +1,9 @@
 <%- include('../partials/generatedHeader.ejs') -%>
 <%- include('../partials/imports.ejs', { imports, helpers }) %>
 import { requireContext } from "@prismatic-io/spectral";
+<%_ if (action.outputSchema) { -%>
+import type { OutputSchema } from "@prismatic-io/spectral";
+<%_ } -%>
 
 export interface <%= action.typeInterface %>Values {
 <%- include('../partials/performArgs.ejs', { inputs: action.inputs, helpers }) -%>
@@ -26,7 +29,9 @@ export const <%= action.import %> = {
   examplePayload: <%- typeof action.examplePayload === 'string' ? action.examplePayload : JSON.stringify(action.examplePayload, null, 2) %>,
   <%_ } -%>
   <%_ if (action.outputSchema) { -%>
-  outputSchema: <%- typeof action.outputSchema === 'string' ? action.outputSchema : JSON.stringify(action.outputSchema, null, 2) %>,
+  <%# Typed as OutputSchema rather than inferred: a large schema's literal type under `as const`
+      outgrows what the compiler can write to a declaration file (TS7056). -%>
+  outputSchema: <%- typeof action.outputSchema === 'string' ? action.outputSchema : JSON.stringify(action.outputSchema, null, 2) %> as OutputSchema,
   <%_ } -%>
   <%_ if (action.examplePerformSafety) { -%>
   examplePerformSafety: "<%= action.examplePerformSafety %>",
