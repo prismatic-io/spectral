@@ -4,6 +4,7 @@ import { join } from "path";
 import { afterEach, describe, expect, it } from "vitest";
 import { main } from "../../cli";
 import { runCodemod } from "../../runner";
+import callableEntryHooks from "../v10.39.0/callableEntryHooks";
 import codemod from "./callableComponentPackaging";
 
 const [config, packagedConfig] = await Promise.all([
@@ -102,6 +103,19 @@ describe("callable-component-packaging", async () => {
   it("accepts the existing Prism callable build without rewriting it", async () => {
     const files = { ...fixture(), "tsdown.config.mts": packagedConfig };
     expect((await apply(files))["tsdown.config.mts"]).toBe(packagedConfig);
+  });
+
+  it("accepts a callable build that uses spectral's callableEntryHooks", async () => {
+    const [edit] = await callableEntryHooks.plan(
+      { read: async (path) => (path === "tsdown.config.mts" ? packagedConfig : undefined) },
+      { warn: () => {} },
+    );
+    const files = { ...fixture(), "tsdown.config.mts": edit.content };
+    expect((await apply(files))["tsdown.config.mts"]).toBe(edit.content);
+    const unimported = edit.content.replace(/^import \{ callableEntryHooks \}.*\n/m, "");
+    await expect(apply({ ...fixture(), "tsdown.config.mts": unimported })).rejects.toThrow(
+      "requires callableEntryHooks from @prismatic-io/spectral/tsdown",
+    );
   });
 
   it("accepts an object config, import aliases, and a component exported through a variable", async () => {

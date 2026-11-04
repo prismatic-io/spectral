@@ -2,12 +2,13 @@
 /**
  * Generates the `exports` and `typesVersions` fields of package.json.
  *
- * Public entry points are the root, `./http` (the HTTP client) and `./testing`
- * (the test harness). Every `dist/` path that CommonJS resolution could reach
- * before this package declared `exports` is kept as well, so existing deep
- * imports such as `@prismatic-io/spectral/dist/clients/http` keep resolving,
- * for `require` and under native ESM alike. Those entries are deprecated:
- * import from the public entry points instead.
+ * Public entry points are the root, `./http` (the HTTP client), `./testing`
+ * (the test harness) and `./tsdown` (build helpers for tsdown configs). Every
+ * `dist/` path that CommonJS resolution could reach before this package
+ * declared `exports` is kept as well, so existing deep imports such as
+ * `@prismatic-io/spectral/dist/clients/http` keep resolving, for `require` and
+ * under native ESM alike. Those entries are deprecated: import from the public
+ * entry points instead.
  *
  * That deprecated set is frozen in legacy-dist-modules.json: the modules that
  * existed when `exports` was introduced. A module added since is reachable
@@ -29,6 +30,7 @@ const PUBLIC_EXPORTS: Record<string, unknown> = {
   ".": { types: "./dist/index.d.ts", default: "./dist/index.js" },
   "./http": { types: "./dist/clients/http/index.d.ts", default: "./dist/clients/http/index.js" },
   "./testing": { types: "./dist/testing.d.ts", default: "./dist/testing.js" },
+  "./tsdown": { types: "./dist/tsdown.d.ts", default: "./dist/tsdown.js" },
   "./package.json": "./package.json",
 };
 
@@ -37,6 +39,7 @@ const TYPES_VERSIONS = {
   "*": {
     http: ["dist/clients/http/index.d.ts"],
     testing: ["dist/testing.d.ts"],
+    tsdown: ["dist/tsdown.d.ts"],
   },
 };
 

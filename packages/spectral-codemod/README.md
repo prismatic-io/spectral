@@ -72,6 +72,27 @@ After applying, reinstall dependencies to update the lockfile, run your tests, a
 run `npm pack`. Consumers need Spectral installed and use the package's default
 export to access callable components.
 
+### `callable-entry-hooks`
+
+Replaces the inline hooks of a callable npm build, which write `npm-dist/.entry.ts`
+before the build and remove it after, with `callableEntryHooks()` from
+`@prismatic-io/spectral/tsdown`:
+
+```ts
+import { callableEntryHooks } from "@prismatic-io/spectral/tsdown";
+// ...
+    hooks: callableEntryHooks(),
+```
+
+It recognizes the build `callable-component-packaging` writes and the one Prism
+scaffolds, and drops the `node:fs/promises` imports only the hooks used. It warns about
+a callable build that differs from both and leaves it as it is. Spectral exports the
+hooks from 10.39.0, so the project needs that release or later.
+
+```sh
+npx @prismatic-io/spectral-codemod@latest callable-entry-hooks --target-spectral latest . --dry-run
+```
+
 ### `public-entry-points`
 
 Moves imports of Spectral's soft-deprecated `dist/` paths to the public entry points

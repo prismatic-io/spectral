@@ -10,7 +10,7 @@ import {
 import { type CodemodContext, defineCodemod, type ProjectFiles } from "../../codemod";
 
 const SPECTRAL = "@prismatic-io/spectral";
-const CONFIG_NAMES = [
+export const CONFIG_NAMES = [
   "tsdown.config.mts",
   "tsdown.config.ts",
   "tsdown.config.cts",
@@ -21,7 +21,7 @@ const CONFIG_NAMES = [
 const PACKAGE_ENTRY = { types: "./npm-dist/index.d.cts", default: "./npm-dist/index.cjs" };
 
 // Matches Prism's callable package build. Dynamic imports avoid collisions with user bindings.
-const NPM_BUILD = `{
+export const NPM_BUILD = `{
   entry: { index: "npm-dist/.entry.ts" },
   format: "cjs",
   outDir: "npm-dist",
@@ -49,6 +49,33 @@ const NPM_BUILD = `{
     },
   },
 }`;
+
+/** Prism's original hooks, which import the fs functions at module scope. */
+export const PRISM_NPM_BUILD = NPM_BUILD.replace(
+  / {6}const \{ (?:mkdir, writeFile|rm) \} = await import\("node:fs\/promises"\);\n/g,
+  "",
+);
+
+export const CALLABLE_ENTRY_HOOKS = "callableEntryHooks";
+export const SPECTRAL_TSDOWN = "@prismatic-io/spectral/tsdown";
+
+/** The npm build with spectral's hooks, which spectral exports from 10.39.0. */
+export const HOOKS_NPM_BUILD = NPM_BUILD.replace(
+  /hooks: \{[\s\S]*\n {2}\},\n\}$/,
+  `hooks: ${CALLABLE_ENTRY_HOOKS}(),\n}`,
+);
+
+/** Whether the file imports a binding, unaliased, from a module. */
+export const importsName = (source: SourceFile, module: string, name: string): boolean =>
+  source
+    .getImportDeclarations()
+    .some(
+      (declaration) =>
+        declaration.getModuleSpecifierValue() === module &&
+        declaration
+          .getNamedImports()
+          .some((specifier) => specifier.getName() === name && !specifier.getAliasNode()),
+    );
 
 const fail: (message: string) => never = (message) => {
   throw new Error(`callable-component-packaging: ${message}`);
@@ -79,7 +106,7 @@ const compatibleRange = (value: unknown, minimum: string, name: string): string 
 };
 
 /** Compare syntax without depending on indentation, quote style, or trailing commas. */
-const syntax = (node: Node): string => {
+export const syntax = (node: Node): string => {
   if (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
     return JSON.stringify(node.getLiteralText());
   }
@@ -251,31 +278,25 @@ const configureBuild = (source: SourceFile): void => {
   }
   if (builds.length === 2) {
     const existing = plainObject(builds[1], "The callable npm build");
-    // Also accept Prism's original hooks, which import fs functions at module scope.
-    const prismBuild = source
-      .getProject()
-      .createSourceFile(
-        "prism-build.ts",
-        `const build = ${NPM_BUILD.replace(/ {6}const \{ (?:mkdir, writeFile|rm) \} = await import\("node:fs\/promises"\);\n/g, "")};`,
-      )
-      .getVariableDeclarationOrThrow("build")
-      .getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    const build = (name: string, text: string) =>
+      source
+        .getProject()
+        .createSourceFile(name, `const build = ${text};`)
+        .getVariableDeclarationOrThrow("build")
+        .getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
     if (syntax(existing) === syntax(npmBuild)) return;
-    if (syntax(existing) !== syntax(prismBuild))
+    if (syntax(existing) === syntax(build("hooks-build.ts", HOOKS_NPM_BUILD))) {
+      if (!importsName(source, SPECTRAL_TSDOWN, CALLABLE_ENTRY_HOOKS))
+        fail(`Existing callable build requires ${CALLABLE_ENTRY_HOOKS} from ${SPECTRAL_TSDOWN}.`);
+      return;
+    }
+    if (syntax(existing) !== syntax(build("prism-build.ts", PRISM_NPM_BUILD)))
       fail(
         "An existing second tsdown build differs from the supported callable npm build. Reconcile it before applying this codemod.",
       );
     for (const name of ["mkdir", "writeFile", "rm"]) {
-      const imported = source
-        .getImportDeclarations()
-        .some(
-          (declaration) =>
-            declaration.getModuleSpecifierValue() === "node:fs/promises" &&
-            declaration
-              .getNamedImports()
-              .some((specifier) => specifier.getName() === name && !specifier.getAliasNode()),
-        );
-      if (!imported) fail(`Existing callable build requires ${name} from node:fs/promises.`);
+      if (!importsName(source, "node:fs/promises", name))
+        fail(`Existing callable build requires ${name} from node:fs/promises.`);
     }
     return;
   }

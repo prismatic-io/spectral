@@ -2,8 +2,14 @@ import { type Codemod, codemodId } from "../codemod";
 import publicEntryPoints from "./v10.35.1/publicEntryPoints";
 import callableComponentPackaging from "./v10.36.0/callableComponentPackaging";
 import integrationConfiguration from "./v10.36.0/integrationConfiguration";
+import callableEntryHooks from "./v10.39.0/callableEntryHooks";
 
-const all: Codemod[] = [publicEntryPoints, integrationConfiguration, callableComponentPackaging];
+const all: Codemod[] = [
+  publicEntryPoints,
+  integrationConfiguration,
+  callableComponentPackaging,
+  callableEntryHooks,
+];
 
 /** Every shipped codemod, keyed by its versioned name. */
 export const codemods: ReadonlyMap<string, Codemod> = new Map(
