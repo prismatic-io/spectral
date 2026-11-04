@@ -96,6 +96,7 @@ import {
   type DefaultRequiredConfigVariable as ServerDefaultRequiredConfigVariable,
   type Input as ServerInput,
   type RequiredConfigVariable as ServerRequiredConfigVariable,
+  type Step as ServerStep,
 } from "./integration";
 import { createCNIComponentRefPerform, createCNIPerform, createCNIPollingPerform } from "./perform";
 import type { CNIPollingPerformFunction, ComponentRefTriggerPerformFunction } from "./triggerTypes";
@@ -667,6 +668,18 @@ const convertConfigVarPermissionAndVisibility = ({
   };
 };
 
+const isObject = (value: unknown): value is object => typeof value === "object" && value !== null;
+
+/**
+ * A bound data source value as a component reference value: a config variable, a value
+ * expression, or a plain value to wrap as one.
+ */
+const toReferenceValue = (binding: unknown): { configVar: string } | { value: unknown } => {
+  if (isObject(binding) && "configVar" in binding) return { configVar: String(binding.configVar) };
+  if (isObject(binding) && "value" in binding) return { value: binding.value };
+  return { value: binding };
+};
+
 const convertReferenceInputs = (
   inputDefinitions: Record<string, object>,
   values: ComponentReference["values"],
@@ -702,19 +715,15 @@ const convertReferenceInputs = (
         type === "complex" || typeof valueExpr === "string" ? valueExpr : JSON.stringify(valueExpr);
 
       const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
-        convertInputPermissionAndVisibility(
-          pick(value, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-            permissionAndVisibilityType?: PermissionAndVisibilityType;
-            visibleToOrgDeployer?: boolean;
-          },
-        );
+        convertInputPermissionAndVisibility({
+          permissionAndVisibilityType:
+            "permissionAndVisibilityType" in value ? value.permissionAndVisibilityType : undefined,
+          visibleToOrgDeployer:
+            "visibleToOrgDeployer" in value ? value.visibleToOrgDeployer : undefined,
+        });
 
-      const { writeOnly } = pick(value, ["writeOnly"]) as {
-        writeOnly?: true;
-      };
-
-      if (writeOnly) {
-        meta.writeOnly = writeOnly;
+      if ("writeOnly" in value && value.writeOnly) {
+        meta.writeOnly = value.writeOnly;
       }
 
       return {
@@ -926,10 +935,12 @@ const boundBranchInput = (
     definition.collection === "keyvaluelist"
       ? (Array.isArray(value)
           ? value
-          : Object.entries((value ?? {}) as Record<string, unknown>).map(([key, value]) => ({
-              key,
-              value,
-            }))
+          : Object.entries(typeof value === "object" && value !== null ? value : {}).map(
+              ([key, value]) => ({
+                key,
+                value,
+              }),
+            )
         ).map<ServerInput>(({ key, value }) => ({
           // The backend requires branch names to be plain strings, not expressions.
           name: key,
@@ -1036,20 +1047,17 @@ const convertFlowSchemas = (
   flowKey: string,
   schemas: Record<string, FlowDefinitionFlowSchema>,
 ): Record<string, FlowSchema> => {
-  return Object.entries(schemas).reduce(
-    (acc, [key, value]) => {
-      acc[key] = {
-        title: value.title || `${flowKey}-${key}`,
-        type: "object",
-        $comment: value.$comment,
-        properties: value.properties,
-        $schema: value.$schema || DEFAULT_JSON_SCHEMA_VERSION,
-        ...(value.required?.length ? { required: value.required } : {}),
-      };
-      return acc;
-    },
-    {} as Record<string, FlowSchema>,
-  );
+  return Object.entries(schemas).reduce<Record<string, FlowSchema>>((acc, [key, value]) => {
+    acc[key] = {
+      title: value.title || `${flowKey}-${key}`,
+      type: "object",
+      $comment: value.$comment,
+      properties: value.properties,
+      $schema: value.$schema || DEFAULT_JSON_SCHEMA_VERSION,
+      ...(value.required?.length ? { required: value.required } : {}),
+    };
+    return acc;
+  }, {});
 };
 
 /** Converts a Flow into the structure necessary for YAML generation. */
@@ -1087,7 +1095,7 @@ export const convertFlow = <
 
   let publicSupplementalComponent: "webhook" | "schedule" | undefined;
 
-  const triggerStep: Record<string, unknown> = {
+  const triggerStep: ServerStep = {
     name: "On Trigger",
     stableKey: `${flow.stableKey}-onTrigger`,
     description: "The function that will be executed by the flow to return an HTTP response.",
@@ -1203,9 +1211,7 @@ export const convertFlow = <
         ? {
             dedupeIdField: {
               type: "reference",
-              value: `${
-                triggerStep.name ? camelCase(triggerStep.name as string) : "onTrigger"
-              }.results.${queueConfig.dedupeIdField}`,
+              value: `${camelCase(triggerStep.name)}.results.${queueConfig.dedupeIdField}`,
             },
           }
         : {}),
@@ -1264,7 +1270,7 @@ export const convertFlow = <
     };
   }
 
-  const actionStep: Record<string, unknown> = {
+  const actionStep: ServerStep = {
     action: {
       key: flowFunctionKey(flow.name, "onExecution"),
       component: codeNativeIntegrationComponentReference(referenceKey),
@@ -1377,12 +1383,7 @@ export const convertConfigVar = (
         }
 
         const meta: VisibilityAndPermissionValue & { writeOnly?: true } =
-          convertInputPermissionAndVisibility(
-            pick(input, ["permissionAndVisibilityType", "visibleToOrgDeployer"]) as {
-              permissionAndVisibilityType?: PermissionAndVisibilityType;
-              visibleToOrgDeployer?: boolean;
-            },
-          );
+          convertInputPermissionAndVisibility(input);
 
         if (input.writeOnly) {
           meta.writeOnly = input.writeOnly;
@@ -1527,14 +1528,9 @@ export const convertConfigVar = (
     };
     const bundled = getBundledDataSource(configVar);
     if (bundled) {
-      const bindings = Object.fromEntries(
-        Object.entries(bundled.values).map(([key, value]) => [
-          key,
-          value && typeof value === "object" && ("configVar" in value || "value" in value)
-            ? value
-            : { value },
-        ]),
-      ) as ComponentReference["values"];
+      const bindings: ComponentReference["values"] = Object.fromEntries(
+        Object.entries(bundled.values).map(([key, value]) => [key, toReferenceValue(value)]),
+      );
       result.inputs = { ...result.inputs, ...convertReferenceInputs(bundled.inputs, bindings) };
     }
   }
@@ -1954,14 +1950,12 @@ const convertOnExecution =
     // The runner supplies `configuration` already parsed. An unconfigured
     // instance gets `{}` so a flow reading into it sees `undefined` for the
     // field rather than throwing. Connections are rekeyed to the author's names.
-    const configVars = baseContext.configVars as unknown as Record<string, unknown>;
     const actionContext = connectionNames
       ? Object.assign(baseContext, {
-          configuration:
-            (baseContext as unknown as { configuration?: unknown }).configuration ?? {},
+          configuration: "configuration" in baseContext ? (baseContext.configuration ?? {}) : {},
           userConfiguration:
-            (baseContext as unknown as { userConfiguration?: unknown }).userConfiguration ?? {},
-          connections: createConfigurationConnections(connectionNames, configVars),
+            "userConfiguration" in baseContext ? (baseContext.userConfiguration ?? {}) : {},
+          connections: createConfigurationConnections(connectionNames, baseContext.configVars),
         })
       : baseContext;
 

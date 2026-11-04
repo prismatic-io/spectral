@@ -62,27 +62,25 @@ type ComponentReferenceTypeValueMap<
   },
 > = TMap;
 
+/** A component reference's input value. A connection input's value can also carry visibility. */
+type ComponentReferenceValue =
+  | ((ValueExpression | ConfigVarExpression | TemplateExpression) &
+      ConfigVarVisibility & { writeOnly?: true })
+  | (ConfigVarVisibility & { writeOnly?: true });
+
 export type ComponentReference<
   TComponentReference extends {
     component: string;
     key: string;
     values?: {
-      [key: string]:
-        | ValueExpression
-        | ConfigVarExpression
-        | TemplateExpression
-        | (ConfigVarVisibility & { writeOnly?: true });
+      [key: string]: ComponentReferenceValue;
     };
     template?: string;
   } = {
     component: string;
     key: string;
     values?: {
-      [key: string]:
-        | ValueExpression
-        | ConfigVarExpression
-        | TemplateExpression
-        | (ConfigVarVisibility & { writeOnly?: true });
+      [key: string]: ComponentReferenceValue;
     };
     template?: string;
   },
