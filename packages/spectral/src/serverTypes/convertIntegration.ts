@@ -702,7 +702,10 @@ const convertReferenceInputs = (
     if ("value" in value) {
       const valueExpr =
         manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
-          ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
+          ? (Array.isArray(value.value)
+              ? value.value.map(({ key, value }): [string, unknown] => [key, value])
+              : Object.entries(value.value)
+            ).map<ServerInput>(([k, v]) => ({
               name: { type: "value", value: k },
               type: "value",
               value: JSON.stringify(v),
