@@ -1511,11 +1511,27 @@ describe("manifest triggers that branch", () => {
   });
 
   it.each([
-    ["referenced directly", undefined],
-    ["wrapped", async () => ({})],
-  ] as const)("declares dynamic branch names as plain strings when %s", (_, onInstanceDeploy) => {
+    ["referenced directly with a record", undefined, { Alpha: "a", Beta: "b" }],
+    ["wrapped with a record", async () => ({}), { Alpha: "a", Beta: "b" }],
+    [
+      "referenced directly with an array",
+      undefined,
+      [
+        { key: "Alpha", value: "a" },
+        { key: "Beta", value: "b" },
+      ],
+    ],
+    [
+      "wrapped with an array",
+      async () => ({}),
+      [
+        { key: "Alpha", value: "a" },
+        { key: "Beta", value: "b" },
+      ],
+    ],
+  ] as const)("declares dynamic branch names as plain strings when %s", (_, onInstanceDeploy, value) => {
     const definition = referenceFlow("routed", onInstanceDeploy, {
-      routes: { value: { Alpha: "a", Beta: "b" } },
+      routes: { value },
     });
     expect(triggerStep(definition)).toMatchObject({
       branches: [
