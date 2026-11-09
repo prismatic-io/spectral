@@ -17,6 +17,27 @@ import { inputs } from "./inputs";
 
 export type HttpClient = AxiosInstance;
 
+const REDACTED = "[REDACTED]";
+// Header names that can carry a credential. Debug logs show these headers with a hidden value.
+const SENSITIVE_HEADER = /^(cookie|set-cookie)$|auth|token|secret|password|api[-_]?key/i;
+
+/** Axios headers are an `AxiosHeaders` instance that gives a plain object from `toJSON()`. */
+const hasToJSON = (value: unknown): value is { toJSON: () => Record<string, unknown> } =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as { toJSON?: unknown }).toJSON === "function";
+
+/** Headers as a plain object for a debug log, with the values of credential headers hidden. */
+const redactHeaders = (headers: unknown): Record<string, unknown> => {
+  const plain = hasToJSON(headers) ? headers.toJSON() : { ...(headers as object | undefined) };
+  return Object.fromEntries(
+    Object.entries(plain).map(([name, value]) => [
+      name,
+      SENSITIVE_HEADER.test(name) ? REDACTED : value,
+    ]),
+  );
+};
+
 const toAuthorizationHeaders = (connection: Connection): { Authorization: string } => {
   const accessToken = util.types.toString(connection.token?.access_token);
   if (accessToken) {
@@ -171,7 +192,7 @@ export const createClient = ({
             baseURL,
             params,
             url,
-            headers,
+            headers: redactHeaders(headers),
             method,
             timeout,
             data:
@@ -190,7 +211,7 @@ export const createClient = ({
         util.types.toJSON(
           {
             type: "response",
-            headers,
+            headers: redactHeaders(headers),
             status,
             statusText,
             data:
