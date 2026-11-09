@@ -670,6 +670,34 @@ const convertConfigVarPermissionAndVisibility = ({
 
 const isObject = (value: unknown): value is object => typeof value === "object" && value !== null;
 
+/** A key-value list authored as a record or as `KeyValuePair` entries, as `[key, value]` pairs. */
+const toKeyValueEntries = (value: object): [string, unknown][] => {
+  if (!Array.isArray(value)) return Object.entries(value);
+  return value.map((entry): [string, unknown] => {
+    if (!isObject(entry) || !("key" in entry)) {
+      throw new Error(
+        `Key-value list entries must be objects with a "key": ${JSON.stringify(entry)}`,
+      );
+    }
+    return [String(entry.key), "value" in entry ? entry.value : undefined];
+  });
+};
+
+/** A reference input's authored value in the shape the server expects for its collection. */
+const toReferenceValueExpression = (collection: string | undefined, value: unknown): unknown => {
+  if (collection === "keyvaluelist" && isObject(value)) {
+    return toKeyValueEntries(value).map<ServerInput>(([key, entryValue]) => ({
+      name: { type: "value", value: key },
+      type: "value",
+      value: JSON.stringify(entryValue),
+    }));
+  }
+  if (collection === "valuelist" && Array.isArray(value)) {
+    return value.map((entry) => ({ type: "value", value: entry }));
+  }
+  return value;
+};
+
 /**
  * A bound data source value as a component reference value: a config variable, a value
  * expression, or a plain value to wrap as one.
@@ -700,16 +728,7 @@ const convertReferenceInputs = (
     const type = isCollection ? "complex" : "value" in value ? "value" : "configVar";
 
     if ("value" in value) {
-      const valueExpr =
-        manifestEntryInput.collection === "keyvaluelist" && value.value instanceof Object
-          ? Object.entries(value.value).map<ServerInput>(([k, v]) => ({
-              name: { type: "value", value: k },
-              type: "value",
-              value: JSON.stringify(v),
-            }))
-          : manifestEntryInput.collection === "valuelist" && Array.isArray(value.value)
-            ? value.value.map((v) => ({ type: "value", value: v }))
-            : value.value;
+      const valueExpr = toReferenceValueExpression(manifestEntryInput.collection, value.value);
 
       const formattedValue =
         type === "complex" || typeof valueExpr === "string" ? valueExpr : JSON.stringify(valueExpr);
