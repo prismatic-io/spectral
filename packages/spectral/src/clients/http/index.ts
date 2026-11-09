@@ -17,6 +17,24 @@ import { inputs } from "./inputs";
 
 export type HttpClient = AxiosInstance;
 
+const REDACTED = "[REDACTED]";
+// Header names that can carry a credential. Debug logs show these headers with a hidden value.
+const SENSITIVE_HEADER = /^(cookie|set-cookie)$|auth|token|secret|password|api[-_]?key/i;
+
+/** Headers as a plain object for a debug log, with the values of credential headers hidden. */
+const redactHeaders = (headers: unknown): Record<string, unknown> => {
+  const plain =
+    headers && typeof (headers as { toJSON?: unknown }).toJSON === "function"
+      ? (headers as { toJSON: () => Record<string, unknown> }).toJSON()
+      : ((headers ?? {}) as Record<string, unknown>);
+  return Object.fromEntries(
+    Object.entries(plain).map(([name, value]) => [
+      name,
+      SENSITIVE_HEADER.test(name) ? REDACTED : value,
+    ]),
+  );
+};
+
 const toAuthorizationHeaders = (connection: Connection): { Authorization: string } => {
   const accessToken = util.types.toString(connection.token?.access_token);
   if (accessToken) {
@@ -79,7 +97,7 @@ export interface ClientProps {
   params?: Record<string, any>;
   /** The maximum amount of time (in milliseconds) to wait for a response. Defaults to infinity. */
   timeout?: number;
-  /** When enabled, log all HTTP requests and responses. */
+  /** When enabled, log all HTTP requests and responses. The logs hide the values of credential headers. */
   debug?: boolean;
   /** Configuration used to determine if and how failed HTTP requests should be retried. */
   retryConfig?: RetryConfig;
@@ -171,7 +189,7 @@ export const createClient = ({
             baseURL,
             params,
             url,
-            headers,
+            headers: redactHeaders(headers),
             method,
             timeout,
             data:
@@ -190,7 +208,7 @@ export const createClient = ({
         util.types.toJSON(
           {
             type: "response",
-            headers,
+            headers: redactHeaders(headers),
             status,
             statusText,
             data:
