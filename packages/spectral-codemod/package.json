@@ -54,7 +54,7 @@
     "@biomejs/biome": "^2.4.15",
     "@types/node": "26.6.5",
     "@types/semver": "^7.8.0",
-    "tsdown": "0.23.1",
+    "tsdown": "0.23.2",
     "typescript": "^6",
     "vitest": "^5.0.5"
   }
