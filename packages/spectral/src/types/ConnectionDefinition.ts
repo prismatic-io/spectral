@@ -64,7 +64,7 @@ type TTemplateComplement<TRequired, TGiven> = {
   [K in Exclude<keyof TRequired, keyof TGiven>]: ConnectionTemplateInputField;
 };
 
-interface OAuth2AuthorizationCodeInputs {
+export interface OAuth2AuthorizationCodeInputs {
   /**
    * The OAuth 2.0 authorization URL where users can consent to granting you permissions
    * to their third-party account. (e.g. `https://app.acme.com/oauth2/authorize`)
@@ -83,7 +83,7 @@ interface OAuth2AuthorizationCodeInputs {
   clientSecret: ConnectionInput;
 }
 
-interface OAuth2ClientCredentialInputs {
+export interface OAuth2ClientCredentialInputs {
   /**
    * The OAuth 2.0 token URL which can be used to exchange a client ID and secret
    * for an access token. (e.g. `https://app.acme.com/oauth2/token`)
