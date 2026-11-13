@@ -35,18 +35,19 @@ const tested = flow({
 const connection = { key: "dropbox", fields: { token: "secret" } };
 const harness = createHarness(tested);
 
-harness.run<ConfigVars>({ configVars: { "Dropbox Connection": connection, "API Key": "key" } });
-harness.initialSync<ConfigVars>({ configVars: { "Dropbox Connection": connection } });
+harness.run({ configVars: { "Dropbox Connection": connection, "API Key": "key" } });
+harness.initialSync({ configVars: { "Dropbox Connection": connection } });
 // A test gives only the config vars that the flow reads.
-harness.run<ConfigVars>({ configVars: { "API Key": "key" } });
-harness.run<ConfigVars>({ configVars: { "Dropbox Connection": null } });
+harness.run({ configVars: { "API Key": "key" } });
+harness.run({ configVars: { "Dropbox Connection": null } });
 invokeFlow<never, never, ConfigVars>(tested, {
   configVars: { "Dropbox Connection": connection },
 });
 
+// The harness uses the integration's config-var types without a type argument.
 // @ts-expect-error a connection config var does not take a string
-harness.run<ConfigVars>({ configVars: { "Dropbox Connection": "secret" } });
+harness.run({ configVars: { "Dropbox Connection": "secret" } });
 // @ts-expect-error a string config var does not take a connection
-harness.run<ConfigVars>({ configVars: { "API Key": connection } });
+harness.run({ configVars: { "API Key": connection } });
 // @ts-expect-error a config var that the integration does not declare
-harness.run<ConfigVars>({ configVars: { "Missing Key": "key" } });
+harness.run({ configVars: { "Missing Key": "key" } });

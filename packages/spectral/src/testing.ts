@@ -39,6 +39,7 @@ import type {
   ConfiguredUserValue,
   ConfiguredValue,
   ConfigVarResultCollection,
+  ConfigVars,
   Connection,
   ConnectionDefinition,
   DataSourceDefinition,
@@ -987,11 +988,17 @@ const flowTestContext = (options: InvokeFlowOptions) => {
 };
 
 /**
- * The options of {@link FlowTestHarness.run}. Give the integration's config-var type, for
- * example `ConfigVars`, to type each config var by its kind.
+ * The integration's config vars when it declares their types by augmenting
+ * `IntegrationDefinitionConfigPages`, and the open collection when it does not.
+ */
+type HarnessConfigVars = keyof ConfigVars extends never ? ConfigVarResultCollection : ConfigVars;
+
+/**
+ * The options of {@link FlowTestHarness.run}. Each config var takes a value of its kind
+ * in the integration's config-var types.
  */
 export type FlowHarnessRunOptions<
-  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+  TConfigVars extends ConfigVarResultCollection = HarnessConfigVars,
 > = InvokeFlowOptions<TConfigVars> & {
   /** Maximum discovery pages per run; defaults to 100. */
   maxPages?: number;
@@ -1035,16 +1042,12 @@ export class FlowTestHarness<TFlow extends HarnessFlow> {
   }
 
   /** Runs one poll or webhook, including pagination and batch dispatch when configured. */
-  run<TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection>(
-    options: FlowHarnessRunOptions<TConfigVars> = {},
-  ) {
+  run(options: FlowHarnessRunOptions = {}) {
     return this.execute(options, false);
   }
 
   /** Explicitly runs initial-sync discovery and execution, independently of deploy lifecycle. */
-  initialSync<TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection>(
-    options: FlowHarnessRunOptions<TConfigVars> = {},
-  ) {
+  initialSync(options: FlowHarnessRunOptions = {}) {
     return this.execute(options, true);
   }
 
