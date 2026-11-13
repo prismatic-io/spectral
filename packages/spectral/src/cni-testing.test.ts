@@ -20,6 +20,7 @@ import {
 } from "./serverTypes/convertIntegration";
 import {
   connectionValue,
+  createHarness,
   defaultConnectionValueEnvironmentVariable,
   defaultTriggerPayload,
   invokeFlow,
@@ -74,6 +75,23 @@ describe("test flow using connections", () => {
       },
     });
     expect(result).toMatchObject({ data: { "A Connection": value } });
+  });
+
+  it("gives a null connection as null", async () => {
+    const { result } = await invokeFlow(connectionFlow, {
+      configVars: { "A Connection": null },
+    });
+    expect(result).toMatchObject({ data: { "A Connection": null } });
+  });
+
+  it("gives the harness's connection config vars to the flow", async () => {
+    const value = { key: "dropbox", fields: { token: "secret" } };
+    const { result } = await createHarness(connectionFlow).run({
+      configVars: { "A Connection": value, "A String": "text" },
+    });
+    expect(result).toEqual({
+      data: { "A Connection": { ...value, configVarKey: "" }, "A String": "text" },
+    });
   });
 });
 

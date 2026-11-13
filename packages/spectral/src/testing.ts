@@ -39,6 +39,7 @@ import type {
   ConfiguredUserValue,
   ConfiguredValue,
   ConfigVarResultCollection,
+  Connection,
   ConnectionDefinition,
   DataSourceDefinition,
   DataSourceType,
@@ -547,19 +548,33 @@ export const invokeDataSource = async <
 
 type TestConnectionValue = Pick<ConnectionValue, "fields" | "context" | "token" | "key">;
 
-type TestConfigVarValues = Record<string, string | TestConnectionValue>;
+/** A `null` connection is one that is not configured. */
+type TestConfigVarValues = Record<string, string | TestConnectionValue | null | undefined>;
 
+/**
+ * A connection config var takes a test connection, or `null` for one that is not configured.
+ * Each other config var takes a string.
+ */
+type ToKnownTestValue<TValue> = TValue extends Connection ? TestConnectionValue | null : string;
+
+/**
+ * The open `ConfigVarResultCollection` types each value as `unknown`, so a value can be
+ * either kind.
+ */
+type ToTestValue<TValue> = unknown extends TValue
+  ? string | TestConnectionValue | null
+  : ToKnownTestValue<TValue>;
+
+/** A test gives only the config vars that the flow reads. */
 type ToTestValues<TConfigVars extends ConfigVarResultCollection> = {
-  [K in keyof TConfigVars]: TConfigVars[K] extends ConnectionDefinition
-    ? TestConnectionValue
-    : string;
+  [K in keyof TConfigVars]?: ToTestValue<TConfigVars[K]>;
 };
 const createConfigVars = <TConfigVarValues extends TestConfigVarValues>(
   values?: TConfigVarValues,
 ): ConfigVarResultCollection => {
   return Object.entries(values ?? {}).reduce((result, [key, value]) => {
-    // Connection
-    if (typeof value === "object" && "fields" in value) {
+    // Connection. A `null` value is a connection that is not configured.
+    if (typeof value === "object" && value !== null && "fields" in value) {
       return {
         ...result,
         [key]: {
@@ -971,7 +986,13 @@ const flowTestContext = (options: InvokeFlowOptions) => {
   });
 };
 
-export type FlowHarnessRunOptions = InvokeFlowOptions & {
+/**
+ * The options of {@link FlowTestHarness.run}. Give the integration's config-var type, for
+ * example `ConfigVars`, to type each config var by its kind.
+ */
+export type FlowHarnessRunOptions<
+  TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection,
+> = InvokeFlowOptions<TConfigVars> & {
   /** Maximum discovery pages per run; defaults to 100. */
   maxPages?: number;
   /** Local batch workers; defaults to 1 and is capped by concurrentBatchLimit. */
@@ -1014,12 +1035,16 @@ export class FlowTestHarness<TFlow extends HarnessFlow> {
   }
 
   /** Runs one poll or webhook, including pagination and batch dispatch when configured. */
-  run(options: FlowHarnessRunOptions = {}) {
+  run<TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection>(
+    options: FlowHarnessRunOptions<TConfigVars> = {},
+  ) {
     return this.execute(options, false);
   }
 
   /** Explicitly runs initial-sync discovery and execution, independently of deploy lifecycle. */
-  initialSync(options: FlowHarnessRunOptions = {}) {
+  initialSync<TConfigVars extends ConfigVarResultCollection = ConfigVarResultCollection>(
+    options: FlowHarnessRunOptions<TConfigVars> = {},
+  ) {
     return this.execute(options, true);
   }
 
