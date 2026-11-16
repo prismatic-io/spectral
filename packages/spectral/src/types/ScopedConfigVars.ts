@@ -1,16 +1,17 @@
 import {
   type ConfigVar,
+  type ConfigVarConditions,
   isConnectionDefinitionConfigVar,
   isConnectionReferenceConfigVar,
 } from "./ConfigVars";
 import type { UnionToIntersection } from "./utils";
 
-export type CustomerActivatedConnectionConfigVar = {
+export type CustomerActivatedConnectionConfigVar = ConfigVarConditions & {
   dataType: "connection";
   stableKey: string;
 };
 
-export type OrganizationActivatedConnectionConfigVar = {
+export type OrganizationActivatedConnectionConfigVar = ConfigVarConditions & {
   dataType: "connection";
   stableKey: string;
 };
@@ -22,7 +23,7 @@ export type OrganizationActivatedConnectionConfigVar = {
  * customer-activated kinds, which are otherwise identical. The convert layer rewrites
  * it to the shape the API expects before it reaches the server.
  */
-export type UserActivatedConnectionConfigVar = {
+export type UserActivatedConnectionConfigVar = ConfigVarConditions & {
   dataType: "userScopedConnection";
   stableKey: string;
 };
