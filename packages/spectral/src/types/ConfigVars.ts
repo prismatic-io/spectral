@@ -7,6 +7,7 @@ import { isComponentReference } from "./ComponentRegistry";
 import type {
   ConfigPage,
   ConfigPages,
+  HtmlElement,
   UserLevelConfigPage,
   UserLevelConfigPages,
 } from "./ConfigPages";
@@ -16,6 +17,7 @@ import type {
   OAuth2ConnectionDefinition,
   OAuth2Type,
 } from "./ConnectionDefinition";
+import type { ConditionalExpression } from "./conditional-logic";
 import type { DataSourceDefinition } from "./DataSourceDefinition";
 import type { CollectionDataSourceType, DataSourceType } from "./DataSourceResult";
 import type {
@@ -128,13 +130,22 @@ interface ConfigVarInputVisibility {
   visibleToOrgDeployer?: boolean;
 }
 
+/** Deployment conditions for configuration variables, validated by the platform. */
+export interface ConfigVarConditions {
+  /** Whether an active config variable must have a value. Defaults to true. */
+  required?: boolean;
+  /** Omit to keep this config variable active unconditionally. */
+  activeIf?: ConditionalExpression;
+}
+
 /** Common attribute shared by all types of config variables. */
 export type BaseConfigVar = {
   /** A unique, unchanging value that is used to maintain identity for the config variable even if the key changes. */
   stableKey: string;
   /** Description for this config variable. */
   description?: string;
-} & ConfigVarVisibility;
+} & ConfigVarVisibility &
+  ConfigVarConditions;
 
 type GetDynamicProperties<
   TValue,
@@ -238,7 +249,9 @@ type JsonFormDataSourceDefinitionConfigVar = DataSourceDefinitionConfigVar & {
   dataSourceReset?: DataSourceReset;
 };
 
-type HtmlElementConfigVar = CreateStandardConfigVar<"htmlElement">;
+type HtmlElementConfigVar = CreateStandardConfigVar<"htmlElement"> & {
+  required?: never;
+};
 
 export type StandardConfigVar =
   | StringConfigVar
@@ -417,7 +430,7 @@ type GetDataSourceReference<
  * Not exported. Mapping an element to its runtime type is the same work whichever page
  * it was declared on, so the helpers below should not appear to require a page kind.
  */
-type AnyPageElement = string | ConfigVar;
+type AnyPageElement = string | HtmlElement | ConfigVar;
 
 type DataSourceToRuntimeType<TElement extends AnyPageElement> =
   TElement extends DataSourceDefinitionConfigVar

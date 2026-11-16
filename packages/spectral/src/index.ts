@@ -578,7 +578,9 @@ export const connectionConfigVar = <T extends ConnectionConfigVar = ConnectionCo
  *   stableKey: "shared-slack-connection",
  * });
  */
-export const customerActivatedConnection = <T extends { stableKey: string }>(
+export const customerActivatedConnection = <
+  T extends Omit<CustomerActivatedConnectionConfigVar, "dataType">,
+>(
   definition: T,
 ): CustomerActivatedConnectionConfigVar => {
   return { ...definition, dataType: "connection" };
@@ -599,7 +601,9 @@ export const customerActivatedConnection = <T extends { stableKey: string }>(
  *   stableKey: "org-slack-connection",
  * });
  */
-export const organizationActivatedConnection = <T extends { stableKey: string }>(
+export const organizationActivatedConnection = <
+  T extends Omit<OrganizationActivatedConnectionConfigVar, "dataType">,
+>(
   definition: T,
 ): OrganizationActivatedConnectionConfigVar => {
   return { ...definition, dataType: "connection" };
@@ -620,7 +624,9 @@ export const organizationActivatedConnection = <T extends { stableKey: string }>
  *   stableKey: "user-slack-connection",
  * });
  */
-export const userActivatedConnection = <T extends { stableKey: string }>(
+export const userActivatedConnection = <
+  T extends Omit<UserActivatedConnectionConfigVar, "dataType">,
+>(
   definition: T,
 ): UserActivatedConnectionConfigVar => {
   return { ...definition, dataType: "userScopedConnection" };
