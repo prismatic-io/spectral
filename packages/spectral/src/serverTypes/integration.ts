@@ -89,6 +89,42 @@ export interface DefaultRequiredConfigVariable {
   meta?: Record<string, unknown>;
 }
 
+export interface FieldMappingStaticOptionDefinition {
+  key: string;
+  label?: string;
+}
+
+/** A side has exactly one of `dataSource` or `staticOptions`. */
+export type FieldMappingSideDefinition =
+  | { dataSource: ComponentReference; inputs?: Record<string, Input> }
+  | { staticOptions: FieldMappingStaticOptionDefinition[] };
+
+export interface FieldMappingRuleDefinition {
+  mode: "required" | "optional" | "static";
+  sourceField?: string;
+  destField?: string;
+}
+
+export interface FieldMappingDefinition {
+  source: FieldMappingSideDefinition;
+  destination: FieldMappingSideDefinition;
+  allowAdditionalMappings?: boolean;
+  allowNewFields?: boolean;
+  rules?: FieldMappingRuleDefinition[];
+}
+
+export interface FieldMappingRequiredConfigVariable {
+  key: string;
+  stableKey: string;
+  description?: string;
+  orgOnly?: boolean;
+  dataType: "fieldMapping";
+  fieldMapping: FieldMappingDefinition;
+  /** The platform refuses top-level inputs on a field mapping. Each side has its own inputs. */
+  inputs?: never;
+  meta?: Record<string, unknown>;
+}
+
 export interface OrganizationActivatedConnectionRequiredConfigVariable {
   key: string;
   dataType: "connection";
@@ -99,7 +135,8 @@ export interface OrganizationActivatedConnectionRequiredConfigVariable {
 export type RequiredConfigVariable =
   | DefaultRequiredConfigVariable
   | ConnectionRequiredConfigVariable
-  | OrganizationActivatedConnectionRequiredConfigVariable;
+  | OrganizationActivatedConnectionRequiredConfigVariable
+  | FieldMappingRequiredConfigVariable;
 
 export interface ConfigPage {
   name: string;

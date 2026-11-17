@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import YAML from "yaml";
 import {
   batchFlowTrigger,
   configPage,
@@ -11,7 +12,13 @@ import {
   userActivatedConnection,
   userLevelConfigPage,
 } from "..";
-import type { ConfigVar, TriggerPayload, TriggerReference } from "../types";
+import type {
+  ActionContext,
+  ComponentRegistry,
+  ConfigVar,
+  TriggerPayload,
+  TriggerReference,
+} from "../types";
 import {
   convertConfigPages,
   convertConfigVar,
@@ -1098,6 +1105,286 @@ describe("convertConfigVar", () => {
 
       expect("scheduleType" in result && result.scheduleType).toBe("hour");
     });
+  });
+
+  describe("field mapping config vars", () => {
+    // Modeled on the platform acceptance test component `fieldMappingComponent.ts`.
+    const fieldMappingRegistry = {
+      fieldMappingDataSources: {
+        key: "fieldMappingDataSources",
+        public: false,
+        signature: "field-mapping-signature",
+        actions: {},
+        triggers: {},
+        dataSources: {
+          listSourceFields: {
+            key: "listSourceFields",
+            dataSourceType: "picklist",
+            inputs: { objectName: { inputType: "string" } },
+          },
+          objectName: {
+            key: "objectName",
+            dataSourceType: "string",
+            inputs: {},
+          },
+        },
+        connections: {},
+      },
+    } as unknown as ComponentRegistry;
+
+    const sourceReference = {
+      component: "fieldMappingDataSources",
+      key: "listSourceFields",
+      values: { objectName: { value: "Lead" } },
+    };
+    const staticDestination = { staticOptions: [{ key: "Email", label: "Email" }] };
+    const inlineSide = { perform: async () => ({ result: ["Email"] }) };
+
+    it("writes the field mapping block for a reference side and a static side", () => {
+      const result = convertConfigVar(
+        "Contact Field Mapping",
+        configVar({
+          stableKey: "contact-field-mapping",
+          dataType: "fieldMapping",
+          description: "Map leads to contacts",
+          source: sourceReference,
+          destination: staticDestination,
+          rules: [
+            { mode: "static", sourceField: "Lead.email", destField: "Email" },
+            { mode: "required", destField: "LastName" },
+          ],
+          allowAdditionalMappings: true,
+          allowNewFields: false,
+        }),
+        referenceKey,
+        fieldMappingRegistry,
+      );
+
+      expect(result).toEqual({
+        key: "Contact Field Mapping",
+        stableKey: "contact-field-mapping",
+        description: "Map leads to contacts",
+        dataType: "fieldMapping",
+        orgOnly: false,
+        meta: { visibleToCustomerDeployer: true, visibleToOrgDeployer: true },
+        fieldMapping: {
+          source: {
+            dataSource: {
+              component: {
+                key: "fieldMappingDataSources",
+                signature: "field-mapping-signature",
+                isPublic: false,
+              },
+              key: "listSourceFields",
+            },
+            inputs: {
+              objectName: {
+                type: "value",
+                value: "Lead",
+                meta: {
+                  orgOnly: false,
+                  visibleToCustomerDeployer: true,
+                  visibleToOrgDeployer: true,
+                },
+              },
+            },
+          },
+          destination: { staticOptions: [{ key: "Email", label: "Email" }] },
+          allowAdditionalMappings: true,
+          allowNewFields: false,
+          rules: [
+            { mode: "static", sourceField: "Lead.email", destField: "Email" },
+            { mode: "required", destField: "LastName" },
+          ],
+        },
+      });
+    });
+
+    it("writes an inline side as a data source of the CNI component", () => {
+      const result = convertConfigVar(
+        "Contact Field Mapping",
+        configVar({
+          stableKey: "contact-field-mapping",
+          dataType: "fieldMapping",
+          source: inlineSide,
+          destination: inlineSide,
+        }),
+        referenceKey,
+        fieldMappingRegistry,
+      );
+
+      const component = { key: referenceKey, version: "LATEST", isPublic: false };
+      expect("fieldMapping" in result && result.fieldMapping).toMatchObject({
+        source: { dataSource: { key: "contactFieldMappingSource", component } },
+        destination: { dataSource: { key: "contactFieldMappingDestination", component } },
+      });
+      expect("fieldMapping" in result && result.fieldMapping.source).not.toHaveProperty("inputs");
+      expect("fieldMapping" in result && result.fieldMapping.destination).not.toHaveProperty(
+        "inputs",
+      );
+    });
+
+    it("writes no attribute that the platform refuses for a field mapping", () => {
+      const result = convertConfigVar(
+        "Contact Field Mapping",
+        configVar({
+          stableKey: "contact-field-mapping",
+          dataType: "fieldMapping",
+          source: sourceReference,
+          destination: staticDestination,
+        }),
+        referenceKey,
+        fieldMappingRegistry,
+      );
+
+      for (const attribute of [
+        "defaultValue",
+        "collectionType",
+        "pickList",
+        "dataSource",
+        "inputs",
+      ]) {
+        expect(result).not.toHaveProperty(attribute);
+      }
+    });
+
+    it("sets orgOnly and meta from the visibility", () => {
+      const visibility = {
+        permissionAndVisibilityType: "organization",
+        visibleToOrgDeployer: false,
+      } as const;
+      const result = convertConfigVar(
+        "Contact Field Mapping",
+        configVar({
+          stableKey: "contact-field-mapping",
+          dataType: "fieldMapping",
+          source: staticDestination,
+          destination: staticDestination,
+          ...visibility,
+        }),
+        referenceKey,
+        fieldMappingRegistry,
+      );
+      const stringResult = convertConfigVar(
+        "A String",
+        configVar({ stableKey: "a-string", dataType: "string", ...visibility }),
+        referenceKey,
+        fieldMappingRegistry,
+      );
+
+      expect(result).toMatchObject({ orgOnly: true });
+      expect("meta" in result && result.meta).toEqual("meta" in stringResult && stringResult.meta);
+    });
+
+    it("refuses a side that references a data source that is not a picklist", () => {
+      expect(() =>
+        convertConfigVar(
+          "Contact Field Mapping",
+          configVar({
+            stableKey: "contact-field-mapping",
+            dataType: "fieldMapping",
+            source: { component: "fieldMappingDataSources", key: "objectName", values: {} },
+            destination: staticDestination,
+          }),
+          referenceKey,
+          fieldMappingRegistry,
+        ),
+      ).toThrow(
+        'Field mapping "Contact Field Mapping" source must use a picklist data source. Data source "objectName" of component "fieldMappingDataSources" is a string data source.',
+      );
+    });
+  });
+});
+
+describe("field mapping config vars in an integration", () => {
+  const sourceFields = { result: [{ key: "email", label: "Email" }] };
+  const fieldMappingIntegration = () =>
+    integration({
+      name: "Field Mapping Integration",
+      flows: [
+        flow({
+          name: "Field Mapping Flow",
+          stableKey: "field-mapping-flow",
+          description: "Reads the field mapping",
+          onExecution: async () => ({ data: null }),
+        }),
+      ],
+      configPages: {
+        Mapping: configPage({
+          elements: {
+            "Contact Field Mapping": configVar({
+              stableKey: "contact-field-mapping",
+              dataType: "fieldMapping",
+              source: { perform: async () => sourceFields },
+              destination: { staticOptions: [{ key: "Email" }] },
+            }),
+          },
+        }),
+      },
+    });
+
+  it("publishes each inline side as a picklist data source of the CNI component", async () => {
+    const cni = fieldMappingIntegration();
+    const dataSource = cni.dataSources.contactFieldMappingSource;
+
+    expect(dataSource).toMatchObject({
+      key: "contactFieldMappingSource",
+      dataSourceType: "picklist",
+    });
+    await expect(dataSource.perform({ configVars: {} } as ActionContext, {})).resolves.toEqual(
+      sourceFields,
+    );
+    expect(cni.dataSources).not.toHaveProperty("contactFieldMappingDestination");
+  });
+
+  it("writes the field mapping into the YAML", () => {
+    const cni = fieldMappingIntegration();
+    const definition = YAML.parse(cni.codeNativeIntegrationYAML ?? "");
+    const configVariable = definition.requiredConfigVars.find(
+      ({ key }: { key: string }) => key === "Contact Field Mapping",
+    );
+
+    expect(configVariable).toMatchObject({
+      dataType: "fieldMapping",
+      fieldMapping: {
+        source: {
+          dataSource: {
+            key: "contactFieldMappingSource",
+            component: { version: "LATEST", isPublic: false },
+          },
+        },
+        destination: { staticOptions: [{ key: "Email" }] },
+      },
+    });
+    expect(configVariable.fieldMapping).not.toHaveProperty("rules");
+    expect(configVariable.fieldMapping).not.toHaveProperty("allowAdditionalMappings");
+    expect(configVariable.fieldMapping).not.toHaveProperty("allowNewFields");
+  });
+
+  it("refuses a field mapping data source key that another config var uses", () => {
+    expect(() =>
+      integration({
+        name: "Field Mapping Collision",
+        flows: [],
+        configPages: {
+          Mapping: configPage({
+            elements: {
+              Contact: configVar({
+                stableKey: "contact",
+                dataType: "fieldMapping",
+                source: { perform: async () => sourceFields },
+                destination: { staticOptions: [{ key: "Email" }] },
+              }),
+              "Contact Source": dataSourceConfigVar({
+                stableKey: "contact-source",
+                dataSourceType: "picklist",
+                perform: async () => ({ result: ["a"] }),
+              }),
+            },
+          }),
+        },
+      }),
+    ).toThrow("Field mapping data source key collision: contactSource");
   });
 });
 
