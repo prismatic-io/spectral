@@ -95,6 +95,28 @@ describe("test flow using connections", () => {
   });
 });
 
+describe("test flow using a field mapping", () => {
+  const fieldMappingFlow = flow({
+    name: "Field Mapping Flow",
+    stableKey: "field-mapping-flow",
+    description: "This is a field mapping flow",
+    onExecution: async (context) => {
+      return Promise.resolve({ data: context.configVars });
+    },
+  });
+
+  it("gives the field mapping rows to the flow", async () => {
+    const rows = [
+      { key: "email", value: "Email" },
+      { key: "lastName", value: "LastName" },
+    ];
+    const { result } = await invokeFlow(fieldMappingFlow, {
+      configVars: { "Lead Mapping": rows },
+    });
+    expect(result).toEqual({ data: { "Lead Mapping": rows } });
+  });
+});
+
 describe("test a flow of an integration with a configuration", () => {
   // `configuration`, `userConfiguration`, and `connections` are options once an
   // integration augments `IntegrationDefinitionConfiguration`, which is global to a

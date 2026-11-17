@@ -43,6 +43,12 @@ export type ObjectFieldMap = {
   }[];
 };
 
+/**
+ * The value of a field mapping config variable. Each row maps a source field (`key`)
+ * to a destination field (`value`). The rows are in the order that the deploying user set.
+ */
+export type FieldMappingValue = KeyValuePair<string>[];
+
 export type Schedule = {
   value: string;
   schedule_type: string;
@@ -495,7 +501,7 @@ export type InputFieldCollection = "valuelist" | "keyvaluelist";
 /** Config variable result collection. */
 export type ConfigVarResultCollection = Record<
   string,
-  string | Schedule | Connection | unknown | ObjectSelection | ObjectFieldMap
+  string | Schedule | Connection | unknown | ObjectSelection | ObjectFieldMap | FieldMappingValue
 >;
 
 export type FlowInputField = BaseInputField & {
