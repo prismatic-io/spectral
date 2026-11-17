@@ -35,8 +35,8 @@
   },
   "devDependencies": {
     "@types/eslint": "9.6.1",
-    "@types/node": "26.6.5",
-    "eslint": "^10.13.0",
+    "@types/node": "26.6.6",
+    "eslint": "^10.14.0",
     "prettier": "^3",
     "typescript": "^6"
   },
