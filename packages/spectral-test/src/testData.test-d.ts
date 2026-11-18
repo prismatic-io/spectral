@@ -157,6 +157,44 @@ export const configPages = {
       }),
     },
   }),
+  "Field Mapping Page": configPage({
+    elements: {
+      "Contact Field Mapping": configVar({
+        stableKey: "contact-field-mapping",
+        dataType: "fieldMapping",
+        source: {
+          component: "slack",
+          key: "selectChannels",
+          values: {
+            connection: { configVar: "A String" },
+            includeImChannels: { value: true },
+            includeMultiPartyImchannels: { value: true },
+            includePublicChannels: { value: true },
+            includePrivateChannels: { value: false },
+            showIdInDropdown: { value: false },
+          },
+        },
+        destination: {
+          staticOptions: [{ key: "Email", label: "Email" }, { key: "LastName" }],
+        },
+        rules: [
+          { mode: "static", sourceField: "email", destField: "Email" },
+          { mode: "required", destField: "LastName" },
+        ],
+        allowAdditionalMappings: true,
+      }),
+      "Inline Field Mapping": configVar({
+        stableKey: "inline-field-mapping",
+        dataType: "fieldMapping",
+        source: {
+          perform: async () => ({ result: [{ key: "email", label: "Email" }] }),
+        },
+        destination: {
+          perform: async () => ({ result: ["Email", "LastName"] }),
+        },
+      }),
+    },
+  }),
 };
 
 export const componentRegistry = {

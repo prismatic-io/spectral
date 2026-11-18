@@ -4,9 +4,11 @@ import type {
   ConfigVars,
   Connection,
   DataSourceConfigVar,
+  FieldMappingSide,
+  FieldMappingValue,
 } from "@prismatic-io/spectral";
-import { OAuth2Type } from "@prismatic-io/spectral";
-import { expectAssignable, expectNotType } from "tsd";
+import { isFieldMappingConfigVar, OAuth2Type } from "@prismatic-io/spectral";
+import { expectAssignable, expectNotAssignable, expectNotType, expectType } from "tsd";
 
 type RawConnectionElems = ConfigPages[keyof ConfigPages]["elements"];
 expectAssignable<"A Connection" | "Ref Connection">(null as unknown as keyof RawConnectionElems);
@@ -118,3 +120,118 @@ createDataSourceConfigVar({
   dataSourceType: "schedule",
   collectionType: "valuelist",
 });
+
+// A field mapping config var gives the flow its rows.
+expectType<FieldMappingValue>(null as unknown as ConfigVars["Contact Field Mapping"]);
+
+const staticFieldMappingSide = { staticOptions: [{ key: "Email", label: "Email" }] };
+
+// Each side is a picklist data source reference, an inline picklist, or static options.
+expectAssignable<ConfigVar>({
+  stableKey: "reference-field-mapping",
+  dataType: "fieldMapping",
+  source: {
+    component: "slack",
+    key: "selectChannels",
+    values: {
+      connection: { configVar: "A String" },
+      includeImChannels: { value: true },
+      includeMultiPartyImchannels: { value: true },
+      includePublicChannels: { value: true },
+      includePrivateChannels: { value: false },
+      showIdInDropdown: { value: false },
+    },
+  },
+  destination: staticFieldMappingSide,
+});
+
+expectAssignable<ConfigVar>({
+  stableKey: "inline-field-mapping",
+  dataType: "fieldMapping",
+  source: { perform: async () => Promise.resolve({ result: ["email"] }) },
+  destination: { perform: async () => Promise.resolve({ result: [{ key: "Email" }] }) },
+});
+
+expectAssignable<ConfigVar>({
+  stableKey: "static-field-mapping",
+  dataType: "fieldMapping",
+  source: staticFieldMappingSide,
+  destination: staticFieldMappingSide,
+  rules: [
+    { mode: "static", sourceField: "email", destField: "Email" },
+    { mode: "required", sourceField: "lastName" },
+    { mode: "optional", destField: "Email" },
+  ],
+  allowAdditionalMappings: true,
+  allowNewFields: false,
+});
+
+// A side cannot reference a data source that is not a picklist.
+expectNotAssignable<ConfigVar>({
+  stableKey: "string-data-source-field-mapping",
+  dataType: "fieldMapping",
+  source: {
+    component: "example",
+    key: "stringDataSource",
+    values: { bar: { value: "foo" } },
+  },
+  destination: staticFieldMappingSide,
+});
+
+// A field mapping has no default value.
+expectNotAssignable<ConfigVar>({
+  stableKey: "default-field-mapping",
+  dataType: "fieldMapping",
+  source: staticFieldMappingSide,
+  destination: staticFieldMappingSide,
+  defaultValue: [{ key: "a", value: "b" }],
+});
+
+// A field mapping is not a collection.
+expectNotAssignable<ConfigVar>({
+  stableKey: "collection-field-mapping",
+  dataType: "fieldMapping",
+  source: staticFieldMappingSide,
+  destination: staticFieldMappingSide,
+  collectionType: "valuelist",
+});
+
+// A static rule needs both fields.
+expectNotAssignable<ConfigVar>({
+  stableKey: "static-rule-field-mapping",
+  dataType: "fieldMapping",
+  source: staticFieldMappingSide,
+  destination: staticFieldMappingSide,
+  rules: [{ mode: "static", sourceField: "a" }],
+});
+
+// A required or optional rule needs at least one field.
+expectNotAssignable<ConfigVar>({
+  stableKey: "empty-rule-field-mapping",
+  dataType: "fieldMapping",
+  source: staticFieldMappingSide,
+  destination: staticFieldMappingSide,
+  rules: [{ mode: "required" }],
+});
+
+// A rule mode is required, optional or static.
+expectNotAssignable<ConfigVar>({
+  stableKey: "locked-rule-field-mapping",
+  dataType: "fieldMapping",
+  source: staticFieldMappingSide,
+  destination: staticFieldMappingSide,
+  rules: [{ mode: "locked", sourceField: "a", destField: "b" }],
+});
+
+// A field mapping needs both sides.
+expectNotAssignable<ConfigVar>({
+  stableKey: "one-side-field-mapping",
+  dataType: "fieldMapping",
+  source: staticFieldMappingSide,
+});
+
+declare const anyConfigVar: ConfigVar;
+if (isFieldMappingConfigVar(anyConfigVar)) {
+  expectType<"fieldMapping">(anyConfigVar.dataType);
+  expectType<FieldMappingSide>(anyConfigVar.source);
+}

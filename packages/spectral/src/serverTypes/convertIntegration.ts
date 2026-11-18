@@ -20,6 +20,7 @@ import {
   type ConnectionTemplateInputField,
   DEFAULT_JSON_SCHEMA_VERSION,
   type EndpointType,
+  type FieldMappingSide,
   type Flow,
   type FlowDefinitionFlowSchema,
   type FlowSchedule,
@@ -33,6 +34,7 @@ import {
   isConnectionScopedConfigVar,
   isDataSourceDefinitionConfigVar,
   isDataSourceReferenceConfigVar,
+  isFieldMappingConfigVar,
   isHtmlElementConfigVar,
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
@@ -94,6 +96,7 @@ import {
   type ComponentReference as ServerComponentReference,
   type ConfigPage as ServerConfigPage,
   type DefaultRequiredConfigVariable as ServerDefaultRequiredConfigVariable,
+  type FieldMappingSideDefinition as ServerFieldMappingSideDefinition,
   type Input as ServerInput,
   type RequiredConfigVariable as ServerRequiredConfigVariable,
   type Step as ServerStep,
@@ -1355,6 +1358,44 @@ const validateOnPremConnectionConfig = (
   return "disallowed";
 };
 
+type FieldMappingSideName = "source" | "destination";
+
+/** The key of the CNI component data source that runs a field mapping side's inline `perform`. */
+const fieldMappingDataSourceKey = (configVarKey: string, side: FieldMappingSideName): string =>
+  camelCase(`${configVarKey} ${side}`);
+
+/** Converts one side of a field mapping config var into its YAML shape. */
+const convertFieldMappingSide = (
+  configVarKey: string,
+  side: FieldMappingSideName,
+  definition: FieldMappingSide,
+  referenceKey: string,
+  componentRegistry: ComponentRegistry,
+): ServerFieldMappingSideDefinition => {
+  if ("staticOptions" in definition) {
+    return { staticOptions: definition.staticOptions };
+  }
+
+  if ("perform" in definition) {
+    return {
+      dataSource: {
+        key: fieldMappingDataSourceKey(configVarKey, side),
+        component: codeNativeIntegrationComponentReference(referenceKey),
+      },
+    };
+  }
+
+  const { ref, inputs } = convertComponentReference(definition, componentRegistry, "dataSources");
+  // Without a typed component registry, the types permit a reference to any data source.
+  const { dataSourceType } = componentRegistry[definition.component].dataSources[definition.key];
+  if (dataSourceType !== "picklist") {
+    throw new Error(
+      `Field mapping "${configVarKey}" ${side} must use a picklist data source. Data source "${definition.key}" of component "${definition.component}" is a ${dataSourceType} data source.`,
+    );
+  }
+  return { dataSource: ref, inputs };
+};
+
 /** Converts a Config Var into the structure necessary for YAML generation. */
 export const convertConfigVar = (
   key: string,
@@ -1470,6 +1511,40 @@ export const convertConfigVar = (
       meta: {
         ...meta,
         ...("oauth2Config" in configVar ? (configVar.oauth2Config ?? {}) : {}),
+      },
+    };
+  }
+
+  if (isFieldMappingConfigVar(configVar)) {
+    const {
+      stableKey,
+      description,
+      source,
+      destination,
+      rules,
+      allowAdditionalMappings,
+      allowNewFields,
+    } = configVar;
+
+    return {
+      key,
+      stableKey,
+      description,
+      dataType: "fieldMapping",
+      orgOnly,
+      meta,
+      fieldMapping: {
+        source: convertFieldMappingSide(key, "source", source, referenceKey, componentRegistry),
+        destination: convertFieldMappingSide(
+          key,
+          "destination",
+          destination,
+          referenceKey,
+          componentRegistry,
+        ),
+        allowAdditionalMappings,
+        allowNewFields,
+        rules,
       },
     };
   }
@@ -2301,6 +2376,23 @@ const codeNativeIntegrationComponent = <
 
   for (const [key, configVar] of Object.entries(configVars)) {
     if (isDataSourceDefinitionConfigVar(configVar)) addDataSource(camelCase(key), configVar, key);
+  }
+
+  // Each field mapping side with an inline `perform` is a picklist data source of this component.
+  for (const [key, configVar] of Object.entries(configVars)) {
+    if (!isFieldMappingConfigVar(configVar)) continue;
+    for (const side of ["source", "destination"] as const) {
+      const definition = configVar[side];
+      if (!("perform" in definition)) continue;
+      const dataSourceKey = fieldMappingDataSourceKey(key, side);
+      if (Object.hasOwn(convertedDataSources, dataSourceKey))
+        throw new Error(`Field mapping data source key collision: ${dataSourceKey}`);
+      addDataSource(
+        dataSourceKey,
+        { dataSourceType: "picklist", perform: definition.perform },
+        `${key} ${side}`,
+      );
+    }
   }
 
   const convertedConnections = Object.entries(configVars).reduce<ServerConnection[]>(

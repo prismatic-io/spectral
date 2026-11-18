@@ -18,6 +18,12 @@ export const configPages = {
         inputs: { token: { label: "Token", type: "string", required: true } },
       }),
       "API Key": configVar({ stableKey: "api-key", dataType: "string" }),
+      "Lead Mapping": configVar({
+        stableKey: "lead-mapping",
+        dataType: "fieldMapping",
+        source: { staticOptions: [{ key: "email" }] },
+        destination: { staticOptions: [{ key: "Email" }] },
+      }),
     },
   }),
 };
@@ -51,3 +57,11 @@ harness.run({ configVars: { "Dropbox Connection": "secret" } });
 harness.run({ configVars: { "API Key": connection } });
 // @ts-expect-error a config var that the integration does not declare
 harness.run({ configVars: { "Missing Key": "key" } });
+
+// A field mapping config var takes its rows, or a JSON string of them.
+harness.run({ configVars: { "Lead Mapping": [{ key: "email", value: "Email" }] } });
+harness.run({ configVars: { "Lead Mapping": '[{"key":"email","value":"Email"}]' } });
+// @ts-expect-error a field mapping row needs a string value
+harness.run({ configVars: { "Lead Mapping": [{ key: "email" }] } });
+// @ts-expect-error a string config var does not take rows
+harness.run({ configVars: { "API Key": [{ key: "a", value: "b" }] } });

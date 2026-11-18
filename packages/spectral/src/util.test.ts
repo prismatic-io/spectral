@@ -561,6 +561,49 @@ describe("util", () => {
     });
   });
 
+  describe("fieldMapping", () => {
+    const invalidValues: unknown[] = [
+      { "Lead.email": "Email" },
+      [{ key: "Lead.email" }],
+      [{ key: "Lead.email", value: 1 }],
+      [null],
+    ];
+
+    test("detects valid values", () => {
+      const v = [{ key: "Lead.email", value: "Email" }];
+      expect(util.types.isFieldMapping(v)).toStrictEqual(true);
+      expect(util.types.isFieldMapping(JSON.stringify(v))).toStrictEqual(true);
+      expect(util.types.isFieldMapping([])).toStrictEqual(true);
+      expect(util.types.isFieldMapping("[]")).toStrictEqual(true);
+    });
+
+    test("detects invalid values", () => {
+      for (const v of invalidValues) {
+        expect(util.types.isFieldMapping(v)).toStrictEqual(false);
+        expect(util.types.isFieldMapping(JSON.stringify(v))).toStrictEqual(false);
+      }
+      expect(util.types.isFieldMapping("not json")).toStrictEqual(false);
+      expect(util.types.isFieldMapping(undefined)).toStrictEqual(false);
+    });
+
+    test("coerces valid values", () => {
+      const v = [
+        { key: "Lead.email", value: "Email" },
+        { key: "Lead.lastName", value: "LastName" },
+      ];
+      expect(util.types.toFieldMapping(v)).toStrictEqual(v);
+      expect(util.types.toFieldMapping(JSON.stringify(v))).toStrictEqual(v);
+    });
+
+    test("throws on invalid values", () => {
+      const error = "cannot be coerced to FieldMappingValue";
+      for (const v of invalidValues) {
+        expect(() => util.types.toFieldMapping(v)).toThrow(error);
+        expect(() => util.types.toFieldMapping(JSON.stringify(v))).toThrow(error);
+      }
+    });
+  });
+
   describe("jsonForm", () => {
     test("detects valid values", () => {
       const v = { schema: {}, uiSchema: {}, data: {} };
