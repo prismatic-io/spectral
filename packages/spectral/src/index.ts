@@ -498,6 +498,33 @@ export const userLevelConfigPage = <T extends UserLevelConfigPage = UserLevelCon
  *   description: "When to run the sync",
  *   timeZone: "America/Chicago",
  * });
+ *
+ * @example
+ * import { configVar } from "@prismatic-io/spectral";
+ *
+ * // Field mapping config variable. The flow gets the mappings as
+ * // `{ key: sourceField, value: destField }[]`.
+ * const contactFieldMapping = configVar({
+ *   stableKey: "contact-field-mapping",
+ *   dataType: "fieldMapping",
+ *   description: "Map lead fields to contact fields",
+ *   source: {
+ *     component: "salesforce",
+ *     key: "listLeadFields",
+ *     values: { connection: { configVar: "Salesforce Connection" } },
+ *   },
+ *   destination: {
+ *     staticOptions: [
+ *       { key: "Email", label: "Email" },
+ *       { key: "LastName", label: "Last Name" },
+ *     ],
+ *   },
+ *   rules: [
+ *     { mode: "static", sourceField: "Email", destField: "Email" },
+ *     { mode: "required", destField: "LastName" },
+ *   ],
+ *   allowAdditionalMappings: true,
+ * });
  */
 export const configVar = <T extends StandardConfigVar>(definition: T): T => definition;
 

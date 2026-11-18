@@ -44,6 +44,7 @@ import type {
   ConnectionDefinition,
   DataSourceDefinition,
   DataSourceType,
+  FieldMappingValue,
   Flow,
   Inputs,
   IntegrationDefinitionConfiguration,
@@ -550,20 +551,28 @@ export const invokeDataSource = async <
 type TestConnectionValue = Pick<ConnectionValue, "fields" | "context" | "token" | "key">;
 
 /** A `null` connection is one that is not configured. */
-type TestConfigVarValues = Record<string, string | TestConnectionValue | null | undefined>;
+type TestConfigVarValues = Record<
+  string,
+  string | FieldMappingValue | TestConnectionValue | null | undefined
+>;
 
 /**
  * A connection config var takes a test connection, or `null` for one that is not configured.
+ * A field mapping config var takes its rows, or a JSON string of them.
  * Each other config var takes a string.
  */
-type ToKnownTestValue<TValue> = TValue extends Connection ? TestConnectionValue | null : string;
+type ToKnownTestValue<TValue> = TValue extends Connection
+  ? TestConnectionValue | null
+  : TValue extends FieldMappingValue
+    ? FieldMappingValue | string
+    : string;
 
 /**
  * The open `ConfigVarResultCollection` types each value as `unknown`, so a value can be
- * either kind.
+ * of any of these kinds.
  */
 type ToTestValue<TValue> = unknown extends TValue
-  ? string | TestConnectionValue | null
+  ? string | FieldMappingValue | TestConnectionValue | null
   : ToKnownTestValue<TValue>;
 
 /** A test gives only the config vars that the flow reads. */

@@ -1,5 +1,6 @@
 import {
   type Connection,
+  type FieldMappingValue,
   flow,
   integration,
   type ObjectSelection,
@@ -27,6 +28,8 @@ const basicFlow = flow({
     expectAssignable<string>(context.configVars["Ref String Data Source"]);
     expectAssignable<ObjectSelection>(context.configVars["Object Selection Data Source"]);
     expectAssignable<string>(context.configVars["Fourth Page String"]);
+    expectType<FieldMappingValue>(context.configVars["Contact Field Mapping"]);
+    expectType<FieldMappingValue>(context.configVars["Inline Field Mapping"]);
     // A packaged component's picklist holds one value unless it declares a collection.
     expectType<string>(context.configVars["Packaged Picklist"]);
     expectType<string[]>(context.configVars["Packaged Picklist List"]);
@@ -45,6 +48,8 @@ const basicFlow = flow({
     expectAssignable<string>(context.configVars["Ref String Data Source"]);
     expectAssignable<ObjectSelection>(context.configVars["Object Selection Data Source"]);
     expectAssignable<string>(context.configVars["Fourth Page String"]);
+    expectType<FieldMappingValue>(context.configVars["Contact Field Mapping"]);
+    expectType<FieldMappingValue>(context.configVars["Inline Field Mapping"]);
 
     expectAssignable<TriggerPayload>(params.onTrigger.results);
 
@@ -60,6 +65,8 @@ const basicFlow = flow({
     expectAssignable<string>(context.configVars["Ref String Data Source"]);
     expectAssignable<ObjectSelection>(context.configVars["Object Selection Data Source"]);
     expectAssignable<string>(context.configVars["Fourth Page String"]);
+    expectType<FieldMappingValue>(context.configVars["Contact Field Mapping"]);
+    expectType<FieldMappingValue>(context.configVars["Inline Field Mapping"]);
 
     return Promise.resolve<TriggerEventFunctionReturn>({});
   },
@@ -73,6 +80,8 @@ const basicFlow = flow({
     expectAssignable<string>(context.configVars["Ref String Data Source"]);
     expectAssignable<ObjectSelection>(context.configVars["Object Selection Data Source"]);
     expectAssignable<string>(context.configVars["Fourth Page String"]);
+    expectType<FieldMappingValue>(context.configVars["Contact Field Mapping"]);
+    expectType<FieldMappingValue>(context.configVars["Inline Field Mapping"]);
 
     return Promise.resolve<TriggerEventFunctionReturn>({});
   },

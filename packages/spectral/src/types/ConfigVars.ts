@@ -17,10 +17,13 @@ import type {
   OAuth2Type,
 } from "./ConnectionDefinition";
 import type { DataSourceDefinition } from "./DataSourceDefinition";
+import type { DataSourcePerformFunction } from "./DataSourcePerformFunction";
 import type { CollectionDataSourceType, DataSourceType } from "./DataSourceResult";
 import type {
   ConfigVarResultCollection,
   Connection,
+  Element,
+  FieldMappingValue,
   Inputs,
   JSONForm,
   ObjectFieldMap,
@@ -43,6 +46,7 @@ export type ConfigVarDataType =
   | "schedule"
   | "objectSelection"
   | "objectFieldMap"
+  | "fieldMapping"
   | "jsonForm"
   | "htmlElement";
 
@@ -58,6 +62,8 @@ type ConfigVarDataTypeDefaultValueMap<
     schedule: string;
     objectSelection: ObjectSelection;
     objectFieldMap: ObjectFieldMap;
+    /** A field mapping has no default value. Its static and fully pinned rules give the first value. */
+    fieldMapping: never;
     jsonForm: JSONForm;
     htmlElement: string;
   },
@@ -75,6 +81,7 @@ type ConfigVarDataTypeRuntimeValueMap<
     schedule: Schedule;
     objectSelection: ObjectSelection;
     objectFieldMap: ObjectFieldMap;
+    fieldMapping: FieldMappingValue;
     jsonForm: unknown;
     htmlElement: string;
   },
@@ -85,7 +92,7 @@ export type CollectionType = "valuelist" | "keyvaluelist";
 
 type ConfigVarSingleDataType = Extract<
   ConfigVarDataType,
-  "schedule" | "objectSelection" | "objectFieldMap" | "jsonForm"
+  "schedule" | "objectSelection" | "objectFieldMap" | "fieldMapping" | "jsonForm"
 >;
 
 export type PermissionAndVisibilityType = "customer" | "embedded" | "organization";
@@ -222,6 +229,64 @@ type ObjectSelectionConfigVar = CreateStandardConfigVar<"objectSelection">;
 
 type ObjectFieldMapConfigVar = CreateStandardConfigVar<"objectFieldMap">;
 
+/** How the deploying user can change a mapping rule. */
+export type FieldMappingRuleMode = "required" | "optional" | "static";
+
+/**
+ * A mapping that the author defines. The config wizard shows the rules in this order.
+ *
+ * - `static`: maps `sourceField` to `destField`. The deploying user cannot change it.
+ * - `required`: pins one or both fields. The value must have a mapping that matches it.
+ * - `optional`: pins one or both fields. The deploying user can change or remove it.
+ */
+export type FieldMappingRule =
+  | { mode: "static"; sourceField: string; destField: string }
+  | { mode: "required" | "optional"; sourceField: string; destField?: string }
+  | { mode: "required" | "optional"; sourceField?: string; destField: string };
+
+/**
+ * A picklist data source of a component in the component registry. Without a typed
+ * registry, every data source reference is permitted.
+ */
+export type FieldMappingDataSourceReference = ComponentRegistryDataSource extends infer TDataSource
+  ? TDataSource extends ComponentRegistryDataSource
+    ? "picklist" extends TDataSource["dataSourceType"]
+      ? TDataSource["reference"]
+      : never
+    : never
+  : never;
+
+/** A picklist data source that the integration defines inline. */
+export type FieldMappingInlineDataSource = {
+  /** Gets the fields of this side for the config wizard. */
+  perform: DataSourcePerformFunction<Inputs, ConfigVarResultCollection, "picklist">;
+};
+
+/** Fields that the author supplies. The platform needs at least one. */
+export type FieldMappingStaticOptions = {
+  staticOptions: Element[];
+};
+
+/** Where the fields of one side of a field mapping come from. */
+export type FieldMappingSide =
+  | FieldMappingDataSourceReference
+  | FieldMappingInlineDataSource
+  | FieldMappingStaticOptions;
+
+/** A config variable that maps the fields of a source to the fields of a destination. */
+export type FieldMappingConfigVar = CreateStandardConfigVar<"fieldMapping"> & {
+  /** Where the source fields come from. */
+  source: FieldMappingSide;
+  /** Where the destination fields come from. */
+  destination: FieldMappingSide;
+  /** The mappings that the author defines. */
+  rules?: FieldMappingRule[];
+  /** If true, the deploying user can add mappings that are not rules. @default false */
+  allowAdditionalMappings?: boolean;
+  /** If true, the deploying user can map fields that the sides do not list. @default false */
+  allowNewFields?: boolean;
+};
+
 type DataSourceReset = {
   /** Either always prompt a user to reset the data source when a dependent config variable changes, or always reset the data source */
   mode: "prompt" | "always";
@@ -251,6 +316,7 @@ export type StandardConfigVar =
   | ScheduleConfigVar
   | ObjectSelectionConfigVar
   | ObjectFieldMapConfigVar
+  | FieldMappingConfigVar
   | JsonFormConfigVar
   | HtmlElementConfigVar;
 
@@ -501,6 +567,9 @@ export const isHtmlElementConfigVar = (cv: ConfigVar): cv is HtmlElementConfigVa
 
 export const isCodeConfigVar = (cv: ConfigVar): cv is CodeConfigVar =>
   "dataType" in cv && cv.dataType === "code";
+
+export const isFieldMappingConfigVar = (cv: ConfigVar): cv is FieldMappingConfigVar =>
+  "dataType" in cv && cv.dataType === "fieldMapping";
 
 export const isScheduleConfigVar = (cv: ConfigVar): cv is ScheduleConfigVar =>
   "dataType" in cv && cv.dataType === "schedule";

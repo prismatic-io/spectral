@@ -15,6 +15,7 @@ import type {
   ConnectionDefinition,
   DataPayload,
   Element,
+  FieldMappingValue,
   JSONForm,
   KeyValuePair,
   ObjectFieldMap,
@@ -169,6 +170,65 @@ const toObjectFieldMap = (value: unknown): ObjectFieldMap => {
     `Value '${
       typeof value === "string" ? value : JSON.stringify(value)
     }' cannot be coerced to ObjectFieldMap.`,
+  );
+};
+
+/**
+ * Checks if a value is a field mapping value: a list of objects with a string `key`
+ * (the source field) and a string `value` (the destination field). A JSON string of
+ * such a list is also a field mapping value.
+ *
+ * @param value The value to test
+ * @returns This function returns true if the type of `value` is a FieldMappingValue, or false otherwise.
+ * @example
+ * import { util } from "@prismatic-io/spectral";
+ *
+ * util.types.isFieldMapping([{ key: "Lead.email", value: "Email" }]); // true
+ * util.types.isFieldMapping({ "Lead.email": "Email" }); // false
+ */
+const isFieldMapping = (value: unknown): value is FieldMappingValue => {
+  if (typeof value === "string" && isJSON(value)) {
+    return isFieldMapping(JSON.parse(value));
+  }
+
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (row) =>
+        typeof row === "object" &&
+        row !== null &&
+        typeof (row as Record<string, unknown>).key === "string" &&
+        typeof (row as Record<string, unknown>).value === "string",
+    )
+  );
+};
+
+/**
+ * This function coerces a provided value into a FieldMappingValue if possible.
+ * If the value is a JSON string it will be parsed first. Throws an error if
+ * the value cannot be coerced.
+ *
+ * @param value The value to coerce to FieldMappingValue.
+ * @returns This function returns the value as a FieldMappingValue if possible.
+ * @example
+ * import { util } from "@prismatic-io/spectral";
+ *
+ * const mappings = util.types.toFieldMapping('[{"key":"Lead.email","value":"Email"}]');
+ * // [{ key: "Lead.email", value: "Email" }]
+ */
+const toFieldMapping = (value: unknown): FieldMappingValue => {
+  if (typeof value === "string" && isJSON(value)) {
+    return toFieldMapping(JSON.parse(value));
+  }
+
+  if (isFieldMapping(value)) {
+    return value;
+  }
+
+  throw new Error(
+    `Value '${
+      typeof value === "string" ? value : JSON.stringify(value)
+    }' cannot be coerced to FieldMappingValue.`,
   );
 };
 
@@ -903,6 +963,8 @@ export default {
     toObjectSelection,
     isObjectFieldMap,
     toObjectFieldMap,
+    isFieldMapping,
+    toFieldMapping,
     isJSONForm,
     toJSONForm,
     isPicklist,
