@@ -1,4 +1,6 @@
 import type { StepErrorConfig } from "../types";
+import type { ConfigVarConditions } from "../types/ConfigVars";
+import type { ConditionalExpression } from "../types/conditional-logic";
 
 export const DefinitionVersion = 7;
 
@@ -49,7 +51,7 @@ export interface Step {
   errorConfig?: Partial<StepErrorConfig>;
 }
 
-export interface ConnectionRequiredConfigVariable {
+export interface ConnectionRequiredConfigVariable extends ConfigVarConditions {
   key: string;
   stableKey: string;
   description?: string;
@@ -61,7 +63,7 @@ export interface ConnectionRequiredConfigVariable {
   meta?: Record<string, unknown>;
 }
 
-export interface DefaultRequiredConfigVariable {
+export interface DefaultRequiredConfigVariable extends ConfigVarConditions {
   key: string;
   stableKey: string;
   defaultValue?: string;
@@ -113,7 +115,7 @@ export interface FieldMappingDefinition {
   rules?: FieldMappingRuleDefinition[];
 }
 
-export interface FieldMappingRequiredConfigVariable {
+export interface FieldMappingRequiredConfigVariable extends ConfigVarConditions {
   key: string;
   stableKey: string;
   description?: string;
@@ -125,7 +127,7 @@ export interface FieldMappingRequiredConfigVariable {
   meta?: Record<string, unknown>;
 }
 
-export interface OrganizationActivatedConnectionRequiredConfigVariable {
+export interface OrganizationActivatedConnectionRequiredConfigVariable extends ConfigVarConditions {
   key: string;
   dataType: "connection";
   inputs?: never;
@@ -145,7 +147,14 @@ export interface ConfigPage {
   elements: ConfigPageElement[];
 }
 
-export interface ConfigPageElement {
-  type: "configVar" | "htmlElement" | "jsonForm";
-  value: string;
-}
+export type ConfigPageElement =
+  | {
+      type: "htmlElement";
+      value: string;
+      activeIf?: ConditionalExpression;
+    }
+  | {
+      type: "configVar" | "jsonForm";
+      value: string;
+      activeIf?: never;
+    };

@@ -35,6 +35,7 @@ import {
   isDataSourceDefinitionConfigVar,
   isDataSourceReferenceConfigVar,
   isFieldMappingConfigVar,
+  isHtmlElement,
   isHtmlElementConfigVar,
   isJsonFormConfigVar,
   isJsonFormDataSourceConfigVar,
@@ -283,8 +284,8 @@ export const convertIntegration = <
           Object.entries(configPage.elements as Record<string, AnyConfigPageElement>).reduce<
             Record<string, ConfigVar>
           >((acc, [key, element]) => {
-            // "string" elements are HTML elements and should be ignored.
-            if (typeof element === "string") {
+            // Display-only page elements do not define configuration variables.
+            if (typeof element === "string" || isHtmlElement(element)) {
               return acc;
             }
 
@@ -433,13 +434,19 @@ export const convertConfigPages = (
      * all that marks it user level, so stripping it leaves the connection looking like
      * ordinary instance configuration, which the platform refuses.
      */
-    elements: Object.entries(elements)
+    elements: Object.entries(elements as Record<string, AnyConfigPageElement>)
       .filter(([_key, value]) => !isOrgOrCustomerActivatedConnection(value))
       .map(([key, value]) => {
         if (typeof value === "string") {
           return {
             type: "htmlElement",
             value,
+          };
+        } else if (isHtmlElement(value)) {
+          return {
+            type: "htmlElement",
+            value: value.value,
+            ...(value.activeIf === undefined ? {} : { activeIf: value.activeIf }),
           };
         } else if (
           value &&
@@ -450,6 +457,7 @@ export const convertConfigPages = (
           return {
             type: "htmlElement",
             value: key,
+            ...(value.activeIf === undefined ? {} : { activeIf: value.activeIf }),
           };
         }
 
@@ -1398,6 +1406,17 @@ const convertFieldMappingSide = (
 
 /** Converts a Config Var into the structure necessary for YAML generation. */
 export const convertConfigVar = (
+  key: string,
+  configVar: ConfigVar,
+  referenceKey: string,
+  componentRegistry: ComponentRegistry,
+): ServerRequiredConfigVariable => ({
+  ...convertConfigVarDefinition(key, configVar, referenceKey, componentRegistry),
+  ...(configVar.required === undefined ? {} : { required: configVar.required }),
+  ...(configVar.activeIf === undefined ? {} : { activeIf: configVar.activeIf }),
+});
+
+const convertConfigVarDefinition = (
   key: string,
   configVar: ConfigVar,
   referenceKey: string,
