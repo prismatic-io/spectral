@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import YAML from "yaml";
+import { parse } from "yaml";
 import {
   batchFlowTrigger,
   configPage,
@@ -12,6 +12,7 @@ import {
   userActivatedConnection,
   userLevelConfigPage,
 } from "..";
+import { BinaryOperator, type ConditionalExpression } from "../conditionalLogic/types";
 import type {
   ActionContext,
   ComponentRegistry,
@@ -25,6 +26,29 @@ import {
   convertFlow,
   convertQueueConfig,
 } from "./convertIntegration";
+
+const buildConfigVarKinds = (): Record<
+  string,
+  Exclude<ConfigVar, { dataType: "htmlElement" }>
+> => ({
+  standard: { dataType: "string", stableKey: "standard", defaultValue: "unchanged" },
+  collection: { dataType: "number", stableKey: "collection", collectionType: "valuelist" },
+  fieldMapping: {
+    dataType: "fieldMapping",
+    stableKey: "field-mapping",
+    source: { staticOptions: [{ key: "email" }] },
+    destination: { staticOptions: [{ key: "Email" }] },
+  },
+  dataSource: {
+    stableKey: "data-source",
+    dataSourceType: "string",
+    perform: async () => ({ result: "value" }),
+  },
+  connection: { dataType: "connection", stableKey: "connection", inputs: {} },
+  organization: organizationActivatedConnection({ stableKey: "organization" }),
+  customer: customerActivatedConnection({ stableKey: "customer" }),
+  user: userActivatedConnection({ stableKey: "user" }),
+});
 
 describe("convertFlow with polling triggers", () => {
   const baseFlowInput = {
@@ -504,6 +528,50 @@ describe("convertFlow with polling triggers", () => {
 });
 
 describe("convertConfigPages", () => {
+  it.each([false, true])("preserves HTML conditions on user-level=%s pages", (userLevel) => {
+    const activeIf: ConditionalExpression = [
+      BinaryOperator.equal,
+      { type: "configVar", value: "Region" },
+      { type: "value", value: "EU" },
+    ];
+    const elements = {
+      Region: configVar({ dataType: "string", stableKey: "region" }),
+      conditional: {
+        type: "htmlElement" as const,
+        value: "<img src='example.png'>",
+        activeIf,
+      },
+      unconditional: { type: "htmlElement" as const, value: "<h1>Welcome</h1>" },
+      legacy: "<p>Legacy</p>",
+      "<p>Existing representation</p>": {
+        dataType: "htmlElement" as const,
+        stableKey: "existing",
+        defaultValue: "<p>This is not the legacy element content</p>",
+        activeIf,
+      },
+    };
+    const pages = { Settings: { elements } };
+    const expectedElements = [
+      { type: "configVar", value: "Region" },
+      { type: "htmlElement", value: elements.conditional.value, activeIf },
+      { type: "htmlElement", value: elements.unconditional.value },
+      { type: "htmlElement", value: elements.legacy },
+      { type: "htmlElement", value: "<p>Existing representation</p>", activeIf },
+    ];
+    expect(convertConfigPages(pages, userLevel)[0].elements).toEqual(expectedElements);
+
+    const result = integration({
+      name: "Conditional HTML",
+      flows: [],
+      ...(userLevel ? { userLevelConfigPages: pages } : { configPages: pages }),
+    });
+    const definition = parse(result.codeNativeIntegrationYAML);
+    expect(definition.configPages[0].elements).toEqual(expectedElements);
+    expect(definition.requiredConfigVars.map(({ key }: { key: string }) => key)).toEqual([
+      "Region",
+    ]);
+  });
+
   it("refuses a user-activated connection declared on an ordinary config page", () => {
     const pages = {
       Connections: {
@@ -768,6 +836,96 @@ describe("convertConfigPages", () => {
 describe("convertConfigVar", () => {
   const referenceKey = "test-component";
   const componentRegistry = {};
+
+  describe.each(
+    Object.entries(buildConfigVarKinds()),
+  )("%s deployment conditions", (_kind, configVar) => {
+    const activeIf: ConditionalExpression = [
+      BinaryOperator.equal,
+      { type: "configVar", value: "Region" },
+      { type: "value", value: "EU" },
+    ];
+
+    it.each([true, false])("preserves required=%s and activeIf", (required) => {
+      const result = convertConfigVar(
+        "Setting",
+        { ...configVar, required, activeIf },
+        referenceKey,
+        componentRegistry,
+      );
+      expect(result).toEqual({
+        ...convertConfigVar("Setting", configVar, referenceKey, componentRegistry),
+        required,
+        activeIf,
+      });
+      expect(result.activeIf).toBe(activeIf);
+    });
+
+    it("omits unspecified conditions so platform defaults remain in effect", () => {
+      const result = convertConfigVar("Setting", configVar, referenceKey, componentRegistry);
+      expect(result).not.toHaveProperty("required");
+      expect(result).not.toHaveProperty("activeIf");
+    });
+
+    it("supports requiredness independently of visibility conditions", () => {
+      const result = convertConfigVar(
+        "Setting",
+        { ...configVar, required: false },
+        referenceKey,
+        componentRegistry,
+      );
+      expect(result.required).toBe(false);
+      expect(result).not.toHaveProperty("activeIf");
+    });
+
+    it("supports visibility conditions without overriding requiredness", () => {
+      const result = convertConfigVar(
+        "Setting",
+        { ...configVar, activeIf },
+        referenceKey,
+        componentRegistry,
+      );
+      expect(result.activeIf).toBe(activeIf);
+      expect(result).not.toHaveProperty("required");
+    });
+  });
+
+  it.each([false, true])("emits config variable conditions on user-level=%s pages", (userLevel) => {
+    const activeIf: ConditionalExpression = [
+      BinaryOperator.equal,
+      { type: "configVar", value: "Region" },
+      { type: "value", value: "EU" },
+    ];
+    const pages = {
+      Settings: {
+        elements: {
+          Region: configVar({ dataType: "string", stableKey: "region" }),
+          Endpoint: configVar({
+            dataType: "string",
+            stableKey: "endpoint",
+            required: false,
+            activeIf,
+          }),
+        },
+      },
+    };
+    const result = integration({
+      name: "Conditional config variables",
+      flows: [],
+      ...(userLevel ? { userLevelConfigPages: pages } : { configPages: pages }),
+    });
+    const definition = parse(result.codeNativeIntegrationYAML);
+    expect(definition.requiredConfigVars).toEqual([
+      expect.objectContaining({ key: "Region" }),
+      expect.objectContaining({ key: "Endpoint", required: false, activeIf }),
+    ]);
+    expect(definition.requiredConfigVars[0]).not.toHaveProperty("required");
+    expect(definition.requiredConfigVars[0]).not.toHaveProperty("activeIf");
+    expect(definition.configPages[0].elements).toEqual([
+      { type: "configVar", value: "Region" },
+      { type: "configVar", value: "Endpoint" },
+    ]);
+  });
 
   describe("scoped config vars", () => {
     it("emits a reference to the scoped config variable by stable key", () => {
@@ -1339,7 +1497,7 @@ describe("field mapping config vars in an integration", () => {
 
   it("writes the field mapping into the YAML", () => {
     const cni = fieldMappingIntegration();
-    const definition = YAML.parse(cni.codeNativeIntegrationYAML ?? "");
+    const definition = parse(cni.codeNativeIntegrationYAML ?? "");
     const configVariable = definition.requiredConfigVars.find(
       ({ key }: { key: string }) => key === "Contact Field Mapping",
     );
