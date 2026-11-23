@@ -4,12 +4,27 @@ import type {
   DataSourceConfigVar,
   StandardConfigVar,
 } from "./ConfigVars";
+import type { ConditionalExpression } from "./conditional-logic";
 import type {
   CustomerActivatedConnectionConfigVar,
   OrganizationActivatedConnectionConfigVar,
   UserActivatedConnectionConfigVar,
 } from "./ScopedConfigVars";
 import type { UnionToIntersection } from "./utils";
+
+/** Display-only HTML, including image and trigger-details markup. */
+export interface HtmlElement {
+  type: "htmlElement";
+  value: string;
+  /** Omit to display unconditionally. References and operators are validated by the platform. */
+  activeIf?: ConditionalExpression;
+}
+
+export const isHtmlElement = (element: unknown): element is HtmlElement =>
+  typeof element === "object" &&
+  element !== null &&
+  "type" in element &&
+  element.type === "htmlElement";
 
 /**
  * Root ConfigPages type exposed for augmentation.
@@ -46,7 +61,10 @@ export interface IntegrationDefinitionUserLevelConfigPages {}
  * page; anywhere else it emits as an ordinary shared connection, so the author would
  * lose the feature with no error. The convert layer enforces this at build time.
  */
-export type ConfigPageElement = string | Exclude<ConfigVar, UserActivatedConnectionConfigVar>;
+export type ConfigPageElement =
+  | string
+  | HtmlElement
+  | Exclude<ConfigVar, UserActivatedConnectionConfigVar>;
 
 /**
  * What a user level config page may contain.
@@ -66,6 +84,7 @@ export type ConfigPageElement = string | Exclude<ConfigVar, UserActivatedConnect
  */
 export type UserLevelConfigPageElement =
   | string
+  | HtmlElement
   | StandardConfigVar
   | DataSourceConfigVar
   | ConnectionConfigVar
